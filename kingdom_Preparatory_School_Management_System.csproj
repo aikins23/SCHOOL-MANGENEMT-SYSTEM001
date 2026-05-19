@@ -1,0 +1,681 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{20A06B08-89C5-4B7C-9E75-5B8AC12228C5}</ProjectGuid>
+    <OutputType>WinExe</OutputType>
+    <RootNamespace>kingdom_Preparatory_School_Management_System</RootNamespace>
+    <AssemblyName>kingdom_Preparatory_School_Management_System</AssemblyName>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <Deterministic>true</Deterministic>
+    <NuGetPackageImportStamp>
+    </NuGetPackageImportStamp>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x86'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\x86\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DebugType>full</DebugType>
+    <PlatformTarget>x86</PlatformTarget>
+    <LangVersion>7.3</LangVersion>
+    <ErrorReport>prompt</ErrorReport>
+    <Prefer32Bit>true</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x86'">
+    <OutputPath>bin\x86\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+    <PlatformTarget>x86</PlatformTarget>
+    <LangVersion>7.3</LangVersion>
+    <ErrorReport>prompt</ErrorReport>
+    <Prefer32Bit>true</Prefer32Bit>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Bunifu_UI_v1.5.3">
+      <HintPath>lib\Bunifu_UI_v1.5.3.dll</HintPath>
+    </Reference>
+    <Reference Include="CrystalDecisions.CrystalReports.Engine, Version=13.0.3500.0, Culture=neutral, PublicKeyToken=692fbea5521e1304, processorArchitecture=MSIL" />
+    <Reference Include="CrystalDecisions.ReportSource, Version=13.0.3500.0, Culture=neutral, PublicKeyToken=692fbea5521e1304" />
+    <Reference Include="CrystalDecisions.Shared, Version=13.0.3500.0, Culture=neutral, PublicKeyToken=692fbea5521e1304" />
+    <Reference Include="CrystalDecisions.Windows.Forms, Version=13.0.3500.0, Culture=neutral, PublicKeyToken=692fbea5521e1304, processorArchitecture=MSIL" />
+    <Reference Include="FlashControlV71, Version=1.0.3187.32366, Culture=neutral, PublicKeyToken=692fbea5521e1304" />
+    <Reference Include="Guna.UI">
+      <HintPath>lib\Guna.UI.dll</HintPath>
+    </Reference>
+    <Reference Include="Guna.UI2">
+      <HintPath>lib\Guna.UI2.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Bcl.AsyncInterfaces, Version=6.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>packages\Microsoft.Bcl.AsyncInterfaces.6.0.0\lib\net461\Microsoft.Bcl.AsyncInterfaces.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.DependencyInjection, Version=6.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
+      <HintPath>packages\Microsoft.Extensions.DependencyInjection.6.0.0\lib\net461\Microsoft.Extensions.DependencyInjection.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.DependencyInjection.Abstractions, Version=6.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
+      <HintPath>packages\Microsoft.Extensions.DependencyInjection.Abstractions.6.0.0\lib\net461\Microsoft.Extensions.DependencyInjection.Abstractions.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.Logging, Version=6.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
+      <HintPath>packages\Microsoft.Extensions.Logging.6.0.0\lib\net461\Microsoft.Extensions.Logging.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.Logging.Abstractions, Version=6.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
+      <HintPath>packages\Microsoft.Extensions.Logging.Abstractions.6.0.0\lib\net461\Microsoft.Extensions.Logging.Abstractions.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.Options, Version=6.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
+      <HintPath>packages\Microsoft.Extensions.Options.6.0.0\lib\net461\Microsoft.Extensions.Options.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.Primitives, Version=6.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
+      <HintPath>packages\Microsoft.Extensions.Primitives.6.0.0\lib\net461\Microsoft.Extensions.Primitives.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.VisualBasic" />
+    <Reference Include="PdfSharp, Version=6.1.0.0, Culture=neutral, PublicKeyToken=f94615aa0424f9eb, processorArchitecture=MSIL">
+      <HintPath>packages\PDFsharp.6.1.0\lib\netstandard2.0\PdfSharp.dll</HintPath>
+    </Reference>
+    <Reference Include="PdfSharp.Charting, Version=6.1.0.0, Culture=neutral, PublicKeyToken=f94615aa0424f9eb, processorArchitecture=MSIL">
+      <HintPath>packages\PDFsharp.6.1.0\lib\netstandard2.0\PdfSharp.Charting.dll</HintPath>
+    </Reference>
+    <Reference Include="PdfSharp.Quality, Version=6.1.0.0, Culture=neutral, PublicKeyToken=f94615aa0424f9eb, processorArchitecture=MSIL">
+      <HintPath>packages\PDFsharp.6.1.0\lib\netstandard2.0\PdfSharp.Quality.dll</HintPath>
+    </Reference>
+    <Reference Include="PdfSharp.Snippets, Version=6.1.0.0, Culture=neutral, PublicKeyToken=f94615aa0424f9eb, processorArchitecture=MSIL">
+      <HintPath>packages\PDFsharp.6.1.0\lib\netstandard2.0\PdfSharp.Snippets.dll</HintPath>
+    </Reference>
+    <Reference Include="PdfSharp.System, Version=6.1.0.0, Culture=neutral, PublicKeyToken=f94615aa0424f9eb, processorArchitecture=MSIL">
+      <HintPath>packages\PDFsharp.6.1.0\lib\netstandard2.0\PdfSharp.System.dll</HintPath>
+    </Reference>
+    <Reference Include="PdfSharp.WPFonts, Version=6.1.0.0, Culture=neutral, PublicKeyToken=f94615aa0424f9eb, processorArchitecture=MSIL">
+      <HintPath>packages\PDFsharp.6.1.0\lib\netstandard2.0\PdfSharp.WPFonts.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Buffers, Version=4.0.3.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>packages\System.Buffers.4.5.1\lib\net461\System.Buffers.dll</HintPath>
+    </Reference>
+    <Reference Include="System.ComponentModel.DataAnnotations" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Diagnostics.DiagnosticSource, Version=6.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>packages\System.Diagnostics.DiagnosticSource.6.0.0\lib\net461\System.Diagnostics.DiagnosticSource.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Management" />
+    <Reference Include="System.Memory, Version=4.0.1.1, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>packages\System.Memory.4.5.4\lib\net461\System.Memory.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Numerics" />
+    <Reference Include="System.Numerics.Vectors, Version=4.1.4.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>packages\System.Numerics.Vectors.4.5.0\lib\net46\System.Numerics.Vectors.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Runtime.CompilerServices.Unsafe, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>packages\System.Runtime.CompilerServices.Unsafe.6.0.0\lib\net461\System.Runtime.CompilerServices.Unsafe.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Threading.Tasks.Extensions, Version=4.2.0.1, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>packages\System.Threading.Tasks.Extensions.4.5.4\lib\net461\System.Threading.Tasks.Extensions.dll</HintPath>
+    </Reference>
+    <Reference Include="System.ValueTuple, Version=4.0.3.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>packages\System.ValueTuple.4.5.0\lib\net47\System.ValueTuple.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Web" />
+    <Reference Include="System.Web.Services" />
+    <Reference Include="System.Windows.Forms.DataVisualization" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Deployment" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Common\AppConfig.cs" />
+    <Compile Include="Common\ErrorHandler.cs" />
+    <Compile Include="Common\ImageHelper.cs" />
+    <Compile Include="Common\UIHelper.cs" />
+    <Compile Include="Common\ValidationHelper.cs" />
+    <Compile Include="DataSet1.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>DataSet1.xsd</DependentUpon>
+    </Compile>
+    <Compile Include="DataSet2.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>DataSet2.xsd</DependentUpon>
+    </Compile>
+    <Compile Include="DataSet3.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>DataSet3.xsd</DependentUpon>
+    </Compile>
+    <Compile Include="DataSet4.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>DataSet4.xsd</DependentUpon>
+    </Compile>
+    <Compile Include="Data\IStudentRepository.cs" />
+    <Compile Include="Data\StudentRepository.cs" />
+    <Compile Include="EmpleaveView.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="EmpleaveView.Designer.cs">
+      <DependentUpon>EmpleaveView.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Examples\frmAddStdModern.cs" />
+    <Compile Include="EXAMS.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="EXAMS.Designer.cs">
+      <DependentUpon>EXAMS.cs</DependentUpon>
+    </Compile>
+    <Compile Include="EXAMSVIEW.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="EXAMSVIEW.Designer.cs">
+      <DependentUpon>EXAMSVIEW.cs</DependentUpon>
+    </Compile>
+    <Compile Include="examsviewdetails.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="examsviewdetails.Designer.cs">
+      <DependentUpon>examsviewdetails.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Form1.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Form1.Designer.cs">
+      <DependentUpon>Form1.cs</DependentUpon>
+    </Compile>
+    <Compile Include="frmAbout.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmAbout.Designer.cs">
+      <DependentUpon>frmAbout.cs</DependentUpon>
+    </Compile>
+    <Compile Include="frmAddStd.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmAddStd.Designer.cs">
+      <DependentUpon>frmAddStd.cs</DependentUpon>
+    </Compile>
+    <Compile Include="frmDashboard.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmDashboard.Designer.cs">
+      <DependentUpon>frmDashboard.cs</DependentUpon>
+    </Compile>
+    <Compile Include="frmEmpDetails.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmEmpDetails.Designer.cs">
+      <DependentUpon>frmEmpDetails.cs</DependentUpon>
+    </Compile>
+    <Compile Include="frmEmpLeave.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmEmpLeave.Designer.cs">
+      <DependentUpon>frmEmpLeave.cs</DependentUpon>
+    </Compile>
+    <Compile Include="frmEmployee.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmEmployee.Designer.cs">
+      <DependentUpon>frmEmployee.cs</DependentUpon>
+    </Compile>
+    <Compile Include="frmEmpView.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmEmpView.Designer.cs">
+      <DependentUpon>frmEmpView.cs</DependentUpon>
+    </Compile>
+    <Compile Include="frmFess.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmFess.Designer.cs">
+      <DependentUpon>frmFess.cs</DependentUpon>
+    </Compile>
+    <Compile Include="frmFessPayment.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmFessPayment.Designer.cs">
+      <DependentUpon>frmFessPayment.cs</DependentUpon>
+    </Compile>
+    <Compile Include="frmLeaveApproval.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmLeaveApproval.Designer.cs">
+      <DependentUpon>frmLeaveApproval.cs</DependentUpon>
+    </Compile>
+    <Compile Include="frmLeaveDetails.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmLeaveDetails.Designer.cs">
+      <DependentUpon>frmLeaveDetails.cs</DependentUpon>
+    </Compile>
+    <Compile Include="frmlogin.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmlogin.Designer.cs">
+      <DependentUpon>frmlogin.cs</DependentUpon>
+    </Compile>
+    <Compile Include="frmRegistration.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmRegistration.Designer.cs">
+      <DependentUpon>frmRegistration.cs</DependentUpon>
+    </Compile>
+    <Compile Include="frmStdDetails.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmStdDetails.Designer.cs">
+      <DependentUpon>frmStdDetails.cs</DependentUpon>
+    </Compile>
+    <Compile Include="frmStdView.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmStdView.Designer.cs">
+      <DependentUpon>frmStdView.cs</DependentUpon>
+    </Compile>
+    <Compile Include="kum.cs" />
+    <Compile Include="load.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="load.Designer.cs">
+      <DependentUpon>load.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Models\Student.cs" />
+    <Compile Include="Program.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Services\AuthService.cs" />
+    <Compile Include="Services\StudentService.cs" />
+    <Compile Include="UiTheme.cs" />
+    <EmbeddedResource Include="EmpleaveView.resx">
+      <DependentUpon>EmpleaveView.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="EXAMS.resx">
+      <DependentUpon>EXAMS.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="EXAMSVIEW.resx">
+      <DependentUpon>EXAMSVIEW.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="examsviewdetails.resx">
+      <DependentUpon>examsviewdetails.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Form1.resx">
+      <DependentUpon>Form1.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="frmAbout.resx">
+      <DependentUpon>frmAbout.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="frmAddStd.resx">
+      <DependentUpon>frmAddStd.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="frmDashboard.resx">
+      <DependentUpon>frmDashboard.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="frmEmpDetails.resx">
+      <DependentUpon>frmEmpDetails.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="frmEmpLeave.resx">
+      <DependentUpon>frmEmpLeave.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="frmEmployee.resx">
+      <DependentUpon>frmEmployee.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="frmEmpView.resx">
+      <DependentUpon>frmEmpView.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="frmFess.resx">
+      <DependentUpon>frmFess.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="frmFessPayment.resx">
+      <DependentUpon>frmFessPayment.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="frmLeaveApproval.resx">
+      <DependentUpon>frmLeaveApproval.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="frmLeaveDetails.resx">
+      <DependentUpon>frmLeaveDetails.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="frmlogin.resx">
+      <DependentUpon>frmlogin.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="frmRegistration.resx">
+      <DependentUpon>frmRegistration.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="frmStdDetails.resx">
+      <DependentUpon>frmStdDetails.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="frmStdView.resx">
+      <DependentUpon>frmStdView.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="load.resx">
+      <DependentUpon>load.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <None Include="App.config" />
+    <None Include="ARCHITECTURE_DIAGRAMS.md" />
+    <None Include="BEFORE_AND_AFTER.md" />
+    <None Include="DataSet1.xsc">
+      <DependentUpon>DataSet1.xsd</DependentUpon>
+    </None>
+    <None Include="DataSet1.xsd">
+      <Generator>MSDataSetGenerator</Generator>
+      <LastGenOutput>DataSet1.Designer.cs</LastGenOutput>
+      <SubType>Designer</SubType>
+    </None>
+    <None Include="DataSet1.xss">
+      <DependentUpon>DataSet1.xsd</DependentUpon>
+    </None>
+    <None Include="DataSet2.xsc">
+      <DependentUpon>DataSet2.xsd</DependentUpon>
+    </None>
+    <None Include="DataSet2.xsd">
+      <Generator>MSDataSetGenerator</Generator>
+      <LastGenOutput>DataSet2.Designer.cs</LastGenOutput>
+      <SubType>Designer</SubType>
+    </None>
+    <None Include="DataSet2.xss">
+      <DependentUpon>DataSet2.xsd</DependentUpon>
+    </None>
+    <None Include="DataSet3.xsc">
+      <DependentUpon>DataSet3.xsd</DependentUpon>
+    </None>
+    <None Include="DataSet3.xsd">
+      <Generator>MSDataSetGenerator</Generator>
+      <LastGenOutput>DataSet3.Designer.cs</LastGenOutput>
+      <SubType>Designer</SubType>
+    </None>
+    <None Include="DataSet3.xss">
+      <DependentUpon>DataSet3.xsd</DependentUpon>
+    </None>
+    <None Include="DataSet4.xsc">
+      <DependentUpon>DataSet4.xsd</DependentUpon>
+    </None>
+    <None Include="DataSet4.xsd">
+      <Generator>MSDataSetGenerator</Generator>
+      <LastGenOutput>DataSet4.Designer.cs</LastGenOutput>
+      <SubType>Designer</SubType>
+    </None>
+    <None Include="DataSet4.xss">
+      <DependentUpon>DataSet4.xsd</DependentUpon>
+    </None>
+    <None Include="DOCUMENTATION_INDEX.md" />
+    <None Include="FINAL_CHECKLIST.md" />
+    <None Include="IMPLEMENTATION_COMPLETE.md" />
+    <None Include="IMPLEMENTATION_SUMMARY.md" />
+    <None Include="MODERNIZATION_GUIDE.md" />
+    <None Include="packages.config" />
+    <None Include="PROJECT_COMPLETE.md" />
+    <None Include="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
+    <Compile Include="Properties\Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\Settings.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Settings.settings</DependentUpon>
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+    </Compile>
+    <None Include="QUICK_REFERENCE.md" />
+    <None Include="README.md" />
+    <None Include="Resources\writing.png" />
+    <None Include="SCHOOL\.gitattributes" />
+    <None Include="SCHOOL\.gitignore" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="datasets\" />
+    <Folder Include="reports\" />
+    <Folder Include="Tests\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Resources\11639128559275-beb32281-19b0-4e5f-9960-8ff17fb91d6d-removebg-preview.png" />
+    <Content Include="Resources\1639128559275-beb32281-19b0-4e5f-9960-8ff17fb91d6d-removebg-preview.png" />
+    <Content Include="Resources\1money.png" />
+    <Content Include="Resources\1money1.png" />
+    <Content Include="Resources\1user-graduate.png" />
+    <Content Include="Resources\222incorporation.png" />
+    <Content Include="Resources\22education.png" />
+    <Content Include="Resources\22graduate.png" />
+    <Content Include="Resources\22icons8-payment-100.png" />
+    <Content Include="Resources\22money.png" />
+    <Content Include="Resources\22student %282%29.png" />
+    <Content Include="Resources\23-1024.JPG" />
+    <Content Include="Resources\23-1024.png" />
+    <Content Include="Resources\33graduate.png" />
+    <Content Include="Resources\3worker %281%29.png" />
+    <Content Include="Resources\55incorporation.png" />
+    <Content Include="Resources\99incorporation.png" />
+    <Content Include="Resources\add %281%29.png" />
+    <Content Include="Resources\add-file.gif" />
+    <Content Include="Resources\add-friend.png" />
+    <Content Include="Resources\add-money.png" />
+    <Content Include="Resources\add-user %281%29.png" />
+    <Content Include="Resources\add-user %282%29.png" />
+    <Content Include="Resources\add-user.png" />
+    <Content Include="Resources\add-user2 %282%29.png" />
+    <Content Include="Resources\add.ico" />
+    <Content Include="Resources\add.png" />
+    <Content Include="Resources\add_row.png" />
+    <Content Include="Resources\admission-form.ico" />
+    <Content Include="Resources\admission-form.png" />
+    <Content Include="Resources\analysis.png" />
+    <Content Include="Resources\analysis1.png" />
+    <Content Include="Resources\analysis11.png" />
+    <Content Include="Resources\aproval.png" />
+    <Content Include="Resources\aproval1.png" />
+    <Content Include="Resources\arrow.png" />
+    <Content Include="Resources\arrow_back_cancel_media_previous_redo_refresh-512.JPG" />
+    <Content Include="Resources\auditor.png" />
+    <Content Include="Resources\auditor1.png" />
+    <Content Include="Resources\auditor2.png" />
+    <Content Include="Resources\bin-file.gif" />
+    <Content Include="Resources\business-and-finance.png" />
+    <Content Include="Resources\businessman.gif" />
+    <Content Include="Resources\calendar.png" />
+    <Content Include="Resources\cancel.png" />
+    <Content Include="Resources\carbon %281%29.png" />
+    <Content Include="Resources\carbon %282%29.png" />
+    <Content Include="Resources\carbon %283%29.png" />
+    <Content Include="Resources\carbon %284%29.png" />
+    <Content Include="Resources\carbon.png" />
+    <Content Include="Resources\check-form_116472.ico" />
+    <Content Include="Resources\checkmark.png" />
+    <Content Include="Resources\codeimage-snippet_8.png" />
+    <Content Include="Resources\code_time_report_1709553147.png" />
+    <Content Include="Resources\columnmove.png" />
+    <Content Include="Resources\commonclose.png" />
+    <Content Include="Resources\commonhelp.png" />
+    <Content Include="Resources\common_icons.png" />
+    <Content Include="Resources\complaint.png" />
+    <Content Include="Resources\contract.png" />
+    <Content Include="Resources\copy.png" />
+    <Content Include="Resources\critical.png" />
+    <Content Include="Resources\d2elete.png" />
+    <Content Include="Resources\Darktech_academy_graphic_design_masterclass_20220311_233745-removebg-preview-1.png" />
+    <Content Include="Resources\dashboard.png" />
+    <Content Include="Resources\data-processing.png" />
+    <Content Include="Resources\data-visualization.png" />
+    <Content Include="Resources\database.png" />
+    <Content Include="Resources\debuggerNextTab.png" />
+    <Content Include="Resources\debuggerPrevTab.png" />
+    <Content Include="Resources\delete.png" />
+    <Content Include="Resources\diffIcon.png" />
+    <Content Include="Resources\edit-info.png" />
+    <Content Include="Resources\edit.gif" />
+    <Content Include="Resources\education.png" />
+    <Content Include="Resources\employee.ico" />
+    <Content Include="Resources\employee.png" />
+    <Content Include="Resources\exit.png" />
+    <Content Include="Resources\eye.png" />
+    <Content Include="Resources\F12Logo.png" />
+    <Content Include="Resources\facebook-icon-seeklogo [Converted].png" />
+    <Content Include="Resources\fees.ico" />
+    <Content Include="Resources\fees.png" />
+    <Content Include="Resources\file.ico" />
+    <Content Include="Resources\file.png" />
+    <Content Include="Resources\filepicker.png" />
+    <Content Include="Resources\find-out.ico" />
+    <Content Include="Resources\find-out.png" />
+    <Content Include="Resources\focus.gif" />
+    <Content Include="Resources\forceStorageCapState.png" />
+    <Content Include="Resources\form.png" />
+    <Content Include="Resources\global-business-internet-network-connection-iot-internet-things-business-intelligence-concept-busines-global-network-futuristic-technology-background-ai-generative.jpg" />
+    <Content Include="Resources\graduate.png" />
+    <Content Include="Resources\hand.png" />
+    <Content Include="Resources\hand6.png" />
+    <Content Include="Resources\icons8-card-payment-80.png" />
+    <Content Include="Resources\icons8-payment-100.png" />
+    <Content Include="Resources\identification.png" />
+    <Content Include="Resources\income.png" />
+    <Content Include="Resources\income2.png" />
+    <Content Include="Resources\incorporation.png" />
+    <Content Include="Resources\info.png" />
+    <Content Include="Resources\investment.gif" />
+    <Content Include="Resources\itemCollapsedIcon.png" />
+    <Content Include="Resources\itemExpandedIcon.png" />
+    <Content Include="Resources\i_delete.png" />
+    <Content Include="Resources\i_filtering_options.png" />
+    <Content Include="Resources\i_next.png" />
+    <Content Include="Resources\i_previous.png" />
+    <Content Include="Resources\i_warning.png" />
+    <Content Include="Resources\lecturer.gif" />
+    <Content Include="Resources\log-in.ico" />
+    <Content Include="Resources\log-in.png" />
+    <Content Include="Resources\logout.png" />
+    <Content Include="Resources\love.jpg" />
+    <Content Include="Resources\maximize.png" />
+    <Content Include="Resources\may.jpg" />
+    <Content Include="Resources\minimize.png" />
+    <Content Include="Resources\misc_icons.png" />
+    <Content Include="Resources\money.png" />
+    <Content Include="Resources\new-document.png" />
+    <Content Include="Resources\new-document2.png" />
+    <Content Include="Resources\new-employee.ico" />
+    <Content Include="Resources\new-employee.png" />
+    <Content Include="Resources\new.png" />
+    <Content Include="Resources\nnnn_page-0001.jpg" />
+    <Content Include="Resources\OIP.jpeg" />
+    <Content Include="Resources\OIP.png" />
+    <Content Include="Resources\options.png" />
+    <Content Include="Resources\previewTabClose.png" />
+    <Content Include="Resources\previewTabIcon.png" />
+    <Content Include="Resources\printer %281%29.png" />
+    <Content Include="Resources\R %281%29.png" />
+    <Content Include="Resources\reading.png" />
+    <Content Include="Resources\refresh.png" />
+    <Content Include="Resources\refreshState.png" />
+    <Content Include="Resources\research %281%29.png" />
+    <Content Include="Resources\research %282%29.png" />
+    <Content Include="Resources\research.ico" />
+    <Content Include="Resources\research.png" />
+    <Content Include="Resources\restore.png" />
+    <Content Include="Resources\RREF.png" />
+    <Content Include="Resources\save-file.gif" />
+    <Content Include="Resources\save.png" />
+    <Content Include="Resources\school.png" />
+    <Content Include="Resources\Screenshot_2024-01-30_13-04-02.png" />
+    <Content Include="Resources\Screenshot_2024-01-31_00-43-01.png" />
+    <Content Include="Resources\Screenshot_2024-02-26_12-22-48.png" />
+    <Content Include="Resources\Screenshot_2024-02-26_12-26-18.png" />
+    <Content Include="Resources\Screenshot_2024-02-26_12-26-45.png" />
+    <Content Include="Resources\Screenshot_2024-02-26_12-27-25.png" />
+    <Content Include="Resources\Screenshot_2024-02-26_12-28-02.png" />
+    <Content Include="Resources\Screenshot_2024-02-26_12-28-39.png" />
+    <Content Include="Resources\Screenshot_2024-02-26_12-28-50.png" />
+    <Content Include="Resources\Screenshot_2024-02-26_12-29-13.png" />
+    <Content Include="Resources\Screenshot_2024-02-26_12-29-24.png" />
+    <Content Include="Resources\Screenshot_2024-03-11_11-56-36.png" />
+    <Content Include="Resources\Screenshot_2024-03-22_00-23-54.png" />
+    <Content Include="Resources\Screenshot_2024-03-22_00-24-58.png" />
+    <Content Include="Resources\Screenshot_22-3-2024_123923_.jpeg" />
+    <Content Include="Resources\Screenshot_27-3-2024_223348_www.youtube.com.jpeg" />
+    <Content Include="Resources\search %281%29.gif" />
+    <Content Include="Resources\search %281%29.png" />
+    <Content Include="Resources\search.png" />
+    <Content Include="Resources\server.gif" />
+    <Content Include="Resources\shut-down.gif" />
+    <Content Include="Resources\shutdown.png" />
+    <Content Include="Resources\shutterstock_download %281%29.jpg" />
+    <Content Include="Resources\shutterstock_download %282%29.jpg" />
+    <Content Include="Resources\shutterstock_download %283%29.jpg" />
+    <Content Include="Resources\shutterstock_download %284%29.jpg" />
+    <Content Include="Resources\shutterstock_download %285%29.jpg" />
+    <Content Include="Resources\shutterstock_download.jpg" />
+    <Content Include="Resources\signup.ico" />
+    <Content Include="Resources\signup.png" />
+    <Content Include="Resources\student %281%29.png" />
+    <Content Include="Resources\student %281%291.png" />
+    <Content Include="Resources\student %282%29.png" />
+    <Content Include="Resources\student %2822%29.png" />
+    <Content Include="Resources\student %2822%291.png" />
+    <Content Include="Resources\student %2822%292.png" />
+    <Content Include="Resources\student.gif" />
+    <Content Include="Resources\student.png" />
+    <Content Include="Resources\student1.gif" />
+    <Content Include="Resources\tabclose.png" />
+    <Content Include="Resources\togglePrettyPrint.png" />
+    <Content Include="Resources\toggleWordWrap.png" />
+    <Content Include="Resources\top.png" />
+    <Content Include="Resources\topw.png" />
+    <Content Include="Resources\tree_icons.png" />
+    <Content Include="Resources\turnover.ico" />
+    <Content Include="Resources\turnover.png" />
+    <Content Include="Resources\Untitled-1.png" />
+    <Content Include="Resources\up.png" />
+    <Content Include="Resources\update %281%29.png" />
+    <Content Include="Resources\update %2811%29.png" />
+    <Content Include="Resources\update.gif" />
+    <Content Include="Resources\UPDATE.png" />
+    <Content Include="Resources\UPDATE44.png" />
+    <Content Include="Resources\user %281%29.png" />
+    <Content Include="Resources\user %282%29.png" />
+    <Content Include="Resources\user-graduate.png" />
+    <Content Include="Resources\user.png" />
+    <Content Include="Resources\view.gif" />
+    <Content Include="Resources\website.png" />
+    <Content Include="Resources\website22.png" />
+    <Content Include="Resources\window-minimize.png" />
+    <Content Include="Resources\worker %281%29.png" />
+    <Content Include="Resources\worker.png" />
+    <Content Include="Resources\writing1.png" />
+    <Content Include="Resources\writing11.png" />
+    <Content Include="Resources\young-african-american-man-using-smartphone-doing-ok-sign-with-fingers-excellent-symbol-copy-space_613652-1031 [MConverter.eu].jpg" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Import Project="packages\Microsoft.Extensions.Logging.Abstractions.6.0.0\build\Microsoft.Extensions.Logging.Abstractions.targets" Condition="Exists('packages\Microsoft.Extensions.Logging.Abstractions.6.0.0\build\Microsoft.Extensions.Logging.Abstractions.targets')" />
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('packages\Microsoft.Extensions.Logging.Abstractions.6.0.0\build\Microsoft.Extensions.Logging.Abstractions.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\Microsoft.Extensions.Logging.Abstractions.6.0.0\build\Microsoft.Extensions.Logging.Abstractions.targets'))" />
+  </Target>
+</Project>
