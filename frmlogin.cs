@@ -276,8 +276,13 @@ namespace kingdom_Preparatory_School_Management_System
                     TryUpgradePasswordHash(connection, username, password, storedPassword);
                     if (statusLabel != null) statusLabel.Text = "Login successful.";
                     ErrorHandler.ShowInfo("Success", "Welcome! Loading dashboard...");
-                    new frmDashboard().Show();
-                    Hide();
+
+                    // Open dashboard as a new window instead of hiding login
+                    frmDashboard dashboard = new frmDashboard();
+                    dashboard.Show();
+
+                    // Close login form to cleanup
+                    this.Close();
                 }
             }
             catch (DataException ex)

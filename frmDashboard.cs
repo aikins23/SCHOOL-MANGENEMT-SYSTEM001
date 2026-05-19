@@ -3,6 +3,7 @@ using System.Data.OleDb;
 using System.Diagnostics;
 using System.Drawing;
 using System.Windows.Forms;
+using kingdom_Preparatory_School_Management_System.Common;
 
 namespace kingdom_Preparatory_School_Management_System
 {
@@ -27,6 +28,114 @@ namespace kingdom_Preparatory_School_Management_System
         {
             InitializeComponent();
             BuildModernDashboard();
+
+            // Set this as the main dashboard in FormManager
+            FormManager.SetMainDashboard(this);
+
+            // Handle form closing to keep app alive
+            this.FormClosing += FrmDashboard_FormClosing;
+
+            // Enable dragging for dashboard
+            EnableFormDragging();
+        }
+
+        private void FrmDashboard_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            // When dashboard close button is clicked, close all child forms and exit
+            if (e.CloseReason == CloseReason.UserClosing)
+            {
+                FormManager.CloseAllForms();
+                Application.Exit();
+            }
+        }
+
+        /// <summary>
+        /// Enables form dragging functionality
+        /// </summary>
+        private void EnableFormDragging()
+        {
+            // Subscribe to form's own mouse events
+            SubscribeToDragEvents(this);
+
+            // Subscribe to all child controls recursively (async to avoid blocking UI)
+            System.Threading.Tasks.Task.Run(() =>
+            {
+                foreach (Control control in GetAllControls(this))
+                {
+                    if (!IsInteractiveControl(control))
+                    {
+                        this.Invoke(new Action(() => SubscribeToDragEvents(control)));
+                    }
+                }
+            });
+        }
+
+        /// <summary>
+        /// Subscribe a control to drag mouse events
+        /// </summary>
+        private bool isDragging = false;
+        private Point dragStartPoint;
+        private Point formStartPoint;
+
+        private void SubscribeToDragEvents(Control control)
+        {
+            control.MouseDown += (s, e) =>
+            {
+                if (e.Button == MouseButtons.Left)
+                {
+                    isDragging = true;
+                    dragStartPoint = e.Location;
+                    formStartPoint = this.Location;
+                }
+            };
+
+            control.MouseMove += (s, e) =>
+            {
+                if (isDragging && e.Button == MouseButtons.Left)
+                {
+                    int deltaX = e.X - dragStartPoint.X;
+                    int deltaY = e.Y - dragStartPoint.Y;
+                    this.Location = new Point(formStartPoint.X + deltaX, formStartPoint.Y + deltaY);
+                }
+            };
+
+            control.MouseUp += (s, e) =>
+            {
+                isDragging = false;
+            };
+        }
+
+        /// <summary>
+        /// Recursively gets all controls on the form
+        /// </summary>
+        private System.Collections.Generic.List<Control> GetAllControls(Control container)
+        {
+            var controls = new System.Collections.Generic.List<Control>();
+            foreach (Control control in container.Controls)
+            {
+                controls.Add(control);
+                controls.AddRange(GetAllControls(control));
+            }
+            return controls;
+        }
+
+        /// <summary>
+        /// Checks if a control should not have drag enabled
+        /// </summary>
+        private bool IsInteractiveControl(Control control)
+        {
+            Type controlType = control.GetType();
+            return controlType == typeof(TextBox) ||
+                   controlType == typeof(ComboBox) ||
+                   controlType == typeof(Button) ||
+                   controlType == typeof(CheckBox) ||
+                   controlType == typeof(RadioButton) ||
+                   controlType == typeof(DataGridView) ||
+                   controlType == typeof(ListBox) ||
+                   controlType == typeof(TreeView) ||
+                   controlType == typeof(RichTextBox) ||
+                   controlType.Name.Contains("NumericUpDown") ||
+                   controlType.Name.Contains("DateTimePicker");
         }
 
         private void BuildModernDashboard()
@@ -333,12 +442,22 @@ namespace kingdom_Preparatory_School_Management_System
 
         private void OpenForm(Form form, bool hideDashboard = false)
         {
+            if (form == null)
+                return;
+
+            // Set form properties
             form.StartPosition = FormStartPosition.CenterScreen;
-            form.Show();
+
+            // Hide dashboard if requested (typically for modal-like forms)
             if (hideDashboard)
             {
-                Hide();
+                this.Hide();
             }
+
+            // Show the form
+            form.Show();
+            form.BringToFront();
+            form.Focus();
         }
 
         private void RefreshDashboardMetrics()

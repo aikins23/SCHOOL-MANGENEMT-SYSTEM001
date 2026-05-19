@@ -6,6 +6,7 @@ using System.Drawing.Imaging;
 using System.IO;
 using System.Net.Mail;
 using System.Windows.Forms;
+using kingdom_Preparatory_School_Management_System.Common;
 
 namespace kingdom_Preparatory_School_Management_System
 {
@@ -24,10 +25,16 @@ namespace kingdom_Preparatory_School_Management_System
         private static readonly Color MutedTextColor = UiTheme.Muted;
         private static readonly Color BorderColor = UiTheme.Border;
 
+        // Drag state variables
+        private bool isDragging = false;
+        private Point dragStartPoint;
+        private Point formStartPoint;
+
         public frmAddStd()
         {
             InitializeComponent();
             BuildModernAdmissionView();
+            EnableFormDragging();
         }
 
         private void BuildModernAdmissionView()
@@ -947,6 +954,88 @@ VALUES
         private void makePaymentToolStripMenuItem_Click(object sender, EventArgs e) { new frmFessPayment().Show(); }
         private void aboutToolStripMenuItem_Click(object sender, EventArgs e) { new frmAbout().Show(); }
 
-        
+        /// <summary>
+        /// Enables form dragging functionality by subscribing to mouse events on all controls
+        /// </summary>
+        private void EnableFormDragging()
+        {
+            // Subscribe to form's own mouse events
+            SubscribeToDragEvents(this);
+
+            // Subscribe to all child controls recursively
+            foreach (Control control in GetAllControls(this))
+            {
+                if (!IsInteractiveControl(control))
+                {
+                    SubscribeToDragEvents(control);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Subscribe a control to drag mouse events
+        /// </summary>
+        private void SubscribeToDragEvents(Control control)
+        {
+            control.MouseDown += (s, e) =>
+            {
+                if (e.Button == MouseButtons.Left)
+                {
+                    isDragging = true;
+                    dragStartPoint = e.Location;
+                    formStartPoint = this.Location;
+                }
+            };
+
+            control.MouseMove += (s, e) =>
+            {
+                if (isDragging && e.Button == MouseButtons.Left)
+                {
+                    int deltaX = e.X - dragStartPoint.X;
+                    int deltaY = e.Y - dragStartPoint.Y;
+                    this.Location = new Point(formStartPoint.X + deltaX, formStartPoint.Y + deltaY);
+                }
+            };
+
+            control.MouseUp += (s, e) =>
+            {
+                isDragging = false;
+            };
+        }
+
+        /// <summary>
+        /// Recursively gets all controls on the form
+        /// </summary>
+        private System.Collections.Generic.List<Control> GetAllControls(Control container)
+        {
+            var controls = new System.Collections.Generic.List<Control>();
+            foreach (Control control in container.Controls)
+            {
+                controls.Add(control);
+                controls.AddRange(GetAllControls(control));
+            }
+            return controls;
+        }
+
+        /// <summary>
+        /// Checks if a control should not have drag enabled
+        /// </summary>
+        private bool IsInteractiveControl(Control control)
+        {
+            Type controlType = control.GetType();
+            return controlType == typeof(TextBox) ||
+                   controlType == typeof(ComboBox) ||
+                   controlType == typeof(Button) ||
+                   controlType == typeof(CheckBox) ||
+                   controlType == typeof(RadioButton) ||
+                   controlType == typeof(DataGridView) ||
+                   controlType == typeof(ListBox) ||
+                   controlType == typeof(TreeView) ||
+                   controlType == typeof(RichTextBox) ||
+                   controlType.Name.Contains("NumericUpDown") ||
+                   controlType.Name.Contains("DateTimePicker");
+        }
+
     }
 }
+

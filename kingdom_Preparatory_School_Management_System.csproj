@@ -149,8 +149,15 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ChildFormTemplate.cs">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="Common\AppConfig.cs" />
+    <Compile Include="Common\DraggableForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="Common\ErrorHandler.cs" />
+    <Compile Include="Common\FormManager.cs" />
     <Compile Include="Common\ImageHelper.cs" />
     <Compile Include="Common\UIHelper.cs" />
     <Compile Include="Common\ValidationHelper.cs" />
