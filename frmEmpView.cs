@@ -3,6 +3,7 @@ using System.Data;
 using System.Data.OleDb;
 using System.Drawing;
 using System.Windows.Forms;
+using kingdom_Preparatory_School_Management_System.Common;
 
 namespace kingdom_Preparatory_School_Management_System
 {
@@ -48,8 +49,8 @@ FROM [dbo].[Employee]";
         {
             InitializeComponent();
             BuildModernEmployeeView();
+            NavigationSidebar.AddTo(this);
         }
-
         private void BuildModernEmployeeView()
         {
             SuspendLayout();

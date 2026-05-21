@@ -401,7 +401,7 @@
             this.Controls.Add(this.guna2HtmlLabel1);
             this.Controls.Add(this.gunaPictureBox1);
             this.Controls.Add(this.menuStrip1);
-            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.Sizable;
             this.Name = "EmpleaveView";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "EmpleaveView";

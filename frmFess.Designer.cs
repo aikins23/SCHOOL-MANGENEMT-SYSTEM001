@@ -570,7 +570,7 @@
             this.Controls.Add(this.menuStrip1);
             this.Controls.Add(this.gunaPanel2);
             this.Font = new System.Drawing.Font("Roboto Cn", 9.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.Sizable;
             this.Name = "frmFess";
             this.Text = "frmFess";
             this.Load += new System.EventHandler(this.frmFess_Load);

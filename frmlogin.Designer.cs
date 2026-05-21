@@ -342,7 +342,7 @@
             this.Controls.Add(this.label9);
             this.Controls.Add(this.panel1);
             this.Controls.Add(this.guna2Panel1);
-            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.Sizable;
             this.Name = "frmlogin";
             this.Text = "frmlogin";
             this.Load += new System.EventHandler(this.frmlogin_Load);

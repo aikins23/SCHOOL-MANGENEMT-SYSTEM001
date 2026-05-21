@@ -739,7 +739,7 @@
             this.Controls.Add(this.guna2GroupBox1);
             this.Controls.Add(this.gunaPictureBox2);
             this.Controls.Add(this.menuStrip1);
-            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.Sizable;
             this.Name = "frmLeaveDetails";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "frmLeaveDetails";

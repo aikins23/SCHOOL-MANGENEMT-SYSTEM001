@@ -447,7 +447,7 @@
             this.Controls.Add(this.addstd);
             this.Controls.Add(this.guna2HtmlLabel1);
             this.Controls.Add(this.data);
-            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.Sizable;
             this.Name = "Form1";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.Text = "Form1";

@@ -222,6 +222,18 @@ namespace kingdom_Preparatory_School_Management_System.Common
         }
 
         /// <summary>
+        /// Shows a form and hides the source form.
+        /// </summary>
+        public static void ShowForm<T>(Form source) where T : Form, new()
+        {
+            T target = OpenForm(() => new T());
+            if (source != null && source != target)
+            {
+                source.Hide();
+            }
+        }
+
+        /// <summary>
         /// Called when a form is closed
         /// </summary>
         private static void OnFormClosed(Type formType)

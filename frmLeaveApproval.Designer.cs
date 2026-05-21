@@ -434,7 +434,7 @@
             this.Controls.Add(this.gunaPictureBox1);
             this.Controls.Add(this.gunaPanel2);
             this.Controls.Add(this.menuStrip1);
-            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.Sizable;
             this.Name = "frmLeaveApproval";
             this.Text = "frmLeaveApproval";
             this.Load += new System.EventHandler(this.frmLeaveApproval_Load);

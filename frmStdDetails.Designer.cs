@@ -1046,9 +1046,7 @@
             this.Controls.Add(this.guna2GroupBox1);
             this.Controls.Add(this.upload);
             this.Controls.Add(this.guna2HtmlLabel12);
-            this.Controls.Add(this.gunaPictureBox1);
-            this.Controls.Add(this.menuStrip1);
-            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.Sizable;
             this.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.Name = "frmStdDetails";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;

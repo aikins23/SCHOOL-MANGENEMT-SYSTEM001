@@ -698,10 +698,8 @@
             this.Controls.Add(this.gunaPanel3);
             this.Controls.Add(this.gunaPanel1);
             this.Controls.Add(this.gunaPanel2);
-            this.Controls.Add(this.menuStrip1);
-            this.Controls.Add(this.guna2Panel1);
-            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
-            this.Margin = new System.Windows.Forms.Padding(2, 3, 2, 3);
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.Sizable;
+            this.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.Name = "frmDashboard";
             this.Text = "frmDashboard";
             this.Load += new System.EventHandler(this.frmDashboard_Load);

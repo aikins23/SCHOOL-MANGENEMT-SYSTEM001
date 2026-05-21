@@ -159,6 +159,7 @@
     <Compile Include="Common\ErrorHandler.cs" />
     <Compile Include="Common\FormManager.cs" />
     <Compile Include="Common\ImageHelper.cs" />
+    <Compile Include="Common\NavigationSidebar.cs" />
     <Compile Include="Common\UIHelper.cs" />
     <Compile Include="Common\ValidationHelper.cs" />
     <Compile Include="DataSet1.Designer.cs">
@@ -226,11 +227,17 @@
     <Compile Include="frmAddStd.Designer.cs">
       <DependentUpon>frmAddStd.cs</DependentUpon>
     </Compile>
+    <Compile Include="frmAttendance.cs">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="frmDashboard.cs">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="frmDashboard.Designer.cs">
       <DependentUpon>frmDashboard.cs</DependentUpon>
+    </Compile>
+    <Compile Include="frmDashboardCharts.cs">
+      <SubType>Form</SubType>
     </Compile>
     <Compile Include="frmEmpDetails.cs">
       <SubType>Form</SubType>
@@ -432,6 +439,7 @@
       <DependentUpon>DataSet4.xsd</DependentUpon>
     </None>
     <None Include="DOCUMENTATION_INDEX.md" />
+    <None Include="features recommendation.pdf" />
     <None Include="FINAL_CHECKLIST.md" />
     <None Include="IMPLEMENTATION_COMPLETE.md" />
     <None Include="IMPLEMENTATION_SUMMARY.md" />
@@ -464,6 +472,7 @@
     <Folder Include="Tests\" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="features to work.txt" />
     <Content Include="Resources\11639128559275-beb32281-19b0-4e5f-9960-8ff17fb91d6d-removebg-preview.png" />
     <Content Include="Resources\1639128559275-beb32281-19b0-4e5f-9960-8ff17fb91d6d-removebg-preview.png" />
     <Content Include="Resources\1money.png" />

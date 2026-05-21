@@ -705,7 +705,7 @@ namespace kingdom_Preparatory_School_Management_System
         {
             string query = @"
 INSERT INTO Students
-    (FirstName, LastName, DOB, Gender, Email, ClassID, HomeTown, Residence, Allegies, EmergencyConatct, GuidanceName, GuidianceEmail, Guidiance_Location, admission_date, Std_pic)
+    (FirstName, LastName, DOB, Gender, Email, ClassID, HomeTown, Residence, Allergies, EmergencyContact, GuardianName, GuardianEmail, Guardian_Location, admission_date, Std_pic)
 VALUES
     (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
@@ -743,7 +743,7 @@ VALUES
                     {
                         string query = @"
 UPDATE Students
-SET FirstName = ?, LastName = ?, DOB = ?, Gender = ?, Email = ?, ClassID = ?, HomeTown = ?, Residence = ?, Allegies = ?, EmergencyConatct = ?, GuidanceName = ?, GuidianceEmail = ?, Guidiance_Location = ?, admission_date = ?, Std_pic = ?
+SET FirstName = ?, LastName = ?, DOB = ?, Gender = ?, Email = ?, ClassID = ?, HomeTown = ?, Residence = ?, Allergies = ?, EmergencyContact = ?, GuardianName = ?, GuardianEmail = ?, Guardian_Location = ?, admission_date = ?, Std_pic = ?
 WHERE StudentID = ?";
 
                         using (OleDbCommand command = new OleDbCommand(query, con, transaction))
@@ -804,7 +804,7 @@ WHERE StudentID = ?";
 
             if (updateExisting)
             {
-                using (OleDbCommand feeCommand = new OleDbCommand("UPDATE dbo.fees SET ClassID = ?, FeeName = ?, Amount = ? WHERE StudentID = ?", con, transaction))
+                using (OleDbCommand feeCommand = new OleDbCommand("UPDATE fees SET ClassID = ?, FeeName = ?, Amount = ? WHERE StudentID = ?", con, transaction))
                 {
                     feeCommand.Parameters.AddWithValue("?", cmbCID.Text.Trim());
                     feeCommand.Parameters.AddWithValue("?", "Tuition Fee");
@@ -813,7 +813,7 @@ WHERE StudentID = ?";
                     feeCommand.ExecuteNonQuery();
                 }
 
-                using (OleDbCommand paymentCommand = new OleDbCommand("UPDATE dbo.payment_record SET classID = ?, FeeName = ?, Balance = ?, student_name = ? WHERE StudentID = ?", con, transaction))
+                using (OleDbCommand paymentCommand = new OleDbCommand("UPDATE payment_record SET classID = ?, FeeName = ?, Balance = ?, student_name = ? WHERE StudentID = ?", con, transaction))
                 {
                     paymentCommand.Parameters.AddWithValue("?", cmbCID.Text.Trim());
                     paymentCommand.Parameters.AddWithValue("?", "SCHOOLFEES");
@@ -826,7 +826,7 @@ WHERE StudentID = ?";
                 return;
             }
 
-            using (OleDbCommand feeCommand = new OleDbCommand("INSERT INTO dbo.fees (StudentID, ClassID, FeeName, Amount) VALUES (?, ?, ?, ?)", con, transaction))
+            using (OleDbCommand feeCommand = new OleDbCommand("INSERT INTO fees (StudentID, ClassID, FeeName, Amount) VALUES (?, ?, ?, ?)", con, transaction))
             {
                 feeCommand.Parameters.AddWithValue("?", studentId);
                 feeCommand.Parameters.AddWithValue("?", cmbCID.Text.Trim());
@@ -835,7 +835,7 @@ WHERE StudentID = ?";
                 feeCommand.ExecuteNonQuery();
             }
 
-            using (OleDbCommand paymentCommand = new OleDbCommand("INSERT INTO dbo.payment_record (StudentID, classID, FeeName, Balance, student_name, Amount_paid, [Date]) VALUES (?, ?, ?, ?, ?, ?, ?)", con, transaction))
+            using (OleDbCommand paymentCommand = new OleDbCommand("INSERT INTO payment_record (StudentID, classID, FeeName, Balance, student_name, Amount_paid, [Date]) VALUES (?, ?, ?, ?, ?, ?, ?)", con, transaction))
             {
                 paymentCommand.Parameters.AddWithValue("?", studentId);
                 paymentCommand.Parameters.AddWithValue("?", cmbCID.Text.Trim());
@@ -870,7 +870,7 @@ WHERE StudentID = ?";
                     {
                         string insertQuery = @"
 INSERT INTO Rolled_Out_Students
-    (StudentID, FirstName, LastName, DOB, Gender, Email, ClassID, HomeTown, Residence, Allegies, EmergencyConatct, GuidanceName, GuidianceEmail, Guidiance_Location, admission_date, [date], Std_pic)
+    (StudentID, FirstName, LastName, DOB, Gender, Email, ClassID, HomeTown, Residence, Allergies, EmergencyContact, GuardianName, GuardianEmail, Guardian_Location, admission_date, [date], Std_pic)
 VALUES
     (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
@@ -1023,7 +1023,8 @@ VALUES
         private bool IsInteractiveControl(Control control)
         {
             Type controlType = control.GetType();
-            return controlType == typeof(TextBox) ||
+            // Check standard controls
+            if (controlType == typeof(TextBox) ||
                    controlType == typeof(ComboBox) ||
                    controlType == typeof(Button) ||
                    controlType == typeof(CheckBox) ||
@@ -1033,7 +1034,20 @@ VALUES
                    controlType == typeof(TreeView) ||
                    controlType == typeof(RichTextBox) ||
                    controlType.Name.Contains("NumericUpDown") ||
-                   controlType.Name.Contains("DateTimePicker");
+                   controlType.Name.Contains("DateTimePicker"))
+            {
+                return true;
+            }
+
+            // Check Guna2 UI components
+            string typeName = controlType.Name;
+            return typeName.Contains("Guna2TextBox") ||
+                   typeName.Contains("Guna2ComboBox") ||
+                   typeName.Contains("Guna2Button") ||
+                   typeName.Contains("Guna2DateTimePicker") ||
+                   typeName.Contains("Guna2CheckBox") ||
+                   typeName.Contains("Guna2RadioButton") ||
+                   typeName.Contains("Guna2DataGridView");
         }
 
     }

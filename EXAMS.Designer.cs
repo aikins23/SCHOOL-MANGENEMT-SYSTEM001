@@ -113,6 +113,7 @@
             this.menuStrip1.Font = new System.Drawing.Font("Roboto Cn", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.menuStrip1.GripMargin = new System.Windows.Forms.Padding(3, 3, 2, 3);
             this.menuStrip1.GripStyle = System.Windows.Forms.ToolStripGripStyle.Visible;
+            this.menuStrip1.ImageScalingSize = new System.Drawing.Size(20, 20);
             this.menuStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.addToolStripMenuItem1,
             this.viewToolStripMenuItem,
@@ -123,8 +124,8 @@
             this.menuStrip1.LayoutStyle = System.Windows.Forms.ToolStripLayoutStyle.HorizontalStackWithOverflow;
             this.menuStrip1.Location = new System.Drawing.Point(0, 0);
             this.menuStrip1.Name = "menuStrip1";
-            this.menuStrip1.Padding = new System.Windows.Forms.Padding(10, 2, 2, 5);
-            this.menuStrip1.Size = new System.Drawing.Size(593, 27);
+            this.menuStrip1.Padding = new System.Windows.Forms.Padding(13, 2, 3, 6);
+            this.menuStrip1.Size = new System.Drawing.Size(791, 32);
             this.menuStrip1.TabIndex = 9;
             this.menuStrip1.Text = "menuStrip1";
             // 
@@ -138,31 +139,31 @@
             this.addToolStripMenuItem1.ForeColor = System.Drawing.Color.White;
             this.addToolStripMenuItem1.Image = ((System.Drawing.Image)(resources.GetObject("addToolStripMenuItem1.Image")));
             this.addToolStripMenuItem1.Name = "addToolStripMenuItem1";
-            this.addToolStripMenuItem1.Size = new System.Drawing.Size(54, 20);
+            this.addToolStripMenuItem1.Size = new System.Drawing.Size(68, 24);
             this.addToolStripMenuItem1.Text = "&Add";
             // 
             // studentsToolStripMenuItem
             // 
             this.studentsToolStripMenuItem.Name = "studentsToolStripMenuItem";
-            this.studentsToolStripMenuItem.Size = new System.Drawing.Size(145, 22);
+            this.studentsToolStripMenuItem.Size = new System.Drawing.Size(184, 26);
             this.studentsToolStripMenuItem.Text = "Students";
             // 
             // employersToolStripMenuItem
             // 
             this.employersToolStripMenuItem.Name = "employersToolStripMenuItem";
-            this.employersToolStripMenuItem.Size = new System.Drawing.Size(145, 22);
+            this.employersToolStripMenuItem.Size = new System.Drawing.Size(184, 26);
             this.employersToolStripMenuItem.Text = "Employers";
             // 
             // adminstrationToolStripMenuItem
             // 
             this.adminstrationToolStripMenuItem.Name = "adminstrationToolStripMenuItem";
-            this.adminstrationToolStripMenuItem.Size = new System.Drawing.Size(145, 22);
+            this.adminstrationToolStripMenuItem.Size = new System.Drawing.Size(184, 26);
             this.adminstrationToolStripMenuItem.Text = "Adminstration";
             // 
             // classToolStripMenuItem
             // 
             this.classToolStripMenuItem.Name = "classToolStripMenuItem";
-            this.classToolStripMenuItem.Size = new System.Drawing.Size(145, 22);
+            this.classToolStripMenuItem.Size = new System.Drawing.Size(184, 26);
             this.classToolStripMenuItem.Text = "Class";
             // 
             // viewToolStripMenuItem
@@ -175,31 +176,31 @@
             this.viewToolStripMenuItem.ForeColor = System.Drawing.Color.White;
             this.viewToolStripMenuItem.Image = ((System.Drawing.Image)(resources.GetObject("viewToolStripMenuItem.Image")));
             this.viewToolStripMenuItem.Name = "viewToolStripMenuItem";
-            this.viewToolStripMenuItem.Size = new System.Drawing.Size(59, 20);
+            this.viewToolStripMenuItem.Size = new System.Drawing.Size(75, 24);
             this.viewToolStripMenuItem.Text = "&View";
             // 
             // studentsToolStripMenuItem1
             // 
             this.studentsToolStripMenuItem1.Name = "studentsToolStripMenuItem1";
-            this.studentsToolStripMenuItem1.Size = new System.Drawing.Size(146, 22);
+            this.studentsToolStripMenuItem1.Size = new System.Drawing.Size(184, 26);
             this.studentsToolStripMenuItem1.Text = "Students";
             // 
             // employersToolStripMenuItem1
             // 
             this.employersToolStripMenuItem1.Name = "employersToolStripMenuItem1";
-            this.employersToolStripMenuItem1.Size = new System.Drawing.Size(146, 22);
+            this.employersToolStripMenuItem1.Size = new System.Drawing.Size(184, 26);
             this.employersToolStripMenuItem1.Text = "Employers";
             // 
             // adminstratorsToolStripMenuItem
             // 
             this.adminstratorsToolStripMenuItem.Name = "adminstratorsToolStripMenuItem";
-            this.adminstratorsToolStripMenuItem.Size = new System.Drawing.Size(146, 22);
+            this.adminstratorsToolStripMenuItem.Size = new System.Drawing.Size(184, 26);
             this.adminstratorsToolStripMenuItem.Text = "Adminstrators";
             // 
             // classToolStripMenuItem1
             // 
             this.classToolStripMenuItem1.Name = "classToolStripMenuItem1";
-            this.classToolStripMenuItem1.Size = new System.Drawing.Size(146, 22);
+            this.classToolStripMenuItem1.Size = new System.Drawing.Size(184, 26);
             this.classToolStripMenuItem1.Text = "Class";
             // 
             // makePaymentToolStripMenuItem
@@ -207,7 +208,7 @@
             this.makePaymentToolStripMenuItem.ForeColor = System.Drawing.Color.White;
             this.makePaymentToolStripMenuItem.Image = ((System.Drawing.Image)(resources.GetObject("makePaymentToolStripMenuItem.Image")));
             this.makePaymentToolStripMenuItem.Name = "makePaymentToolStripMenuItem";
-            this.makePaymentToolStripMenuItem.Size = new System.Drawing.Size(109, 20);
+            this.makePaymentToolStripMenuItem.Size = new System.Drawing.Size(140, 24);
             this.makePaymentToolStripMenuItem.Text = "&Make payment";
             // 
             // summaryToolStripMenuItem
@@ -215,7 +216,7 @@
             this.summaryToolStripMenuItem.ForeColor = System.Drawing.Color.White;
             this.summaryToolStripMenuItem.Image = ((System.Drawing.Image)(resources.GetObject("summaryToolStripMenuItem.Image")));
             this.summaryToolStripMenuItem.Name = "summaryToolStripMenuItem";
-            this.summaryToolStripMenuItem.Size = new System.Drawing.Size(84, 20);
+            this.summaryToolStripMenuItem.Size = new System.Drawing.Size(106, 24);
             this.summaryToolStripMenuItem.Text = "&Summary";
             // 
             // sendComplaintsToolStripMenuItem
@@ -223,7 +224,7 @@
             this.sendComplaintsToolStripMenuItem.ForeColor = System.Drawing.Color.White;
             this.sendComplaintsToolStripMenuItem.Image = ((System.Drawing.Image)(resources.GetObject("sendComplaintsToolStripMenuItem.Image")));
             this.sendComplaintsToolStripMenuItem.Name = "sendComplaintsToolStripMenuItem";
-            this.sendComplaintsToolStripMenuItem.Size = new System.Drawing.Size(123, 20);
+            this.sendComplaintsToolStripMenuItem.Size = new System.Drawing.Size(158, 24);
             this.sendComplaintsToolStripMenuItem.Text = "Send &Complaints ";
             // 
             // aboutToolStripMenuItem
@@ -231,7 +232,7 @@
             this.aboutToolStripMenuItem.ForeColor = System.Drawing.Color.White;
             this.aboutToolStripMenuItem.Image = ((System.Drawing.Image)(resources.GetObject("aboutToolStripMenuItem.Image")));
             this.aboutToolStripMenuItem.Name = "aboutToolStripMenuItem";
-            this.aboutToolStripMenuItem.Size = new System.Drawing.Size(64, 20);
+            this.aboutToolStripMenuItem.Size = new System.Drawing.Size(81, 24);
             this.aboutToolStripMenuItem.Text = "A&bout";
             // 
             // label1
@@ -240,9 +241,10 @@
             this.label1.BackColor = System.Drawing.Color.MidnightBlue;
             this.label1.Font = new System.Drawing.Font("Roboto Cn", 15.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.label1.ForeColor = System.Drawing.Color.White;
-            this.label1.Location = new System.Drawing.Point(0, 27);
+            this.label1.Location = new System.Drawing.Point(0, 33);
+            this.label1.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(258, 25);
+            this.label1.Size = new System.Drawing.Size(331, 33);
             this.label1.TabIndex = 10;
             this.label1.Text = "STUDENT\'S EXAMS RECORDS";
             this.label1.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
@@ -262,10 +264,11 @@
             this.guna2GroupBox1.CustomBorderColor = System.Drawing.Color.MidnightBlue;
             this.guna2GroupBox1.Font = new System.Drawing.Font("Roboto Cn", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.guna2GroupBox1.ForeColor = System.Drawing.Color.White;
-            this.guna2GroupBox1.Location = new System.Drawing.Point(5, 174);
+            this.guna2GroupBox1.Location = new System.Drawing.Point(7, 214);
+            this.guna2GroupBox1.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.guna2GroupBox1.Name = "guna2GroupBox1";
             this.guna2GroupBox1.ShadowDecoration.Parent = this.guna2GroupBox1;
-            this.guna2GroupBox1.Size = new System.Drawing.Size(253, 250);
+            this.guna2GroupBox1.Size = new System.Drawing.Size(337, 308);
             this.guna2GroupBox1.TabIndex = 11;
             this.guna2GroupBox1.Text = "CLASS RECORDS";
             this.guna2GroupBox1.Click += new System.EventHandler(this.guna2GroupBox1_Click);
@@ -280,23 +283,26 @@
             this.gunaTextBox4.FocusedForeColor = System.Drawing.SystemColors.ControlText;
             this.gunaTextBox4.Font = new System.Drawing.Font("Roboto Cn", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.gunaTextBox4.ForeColor = System.Drawing.Color.MidnightBlue;
-            this.gunaTextBox4.Location = new System.Drawing.Point(129, 193);
+            this.gunaTextBox4.Location = new System.Drawing.Point(172, 238);
+            this.gunaTextBox4.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.gunaTextBox4.Name = "gunaTextBox4";
             this.gunaTextBox4.PasswordChar = '\0';
             this.gunaTextBox4.SelectedText = "";
-            this.gunaTextBox4.Size = new System.Drawing.Size(105, 36);
+            this.gunaTextBox4.Size = new System.Drawing.Size(140, 44);
             this.gunaTextBox4.TabIndex = 7;
             this.gunaTextBox4.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
+            this.gunaTextBox4.TextChanged += new System.EventHandler(this.gunaTextBox4_TextChanged);
             // 
             // label5
             // 
             this.label5.AutoSize = true;
             this.label5.BackColor = System.Drawing.Color.MidnightBlue;
-            this.label5.Location = new System.Drawing.Point(3, 193);
+            this.label5.Location = new System.Drawing.Point(4, 238);
+            this.label5.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label5.Name = "label5";
-            this.label5.Size = new System.Drawing.Size(105, 36);
+            this.label5.Size = new System.Drawing.Size(134, 46);
             this.label5.TabIndex = 6;
-            this.label5.Text = "TOTAL FOR CAT \r\n(100MARKS)";
+            this.label5.Text = "TOTAL CLASS SCORE \r\n(100MARKS)";
             this.label5.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
             // gunaTextBox3
@@ -309,11 +315,12 @@
             this.gunaTextBox3.FocusedForeColor = System.Drawing.SystemColors.ControlText;
             this.gunaTextBox3.Font = new System.Drawing.Font("Roboto Cn", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.gunaTextBox3.ForeColor = System.Drawing.Color.MidnightBlue;
-            this.gunaTextBox3.Location = new System.Drawing.Point(129, 97);
+            this.gunaTextBox3.Location = new System.Drawing.Point(172, 119);
+            this.gunaTextBox3.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.gunaTextBox3.Name = "gunaTextBox3";
             this.gunaTextBox3.PasswordChar = '\0';
             this.gunaTextBox3.SelectedText = "";
-            this.gunaTextBox3.Size = new System.Drawing.Size(105, 36);
+            this.gunaTextBox3.Size = new System.Drawing.Size(140, 44);
             this.gunaTextBox3.TabIndex = 5;
             this.gunaTextBox3.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             // 
@@ -321,11 +328,12 @@
             // 
             this.label4.AutoSize = true;
             this.label4.BackColor = System.Drawing.Color.MidnightBlue;
-            this.label4.Location = new System.Drawing.Point(3, 97);
+            this.label4.Location = new System.Drawing.Point(4, 119);
+            this.label4.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label4.Name = "label4";
-            this.label4.Size = new System.Drawing.Size(108, 36);
+            this.label4.Size = new System.Drawing.Size(140, 46);
             this.label4.TabIndex = 4;
-            this.label4.Text = "CAT 2(GRP EXE. )\r\n(30MARKS)";
+            this.label4.Text = "(GROUP WORK )\r\n(10MARKS)";
             this.label4.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
             // gunaTextBox2
@@ -338,11 +346,12 @@
             this.gunaTextBox2.FocusedForeColor = System.Drawing.SystemColors.ControlText;
             this.gunaTextBox2.Font = new System.Drawing.Font("Roboto Cn", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.gunaTextBox2.ForeColor = System.Drawing.Color.MidnightBlue;
-            this.gunaTextBox2.Location = new System.Drawing.Point(129, 145);
+            this.gunaTextBox2.Location = new System.Drawing.Point(172, 178);
+            this.gunaTextBox2.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.gunaTextBox2.Name = "gunaTextBox2";
             this.gunaTextBox2.PasswordChar = '\0';
             this.gunaTextBox2.SelectedText = "";
-            this.gunaTextBox2.Size = new System.Drawing.Size(105, 36);
+            this.gunaTextBox2.Size = new System.Drawing.Size(140, 44);
             this.gunaTextBox2.TabIndex = 3;
             this.gunaTextBox2.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             // 
@@ -350,11 +359,12 @@
             // 
             this.label3.AutoSize = true;
             this.label3.BackColor = System.Drawing.Color.MidnightBlue;
-            this.label3.Location = new System.Drawing.Point(3, 145);
+            this.label3.Location = new System.Drawing.Point(4, 178);
+            this.label3.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label3.Name = "label3";
-            this.label3.Size = new System.Drawing.Size(106, 36);
+            this.label3.Size = new System.Drawing.Size(137, 46);
             this.label3.TabIndex = 2;
-            this.label3.Text = "CAT 3(CLASTST)\r\n(40MARKS)";
+            this.label3.Text = "CLASSTEST I\r\n(20MARKS)";
             this.label3.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
             // gunaTextBox1
@@ -367,11 +377,12 @@
             this.gunaTextBox1.FocusedForeColor = System.Drawing.SystemColors.ControlText;
             this.gunaTextBox1.Font = new System.Drawing.Font("Roboto Cn", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.gunaTextBox1.ForeColor = System.Drawing.Color.MidnightBlue;
-            this.gunaTextBox1.Location = new System.Drawing.Point(129, 49);
+            this.gunaTextBox1.Location = new System.Drawing.Point(172, 60);
+            this.gunaTextBox1.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.gunaTextBox1.Name = "gunaTextBox1";
             this.gunaTextBox1.PasswordChar = '\0';
             this.gunaTextBox1.SelectedText = "";
-            this.gunaTextBox1.Size = new System.Drawing.Size(105, 36);
+            this.gunaTextBox1.Size = new System.Drawing.Size(140, 44);
             this.gunaTextBox1.TabIndex = 1;
             this.gunaTextBox1.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             // 
@@ -379,11 +390,12 @@
             // 
             this.label2.AutoSize = true;
             this.label2.BackColor = System.Drawing.Color.MidnightBlue;
-            this.label2.Location = new System.Drawing.Point(3, 49);
+            this.label2.Location = new System.Drawing.Point(4, 60);
+            this.label2.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label2.Name = "label2";
-            this.label2.Size = new System.Drawing.Size(108, 36);
+            this.label2.Size = new System.Drawing.Size(141, 46);
             this.label2.TabIndex = 0;
-            this.label2.Text = "CAT 1(EXERCISE)\r\n(30MARKS)";
+            this.label2.Text = "CLASSTEST II \r\n(20MARKS)";
             this.label2.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
             // guna2GroupBox2
@@ -399,10 +411,11 @@
             this.guna2GroupBox2.CustomBorderColor = System.Drawing.Color.MidnightBlue;
             this.guna2GroupBox2.Font = new System.Drawing.Font("Roboto Cn", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.guna2GroupBox2.ForeColor = System.Drawing.Color.White;
-            this.guna2GroupBox2.Location = new System.Drawing.Point(298, 174);
+            this.guna2GroupBox2.Location = new System.Drawing.Point(397, 214);
+            this.guna2GroupBox2.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.guna2GroupBox2.Name = "guna2GroupBox2";
             this.guna2GroupBox2.ShadowDecoration.Parent = this.guna2GroupBox2;
-            this.guna2GroupBox2.Size = new System.Drawing.Size(253, 265);
+            this.guna2GroupBox2.Size = new System.Drawing.Size(337, 326);
             this.guna2GroupBox2.TabIndex = 12;
             this.guna2GroupBox2.Text = "CLASS RECORDS";
             // 
@@ -414,9 +427,10 @@
             this.gunaPanel2.Controls.Add(this.label11);
             this.gunaPanel2.Controls.Add(this.label6);
             this.gunaPanel2.Controls.Add(this.label10);
-            this.gunaPanel2.Location = new System.Drawing.Point(32, 189);
+            this.gunaPanel2.Location = new System.Drawing.Point(43, 233);
+            this.gunaPanel2.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.gunaPanel2.Name = "gunaPanel2";
-            this.gunaPanel2.Size = new System.Drawing.Size(84, 73);
+            this.gunaPanel2.Size = new System.Drawing.Size(112, 90);
             this.gunaPanel2.TabIndex = 6;
             // 
             // gunaLabel1
@@ -425,9 +439,10 @@
             this.gunaLabel1.BackColor = System.Drawing.Color.Transparent;
             this.gunaLabel1.Font = new System.Drawing.Font("Roboto Cn", 15.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.gunaLabel1.ForeColor = System.Drawing.Color.White;
-            this.gunaLabel1.Location = new System.Drawing.Point(30, 53);
+            this.gunaLabel1.Location = new System.Drawing.Point(40, 65);
+            this.gunaLabel1.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.gunaLabel1.Name = "gunaLabel1";
-            this.gunaLabel1.Size = new System.Drawing.Size(24, 25);
+            this.gunaLabel1.Size = new System.Drawing.Size(30, 33);
             this.gunaLabel1.TabIndex = 7;
             this.gunaLabel1.Text = "A";
             this.gunaLabel1.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
@@ -435,26 +450,29 @@
             // label12
             // 
             this.label12.AutoSize = true;
-            this.label12.Location = new System.Drawing.Point(42, 27);
+            this.label12.Location = new System.Drawing.Point(56, 33);
+            this.label12.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label12.Name = "label12";
-            this.label12.Size = new System.Drawing.Size(0, 18);
+            this.label12.Size = new System.Drawing.Size(0, 23);
             this.label12.TabIndex = 4;
             // 
             // label11
             // 
             this.label11.AutoSize = true;
-            this.label11.Location = new System.Drawing.Point(42, 40);
+            this.label11.Location = new System.Drawing.Point(56, 49);
+            this.label11.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label11.Name = "label11";
-            this.label11.Size = new System.Drawing.Size(0, 18);
+            this.label11.Size = new System.Drawing.Size(0, 23);
             this.label11.TabIndex = 3;
             // 
             // label6
             // 
             this.label6.AutoSize = true;
             this.label6.BackColor = System.Drawing.Color.MidnightBlue;
-            this.label6.Location = new System.Drawing.Point(-10, 36);
+            this.label6.Location = new System.Drawing.Point(-13, 44);
+            this.label6.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label6.Name = "label6";
-            this.label6.Size = new System.Drawing.Size(0, 18);
+            this.label6.Size = new System.Drawing.Size(0, 23);
             this.label6.TabIndex = 6;
             this.label6.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
@@ -462,9 +480,10 @@
             // 
             this.label10.AutoSize = true;
             this.label10.BackColor = System.Drawing.Color.MidnightBlue;
-            this.label10.Location = new System.Drawing.Point(5, 11);
+            this.label10.Location = new System.Drawing.Point(7, 14);
+            this.label10.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label10.Name = "label10";
-            this.label10.Size = new System.Drawing.Size(74, 36);
+            this.label10.Size = new System.Drawing.Size(94, 46);
             this.label10.TabIndex = 2;
             this.label10.Text = "SUBJECT\'S\r\n GRADE";
             this.label10.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
@@ -475,9 +494,10 @@
             this.gunaPanel1.BackColor = System.Drawing.Color.MidnightBlue;
             this.gunaPanel1.Controls.Add(this.gunaLabel2);
             this.gunaPanel1.Controls.Add(this.label8);
-            this.gunaPanel1.Location = new System.Drawing.Point(137, 189);
+            this.gunaPanel1.Location = new System.Drawing.Point(183, 233);
+            this.gunaPanel1.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.gunaPanel1.Name = "gunaPanel1";
-            this.gunaPanel1.Size = new System.Drawing.Size(84, 73);
+            this.gunaPanel1.Size = new System.Drawing.Size(112, 90);
             this.gunaPanel1.TabIndex = 5;
             // 
             // gunaLabel2
@@ -486,9 +506,10 @@
             this.gunaLabel2.BackColor = System.Drawing.Color.Transparent;
             this.gunaLabel2.Font = new System.Drawing.Font("Roboto Cn", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.gunaLabel2.ForeColor = System.Drawing.Color.White;
-            this.gunaLabel2.Location = new System.Drawing.Point(1, 53);
+            this.gunaLabel2.Location = new System.Drawing.Point(1, 65);
+            this.gunaLabel2.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.gunaLabel2.Name = "gunaLabel2";
-            this.gunaLabel2.Size = new System.Drawing.Size(165, 38);
+            this.gunaLabel2.Size = new System.Drawing.Size(184, 48);
             this.gunaLabel2.TabIndex = 8;
             this.gunaLabel2.Text = "EXCELLENT                    \r\n\r\n";
             this.gunaLabel2.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
@@ -497,9 +518,10 @@
             // 
             this.label8.AutoSize = true;
             this.label8.BackColor = System.Drawing.Color.MidnightBlue;
-            this.label8.Location = new System.Drawing.Point(7, 9);
+            this.label8.Location = new System.Drawing.Point(9, 11);
+            this.label8.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label8.Name = "label8";
-            this.label8.Size = new System.Drawing.Size(69, 36);
+            this.label8.Size = new System.Drawing.Size(87, 46);
             this.label8.TabIndex = 2;
             this.label8.Text = "STUDENT \r\nREMARK";
             this.label8.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
@@ -508,11 +530,12 @@
             // 
             this.label7.AutoSize = true;
             this.label7.BackColor = System.Drawing.Color.MidnightBlue;
-            this.label7.Location = new System.Drawing.Point(39, 92);
+            this.label7.Location = new System.Drawing.Point(52, 113);
+            this.label7.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label7.Name = "label7";
-            this.label7.Size = new System.Drawing.Size(174, 36);
+            this.label7.Size = new System.Drawing.Size(222, 46);
             this.label7.TabIndex = 4;
-            this.label7.Text = "TOTAL CAT + EXAMS SCORE\r\n(200MARKS)";
+            this.label7.Text = " 50%  CLASSS SORE  + EXAMS SCORE\r\n(100MARKS)";
             this.label7.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
             // gunaTextBox7
@@ -525,11 +548,12 @@
             this.gunaTextBox7.FocusedForeColor = System.Drawing.SystemColors.ControlText;
             this.gunaTextBox7.Font = new System.Drawing.Font("Roboto Cn", 9.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.gunaTextBox7.ForeColor = System.Drawing.Color.MidnightBlue;
-            this.gunaTextBox7.Location = new System.Drawing.Point(18, 135);
+            this.gunaTextBox7.Location = new System.Drawing.Point(24, 166);
+            this.gunaTextBox7.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.gunaTextBox7.Name = "gunaTextBox7";
             this.gunaTextBox7.PasswordChar = '\0';
             this.gunaTextBox7.SelectedText = "";
-            this.gunaTextBox7.Size = new System.Drawing.Size(216, 36);
+            this.gunaTextBox7.Size = new System.Drawing.Size(288, 44);
             this.gunaTextBox7.TabIndex = 3;
             this.gunaTextBox7.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             // 
@@ -543,11 +567,12 @@
             this.gunaTextBox8.FocusedForeColor = System.Drawing.SystemColors.ControlText;
             this.gunaTextBox8.Font = new System.Drawing.Font("Roboto Cn", 9.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.gunaTextBox8.ForeColor = System.Drawing.Color.MidnightBlue;
-            this.gunaTextBox8.Location = new System.Drawing.Point(129, 49);
+            this.gunaTextBox8.Location = new System.Drawing.Point(172, 60);
+            this.gunaTextBox8.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.gunaTextBox8.Name = "gunaTextBox8";
             this.gunaTextBox8.PasswordChar = '\0';
             this.gunaTextBox8.SelectedText = "";
-            this.gunaTextBox8.Size = new System.Drawing.Size(105, 36);
+            this.gunaTextBox8.Size = new System.Drawing.Size(140, 44);
             this.gunaTextBox8.TabIndex = 1;
             this.gunaTextBox8.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             // 
@@ -555,9 +580,10 @@
             // 
             this.label9.AutoSize = true;
             this.label9.BackColor = System.Drawing.Color.MidnightBlue;
-            this.label9.Location = new System.Drawing.Point(3, 49);
+            this.label9.Location = new System.Drawing.Point(4, 60);
+            this.label9.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label9.Name = "label9";
-            this.label9.Size = new System.Drawing.Size(93, 36);
+            this.label9.Size = new System.Drawing.Size(119, 46);
             this.label9.TabIndex = 0;
             this.label9.Text = "EXAMS SCORE\r\n(100MARKS)";
             this.label9.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
@@ -584,9 +610,10 @@
             this.gunaGroupBox1.Font = new System.Drawing.Font("Roboto Cn", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.gunaGroupBox1.ForeColor = System.Drawing.Color.White;
             this.gunaGroupBox1.LineColor = System.Drawing.Color.MidnightBlue;
-            this.gunaGroupBox1.Location = new System.Drawing.Point(5, 56);
+            this.gunaGroupBox1.Location = new System.Drawing.Point(7, 69);
+            this.gunaGroupBox1.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.gunaGroupBox1.Name = "gunaGroupBox1";
-            this.gunaGroupBox1.Size = new System.Drawing.Size(546, 112);
+            this.gunaGroupBox1.Size = new System.Drawing.Size(728, 138);
             this.gunaGroupBox1.TabIndex = 13;
             this.gunaGroupBox1.Text = "STUDENT DETAILS ";
             this.gunaGroupBox1.TextLocation = new System.Drawing.Point(10, 8);
@@ -601,20 +628,22 @@
             this.gunaTextBox10.FocusedForeColor = System.Drawing.SystemColors.ControlText;
             this.gunaTextBox10.Font = new System.Drawing.Font("Roboto Cn", 9.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.gunaTextBox10.ForeColor = System.Drawing.Color.MidnightBlue;
-            this.gunaTextBox10.Location = new System.Drawing.Point(422, 65);
+            this.gunaTextBox10.Location = new System.Drawing.Point(563, 80);
+            this.gunaTextBox10.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.gunaTextBox10.Name = "gunaTextBox10";
             this.gunaTextBox10.PasswordChar = '\0';
             this.gunaTextBox10.SelectedText = "";
-            this.gunaTextBox10.Size = new System.Drawing.Size(121, 26);
+            this.gunaTextBox10.Size = new System.Drawing.Size(161, 37);
             this.gunaTextBox10.TabIndex = 44;
             // 
             // label18
             // 
             this.label18.AutoSize = true;
             this.label18.BackColor = System.Drawing.Color.MidnightBlue;
-            this.label18.Location = new System.Drawing.Point(375, 71);
+            this.label18.Location = new System.Drawing.Point(500, 87);
+            this.label18.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label18.Name = "label18";
-            this.label18.Size = new System.Drawing.Size(39, 18);
+            this.label18.Size = new System.Drawing.Size(51, 23);
             this.label18.TabIndex = 43;
             this.label18.Text = "YEAR";
             this.label18.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
@@ -634,20 +663,22 @@
             "TERM 1",
             "TERM 2",
             "TERM 3"});
-            this.gunaComboBox2.Location = new System.Drawing.Point(422, 33);
+            this.gunaComboBox2.Location = new System.Drawing.Point(563, 41);
+            this.gunaComboBox2.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.gunaComboBox2.Name = "gunaComboBox2";
             this.gunaComboBox2.OnHoverItemBaseColor = System.Drawing.Color.FromArgb(((int)(((byte)(100)))), ((int)(((byte)(88)))), ((int)(((byte)(255)))));
             this.gunaComboBox2.OnHoverItemForeColor = System.Drawing.Color.White;
-            this.gunaComboBox2.Size = new System.Drawing.Size(121, 27);
+            this.gunaComboBox2.Size = new System.Drawing.Size(160, 31);
             this.gunaComboBox2.TabIndex = 42;
             // 
             // label17
             // 
             this.label17.AutoSize = true;
             this.label17.BackColor = System.Drawing.Color.MidnightBlue;
-            this.label17.Location = new System.Drawing.Point(375, 38);
+            this.label17.Location = new System.Drawing.Point(500, 47);
+            this.label17.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label17.Name = "label17";
-            this.label17.Size = new System.Drawing.Size(41, 18);
+            this.label17.Size = new System.Drawing.Size(52, 23);
             this.label17.TabIndex = 41;
             this.label17.Text = "TERM";
             this.label17.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
@@ -673,11 +704,12 @@
             "CARRER TECH.",
             "CREATIVE ART",
             "GHANAIAN LANG."});
-            this.gunaComboBox1.Location = new System.Drawing.Point(240, 67);
+            this.gunaComboBox1.Location = new System.Drawing.Point(320, 82);
+            this.gunaComboBox1.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.gunaComboBox1.Name = "gunaComboBox1";
             this.gunaComboBox1.OnHoverItemBaseColor = System.Drawing.Color.FromArgb(((int)(((byte)(100)))), ((int)(((byte)(88)))), ((int)(((byte)(255)))));
             this.gunaComboBox1.OnHoverItemForeColor = System.Drawing.Color.White;
-            this.gunaComboBox1.Size = new System.Drawing.Size(121, 27);
+            this.gunaComboBox1.Size = new System.Drawing.Size(160, 31);
             this.gunaComboBox1.TabIndex = 40;
             this.gunaComboBox1.SelectedIndexChanged += new System.EventHandler(this.gunaComboBox1_SelectedIndexChanged);
             // 
@@ -685,9 +717,10 @@
             // 
             this.label16.AutoSize = true;
             this.label16.BackColor = System.Drawing.Color.MidnightBlue;
-            this.label16.Location = new System.Drawing.Point(169, 70);
+            this.label16.Location = new System.Drawing.Point(225, 86);
+            this.label16.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label16.Name = "label16";
-            this.label16.Size = new System.Drawing.Size(62, 18);
+            this.label16.Size = new System.Drawing.Size(80, 23);
             this.label16.TabIndex = 39;
             this.label16.Text = "SUBJECT";
             this.label16.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
@@ -706,7 +739,8 @@
             this.pay.ForeColor = System.Drawing.Color.MidnightBlue;
             this.pay.Image = ((System.Drawing.Image)(resources.GetObject("pay.Image")));
             this.pay.ImageSize = new System.Drawing.Size(50, 50);
-            this.pay.Location = new System.Drawing.Point(276, 434);
+            this.pay.Location = new System.Drawing.Point(368, 534);
+            this.pay.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.pay.Name = "pay";
             this.pay.OnHoverBaseColor = System.Drawing.Color.MidnightBlue;
             this.pay.OnHoverBorderColor = System.Drawing.Color.Black;
@@ -714,7 +748,7 @@
             this.pay.OnHoverImage = null;
             this.pay.OnPressedColor = System.Drawing.Color.Gray;
             this.pay.OnPressedDepth = 40;
-            this.pay.Size = new System.Drawing.Size(667, 60);
+            this.pay.Size = new System.Drawing.Size(889, 74);
             this.pay.TabIndex = 38;
             this.pay.Text = "VIEW STUDENTS";
             this.pay.Click += new System.EventHandler(this.pay_Click);
@@ -726,9 +760,10 @@
             this.panel1.Controls.Add(this.btnDel);
             this.panel1.Controls.Add(this.btnSave);
             this.panel1.Controls.Add(this.btnNew);
-            this.panel1.Location = new System.Drawing.Point(-397, 434);
+            this.panel1.Location = new System.Drawing.Point(-529, 534);
+            this.panel1.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.panel1.Name = "panel1";
-            this.panel1.Size = new System.Drawing.Size(667, 60);
+            this.panel1.Size = new System.Drawing.Size(889, 74);
             this.panel1.TabIndex = 37;
             this.panel1.Paint += new System.Windows.Forms.PaintEventHandler(this.panel1_Paint);
             // 
@@ -746,7 +781,8 @@
             this.btn_Update.ForeColor = System.Drawing.Color.Black;
             this.btn_Update.Image = ((System.Drawing.Image)(resources.GetObject("btn_Update.Image")));
             this.btn_Update.ImageSize = new System.Drawing.Size(50, 50);
-            this.btn_Update.Location = new System.Drawing.Point(493, 0);
+            this.btn_Update.Location = new System.Drawing.Point(657, 0);
+            this.btn_Update.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.btn_Update.Name = "btn_Update";
             this.btn_Update.OnHoverBaseColor = System.Drawing.Color.MidnightBlue;
             this.btn_Update.OnHoverBorderColor = System.Drawing.Color.Black;
@@ -754,7 +790,7 @@
             this.btn_Update.OnHoverImage = null;
             this.btn_Update.OnPressedColor = System.Drawing.Color.Gray;
             this.btn_Update.OnPressedDepth = 40;
-            this.btn_Update.Size = new System.Drawing.Size(122, 66);
+            this.btn_Update.Size = new System.Drawing.Size(163, 81);
             this.btn_Update.TabIndex = 34;
             this.btn_Update.Text = "UPDATE";
             // 
@@ -772,7 +808,8 @@
             this.btnDel.ForeColor = System.Drawing.Color.Black;
             this.btnDel.Image = ((System.Drawing.Image)(resources.GetObject("btnDel.Image")));
             this.btnDel.ImageSize = new System.Drawing.Size(50, 50);
-            this.btnDel.Location = new System.Drawing.Point(325, -3);
+            this.btnDel.Location = new System.Drawing.Point(433, -4);
+            this.btnDel.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.btnDel.Name = "btnDel";
             this.btnDel.OnHoverBaseColor = System.Drawing.Color.MidnightBlue;
             this.btnDel.OnHoverBorderColor = System.Drawing.Color.Black;
@@ -780,7 +817,7 @@
             this.btnDel.OnHoverImage = null;
             this.btnDel.OnPressedColor = System.Drawing.Color.Gray;
             this.btnDel.OnPressedDepth = 40;
-            this.btnDel.Size = new System.Drawing.Size(125, 66);
+            this.btnDel.Size = new System.Drawing.Size(167, 81);
             this.btnDel.TabIndex = 33;
             this.btnDel.Text = "DELETE";
             // 
@@ -798,7 +835,8 @@
             this.btnSave.ForeColor = System.Drawing.Color.Black;
             this.btnSave.Image = ((System.Drawing.Image)(resources.GetObject("btnSave.Image")));
             this.btnSave.ImageSize = new System.Drawing.Size(50, 50);
-            this.btnSave.Location = new System.Drawing.Point(152, -3);
+            this.btnSave.Location = new System.Drawing.Point(203, -4);
+            this.btnSave.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.btnSave.Name = "btnSave";
             this.btnSave.OnHoverBaseColor = System.Drawing.Color.MidnightBlue;
             this.btnSave.OnHoverBorderColor = System.Drawing.Color.Black;
@@ -806,7 +844,7 @@
             this.btnSave.OnHoverImage = null;
             this.btnSave.OnPressedColor = System.Drawing.Color.Gray;
             this.btnSave.OnPressedDepth = 40;
-            this.btnSave.Size = new System.Drawing.Size(111, 66);
+            this.btnSave.Size = new System.Drawing.Size(148, 81);
             this.btnSave.TabIndex = 31;
             this.btnSave.Text = "SAVE";
             // 
@@ -824,7 +862,8 @@
             this.btnNew.ForeColor = System.Drawing.Color.Black;
             this.btnNew.Image = ((System.Drawing.Image)(resources.GetObject("btnNew.Image")));
             this.btnNew.ImageSize = new System.Drawing.Size(50, 50);
-            this.btnNew.Location = new System.Drawing.Point(16, -6);
+            this.btnNew.Location = new System.Drawing.Point(21, -7);
+            this.btnNew.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.btnNew.Name = "btnNew";
             this.btnNew.OnHoverBaseColor = System.Drawing.Color.MidnightBlue;
             this.btnNew.OnHoverBorderColor = System.Drawing.Color.Black;
@@ -832,7 +871,7 @@
             this.btnNew.OnHoverImage = null;
             this.btnNew.OnPressedColor = System.Drawing.Color.Gray;
             this.btnNew.OnPressedDepth = 40;
-            this.btnNew.Size = new System.Drawing.Size(111, 66);
+            this.btnNew.Size = new System.Drawing.Size(148, 81);
             this.btnNew.TabIndex = 30;
             this.btnNew.Text = "NEW";
             // 
@@ -846,11 +885,12 @@
             this.gunaTextBox9.FocusedForeColor = System.Drawing.SystemColors.ControlText;
             this.gunaTextBox9.Font = new System.Drawing.Font("Roboto Cn", 9.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.gunaTextBox9.ForeColor = System.Drawing.Color.MidnightBlue;
-            this.gunaTextBox9.Location = new System.Drawing.Point(240, 34);
+            this.gunaTextBox9.Location = new System.Drawing.Point(320, 42);
+            this.gunaTextBox9.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.gunaTextBox9.Name = "gunaTextBox9";
             this.gunaTextBox9.PasswordChar = '\0';
             this.gunaTextBox9.SelectedText = "";
-            this.gunaTextBox9.Size = new System.Drawing.Size(122, 26);
+            this.gunaTextBox9.Size = new System.Drawing.Size(163, 37);
             this.gunaTextBox9.TabIndex = 12;
             this.gunaTextBox9.TextChanged += new System.EventHandler(this.gunaTextBox9_TextChanged);
             // 
@@ -858,9 +898,10 @@
             // 
             this.label15.AutoSize = true;
             this.label15.BackColor = System.Drawing.Color.MidnightBlue;
-            this.label15.Location = new System.Drawing.Point(169, 38);
+            this.label15.Location = new System.Drawing.Point(225, 47);
+            this.label15.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label15.Name = "label15";
-            this.label15.Size = new System.Drawing.Size(47, 18);
+            this.label15.Size = new System.Drawing.Size(61, 23);
             this.label15.TabIndex = 11;
             this.label15.Text = "CLASS";
             this.label15.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
@@ -875,20 +916,22 @@
             this.gunaTextBox6.FocusedForeColor = System.Drawing.SystemColors.ControlText;
             this.gunaTextBox6.Font = new System.Drawing.Font("Roboto Cn", 9.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.gunaTextBox6.ForeColor = System.Drawing.Color.MidnightBlue;
-            this.gunaTextBox6.Location = new System.Drawing.Point(52, 66);
+            this.gunaTextBox6.Location = new System.Drawing.Point(69, 81);
+            this.gunaTextBox6.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.gunaTextBox6.Name = "gunaTextBox6";
             this.gunaTextBox6.PasswordChar = '\0';
             this.gunaTextBox6.SelectedText = "";
-            this.gunaTextBox6.Size = new System.Drawing.Size(109, 26);
+            this.gunaTextBox6.Size = new System.Drawing.Size(145, 37);
             this.gunaTextBox6.TabIndex = 10;
             // 
             // label14
             // 
             this.label14.AutoSize = true;
             this.label14.BackColor = System.Drawing.Color.MidnightBlue;
-            this.label14.Location = new System.Drawing.Point(1, 70);
+            this.label14.Location = new System.Drawing.Point(1, 86);
+            this.label14.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label14.Name = "label14";
-            this.label14.Size = new System.Drawing.Size(43, 18);
+            this.label14.Size = new System.Drawing.Size(56, 23);
             this.label14.TabIndex = 9;
             this.label14.Text = "NAME";
             this.label14.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
@@ -903,11 +946,12 @@
             this.gunaTextBox5.FocusedForeColor = System.Drawing.SystemColors.ControlText;
             this.gunaTextBox5.Font = new System.Drawing.Font("Roboto Cn", 9.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.gunaTextBox5.ForeColor = System.Drawing.Color.MidnightBlue;
-            this.gunaTextBox5.Location = new System.Drawing.Point(52, 34);
+            this.gunaTextBox5.Location = new System.Drawing.Point(69, 42);
+            this.gunaTextBox5.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.gunaTextBox5.Name = "gunaTextBox5";
             this.gunaTextBox5.PasswordChar = '\0';
             this.gunaTextBox5.SelectedText = "";
-            this.gunaTextBox5.Size = new System.Drawing.Size(105, 26);
+            this.gunaTextBox5.Size = new System.Drawing.Size(140, 37);
             this.gunaTextBox5.TabIndex = 8;
             this.gunaTextBox5.TextChanged += new System.EventHandler(this.gunaTextBox5_TextChanged_1);
             // 
@@ -915,9 +959,10 @@
             // 
             this.label13.AutoSize = true;
             this.label13.BackColor = System.Drawing.Color.MidnightBlue;
-            this.label13.Location = new System.Drawing.Point(1, 38);
+            this.label13.Location = new System.Drawing.Point(1, 47);
+            this.label13.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label13.Name = "label13";
-            this.label13.Size = new System.Drawing.Size(21, 18);
+            this.label13.Size = new System.Drawing.Size(26, 23);
             this.label13.TabIndex = 1;
             this.label13.Text = "ID";
             this.label13.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
@@ -935,7 +980,8 @@
             this.gunaButton1.ForeColor = System.Drawing.Color.MidnightBlue;
             this.gunaButton1.Image = ((System.Drawing.Image)(resources.GetObject("gunaButton1.Image")));
             this.gunaButton1.ImageSize = new System.Drawing.Size(50, 50);
-            this.gunaButton1.Location = new System.Drawing.Point(673, 496);
+            this.gunaButton1.Location = new System.Drawing.Point(897, 610);
+            this.gunaButton1.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.gunaButton1.Name = "gunaButton1";
             this.gunaButton1.OnHoverBaseColor = System.Drawing.Color.MidnightBlue;
             this.gunaButton1.OnHoverBorderColor = System.Drawing.Color.Black;
@@ -943,7 +989,7 @@
             this.gunaButton1.OnHoverImage = null;
             this.gunaButton1.OnPressedColor = System.Drawing.Color.Gray;
             this.gunaButton1.OnPressedDepth = 40;
-            this.gunaButton1.Size = new System.Drawing.Size(667, 60);
+            this.gunaButton1.Size = new System.Drawing.Size(889, 74);
             this.gunaButton1.TabIndex = 38;
             this.gunaButton1.Text = "VIEW STUDENTS";
             // 
@@ -954,9 +1000,10 @@
             this.panel2.Controls.Add(this.gunaButton2);
             this.panel2.Controls.Add(this.gunaButton3);
             this.panel2.Controls.Add(this.gunaButton4);
-            this.panel2.Location = new System.Drawing.Point(0, 498);
+            this.panel2.Location = new System.Drawing.Point(0, 613);
+            this.panel2.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.panel2.Name = "panel2";
-            this.panel2.Size = new System.Drawing.Size(667, 60);
+            this.panel2.Size = new System.Drawing.Size(889, 74);
             this.panel2.TabIndex = 37;
             // 
             // gunaButton5
@@ -972,7 +1019,8 @@
             this.gunaButton5.ForeColor = System.Drawing.Color.MidnightBlue;
             this.gunaButton5.Image = ((System.Drawing.Image)(resources.GetObject("gunaButton5.Image")));
             this.gunaButton5.ImageSize = new System.Drawing.Size(50, 50);
-            this.gunaButton5.Location = new System.Drawing.Point(435, -3);
+            this.gunaButton5.Location = new System.Drawing.Point(580, -4);
+            this.gunaButton5.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.gunaButton5.Name = "gunaButton5";
             this.gunaButton5.OnHoverBaseColor = System.Drawing.Color.MidnightBlue;
             this.gunaButton5.OnHoverBorderColor = System.Drawing.Color.Black;
@@ -980,7 +1028,7 @@
             this.gunaButton5.OnHoverImage = null;
             this.gunaButton5.OnPressedColor = System.Drawing.Color.Gray;
             this.gunaButton5.OnPressedDepth = 40;
-            this.gunaButton5.Size = new System.Drawing.Size(602, 73);
+            this.gunaButton5.Size = new System.Drawing.Size(803, 90);
             this.gunaButton5.TabIndex = 39;
             this.gunaButton5.Text = "VIEW RESULT";
             this.gunaButton5.Click += new System.EventHandler(this.gunaButton5_Click);
@@ -1000,7 +1048,8 @@
             this.gunaButton2.Image = ((System.Drawing.Image)(resources.GetObject("gunaButton2.Image")));
             this.gunaButton2.ImageOffsetX = -15;
             this.gunaButton2.ImageSize = new System.Drawing.Size(50, 50);
-            this.gunaButton2.Location = new System.Drawing.Point(290, -3);
+            this.gunaButton2.Location = new System.Drawing.Point(387, -4);
+            this.gunaButton2.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.gunaButton2.Name = "gunaButton2";
             this.gunaButton2.OnHoverBaseColor = System.Drawing.Color.MidnightBlue;
             this.gunaButton2.OnHoverBorderColor = System.Drawing.Color.Black;
@@ -1008,7 +1057,7 @@
             this.gunaButton2.OnHoverImage = null;
             this.gunaButton2.OnPressedColor = System.Drawing.Color.Gray;
             this.gunaButton2.OnPressedDepth = 40;
-            this.gunaButton2.Size = new System.Drawing.Size(137, 66);
+            this.gunaButton2.Size = new System.Drawing.Size(183, 81);
             this.gunaButton2.TabIndex = 34;
             this.gunaButton2.Text = "MOD. RESULT";
             this.gunaButton2.TextOffsetX = -11;
@@ -1029,7 +1078,8 @@
             this.gunaButton3.Image = ((System.Drawing.Image)(resources.GetObject("gunaButton3.Image")));
             this.gunaButton3.ImageOffsetX = -15;
             this.gunaButton3.ImageSize = new System.Drawing.Size(50, 50);
-            this.gunaButton3.Location = new System.Drawing.Point(151, -3);
+            this.gunaButton3.Location = new System.Drawing.Point(201, -4);
+            this.gunaButton3.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.gunaButton3.Name = "gunaButton3";
             this.gunaButton3.OnHoverBaseColor = System.Drawing.Color.MidnightBlue;
             this.gunaButton3.OnHoverBorderColor = System.Drawing.Color.Black;
@@ -1037,7 +1087,7 @@
             this.gunaButton3.OnHoverImage = null;
             this.gunaButton3.OnPressedColor = System.Drawing.Color.Gray;
             this.gunaButton3.OnPressedDepth = 40;
-            this.gunaButton3.Size = new System.Drawing.Size(133, 66);
+            this.gunaButton3.Size = new System.Drawing.Size(177, 81);
             this.gunaButton3.TabIndex = 33;
             this.gunaButton3.Text = "DEL. RESULT";
             this.gunaButton3.TextOffsetX = -10;
@@ -1058,7 +1108,8 @@
             this.gunaButton4.Image = ((System.Drawing.Image)(resources.GetObject("gunaButton4.Image")));
             this.gunaButton4.ImageOffsetX = -15;
             this.gunaButton4.ImageSize = new System.Drawing.Size(50, 50);
-            this.gunaButton4.Location = new System.Drawing.Point(12, -3);
+            this.gunaButton4.Location = new System.Drawing.Point(16, -4);
+            this.gunaButton4.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.gunaButton4.Name = "gunaButton4";
             this.gunaButton4.OnHoverBaseColor = System.Drawing.Color.MidnightBlue;
             this.gunaButton4.OnHoverBorderColor = System.Drawing.Color.Black;
@@ -1066,7 +1117,7 @@
             this.gunaButton4.OnHoverImage = null;
             this.gunaButton4.OnPressedColor = System.Drawing.Color.Gray;
             this.gunaButton4.OnPressedDepth = 40;
-            this.gunaButton4.Size = new System.Drawing.Size(133, 66);
+            this.gunaButton4.Size = new System.Drawing.Size(177, 81);
             this.gunaButton4.TabIndex = 31;
             this.gunaButton4.Text = "PUSH RESULT";
             this.gunaButton4.TextOffsetX = -11;
@@ -1076,9 +1127,10 @@
             // 
             this.gunaPictureBox6.BaseColor = System.Drawing.Color.White;
             this.gunaPictureBox6.Image = ((System.Drawing.Image)(resources.GetObject("gunaPictureBox6.Image")));
-            this.gunaPictureBox6.Location = new System.Drawing.Point(544, 1);
+            this.gunaPictureBox6.Location = new System.Drawing.Point(725, 1);
+            this.gunaPictureBox6.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.gunaPictureBox6.Name = "gunaPictureBox6";
-            this.gunaPictureBox6.Size = new System.Drawing.Size(49, 26);
+            this.gunaPictureBox6.Size = new System.Drawing.Size(65, 32);
             this.gunaPictureBox6.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
             this.gunaPictureBox6.TabIndex = 59;
             this.gunaPictureBox6.TabStop = false;
@@ -1099,7 +1151,8 @@
             this.gunaButton6.Image = ((System.Drawing.Image)(resources.GetObject("gunaButton6.Image")));
             this.gunaButton6.ImageOffsetX = -10;
             this.gunaButton6.ImageSize = new System.Drawing.Size(40, 40);
-            this.gunaButton6.Location = new System.Drawing.Point(242, 447);
+            this.gunaButton6.Location = new System.Drawing.Point(323, 550);
+            this.gunaButton6.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.gunaButton6.Name = "gunaButton6";
             this.gunaButton6.OnHoverBaseColor = System.Drawing.Color.MidnightBlue;
             this.gunaButton6.OnHoverBorderColor = System.Drawing.Color.Black;
@@ -1107,7 +1160,7 @@
             this.gunaButton6.OnHoverImage = null;
             this.gunaButton6.OnPressedColor = System.Drawing.Color.Gray;
             this.gunaButton6.OnPressedDepth = 40;
-            this.gunaButton6.Size = new System.Drawing.Size(122, 44);
+            this.gunaButton6.Size = new System.Drawing.Size(163, 54);
             this.gunaButton6.TabIndex = 40;
             this.gunaButton6.Text = "PROCESS";
             this.gunaButton6.TextOffsetX = -9;
@@ -1127,7 +1180,8 @@
             this.gunaButton7.ForeColor = System.Drawing.Color.Black;
             this.gunaButton7.Image = ((System.Drawing.Image)(resources.GetObject("gunaButton7.Image")));
             this.gunaButton7.ImageSize = new System.Drawing.Size(50, 50);
-            this.gunaButton7.Location = new System.Drawing.Point(12, 430);
+            this.gunaButton7.Location = new System.Drawing.Point(16, 529);
+            this.gunaButton7.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.gunaButton7.Name = "gunaButton7";
             this.gunaButton7.OnHoverBaseColor = System.Drawing.Color.MidnightBlue;
             this.gunaButton7.OnHoverBorderColor = System.Drawing.Color.Black;
@@ -1135,17 +1189,17 @@
             this.gunaButton7.OnHoverImage = null;
             this.gunaButton7.OnPressedColor = System.Drawing.Color.Gray;
             this.gunaButton7.OnPressedDepth = 40;
-            this.gunaButton7.Size = new System.Drawing.Size(111, 51);
+            this.gunaButton7.Size = new System.Drawing.Size(148, 63);
             this.gunaButton7.TabIndex = 40;
             this.gunaButton7.Text = "NEW";
             this.gunaButton7.Click += new System.EventHandler(this.gunaButton7_Click);
             // 
             // EXAMS
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.White;
-            this.ClientSize = new System.Drawing.Size(593, 557);
+            this.ClientSize = new System.Drawing.Size(791, 686);
             this.Controls.Add(this.gunaButton7);
             this.Controls.Add(this.gunaButton6);
             this.Controls.Add(this.gunaPictureBox6);
@@ -1156,7 +1210,8 @@
             this.Controls.Add(this.guna2GroupBox1);
             this.Controls.Add(this.label1);
             this.Controls.Add(this.menuStrip1);
-            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.Sizable;
+            this.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.Name = "EXAMS";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = " ";

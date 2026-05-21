@@ -1138,10 +1138,12 @@
             this.ClientSize = new System.Drawing.Size(755, 697);
             this.Controls.Add(this.gunaPanel2);
             this.Controls.Add(this.gunaPanel1);
-            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
+            this.MaximizeBox = false;
+            this.MinimizeBox = false;
             this.Name = "examsviewdetails";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.Text = "examsviewdetails";
+            this.Text = "Student Result Details";
             this.gunaPanel1.ResumeLayout(false);
             this.gunaPanel1.PerformLayout();
             this.gunaPanel2.ResumeLayout(false);

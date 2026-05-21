@@ -1,4 +1,5 @@
 using System;
+using System.Data;
 using System.Data.OleDb;
 using System.Diagnostics;
 using System.Drawing;
@@ -12,17 +13,23 @@ namespace kingdom_Preparatory_School_Management_System
         private readonly kum Aikins = new kum();
         private Label studentCountLabel;
         private Label employeeCountLabel;
+        private Label feesCollectedLabel;
         private Label feesBalanceLabel;
         private Label pendingLeaveLabel;
+        private Label averageExamLabel;
+        private Label topClassLabel;
         private Label statusLabel;
+        private DataGridView recentPaymentsGrid;
+        private DataGridView classSummaryGrid;
+        private DataGridView leaveSummaryGrid;
 
-        private static readonly Color PageBackColor = Color.FromArgb(246, 248, 251);
-        private static readonly Color SidebarBackColor = Color.FromArgb(17, 35, 58);
-        private static readonly Color SidebarHoverColor = Color.FromArgb(31, 55, 86);
-        private static readonly Color PrimaryColor = Color.FromArgb(31, 99, 198);
-        private static readonly Color TextColor = Color.FromArgb(25, 36, 49);
-        private static readonly Color MutedTextColor = Color.FromArgb(93, 108, 123);
-        private static readonly Color BorderColor = Color.FromArgb(219, 226, 236);
+        private static readonly Color PageBackColor = UiTheme.Page;
+        private static readonly Color SidebarBackColor = UiTheme.Navy;
+        private static readonly Color SidebarHoverColor = UiTheme.NavyHover;
+        private static readonly Color PrimaryColor = UiTheme.Navy;
+        private static readonly Color TextColor = UiTheme.Text;
+        private static readonly Color MutedTextColor = UiTheme.Muted;
+        private static readonly Color BorderColor = UiTheme.Border;
 
         public frmDashboard()
         {
@@ -34,9 +41,6 @@ namespace kingdom_Preparatory_School_Management_System
 
             // Handle form closing to keep app alive
             this.FormClosing += FrmDashboard_FormClosing;
-
-            // Enable dragging for dashboard
-            EnableFormDragging();
         }
 
         private void FrmDashboard_FormClosing(object sender, FormClosingEventArgs e)
@@ -47,95 +51,6 @@ namespace kingdom_Preparatory_School_Management_System
                 FormManager.CloseAllForms();
                 Application.Exit();
             }
-        }
-
-        /// <summary>
-        /// Enables form dragging functionality
-        /// </summary>
-        private void EnableFormDragging()
-        {
-            // Subscribe to form's own mouse events
-            SubscribeToDragEvents(this);
-
-            // Subscribe to all child controls recursively (async to avoid blocking UI)
-            System.Threading.Tasks.Task.Run(() =>
-            {
-                foreach (Control control in GetAllControls(this))
-                {
-                    if (!IsInteractiveControl(control))
-                    {
-                        this.Invoke(new Action(() => SubscribeToDragEvents(control)));
-                    }
-                }
-            });
-        }
-
-        /// <summary>
-        /// Subscribe a control to drag mouse events
-        /// </summary>
-        private bool isDragging = false;
-        private Point dragStartPoint;
-        private Point formStartPoint;
-
-        private void SubscribeToDragEvents(Control control)
-        {
-            control.MouseDown += (s, e) =>
-            {
-                if (e.Button == MouseButtons.Left)
-                {
-                    isDragging = true;
-                    dragStartPoint = e.Location;
-                    formStartPoint = this.Location;
-                }
-            };
-
-            control.MouseMove += (s, e) =>
-            {
-                if (isDragging && e.Button == MouseButtons.Left)
-                {
-                    int deltaX = e.X - dragStartPoint.X;
-                    int deltaY = e.Y - dragStartPoint.Y;
-                    this.Location = new Point(formStartPoint.X + deltaX, formStartPoint.Y + deltaY);
-                }
-            };
-
-            control.MouseUp += (s, e) =>
-            {
-                isDragging = false;
-            };
-        }
-
-        /// <summary>
-        /// Recursively gets all controls on the form
-        /// </summary>
-        private System.Collections.Generic.List<Control> GetAllControls(Control container)
-        {
-            var controls = new System.Collections.Generic.List<Control>();
-            foreach (Control control in container.Controls)
-            {
-                controls.Add(control);
-                controls.AddRange(GetAllControls(control));
-            }
-            return controls;
-        }
-
-        /// <summary>
-        /// Checks if a control should not have drag enabled
-        /// </summary>
-        private bool IsInteractiveControl(Control control)
-        {
-            Type controlType = control.GetType();
-            return controlType == typeof(TextBox) ||
-                   controlType == typeof(ComboBox) ||
-                   controlType == typeof(Button) ||
-                   controlType == typeof(CheckBox) ||
-                   controlType == typeof(RadioButton) ||
-                   controlType == typeof(DataGridView) ||
-                   controlType == typeof(ListBox) ||
-                   controlType == typeof(TreeView) ||
-                   controlType == typeof(RichTextBox) ||
-                   controlType.Name.Contains("NumericUpDown") ||
-                   controlType.Name.Contains("DateTimePicker");
         }
 
         private void BuildModernDashboard()
@@ -215,6 +130,7 @@ namespace kingdom_Preparatory_School_Management_System
             nav.Controls.Add(CreateNavButton("Fees Payment", () => OpenForm(new frmFessPayment())));
             nav.Controls.Add(CreateNavButton("Exams", () => OpenForm(new EXAMS())));
             nav.Controls.Add(CreateNavButton("Exam Reports", () => OpenForm(new EXAMSVIEW())));
+            nav.Controls.Add(CreateNavButton("Analytics", OpenAnalyticsDashboard));
             nav.Controls.Add(CreateNavButton("Leave Requests", () => OpenForm(new frmLeaveDetails())));
 
             var exitButton = CreateNavButton("Exit", Application.Exit);
@@ -230,17 +146,22 @@ namespace kingdom_Preparatory_School_Management_System
 
         private Control BuildContent()
         {
-            var content = new Panel
+            var content = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
                 BackColor = PageBackColor,
-                Padding = new Padding(28)
+                Padding = new Padding(28),
+                ColumnCount = 1,
+                RowCount = 4
             };
+            content.RowStyles.Add(new RowStyle(SizeType.Absolute, 76));
+            content.RowStyles.Add(new RowStyle(SizeType.Absolute, 142));
+            content.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+            content.RowStyles.Add(new RowStyle(SizeType.Absolute, 156));
 
             var header = new TableLayoutPanel
             {
-                Dock = DockStyle.Top,
-                Height = 76,
+                Dock = DockStyle.Fill,
                 ColumnCount = 2,
                 BackColor = PageBackColor
             };
@@ -252,7 +173,7 @@ namespace kingdom_Preparatory_School_Management_System
             {
                 Dock = DockStyle.Top,
                 Height = 38,
-                Text = "Dashboard",
+                Text = "Analytical Dashboard",
                 ForeColor = TextColor,
                 Font = new Font("Segoe UI Semibold", 22F, FontStyle.Bold),
                 TextAlign = ContentAlignment.MiddleLeft
@@ -261,7 +182,7 @@ namespace kingdom_Preparatory_School_Management_System
             {
                 Dock = DockStyle.Bottom,
                 Height = 26,
-                Text = "Operational overview for students, staff, fees, and exams",
+                Text = "Live overview for students, staff, fees, exams, and leave",
                 ForeColor = MutedTextColor,
                 Font = new Font("Segoe UI", 10F, FontStyle.Regular),
                 TextAlign = ContentAlignment.MiddleLeft
@@ -280,8 +201,7 @@ namespace kingdom_Preparatory_School_Management_System
 
             var metricGrid = new TableLayoutPanel
             {
-                Dock = DockStyle.Top,
-                Height = 142,
+                Dock = DockStyle.Fill,
                 ColumnCount = 4,
                 BackColor = PageBackColor,
                 Padding = new Padding(0, 8, 0, 10)
@@ -293,21 +213,138 @@ namespace kingdom_Preparatory_School_Management_System
 
             studentCountLabel = new Label();
             employeeCountLabel = new Label();
+            feesCollectedLabel = new Label();
             feesBalanceLabel = new Label();
-            pendingLeaveLabel = new Label();
 
             metricGrid.Controls.Add(CreateMetricCard("Students", studentCountLabel, "Active student records"), 0, 0);
             metricGrid.Controls.Add(CreateMetricCard("Employees", employeeCountLabel, "Current staff records"), 1, 0);
-            metricGrid.Controls.Add(CreateMetricCard("Outstanding Fees", feesBalanceLabel, "Positive fee balances"), 2, 0);
-            metricGrid.Controls.Add(CreateMetricCard("Pending Leave", pendingLeaveLabel, "Awaiting approval"), 3, 0);
+            metricGrid.Controls.Add(CreateMetricCard("Fees Collected", feesCollectedLabel, "Total recorded payments"), 2, 0);
+            metricGrid.Controls.Add(CreateMetricCard("Outstanding Fees", feesBalanceLabel, "Positive fee balances"), 3, 0);
 
+            var analyticsGrid = BuildAnalyticsGrid();
+            var actionPanel = BuildQuickActionsPanel();
+
+            content.Controls.Add(header, 0, 0);
+            content.Controls.Add(metricGrid, 0, 1);
+            content.Controls.Add(analyticsGrid, 0, 2);
+            content.Controls.Add(actionPanel, 0, 3);
+
+            return content;
+        }
+
+        private Control BuildAnalyticsGrid()
+        {
+            var analyticsGrid = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 2,
+                RowCount = 1,
+                BackColor = PageBackColor,
+                Padding = new Padding(0, 0, 0, 12)
+            };
+            analyticsGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 62));
+            analyticsGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 38));
+
+            recentPaymentsGrid = CreateAnalyticsGrid();
+            classSummaryGrid = CreateAnalyticsGrid();
+            leaveSummaryGrid = CreateAnalyticsGrid();
+            recentPaymentsGrid.ScrollBars = ScrollBars.Both;
+            classSummaryGrid.ScrollBars = ScrollBars.Vertical;
+            leaveSummaryGrid.ScrollBars = ScrollBars.Vertical;
+
+            var paymentsPanel = CreateSectionPanel("Recent Payments");
+            paymentsPanel.Margin = new Padding(0, 0, 14, 0);
+            paymentsPanel.Controls.Add(recentPaymentsGrid);
+
+            var rightStack = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                RowCount = 2,
+                ColumnCount = 1,
+                BackColor = PageBackColor
+            };
+            rightStack.RowStyles.Add(new RowStyle(SizeType.Percent, 48));
+            rightStack.RowStyles.Add(new RowStyle(SizeType.Percent, 52));
+
+            var classPanel = CreateSectionPanel("Class Enrollment");
+            classPanel.Margin = new Padding(0, 0, 0, 12);
+            classPanel.Controls.Add(classSummaryGrid);
+
+            var insightPanel = CreateSectionPanel("Academic And Leave Insight");
+            averageExamLabel = new Label();
+            topClassLabel = new Label();
+            pendingLeaveLabel = new Label();
+
+            var insightBody = new TableLayoutPanel
+            {
+                Dock = DockStyle.Top,
+                Height = 250,
+                RowCount = 2,
+                ColumnCount = 1,
+                BackColor = Color.White,
+                Padding = new Padding(14, 10, 14, 14)
+            };
+            insightBody.RowStyles.Add(new RowStyle(SizeType.Absolute, 92));
+            insightBody.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+
+            var academicSummary = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 2,
+                RowCount = 1,
+                BackColor = Color.White,
+                Margin = new Padding(0, 0, 0, 10)
+            };
+            academicSummary.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+            academicSummary.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+            academicSummary.Controls.Add(CreateInsightTile("Average Score", averageExamLabel), 0, 0);
+            academicSummary.Controls.Add(CreateInsightTile("Top Class", topClassLabel), 1, 0);
+
+            var leaveSummary = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 1,
+                RowCount = 2,
+                BackColor = Color.White
+            };
+            leaveSummary.RowStyles.Add(new RowStyle(SizeType.Absolute, 74));
+            leaveSummary.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+            leaveSummary.Controls.Add(CreateInsightTile("Pending Leave", pendingLeaveLabel), 0, 0);
+            leaveSummary.Controls.Add(leaveSummaryGrid, 0, 1);
+
+            insightBody.Controls.Add(academicSummary, 0, 0);
+            insightBody.Controls.Add(leaveSummary, 0, 1);
+
+            var insightScrollPanel = new Panel
+            {
+                Dock = DockStyle.Fill,
+                AutoScroll = true,
+                BackColor = Color.White
+            };
+            insightScrollPanel.Controls.Add(insightBody);
+            insightScrollPanel.Resize += (sender, args) => insightBody.Width = insightScrollPanel.ClientSize.Width - SystemInformation.VerticalScrollBarWidth;
+            insightBody.Width = insightScrollPanel.ClientSize.Width - SystemInformation.VerticalScrollBarWidth;
+            insightPanel.Controls.Add(insightScrollPanel);
+
+            rightStack.Controls.Add(classPanel, 0, 0);
+            rightStack.Controls.Add(insightPanel, 0, 1);
+            analyticsGrid.Controls.Add(paymentsPanel, 0, 0);
+            analyticsGrid.Controls.Add(rightStack, 1, 0);
+
+            return analyticsGrid;
+        }
+
+        private Control BuildQuickActionsPanel()
+        {
             var actionPanel = CreateSectionPanel("Quick Actions");
+            actionPanel.Margin = new Padding(0);
+
             var actions = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
                 ColumnCount = 3,
                 RowCount = 2,
-                Padding = new Padding(18, 52, 18, 18),
+                Padding = new Padding(18, 10, 18, 14),
                 BackColor = Color.White
             };
             for (int i = 0; i < 3; i++)
@@ -321,14 +358,10 @@ namespace kingdom_Preparatory_School_Management_System
             actions.Controls.Add(CreateActionButton("Record Fees", () => OpenForm(new frmFessPayment())), 2, 0);
             actions.Controls.Add(CreateActionButton("Enter Exams", () => OpenForm(new EXAMS())), 0, 1);
             actions.Controls.Add(CreateActionButton("View Reports", () => OpenForm(new EXAMSVIEW())), 1, 1);
-            actions.Controls.Add(CreateActionButton("Leave Details", () => OpenForm(new frmLeaveDetails())), 2, 1);
+            actions.Controls.Add(CreateActionButton("Analytics Charts", OpenAnalyticsDashboard), 2, 1);
             actionPanel.Controls.Add(actions);
 
-            content.Controls.Add(actionPanel);
-            content.Controls.Add(metricGrid);
-            content.Controls.Add(header);
-
-            return content;
+            return actionPanel;
         }
 
         private Button CreateNavButton(string text, Action action, bool selected = false)
@@ -349,6 +382,7 @@ namespace kingdom_Preparatory_School_Management_System
             };
             button.FlatAppearance.BorderSize = 0;
             button.FlatAppearance.MouseOverBackColor = selected ? PrimaryColor : SidebarHoverColor;
+            button.FlatAppearance.MouseDownBackColor = Color.Black;
             if (action != null)
             {
                 button.Click += (sender, args) => action();
@@ -356,16 +390,12 @@ namespace kingdom_Preparatory_School_Management_System
             return button;
         }
 
-        private Panel CreateMetricCard(string title, Label valueLabel, string caption)
+        private Control CreateMetricCard(string title, Label valueLabel, string caption)
         {
-            var card = new Panel
-            {
-                Dock = DockStyle.Fill,
-                Margin = new Padding(0, 0, 14, 0),
-                BackColor = Color.White,
-                Padding = new Padding(18),
-                BorderStyle = BorderStyle.FixedSingle
-            };
+            var card = CreateModernPanel(8);
+            card.Dock = DockStyle.Fill;
+            card.Margin = new Padding(0, 0, 14, 0);
+            card.Padding = new Padding(18);
 
             var titleLabel = new Label
             {
@@ -399,43 +429,171 @@ namespace kingdom_Preparatory_School_Management_System
             return card;
         }
 
-        private Panel CreateSectionPanel(string title)
+        private Panel CreateCompactInsight(string title, Label valueLabel)
         {
-            var section = new Panel
+            var panel = new Panel
             {
                 Dock = DockStyle.Fill,
                 BackColor = Color.White,
-                BorderStyle = BorderStyle.FixedSingle
+                Padding = new Padding(0, 0, 0, 6)
             };
-            section.Controls.Add(new Label
+
+            valueLabel.Dock = DockStyle.Bottom;
+            valueLabel.Height = 32;
+            valueLabel.Text = "--";
+            valueLabel.ForeColor = TextColor;
+            valueLabel.Font = new Font("Segoe UI Semibold", 16F, FontStyle.Bold);
+            valueLabel.TextAlign = ContentAlignment.MiddleLeft;
+
+            panel.Controls.Add(valueLabel);
+            panel.Controls.Add(new Label
             {
                 Dock = DockStyle.Top,
+                Height = 22,
+                Text = title,
+                ForeColor = MutedTextColor,
+                Font = new Font("Segoe UI", 9F, FontStyle.Regular),
+                TextAlign = ContentAlignment.MiddleLeft
+            });
+
+            return panel;
+        }
+
+        private Control CreateInsightTile(string title, Label valueLabel)
+        {
+            var tile = CreateModernPanel(7, UiTheme.SurfaceAlt, UiTheme.SurfaceAlt);
+            tile.Dock = DockStyle.Fill;
+            tile.Margin = new Padding(0, 0, 8, 0);
+            tile.Padding = new Padding(12, 8, 12, 8);
+
+            var titleLabel = new Label
+            {
+                Dock = DockStyle.Top,
+                Height = 22,
+                Text = title,
+                ForeColor = MutedTextColor,
+                Font = new Font("Segoe UI", 8.75F, FontStyle.Regular),
+                TextAlign = ContentAlignment.MiddleLeft
+            };
+
+            valueLabel.Dock = DockStyle.Fill;
+            valueLabel.Text = "--";
+            valueLabel.ForeColor = TextColor;
+            valueLabel.Font = new Font("Segoe UI Semibold", 15F, FontStyle.Bold);
+            valueLabel.TextAlign = ContentAlignment.MiddleLeft;
+            valueLabel.AutoEllipsis = true;
+
+            tile.Controls.Add(valueLabel);
+            tile.Controls.Add(titleLabel);
+            return tile;
+        }
+
+        private Control CreateSectionPanel(string title)
+        {
+            var section = CreateModernPanel(8);
+            section.Dock = DockStyle.Fill;
+            section.Padding = new Padding(0, 46, 0, 0);
+            var titleLabel = new Label
+            {
+                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
                 Height = 46,
+                Width = section.ClientSize.Width,
+                Location = new Point(0, 0),
                 Padding = new Padding(18, 0, 0, 0),
                 Text = title,
                 BackColor = Color.White,
                 ForeColor = TextColor,
                 Font = new Font("Segoe UI Semibold", 13F, FontStyle.Bold),
                 TextAlign = ContentAlignment.MiddleLeft
-            });
+            };
+            section.Resize += (sender, args) => titleLabel.Width = section.ClientSize.Width;
+            section.Layout += (sender, args) => titleLabel.Width = section.ClientSize.Width;
+            section.Controls.Add(titleLabel);
+            titleLabel.BringToFront();
             return section;
         }
 
-        private Button CreateActionButton(string text, Action action)
+        private Guna.UI2.WinForms.Guna2Panel CreateModernPanel(int radius, Color? fill = null, Color? border = null)
         {
-            var button = new Button
+            var panel = new Guna.UI2.WinForms.Guna2Panel
+            {
+                BackColor = Color.Transparent,
+                FillColor = fill ?? Color.White,
+                BorderColor = border ?? UiTheme.Border,
+                BorderThickness = 1,
+                BorderRadius = radius
+            };
+            panel.ShadowDecoration.Enabled = true;
+            panel.ShadowDecoration.Depth = 4;
+            panel.ShadowDecoration.Color = Color.FromArgb(28, 25, 25, 112);
+            return panel;
+        }
+
+        private DataGridView CreateAnalyticsGrid()
+        {
+            var grid = new Guna.UI2.WinForms.Guna2DataGridView
+            {
+                Dock = DockStyle.Fill,
+                BackgroundColor = Color.White,
+                BorderStyle = BorderStyle.None,
+                EnableHeadersVisualStyles = false,
+                ReadOnly = true,
+                AllowUserToAddRows = false,
+                AllowUserToDeleteRows = false,
+                AllowUserToResizeRows = false,
+                RowHeadersVisible = false,
+                SelectionMode = DataGridViewSelectionMode.FullRowSelect,
+                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
+                ColumnHeadersHeight = 34,
+                RowTemplate = { Height = 30 },
+                GridColor = BorderColor,
+                ScrollBars = ScrollBars.Both
+            };
+            grid.ThemeStyle.AlternatingRowsStyle.BackColor = UiTheme.SurfaceAlt;
+            grid.ThemeStyle.BackColor = Color.White;
+            grid.ThemeStyle.GridColor = BorderColor;
+            grid.ThemeStyle.HeaderStyle.BackColor = PrimaryColor;
+            grid.ThemeStyle.HeaderStyle.ForeColor = Color.White;
+            grid.ThemeStyle.HeaderStyle.Font = new Font("Segoe UI Semibold", 9F, FontStyle.Bold);
+            grid.ThemeStyle.HeaderStyle.Height = 34;
+            grid.ThemeStyle.RowsStyle.BackColor = Color.White;
+            grid.ThemeStyle.RowsStyle.ForeColor = TextColor;
+            grid.ThemeStyle.RowsStyle.SelectionBackColor = UiTheme.GoldSoft;
+            grid.ThemeStyle.RowsStyle.SelectionForeColor = TextColor;
+            grid.ThemeStyle.RowsStyle.Height = 30;
+
+            grid.ColumnHeadersDefaultCellStyle.BackColor = PrimaryColor;
+            grid.ColumnHeadersDefaultCellStyle.ForeColor = Color.White;
+            grid.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI Semibold", 9F, FontStyle.Bold);
+            grid.ColumnHeadersDefaultCellStyle.SelectionBackColor = PrimaryColor;
+            grid.DefaultCellStyle.BackColor = Color.White;
+            grid.DefaultCellStyle.ForeColor = TextColor;
+            grid.DefaultCellStyle.SelectionBackColor = UiTheme.GoldSoft;
+            grid.DefaultCellStyle.SelectionForeColor = TextColor;
+            grid.AlternatingRowsDefaultCellStyle.BackColor = UiTheme.SurfaceAlt;
+
+            return grid;
+        }
+
+        private Control CreateActionButton(string text, Action action)
+        {
+            var button = new Guna.UI2.WinForms.Guna2Button
             {
                 Dock = DockStyle.Fill,
                 Margin = new Padding(8),
                 Text = text,
-                BackColor = Color.White,
+                FillColor = Color.White,
                 ForeColor = TextColor,
-                FlatStyle = FlatStyle.Flat,
                 Font = new Font("Segoe UI Semibold", 10F, FontStyle.Bold),
-                Cursor = Cursors.Hand
+                Cursor = Cursors.Hand,
+                BorderColor = UiTheme.Border,
+                BorderRadius = 6,
+                BorderThickness = 1,
+                PressedColor = Color.Black
             };
-            button.FlatAppearance.BorderColor = BorderColor;
-            button.FlatAppearance.MouseOverBackColor = Color.FromArgb(235, 242, 255);
+            button.HoverState.FillColor = UiTheme.GoldSoft;
+            button.HoverState.BorderColor = UiTheme.Gold;
+            button.HoverState.ForeColor = TextColor;
             button.Click += (sender, args) => action();
             return button;
         }
@@ -443,21 +601,30 @@ namespace kingdom_Preparatory_School_Management_System
         private void OpenForm(Form form, bool hideDashboard = false)
         {
             if (form == null)
-                return;
-
-            // Set form properties
-            form.StartPosition = FormStartPosition.CenterScreen;
-
-            // Hide dashboard if requested (typically for modal-like forms)
-            if (hideDashboard)
             {
-                this.Hide();
+                return;
             }
 
-            // Show the form
-            form.Show();
-            form.BringToFront();
-            form.Focus();
+            try
+            {
+                form.StartPosition = FormStartPosition.CenterScreen;
+                form.Show();
+                form.BringToFront();
+                form.Focus();
+                if (hideDashboard)
+                {
+                    Hide();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Could not open " + form.Text + ": " + ex.Message, "Open Form Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void OpenAnalyticsDashboard()
+        {
+            OpenForm(new frmDashboardCharts());
         }
 
         private void RefreshDashboardMetrics()
@@ -466,11 +633,28 @@ namespace kingdom_Preparatory_School_Management_System
             {
                 studentCountLabel.Text = ExecuteScalar("SELECT COUNT(*) FROM Students").ToString();
                 employeeCountLabel.Text = ExecuteScalar("SELECT COUNT(*) FROM Employee").ToString();
-                pendingLeaveLabel.Text = ExecuteScalar("SELECT COUNT(*) FROM emp_leave WHERE [status] = 'PENDING'").ToString();
+                pendingLeaveLabel.Text = ExecuteScalar("SELECT COUNT(*) FROM emp_leave WHERE UPPER([status]) = 'PENDING'").ToString();
+
+                decimal collected = Convert.ToDecimal(ExecuteScalar("SELECT COALESCE(SUM(Amount_paid), 0) FROM payment_record"));
+                feesCollectedLabel.Text = FormatCurrency(collected);
 
                 object feeResult = ExecuteScalar("SELECT COALESCE(SUM(Balance), 0) FROM payment_record WHERE Balance > 0");
                 decimal balance = Convert.ToDecimal(feeResult);
-                feesBalanceLabel.Text = "GHS " + balance.ToString("0.00");
+                feesBalanceLabel.Text = FormatCurrency(balance);
+
+                decimal averageExam = Convert.ToDecimal(ExecuteScalar("SELECT COALESCE(AVG(gt), 0) FROM examss"));
+                averageExamLabel.Text = averageExam.ToString("0.0") + "%";
+                string topClass = Convert.ToString(ExecuteScalar("SELECT TOP 1 ClassID FROM Students GROUP BY ClassID ORDER BY COUNT(*) DESC"));
+                topClassLabel.Text = string.IsNullOrWhiteSpace(topClass) || topClass == "0" ? "No data" : topClass;
+
+                recentPaymentsGrid.DataSource = FetchTable(
+                    "SELECT TOP 8 StudentID AS [ID], student_name AS [Student], classID AS [Class], Amount_paid AS [Paid], Balance, [Date] " +
+                    "FROM payment_record ORDER BY [Date] DESC, tm DESC");
+                classSummaryGrid.DataSource = FetchTable(
+                    "SELECT ClassID AS [Class], COUNT(*) AS [Students] FROM Students GROUP BY ClassID ORDER BY ClassID");
+                leaveSummaryGrid.DataSource = FetchTable(
+                    "SELECT [status] AS [Status], COUNT(*) AS [Total] FROM emp_leave GROUP BY [status] ORDER BY [status]");
+
                 statusLabel.Text = "Connected to Neat_Academy | " + DateTime.Now.ToString("dd MMM yyyy, h:mm tt");
             }
             catch (Exception ex)
@@ -478,6 +662,11 @@ namespace kingdom_Preparatory_School_Management_System
                 statusLabel.Text = "Database unavailable";
                 MessageBox.Show("Dashboard could not load live metrics: " + ex.Message, "Database Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+        }
+
+        private string FormatCurrency(decimal amount)
+        {
+            return "GHS " + amount.ToString("#,##0.00");
         }
 
         private object ExecuteScalar(string query)
@@ -489,6 +678,19 @@ namespace kingdom_Preparatory_School_Management_System
                 object value = cmd.ExecuteScalar();
                 return value == DBNull.Value || value == null ? 0 : value;
             }
+        }
+
+        private DataTable FetchTable(string query)
+        {
+            var table = new DataTable();
+            using (OleDbConnection con = new OleDbConnection(Aikins.constr))
+            using (OleDbDataAdapter adapter = new OleDbDataAdapter(query, con))
+            {
+                con.Open();
+                adapter.Fill(table);
+            }
+
+            return table;
         }
 
         private void gunaPictureBox1_Click(object sender, EventArgs e)

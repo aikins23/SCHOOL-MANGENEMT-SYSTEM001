@@ -726,7 +726,7 @@
             this.Controls.Add(this.guna2GroupBox1);
             this.Controls.Add(this.guna2HtmlLabel1);
             this.Controls.Add(this.menuStrip1);
-            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.Sizable;
             this.Name = "frmEmpLeave";
             this.Text = "frmEmpLeave";
             this.Load += new System.EventHandler(this.frmEmpLeave_Load);

@@ -4,6 +4,7 @@ using System.Data;
 using System.Data.OleDb;
 using System.Drawing;
 using System.Windows.Forms;
+using kingdom_Preparatory_School_Management_System.Common;
 
 namespace kingdom_Preparatory_School_Management_System
 {
@@ -32,7 +33,7 @@ WITH RankedExams AS (
         term AS TERMS,
         year AS YEAR,
         subject,
-        gt / 2 AS gt,
+        gt,
         grade,
         remark,
         ROW_NUMBER() OVER (PARTITION BY std_class, term, year, subject ORDER BY gt DESC) AS RANK
@@ -45,96 +46,34 @@ TotalScores AS (
         TERMS,
         YEAR,
         MAX(CASE WHEN subject = 'ENGLISH LANGUAGE' THEN gt END) AS ENG,
-        MAX(CASE WHEN subject = 'ENGLISH LANGUAGE' THEN grade END) AS ENG_GRADE,
-        MAX(CASE WHEN subject = 'ENGLISH LANGUAGE' THEN remark END) AS ENG_REMARK,
-        MAX(CASE WHEN subject = 'ENGLISH LANGUAGE' THEN RANK END) AS ENG_POS,
         MAX(CASE WHEN subject = 'INT. SCIENCE' THEN gt END) AS SCI,
-        MAX(CASE WHEN subject = 'INT. SCIENCE' THEN grade END) AS SCI_GRADE,
-        MAX(CASE WHEN subject = 'INT. SCIENCE' THEN remark END) AS SCI_REMARK,
-        MAX(CASE WHEN subject = 'INT. SCIENCE' THEN RANK END) AS SCI_POS,
         MAX(CASE WHEN subject = 'MATHEMATICS' THEN gt END) AS MATHS,
-        MAX(CASE WHEN subject = 'MATHEMATICS' THEN grade END) AS MATHS_GRADE,
-        MAX(CASE WHEN subject = 'MATHEMATICS' THEN remark END) AS MATHS_REMARK,
-        MAX(CASE WHEN subject = 'MATHEMATICS' THEN RANK END) AS MATHS_POS,
         MAX(CASE WHEN subject = 'SOCIAL STUDIES' THEN gt END) AS SOCIAL,
-        MAX(CASE WHEN subject = 'SOCIAL STUDIES' THEN grade END) AS SOCIAL_GRADE,
-        MAX(CASE WHEN subject = 'SOCIAL STUDIES' THEN remark END) AS SOCIAL_REMARK,
-        MAX(CASE WHEN subject = 'SOCIAL STUDIES' THEN RANK END) AS SOCIAL_POS,
         MAX(CASE WHEN subject = 'COMPUTING' THEN gt END) AS COMP,
-        MAX(CASE WHEN subject = 'COMPUTING' THEN grade END) AS COMP_GRADE,
-        MAX(CASE WHEN subject = 'COMPUTING' THEN remark END) AS COMP_REMARK,
-        MAX(CASE WHEN subject = 'COMPUTING' THEN RANK END) AS COMP_POS,
         MAX(CASE WHEN subject = 'CARRER TECH.' THEN gt END) AS CAREER,
-        MAX(CASE WHEN subject = 'CARRER TECH.' THEN grade END) AS CAREER_GRADE,
-        MAX(CASE WHEN subject = 'CARRER TECH.' THEN remark END) AS CAREER_REMARK,
-        MAX(CASE WHEN subject = 'CARRER TECH.' THEN RANK END) AS CAREER_POS,
         MAX(CASE WHEN subject = 'CREATIVE ART' THEN gt END) AS CRE_ART,
-        MAX(CASE WHEN subject = 'CREATIVE ART' THEN grade END) AS CRE_ART_GRADE,
-        MAX(CASE WHEN subject = 'CREATIVE ART' THEN remark END) AS CRE_ART_REMARK,
-        MAX(CASE WHEN subject = 'CREATIVE ART' THEN RANK END) AS CRE_ART_POS,
         MAX(CASE WHEN subject = 'GHANAIAN LANG.' THEN gt END) AS GHA_LANG,
-        MAX(CASE WHEN subject = 'GHANAIAN LANG.' THEN grade END) AS GHA_LANG_GRADE,
-        MAX(CASE WHEN subject = 'GHANAIAN LANG.' THEN remark END) AS GHA_LANG_REMARK,
-        MAX(CASE WHEN subject = 'GHANAIAN LANG.' THEN RANK END) AS GHA_LANG_POS,
         MAX(CASE WHEN subject = 'REL. & MORAL EDU.' THEN gt END) AS RME,
-        MAX(CASE WHEN subject = 'REL. & MORAL EDU.' THEN grade END) AS RME_GRADE,
-        MAX(CASE WHEN subject = 'REL. & MORAL EDU.' THEN remark END) AS RME_REMARK,
-        MAX(CASE WHEN subject = 'REL. & MORAL EDU.' THEN RANK END) AS RME_POS,
-        COALESCE(MAX(CASE WHEN subject = 'ENGLISH LANGUAGE' THEN gt END), 0) +
-        COALESCE(MAX(CASE WHEN subject = 'INT. SCIENCE' THEN gt END), 0) +
-        COALESCE(MAX(CASE WHEN subject = 'MATHEMATICS' THEN gt END), 0) +
-        COALESCE(MAX(CASE WHEN subject = 'SOCIAL STUDIES' THEN gt END), 0) +
-        COALESCE(MAX(CASE WHEN subject = 'COMPUTING' THEN gt END), 0) +
-        COALESCE(MAX(CASE WHEN subject = 'CARRER TECH.' THEN gt END), 0) +
-        COALESCE(MAX(CASE WHEN subject = 'CREATIVE ART' THEN gt END), 0) +
-        COALESCE(MAX(CASE WHEN subject = 'GHANAIAN LANG.' THEN gt END), 0) +
-        COALESCE(MAX(CASE WHEN subject = 'REL. & MORAL EDU.' THEN gt END), 0) AS TOTAL_SCORE
+        SUM(gt) AS TOTAL_SCORE
     FROM RankedExams
     GROUP BY NAME, CLASS, TERMS, YEAR
 )
 SELECT
-    UPPER(NAME) AS NAME,
-    UPPER(CLASS) AS CLASS,
-    UPPER(TERMS) AS TERMS,
-    UPPER(YEAR) AS YEAR,
-    COALESCE(ENG, 0) AS ENG,
-    COALESCE(ENG_GRADE, '') AS ENG_GRADE,
-    COALESCE(ENG_REMARK, '') AS ENG_REMARK,
-    COALESCE(ENG_POS, 0) AS ENG_POS,
-    COALESCE(SCI, 0) AS SCI,
-    COALESCE(SCI_GRADE, '') AS SCI_GRADE,
-    COALESCE(SCI_REMARK, '') AS SCI_REMARK,
-    COALESCE(SCI_POS, 0) AS SCI_POS,
-    COALESCE(MATHS, 0) AS MATHS,
-    COALESCE(MATHS_GRADE, '') AS MATHS_GRADE,
-    COALESCE(MATHS_REMARK, '') AS MATHS_REMARK,
-    COALESCE(MATHS_POS, 0) AS MATHS_POS,
-    COALESCE(SOCIAL, 0) AS SOCIAL,
-    COALESCE(SOCIAL_GRADE, '') AS SOCIAL_GRADE,
-    COALESCE(SOCIAL_REMARK, '') AS SOCIAL_REMARK,
-    COALESCE(SOCIAL_POS, 0) AS SOCIAL_POS,
-    COALESCE(COMP, 0) AS COMP,
-    COALESCE(COMP_GRADE, '') AS COMP_GRADE,
-    COALESCE(COMP_REMARK, '') AS COMP_REMARK,
-    COALESCE(COMP_POS, 0) AS COMP_POS,
-    COALESCE(CAREER, 0) AS CAREER,
-    COALESCE(CAREER_GRADE, '') AS CAREER_GRADE,
-    COALESCE(CAREER_REMARK, '') AS CAREER_REMARK,
-    COALESCE(CAREER_POS, 0) AS CAREER_POS,
-    COALESCE(CRE_ART, 0) AS CRE_ART,
-    COALESCE(CRE_ART_GRADE, '') AS CRE_ART_GRADE,
-    COALESCE(CRE_ART_REMARK, '') AS CRE_ART_REMARK,
-    COALESCE(CRE_ART_POS, 0) AS CRE_ART_POS,
-    COALESCE(GHA_LANG, 0) AS GHA_LANG,
-    COALESCE(GHA_LANG_GRADE, '') AS GHA_LANG_GRADE,
-    COALESCE(GHA_LANG_REMARK, '') AS GHA_LANG_REMARK,
-    COALESCE(GHA_LANG_POS, 0) AS GHA_LANG_POS,
-    COALESCE(RME, 0) AS RME,
-    COALESCE(RME_GRADE, '') AS RME_GRADE,
-    COALESCE(RME_REMARK, '') AS RME_REMARK,
-    COALESCE(RME_POS, 0) AS RME_POS,
-    TOTAL_SCORE,
-    RANK() OVER (PARTITION BY CLASS, TERMS, YEAR ORDER BY TOTAL_SCORE DESC) AS TOTAL_RANK
+    UPPER(NAME) AS [STUDENT NAME],
+    UPPER(CLASS) AS [CLASS],
+    UPPER(TERMS) AS [TERM],
+    UPPER(YEAR) AS [YEAR],
+    COALESCE(ENG, 0) AS [ENGLISH],
+    COALESCE(SCI, 0) AS [SCIENCE],
+    COALESCE(MATHS, 0) AS [MATHS],
+    COALESCE(SOCIAL, 0) AS [SOCIAL],
+    COALESCE(COMP, 0) AS [COMPUTING],
+    COALESCE(CAREER, 0) AS [CAREER TECH],
+    COALESCE(CRE_ART, 0) AS [CREATIVE ART],
+    COALESCE(GHA_LANG, 0) AS [GHANAIAN LANG],
+    COALESCE(RME, 0) AS [RME],
+    TOTAL_SCORE AS [TOTAL SCORE],
+    RANK() OVER (PARTITION BY CLASS, TERMS, YEAR ORDER BY TOTAL_SCORE DESC) AS [CLASS RANK]
 FROM TotalScores";
 
         public EXAMSVIEW()
@@ -147,7 +86,7 @@ FROM TotalScores";
         {
             SuspendLayout();
             Controls.Clear();
-            Text = "Exam Results";
+            Text = "Exam Results Summary";
             BackColor = PageBackColor;
             Font = new Font("Segoe UI", 9.5F);
             StartPosition = FormStartPosition.CenterScreen;
@@ -171,8 +110,8 @@ FROM TotalScores";
             header.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 32));
 
             var title = new Panel { Dock = DockStyle.Fill, BackColor = PageBackColor };
-            title.Controls.Add(new Label { Dock = DockStyle.Top, Height = 38, Text = "Exam Results", ForeColor = TextColor, Font = new Font("Segoe UI Semibold", 22F, FontStyle.Bold), TextAlign = ContentAlignment.MiddleLeft });
-            title.Controls.Add(new Label { Dock = DockStyle.Bottom, Height = 28, Text = "Review student result summaries and open printable details", ForeColor = MutedTextColor, Font = new Font("Segoe UI", 10F), TextAlign = ContentAlignment.MiddleLeft });
+ title.Controls.Add(new Label { Dock = DockStyle.Top, Height = 38, Text = "Student Result Summary", ForeColor = TextColor, Font = new Font("Segoe UI Semibold", 22F, FontStyle.Bold), TextAlign = ContentAlignment.MiddleLeft });
+            title.Controls.Add(new Label { Dock = DockStyle.Bottom, Height = 28, Text = "Overview of academic performance across all subjects", ForeColor = MutedTextColor, Font = new Font("Segoe UI", 10F), TextAlign = ContentAlignment.MiddleLeft });
 
             var actions = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.RightToLeft, BackColor = PageBackColor, Padding = new Padding(0, 12, 0, 0) };
             actions.Controls.Add(CreatePrimaryButton("Add Result", () => new EXAMS().Show()));
@@ -218,7 +157,7 @@ FROM TotalScores";
                 AllowUserToDeleteRows = false,
                 ReadOnly = true,
                 RowHeadersVisible = false,
-                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.DisplayedCells,
+                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
                 SelectionMode = DataGridViewSelectionMode.FullRowSelect,
                 MultiSelect = false,
                 EnableHeadersVisualStyles = false
@@ -226,6 +165,7 @@ FROM TotalScores";
             resultsGrid.ColumnHeadersDefaultCellStyle.BackColor = SidebarBackColor;
             resultsGrid.ColumnHeadersDefaultCellStyle.ForeColor = Color.White;
             resultsGrid.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI Semibold", 9.5F, FontStyle.Bold);
+            resultsGrid.ColumnHeadersHeight = 40;
             resultsGrid.DefaultCellStyle.SelectionBackColor = Color.FromArgb(219, 234, 254);
             resultsGrid.DefaultCellStyle.SelectionForeColor = TextColor;
             resultsGrid.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(248, 250, 252);
@@ -303,14 +243,14 @@ FROM TotalScores";
             string search = searchBox.Text.Trim().Replace("'", "''");
             if (!string.IsNullOrWhiteSpace(search))
             {
-                filters.Add("NAME LIKE '%" + search + "%'");
+                filters.Add("[STUDENT NAME] LIKE '%" + search + "%'");
             }
             if (classFilter.SelectedIndex > 0)
             {
                 filters.Add("CLASS = '" + classFilter.Text.Replace("'", "''") + "'");
             }
             resultsTable.DefaultView.RowFilter = string.Join(" AND ", filters);
-            resultLabel.Text = resultsTable.DefaultView.Count + " result record(s)";
+            resultLabel.Text = resultsTable.DefaultView.Count + " student(s) shown";
         }
 
         private void ClearFilters()
@@ -339,14 +279,11 @@ FROM TotalScores";
             if (e.RowIndex >= 0) OpenSelectedResult();
         }
 
-        private void EXAMSVIEW_Load(object sender, EventArgs e) { LoadResults(); }
-        private void gunaButton2_Click(object sender, EventArgs e) { LoadResults(); }
-        private void txtID_TextChanged(object sender, EventArgs e) { ApplyFilters(); }
-        private void data_CellContentClick(object sender, DataGridViewCellEventArgs e) { OpenSelectedResult(); }
-
         private void EXAMSVIEW_Load_1(object sender, EventArgs e)
         {
-
+            LoadResults();
         }
+
+        private void EXAMSVIEW_Load(object sender, EventArgs e) { }
     }
 }

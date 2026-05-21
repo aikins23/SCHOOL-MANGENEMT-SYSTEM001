@@ -3,6 +3,7 @@ using System.Data;
 using System.Data.OleDb;
 using System.Drawing;
 using System.Windows.Forms;
+using kingdom_Preparatory_School_Management_System.Common;
 
 namespace kingdom_Preparatory_School_Management_System
 {
@@ -26,8 +27,8 @@ namespace kingdom_Preparatory_School_Management_System
         {
             InitializeComponent();
             BuildModernFeesView();
+            NavigationSidebar.AddTo(this);
         }
-
         private void BuildModernFeesView()
         {
             SuspendLayout();

@@ -115,6 +115,26 @@ BEGIN
 END;
 GO
 
+IF OBJECT_ID(N'dbo.Attendance', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.Attendance
+    (
+        AttendanceID int IDENTITY(1,1) NOT NULL CONSTRAINT PK_Attendance PRIMARY KEY,
+        ReferenceID int NOT NULL, -- StudentID or EmploymentID
+        ReferenceType varchar(20) NOT NULL, -- 'STUDENT' or 'STAFF'
+        FullName varchar(120) NOT NULL,
+        [Date] date NOT NULL,
+        [Status] varchar(20) NOT NULL, -- 'PRESENT', 'ABSENT', 'LATE'
+        Remarks varchar(200) NULL,
+        [CreatedDate] datetime NOT NULL CONSTRAINT DF_Attendance_CreatedDate DEFAULT (GETDATE())
+    );
+END;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_Attendance_RefDate' AND object_id = OBJECT_ID(N'dbo.Attendance'))
+    CREATE INDEX IX_Attendance_RefDate ON dbo.Attendance(ReferenceID, ReferenceType, [Date]);
+GO
+
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_Students_ClassID' AND object_id = OBJECT_ID(N'dbo.Students'))
     CREATE INDEX IX_Students_ClassID ON dbo.Students(ClassID);
 GO
