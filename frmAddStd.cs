@@ -1,18 +1,16 @@
 using System;
-using System.Data;
-using System.Data.OleDb;
 using System.Drawing;
-using System.Drawing.Imaging;
-using System.IO;
-using System.Net.Mail;
 using System.Windows.Forms;
 using kingdom_Preparatory_School_Management_System.Common;
+using kingdom_Preparatory_School_Management_System.Data;
+using kingdom_Preparatory_School_Management_System.Services;
+using kingdom_Preparatory_School_Management_System.Models;
 
 namespace kingdom_Preparatory_School_Management_System
 {
     public partial class frmAddStd : Form
     {
-        private readonly kum Aikins = new kum();
+        private readonly StudentService _studentService;
         private Label statusLabel;
 
         private static readonly Color PageBackColor = UiTheme.Page;
@@ -33,6 +31,12 @@ namespace kingdom_Preparatory_School_Management_System
         public frmAddStd()
         {
             InitializeComponent();
+            
+            // Initialize modern architecture
+            var studentRepository = new StudentRepository(AppConfig.ConnectionString);
+            var feeRepository = new FeeRepository(AppConfig.ConnectionString);
+            _studentService = new StudentService(studentRepository, feeRepository);
+
             BuildModernAdmissionView();
             EnableFormDragging();
         }
@@ -84,11 +88,11 @@ namespace kingdom_Preparatory_School_Management_System
             txtStdID.FillColor = UiTheme.SurfaceAlt;
 
             cmbGN.Items.Clear();
-            cmbGN.Items.AddRange(Common.AppConfig.GenderOptions);
+            cmbGN.Items.AddRange(AppConfig.GenderOptions);
             cmbGN.SelectedIndex = 0;
 
             cmbCID.Items.Clear();
-            cmbCID.Items.AddRange(Common.AppConfig.ClassNames);
+            cmbCID.Items.AddRange(AppConfig.ClassNames);
             cmbCID.SelectedIndex = 0;
 
             dateDOB.Value = DateTime.Today.AddYears(-5);
@@ -438,7 +442,7 @@ namespace kingdom_Preparatory_School_Management_System
             actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 130));
             actions.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
 
-            actions.Controls.Add(CreateSecondaryButton("New", NewStudent), 0, 0);
+            actions.Controls.Add(CreateSecondaryButton("New", async () => await NewStudent()), 0, 0);
             actions.Controls.Add(CreatePrimaryButton("Save", SaveStudent), 1, 0);
             actions.Controls.Add(CreateSecondaryButton("Update", UpdateStudent), 2, 0);
             actions.Controls.Add(CreateDangerButton("Roll Out", RollOutStudent), 3, 0);
@@ -491,27 +495,22 @@ namespace kingdom_Preparatory_School_Management_System
             return button;
         }
 
-        private void frmAddStd_Load(object sender, EventArgs e)
+        private async void frmAddStd_Load(object sender, EventArgs e)
         {
-            SetNextStudentId();
+            await SetNextStudentId();
         }
 
-        private void SetNextStudentId()
+        private async System.Threading.Tasks.Task SetNextStudentId()
         {
             try
             {
-                using (OleDbConnection con = new OleDbConnection(Aikins.constr))
-                using (OleDbCommand command = new OleDbCommand("SELECT ISNULL(MAX(StudentID), 0) + 1 FROM Students", con))
-                {
-                    con.Open();
-                    txtStdID.Text = command.ExecuteScalar().ToString();
-                    statusLabel.Text = "Ready for a new admission.";
-                }
+                txtStdID.Text = await _studentService.GenerateNextStudentIdAsync();
+                statusLabel.Text = "Ready for a new admission.";
             }
             catch (Exception ex)
             {
                 statusLabel.Text = "Could not prepare the next student ID.";
-                MessageBox.Show("Error: " + ex.Message, "Student Admission", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                UIHelper.ShowError("Error: " + ex.Message, "Student Admission");
             }
         }
 
@@ -524,7 +523,12 @@ namespace kingdom_Preparatory_School_Management_System
                 {
                     try
                     {
-                        Common.ImageHelper.ConvertImageToBytes(dialog.FileName);
+                        if (new System.IO.FileInfo(dialog.FileName).Length > AppConfig.MaxPhotoSizeBytes)
+                        {
+                            UIHelper.ShowWarning($"Photo exceeds maximum size of {AppConfig.MaxPhotoSizeMB}MB.");
+                            return;
+                        }
+
                         using (Image selectedImage = Image.FromFile(dialog.FileName))
                         {
                             Image previousImage = std_pic.Image;
@@ -537,386 +541,108 @@ namespace kingdom_Preparatory_School_Management_System
                     catch (Exception ex)
                     {
                         statusLabel.Text = "Photo was not accepted.";
-                        MessageBox.Show(ex.Message, "Student Admission", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        UIHelper.ShowWarning(ex.Message, "Student Admission");
                     }
                 }
             }
         }
 
-        public byte[] Picture()
+        private Student MapFormToStudent()
         {
-            return Common.ImageHelper.ImageToBytes(std_pic.Image) ?? new byte[0];
+            return new Student
+            {
+                StudentID = txtStdID.Text,
+                FirstName = txtFN.Text.Trim(),
+                LastName = txtLN.Text.Trim(),
+                DateOfBirth = dateDOB.Value.Date,
+                Gender = cmbGN.Text.Trim(),
+                Email = txtEM.Text.Trim(),
+                ClassID = cmbCID.Text.Trim(),
+                HomeTown = txtHT.Text.Trim(),
+                Residence = txtRD.Text.Trim(),
+                Allergies = txtAG.Text.Trim(),
+                EmergencyContact = txtEC.Text.Trim(),
+                GuardianName = txtGN.Text.Trim(),
+                GuardianEmail = txtGE.Text.Trim(),
+                GuardianLocation = txtGL.Text.Trim(),
+                AdmissionDate = dateAD.Value.Date,
+                ProfilePhoto = ImageHelper.ImageToBytes(std_pic.Image)
+            };
         }
 
-        private bool ValidateForm()
+        private async void SaveStudent()
         {
-            if (string.IsNullOrWhiteSpace(txtFN.Text) || string.IsNullOrWhiteSpace(txtLN.Text))
+            statusLabel.Text = "Saving student...";
+            var student = MapFormToStudent();
+            var (success, message) = await _studentService.AddStudentAsync(student);
+
+            if (success)
             {
-                MessageBox.Show("Enter the student's first and last name.", "Student Admission", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return false;
+                txtStdID.Text = student.StudentID;
+                statusLabel.Text = message;
+                UIHelper.ShowSuccess(message, "Student Admission");
             }
-
-            if (string.IsNullOrWhiteSpace(cmbCID.Text) || string.IsNullOrWhiteSpace(cmbGN.Text))
+            else
             {
-                MessageBox.Show("Select the student's class and gender.", "Student Admission", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return false;
-            }
-
-            if (string.IsNullOrWhiteSpace(txtHT.Text) || string.IsNullOrWhiteSpace(txtRD.Text))
-            {
-                MessageBox.Show("Enter the student's home town and residence.", "Student Admission", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return false;
-            }
-
-            if (string.IsNullOrWhiteSpace(txtEC.Text))
-            {
-                MessageBox.Show("Enter an emergency contact.", "Student Admission", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return false;
-            }
-
-            if (string.IsNullOrWhiteSpace(txtGN.Text) || string.IsNullOrWhiteSpace(txtGL.Text))
-            {
-                MessageBox.Show("Enter the guardian name and location.", "Student Admission", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return false;
-            }
-
-            if (!int.TryParse(txtStdID.Text, out _))
-            {
-                MessageBox.Show("Student ID is not valid.", "Student Admission", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return false;
-            }
-
-            int age = GetAge(dateDOB.Value.Date);
-            if (age < Common.AppConfig.MinStudentAge || age > Common.AppConfig.MaxStudentAge)
-            {
-                MessageBox.Show($"Student age must be between {Common.AppConfig.MinStudentAge} and {Common.AppConfig.MaxStudentAge} years.", "Student Admission", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return false;
-            }
-
-            if (dateAD.Value.Date > DateTime.Today)
-            {
-                MessageBox.Show("Admission date cannot be in the future.", "Student Admission", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return false;
-            }
-
-            if (!IsValidOptionalEmail(txtEM.Text))
-            {
-                MessageBox.Show("Student email is not valid.", "Student Admission", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return false;
-            }
-
-            if (!IsValidOptionalEmail(txtGE.Text))
-            {
-                MessageBox.Show("Guardian email is not valid.", "Student Admission", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return false;
-            }
-
-            return true;
-        }
-
-        private int GetAge(DateTime dateOfBirth)
-        {
-            int age = DateTime.Today.Year - dateOfBirth.Year;
-            if (dateOfBirth.Date > DateTime.Today.AddYears(-age))
-            {
-                age--;
-            }
-
-            return age;
-        }
-
-        private bool IsValidOptionalEmail(string email)
-        {
-            if (string.IsNullOrWhiteSpace(email))
-            {
-                return true;
-            }
-
-            try
-            {
-                var address = new MailAddress(email.Trim());
-                return address.Address == email.Trim();
-            }
-            catch
-            {
-                return false;
+                statusLabel.Text = "Save failed.";
+                UIHelper.ShowWarning(message, "Student Admission");
             }
         }
 
-        private decimal GetFeeForClass()
+        private async void UpdateStudent()
         {
-            switch (cmbCID.Text.Trim().ToUpperInvariant())
+            if (string.IsNullOrWhiteSpace(txtStdID.Text))
             {
-                case "CRECHE":
-                    return 2000m;
-                case "NURSERY 1":
-                    return 3450m;
-                case "NURSERY 2":
-                    return 3750m;
-                case "KINDERGARTEN 1":
-                    return 3654m;
-                case "KINDERGARTEN 2":
-                case "BASIC 1":
-                case "BASIC 2":
-                case "BASIC 3":
-                case "BASIC 4":
-                case "BASIC 5":
-                case "BASIC 6":
-                case "BASIC 7":
-                case "BASIC 8":
-                    return 2423m;
-                default:
-                    return 1200m;
+                UIHelper.ShowWarning("Please select a student to update.", "Student Admission");
+                return;
+            }
+
+            statusLabel.Text = "Updating student...";
+            var student = MapFormToStudent();
+            var (success, message) = await _studentService.UpdateStudentAsync(student);
+
+            if (success)
+            {
+                statusLabel.Text = message;
+                UIHelper.ShowSuccess(message, "Student Admission");
+            }
+            else
+            {
+                statusLabel.Text = "Update failed.";
+                UIHelper.ShowWarning(message, "Student Admission");
             }
         }
 
-        private void SaveStudent()
+        private async void RollOutStudent()
         {
-            if (!ValidateForm())
+            if (string.IsNullOrWhiteSpace(txtStdID.Text))
+            {
+                UIHelper.ShowWarning("Please select a student to roll out.", "Student Admission");
+                return;
+            }
+
+            if (UIHelper.ShowConfirmation("Roll out this student and remove them from active students?", "Student Admission") != DialogResult.Yes)
             {
                 return;
             }
 
-            try
-            {
-                int studentId;
-                using (OleDbConnection con = new OleDbConnection(Aikins.constr))
-                {
-                    con.Open();
-                    using (OleDbTransaction transaction = con.BeginTransaction())
-                    {
-                        studentId = InsertStudent(con, transaction);
-                        SaveFeeRecords(con, transaction, studentId);
-                        transaction.Commit();
-                    }
-                }
+            statusLabel.Text = "Rolling out student...";
+            var (success, message) = await _studentService.DeleteStudentAsync(txtStdID.Text);
 
-                txtStdID.Text = studentId.ToString();
-                statusLabel.Text = "Student saved with opening fee record.";
-                MessageBox.Show("Student and fee record added successfully.", "Student Admission", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            }
-            catch (Exception ex)
+            if (success)
             {
-                MessageBox.Show("Error: " + ex.Message, "Student Admission", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                statusLabel.Text = message;
+                UIHelper.ShowSuccess(message, "Student Admission");
+                await NewStudent();
+            }
+            else
+            {
+                statusLabel.Text = "Roll out failed.";
+                UIHelper.ShowWarning(message, "Student Admission");
             }
         }
 
-        private int InsertStudent(OleDbConnection con, OleDbTransaction transaction)
-        {
-            string query = @"
-INSERT INTO Students
-    (FirstName, LastName, DOB, Gender, Email, ClassID, HomeTown, Residence, Allergies, EmergencyContact, GuardianName, GuardianEmail, Guardian_Location, admission_date, Std_pic)
-VALUES
-    (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-
-            using (OleDbCommand command = new OleDbCommand(query, con, transaction))
-            {
-                AddStudentParameters(command, includeStudentId: false);
-                command.ExecuteNonQuery();
-            }
-
-            using (OleDbCommand identityCommand = new OleDbCommand("SELECT @@IDENTITY", con, transaction))
-            {
-                object result = identityCommand.ExecuteScalar();
-                if (result != null && result != DBNull.Value && int.TryParse(result.ToString(), out int identity))
-                {
-                    return identity;
-                }
-            }
-
-            return Convert.ToInt32(txtStdID.Text);
-        }
-
-        private void UpdateStudent()
-        {
-            if (!ValidateForm())
-            {
-                return;
-            }
-
-            try
-            {
-                using (OleDbConnection con = new OleDbConnection(Aikins.constr))
-                {
-                    con.Open();
-                    using (OleDbTransaction transaction = con.BeginTransaction())
-                    {
-                        string query = @"
-UPDATE Students
-SET FirstName = ?, LastName = ?, DOB = ?, Gender = ?, Email = ?, ClassID = ?, HomeTown = ?, Residence = ?, Allergies = ?, EmergencyContact = ?, GuardianName = ?, GuardianEmail = ?, Guardian_Location = ?, admission_date = ?, Std_pic = ?
-WHERE StudentID = ?";
-
-                        using (OleDbCommand command = new OleDbCommand(query, con, transaction))
-                        {
-                            AddStudentParameters(command, includeStudentId: true);
-                            int rows = command.ExecuteNonQuery();
-                            if (rows == 0)
-                            {
-                                transaction.Rollback();
-                                statusLabel.Text = "No matching student found.";
-                                MessageBox.Show("No matching student found.", "Student Admission", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                                return;
-                            }
-                        }
-
-                        SaveFeeRecords(con, transaction, Convert.ToInt32(txtStdID.Text), updateExisting: true);
-                        transaction.Commit();
-                    }
-                }
-
-                statusLabel.Text = "Student record updated.";
-                MessageBox.Show("Student and fee records updated successfully.", "Student Admission", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("Error: " + ex.Message, "Student Admission", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-        }
-
-        private void AddStudentParameters(OleDbCommand command, bool includeStudentId)
-        {
-            command.Parameters.AddWithValue("?", txtFN.Text.Trim());
-            command.Parameters.AddWithValue("?", txtLN.Text.Trim());
-            command.Parameters.AddWithValue("?", dateDOB.Value.Date);
-            command.Parameters.AddWithValue("?", cmbGN.Text.Trim());
-            command.Parameters.AddWithValue("?", txtEM.Text.Trim());
-            command.Parameters.AddWithValue("?", cmbCID.Text.Trim());
-            command.Parameters.AddWithValue("?", txtHT.Text.Trim());
-            command.Parameters.AddWithValue("?", txtRD.Text.Trim());
-            command.Parameters.AddWithValue("?", txtAG.Text.Trim());
-            command.Parameters.AddWithValue("?", txtEC.Text.Trim());
-            command.Parameters.AddWithValue("?", txtGN.Text.Trim());
-            command.Parameters.AddWithValue("?", txtGE.Text.Trim());
-            command.Parameters.AddWithValue("?", txtGL.Text.Trim());
-            command.Parameters.AddWithValue("?", dateAD.Value.Date);
-            command.Parameters.AddWithValue("?", Picture());
-
-            if (includeStudentId)
-            {
-                command.Parameters.AddWithValue("?", Convert.ToInt32(txtStdID.Text));
-            }
-        }
-
-        private void SaveFeeRecords(OleDbConnection con, OleDbTransaction transaction, int studentId, bool updateExisting = false)
-        {
-            decimal fee = GetFeeForClass();
-            string studentName = txtLN.Text.Trim() + " " + txtFN.Text.Trim();
-
-            if (updateExisting)
-            {
-                using (OleDbCommand feeCommand = new OleDbCommand("UPDATE fees SET ClassID = ?, FeeName = ?, Amount = ? WHERE StudentID = ?", con, transaction))
-                {
-                    feeCommand.Parameters.AddWithValue("?", cmbCID.Text.Trim());
-                    feeCommand.Parameters.AddWithValue("?", "Tuition Fee");
-                    feeCommand.Parameters.AddWithValue("?", fee);
-                    feeCommand.Parameters.AddWithValue("?", studentId);
-                    feeCommand.ExecuteNonQuery();
-                }
-
-                using (OleDbCommand paymentCommand = new OleDbCommand("UPDATE payment_record SET classID = ?, FeeName = ?, Balance = ?, student_name = ? WHERE StudentID = ?", con, transaction))
-                {
-                    paymentCommand.Parameters.AddWithValue("?", cmbCID.Text.Trim());
-                    paymentCommand.Parameters.AddWithValue("?", "SCHOOLFEES");
-                    paymentCommand.Parameters.AddWithValue("?", fee);
-                    paymentCommand.Parameters.AddWithValue("?", studentName);
-                    paymentCommand.Parameters.AddWithValue("?", studentId);
-                    paymentCommand.ExecuteNonQuery();
-                }
-
-                return;
-            }
-
-            using (OleDbCommand feeCommand = new OleDbCommand("INSERT INTO fees (StudentID, ClassID, FeeName, Amount) VALUES (?, ?, ?, ?)", con, transaction))
-            {
-                feeCommand.Parameters.AddWithValue("?", studentId);
-                feeCommand.Parameters.AddWithValue("?", cmbCID.Text.Trim());
-                feeCommand.Parameters.AddWithValue("?", "Tuition Fee");
-                feeCommand.Parameters.AddWithValue("?", fee);
-                feeCommand.ExecuteNonQuery();
-            }
-
-            using (OleDbCommand paymentCommand = new OleDbCommand("INSERT INTO payment_record (StudentID, classID, FeeName, Balance, student_name, Amount_paid, [Date]) VALUES (?, ?, ?, ?, ?, ?, ?)", con, transaction))
-            {
-                paymentCommand.Parameters.AddWithValue("?", studentId);
-                paymentCommand.Parameters.AddWithValue("?", cmbCID.Text.Trim());
-                paymentCommand.Parameters.AddWithValue("?", "SCHOOLFEES");
-                paymentCommand.Parameters.AddWithValue("?", fee);
-                paymentCommand.Parameters.AddWithValue("?", studentName);
-                paymentCommand.Parameters.AddWithValue("?", 0);
-                paymentCommand.Parameters.AddWithValue("?", DateTime.Today);
-                paymentCommand.ExecuteNonQuery();
-            }
-        }
-
-        private void RollOutStudent()
-        {
-            if (!ValidateForm())
-            {
-                return;
-            }
-
-            DialogResult result = MessageBox.Show("Roll out this student and remove them from active students?", "Student Admission", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
-            if (result != DialogResult.Yes)
-            {
-                return;
-            }
-
-            try
-            {
-                using (OleDbConnection con = new OleDbConnection(Aikins.constr))
-                {
-                    con.Open();
-                    using (OleDbTransaction transaction = con.BeginTransaction())
-                    {
-                        string insertQuery = @"
-INSERT INTO Rolled_Out_Students
-    (StudentID, FirstName, LastName, DOB, Gender, Email, ClassID, HomeTown, Residence, Allergies, EmergencyContact, GuardianName, GuardianEmail, Guardian_Location, admission_date, [date], Std_pic)
-VALUES
-    (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-
-                        using (OleDbCommand command = new OleDbCommand(insertQuery, con, transaction))
-                        {
-                            command.Parameters.AddWithValue("?", Convert.ToInt32(txtStdID.Text));
-                            command.Parameters.AddWithValue("?", txtFN.Text.Trim());
-                            command.Parameters.AddWithValue("?", txtLN.Text.Trim());
-                            command.Parameters.AddWithValue("?", dateDOB.Value.Date);
-                            command.Parameters.AddWithValue("?", cmbGN.Text.Trim());
-                            command.Parameters.AddWithValue("?", txtEM.Text.Trim());
-                            command.Parameters.AddWithValue("?", cmbCID.Text.Trim());
-                            command.Parameters.AddWithValue("?", txtHT.Text.Trim());
-                            command.Parameters.AddWithValue("?", txtRD.Text.Trim());
-                            command.Parameters.AddWithValue("?", txtAG.Text.Trim());
-                            command.Parameters.AddWithValue("?", txtEC.Text.Trim());
-                            command.Parameters.AddWithValue("?", txtGN.Text.Trim());
-                            command.Parameters.AddWithValue("?", txtGE.Text.Trim());
-                            command.Parameters.AddWithValue("?", txtGL.Text.Trim());
-                            command.Parameters.AddWithValue("?", dateAD.Value.Date);
-                            command.Parameters.AddWithValue("?", DateTime.Today);
-                            command.Parameters.AddWithValue("?", Picture());
-                            command.ExecuteNonQuery();
-                        }
-
-                        using (OleDbCommand deleteCommand = new OleDbCommand("DELETE FROM Students WHERE StudentID = ?", con, transaction))
-                        {
-                            deleteCommand.Parameters.AddWithValue("?", Convert.ToInt32(txtStdID.Text));
-                            deleteCommand.ExecuteNonQuery();
-                        }
-
-                        transaction.Commit();
-                    }
-                }
-
-                statusLabel.Text = "Student rolled out.";
-                MessageBox.Show("Student rolled out successfully.", "Student Admission", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                NewStudent();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("Error: " + ex.Message, "Student Admission", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-        }
-
-        private void NewStudent()
+        private async System.Threading.Tasks.Task NewStudent()
         {
             txtFN.Text = "";
             txtLN.Text = "";
@@ -933,10 +659,10 @@ VALUES
             dateDOB.Value = DateTime.Today.AddYears(-5);
             dateAD.Value = DateTime.Today;
             std_pic.Image = null;
-            SetNextStudentId();
+            await SetNextStudentId();
         }
 
-        private void btnNew_Click(object sender, EventArgs e) { NewStudent(); }
+        private async void btnNew_Click(object sender, EventArgs e) { await NewStudent(); }
         private void btnSave_Click_1(object sender, EventArgs e) { SaveStudent(); }
         private void btn_Update_Click(object sender, EventArgs e) { UpdateStudent(); }
         private void btnDel_Click(object sender, EventArgs e) { RollOutStudent(); }

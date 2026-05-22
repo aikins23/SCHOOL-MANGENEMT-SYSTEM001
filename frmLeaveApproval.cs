@@ -1,32 +1,39 @@
 using System;
 using System.Data;
-using System.Data.OleDb;
 using System.Drawing;
 using System.Windows.Forms;
+using kingdom_Preparatory_School_Management_System.Common;
+using kingdom_Preparatory_School_Management_System.Data;
+using kingdom_Preparatory_School_Management_System.Services;
+using kingdom_Preparatory_School_Management_System.Models;
 
 namespace kingdom_Preparatory_School_Management_System
 {
     public partial class frmLeaveApproval : Form
     {
-        private readonly kum Aikins = new kum();
+        private readonly LeaveService _leaveService;
         private DataGridView leaveGrid;
         private ComboBox statusFilter;
         private TextBox searchBox;
         private Label resultLabel;
         private DataTable leaveTable;
 
-        private static readonly Color PageBackColor = Color.FromArgb(246, 248, 251);
-        private static readonly Color SurfaceColor = Color.White;
-        private static readonly Color SidebarBackColor = Color.FromArgb(17, 35, 58);
-        private static readonly Color PrimaryColor = Color.FromArgb(31, 99, 198);
+        private static readonly Color PageBackColor = UiTheme.Page;
+        private static readonly Color SurfaceColor = UiTheme.Surface;
+        private static readonly Color PrimaryColor = UiTheme.Navy;
         private static readonly Color DangerColor = Color.FromArgb(190, 18, 60);
-        private static readonly Color TextColor = Color.FromArgb(25, 36, 49);
-        private static readonly Color MutedTextColor = Color.FromArgb(93, 108, 123);
-        private static readonly Color BorderColor = Color.FromArgb(219, 226, 236);
+        private static readonly Color TextColor = UiTheme.Text;
+        private static readonly Color MutedTextColor = UiTheme.Muted;
+        private static readonly Color BorderColor = UiTheme.Border;
 
         public frmLeaveApproval()
         {
             InitializeComponent();
+            
+            // Initialize modern architecture
+            var repository = new LeaveRepository(AppConfig.ConnectionString);
+            _leaveService = new LeaveService(repository);
+
             BuildModernApprovalView();
         }
 
@@ -63,7 +70,7 @@ namespace kingdom_Preparatory_School_Management_System
             title.Controls.Add(new Label { Dock = DockStyle.Bottom, Height = 28, Text = "Review pending employee leave requests and update status", ForeColor = MutedTextColor, Font = new Font("Segoe UI", 10F), TextAlign = ContentAlignment.MiddleLeft });
             var actions = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.RightToLeft, BackColor = PageBackColor, Padding = new Padding(0, 12, 0, 0) };
             actions.Controls.Add(CreatePrimaryButton("Apply Leave", () => new frmEmpLeave().Show()));
-            actions.Controls.Add(CreateSecondaryButton("Refresh", LoadLeaveRequests));
+            actions.Controls.Add(CreateSecondaryButton("Refresh", async () => await LoadLeaveRequests()));
             header.Controls.Add(title, 0, 0);
             header.Controls.Add(actions, 1, 0);
             return header;
@@ -95,14 +102,8 @@ namespace kingdom_Preparatory_School_Management_System
         private Control BuildGridShell()
         {
             var shell = new Panel { Dock = DockStyle.Fill, BackColor = SurfaceColor, BorderStyle = BorderStyle.FixedSingle, Padding = new Padding(1) };
-            leaveGrid = new DataGridView { Dock = DockStyle.Fill, BackgroundColor = SurfaceColor, BorderStyle = BorderStyle.None, AllowUserToAddRows = false, AllowUserToDeleteRows = false, ReadOnly = true, RowHeadersVisible = false, AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill, SelectionMode = DataGridViewSelectionMode.FullRowSelect, MultiSelect = false, EnableHeadersVisualStyles = false };
-            leaveGrid.ColumnHeadersDefaultCellStyle.BackColor = SidebarBackColor;
-            leaveGrid.ColumnHeadersDefaultCellStyle.ForeColor = Color.White;
-            leaveGrid.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI Semibold", 9.5F, FontStyle.Bold);
-            leaveGrid.DefaultCellStyle.SelectionBackColor = Color.FromArgb(219, 234, 254);
-            leaveGrid.DefaultCellStyle.SelectionForeColor = TextColor;
-            leaveGrid.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(248, 250, 252);
-            leaveGrid.GridColor = BorderColor;
+            leaveGrid = new DataGridView { Dock = DockStyle.Fill, BackgroundColor = SurfaceColor, BorderStyle = BorderStyle.None, AllowUserToAddRows = false, AllowUserToDeleteRows = false, ReadOnly = true, RowHeadersVisible = false, AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.DisplayedCells, SelectionMode = DataGridViewSelectionMode.FullRowSelect, MultiSelect = false, EnableHeadersVisualStyles = false };
+            UiTheme.StyleDataGrid(leaveGrid);
             shell.Controls.Add(leaveGrid);
             return shell;
         }
@@ -116,7 +117,7 @@ namespace kingdom_Preparatory_School_Management_System
             actions.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
             actions.Controls.Add(CreatePrimaryButton("Approve", () => UpdateSelectedStatus("APPROVED")), 0, 0);
             actions.Controls.Add(CreateDangerButton("Reject", () => UpdateSelectedStatus("REJECTED")), 1, 0);
-            actions.Controls.Add(CreateSecondaryButton("Refresh", LoadLeaveRequests), 2, 0);
+            actions.Controls.Add(CreateSecondaryButton("Refresh", async () => await LoadLeaveRequests()), 2, 0);
             return actions;
         }
 
@@ -154,24 +155,18 @@ namespace kingdom_Preparatory_School_Management_System
             return button;
         }
 
-        private void LoadLeaveRequests()
+        private async System.Threading.Tasks.Task LoadLeaveRequests()
         {
             try
             {
-                string query = @"SELECT employmentID AS [EMPLOYEE ID], name AS [NAME], department AS [DEPARTMENT], position AS [POSITION], Leave_op AS [PAY OPTION], Reasons AS [REASON], Start_Date AS [START DATE], End_Date AS [END DATE], status AS [STATUS] FROM emp_leave ORDER BY Start_Date DESC";
-                using (OleDbConnection con = new OleDbConnection(Aikins.constr))
-                using (OleDbCommand command = new OleDbCommand(query, con))
-                using (OleDbDataAdapter adapter = new OleDbDataAdapter(command))
-                {
-                    leaveTable = new DataTable();
-                    adapter.Fill(leaveTable);
-                    leaveGrid.DataSource = leaveTable;
-                    ApplyFilters();
-                }
+                lblStats.Text = "Loading...";
+                leaveTable = await _leaveService.GetLeaveRequestsTableAsync();
+                leaveGrid.DataSource = leaveTable;
+                ApplyFilters();
             }
             catch (Exception ex)
             {
-                MessageBox.Show("An error occurred: " + ex.Message, "Leave Approval", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                UIHelper.ShowError("An error occurred: " + ex.Message, "Leave Approval");
             }
         }
 
@@ -182,7 +177,7 @@ namespace kingdom_Preparatory_School_Management_System
             string search = searchBox.Text.Trim().Replace("'", "''");
             if (!string.IsNullOrWhiteSpace(search))
             {
-                filters.Add("[NAME] LIKE '%" + search + "%' OR Convert([EMPLOYEE ID], 'System.String') LIKE '%" + search + "%'");
+                filters.Add("[NAME] LIKE '%" + search + "%' OR Convert([ID], 'System.String') LIKE '%" + search + "%'");
             }
             if (statusFilter.SelectedIndex > 0)
             {
@@ -192,42 +187,39 @@ namespace kingdom_Preparatory_School_Management_System
             resultLabel.Text = leaveTable.DefaultView.Count + " leave request(s)";
         }
 
-        private void UpdateSelectedStatus(string status)
+        private async void UpdateSelectedStatus(string status)
         {
             if (leaveGrid.CurrentRow == null)
             {
-                MessageBox.Show("Select a leave request first.", "Leave Approval", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                UIHelper.ShowWarning("Select a leave request first.", "Leave Approval");
                 return;
             }
 
-            int employeeId = Convert.ToInt32(leaveGrid.CurrentRow.Cells["EMPLOYEE ID"].Value);
-            DateTime startDate = Convert.ToDateTime(leaveGrid.CurrentRow.Cells["START DATE"].Value);
-            DateTime endDate = Convert.ToDateTime(leaveGrid.CurrentRow.Cells["END DATE"].Value);
+            var request = new LeaveRequest
+            {
+                EmployeeID = leaveGrid.CurrentRow.Cells["ID"].Value.ToString(),
+                StartDate = Convert.ToDateTime(leaveGrid.CurrentRow.Cells["START DATE"].Value)
+            };
 
             try
             {
-                using (OleDbConnection con = new OleDbConnection(Aikins.constr))
-                using (OleDbCommand command = new OleDbCommand("UPDATE emp_leave SET status = ? WHERE employmentID = ? AND Start_Date = ? AND End_Date = ?", con))
+                var (success, message) = await _leaveService.UpdateLeaveStatusAsync(request, status);
+                if (success)
                 {
-                    command.Parameters.AddWithValue("?", status);
-                    command.Parameters.AddWithValue("?", employeeId);
-                    command.Parameters.AddWithValue("?", startDate.Date);
-                    command.Parameters.AddWithValue("?", endDate.Date);
-                    con.Open();
-                    command.ExecuteNonQuery();
+                    await LoadLeaveRequests();
+                    UIHelper.ShowSuccess(message, "Leave Approval");
                 }
-                LoadLeaveRequests();
+                else UIHelper.ShowError(message, "Leave Approval");
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Status could not be updated: " + ex.Message, "Leave Approval", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                UIHelper.ShowError("Status could not be updated: " + ex.Message, "Leave Approval");
             }
         }
 
-        private void frmLeaveApproval_Load(object sender, EventArgs e) { LoadLeaveRequests(); }
+        private async void frmLeaveApproval_Load(object sender, EventArgs e) { await LoadLeaveRequests(); }
         private void gunaPictureBox1_Click(object sender, EventArgs e) { Close(); }
         private void gunaPictureBox2_Click(object sender, EventArgs e) { WindowState = FormWindowState.Minimized; }
         private void gunaPictureBox3_Click(object sender, EventArgs e) { WindowState = WindowState == FormWindowState.Maximized ? FormWindowState.Normal : FormWindowState.Maximized; }
-        private void menuStrip2_ItemClicked(object sender, ToolStripItemClickedEventArgs e) { }
     }
 }

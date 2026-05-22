@@ -1,15 +1,16 @@
 using System;
 using System.Data;
-using System.Data.OleDb;
 using System.Drawing;
 using System.Windows.Forms;
 using kingdom_Preparatory_School_Management_System.Common;
+using kingdom_Preparatory_School_Management_System.Data;
+using kingdom_Preparatory_School_Management_System.Services;
 
 namespace kingdom_Preparatory_School_Management_System
 {
     public partial class frmStdView : Form
     {
-        private readonly kum Aikins = new kum();
+        private readonly StudentService _studentService;
         private TextBox searchBox;
         private ComboBox classFilter;
         private DataGridView studentsGrid;
@@ -23,33 +24,19 @@ namespace kingdom_Preparatory_School_Management_System
         private static readonly Color MutedTextColor = Color.FromArgb(93, 108, 123);
         private static readonly Color BorderColor = Color.FromArgb(219, 226, 236);
 
-        private const string StudentListQuery = @"
-SELECT 
-    StudentID AS [ID],
-    CONCAT('KPS', RIGHT('000' + CAST(StudentID AS VARCHAR), 3)) AS [UNIQUE ID],
-    FirstName AS [FIRST NAME],
-    LastName AS [LAST NAME],
-    DOB AS [DATE OF BIRTH],
-    Gender AS [GENDER],
-    Email AS [EMAIL],
-    ClassID AS [CLASS ID],
-    HomeTown AS [HOME TOWN],
-    Residence AS [RESIDENCE],
-    Allegies AS [ALLERGIES],
-    EmergencyConatct AS [EMERGENCY CONTACT],
-    GuidanceName AS [GUARDIAN NAME],
-    GuidianceEmail AS [GUARDIAN EMAIL],
-    Guidiance_Location AS [GUARDIAN LOCATION],
-    admission_date AS [ADMISSION DATE],
-    Std_pic AS [STUDENT PIC]
-FROM Students";
-
         public frmStdView()
         {
             InitializeComponent();
+
+            // Initialize modern architecture
+            var studentRepo = new StudentRepository(AppConfig.ConnectionString);
+            var feeRepo = new FeeRepository(AppConfig.ConnectionString);
+            _studentService = new StudentService(studentRepo, feeRepo);
+
             BuildModernStudentView();
             NavigationSidebar.AddTo(this);
         }
+
         private void BuildModernStudentView()
         {
             SuspendLayout();
@@ -171,7 +158,7 @@ FROM Students";
 
             filters.Controls.Add(searchBox, 0, 0);
             filters.Controls.Add(classFilter, 1, 0);
-            filters.Controls.Add(CreateSecondaryButton("Refresh", LoadStudents), 2, 0);
+            filters.Controls.Add(CreateSecondaryButton("Refresh", async () => await LoadStudents()), 2, 0);
             filters.Controls.Add(CreateSecondaryButton("Clear", ClearFilters), 3, 0);
 
             resultLabel = new Label
@@ -206,11 +193,12 @@ FROM Students";
                 AllowUserToDeleteRows = false,
                 ReadOnly = true,
                 RowHeadersVisible = false,
-                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
+                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.DisplayedCells,
                 SelectionMode = DataGridViewSelectionMode.FullRowSelect,
                 MultiSelect = false,
                 EnableHeadersVisualStyles = false
             };
+            UiTheme.StyleDataGrid(studentsGrid);
             studentsGrid.ColumnHeadersDefaultCellStyle.BackColor = SidebarBackColor;
             studentsGrid.ColumnHeadersDefaultCellStyle.ForeColor = Color.White;
             studentsGrid.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI Semibold", 9.5F, FontStyle.Bold);
@@ -266,65 +254,66 @@ FROM Students";
         {
             classFilter.Items.Clear();
             classFilter.Items.Add("All classes");
+            classFilter.Items.AddRange(AppConfig.ClassNames);
+            classFilter.SelectedIndex = 0;
+        }
 
-            using (OleDbConnection connection = new OleDbConnection(Aikins.constr))
-            using (OleDbCommand command = new OleDbCommand("SELECT Class_name FROM rooms ORDER BY ClassID", connection))
+        private async System.Threading.Tasks.Task LoadStudents(string filterId = null, string filterClass = null)
+        {
+            try
             {
-                connection.Open();
-                using (OleDbDataReader reader = command.ExecuteReader())
+                resultLabel.Text = "Loading students...";
+                DataTable table = await _studentService.GetStudentsTableAsync(filterId, filterClass);
+                
+                studentsGrid.DataSource = table;
+                resultLabel.Text = table.Rows.Count + " student record(s)";
+
+                if (studentsGrid.Columns["STUDENT PIC"] is DataGridViewImageColumn imageCol)
                 {
-                    while (reader.Read())
-                    {
-                        classFilter.Items.Add(reader["Class_name"].ToString());
-                    }
+                    imageCol.ImageLayout = DataGridViewImageCellLayout.Zoom;
+                }
+
+                if (studentsGrid.Columns["ID"] != null)
+                {
+                    studentsGrid.Columns["ID"].FillWeight = 45;
                 }
             }
-
-            classFilter.SelectedIndex = 0;
-        }
-
-        private void LoadStudents()
-        {
-            searchBox.Text = "";
-            if (classFilter.Items.Count == 0)
+            catch (Exception ex)
             {
-                LoadClasses();
-                return;
+                UIHelper.ShowError("An error occurred while loading students: " + ex.Message, "Students");
             }
-
-            classFilter.SelectedIndex = 0;
-            LoadStudents(StudentListQuery);
         }
 
-        private void ApplyFilters()
+        private async void ApplyFilters()
         {
             if (studentsGrid == null || classFilter == null || searchBox == null || classFilter.Items.Count == 0)
             {
                 return;
             }
 
-            string query = StudentListQuery + " WHERE 1 = 1";
-            var parameters = new System.Collections.Generic.List<OleDbParameter>();
+            string filterId = null;
+            string filterClass = null;
 
-            if (int.TryParse(searchBox.Text.Trim(), out int studentId))
+            if (!string.IsNullOrWhiteSpace(searchBox.Text))
             {
-                query += " AND StudentID = ?";
-                parameters.Add(new OleDbParameter("@StudentID", OleDbType.Integer) { Value = studentId });
-            }
-            else if (!string.IsNullOrWhiteSpace(searchBox.Text))
-            {
-                studentsGrid.DataSource = null;
-                resultLabel.Text = "Enter a numeric student ID";
-                return;
+                if (int.TryParse(searchBox.Text.Trim(), out _))
+                {
+                    filterId = searchBox.Text.Trim();
+                }
+                else
+                {
+                    studentsGrid.DataSource = null;
+                    resultLabel.Text = "Enter a numeric student ID";
+                    return;
+                }
             }
 
             if (classFilter.SelectedIndex > 0)
             {
-                query += " AND ClassID = ?";
-                parameters.Add(new OleDbParameter("@ClassID", OleDbType.VarChar) { Value = classFilter.Text });
+                filterClass = classFilter.Text;
             }
 
-            LoadStudents(query, parameters.ToArray());
+            await LoadStudents(filterId, filterClass);
         }
 
         private void ClearFilters()
@@ -334,68 +323,22 @@ FROM Students";
             {
                 classFilter.SelectedIndex = 0;
             }
-            LoadStudents(StudentListQuery);
+            ApplyFilters();
         }
 
-        private void LoadStudents(string query, params OleDbParameter[] parameters)
-        {
-            try
-            {
-                using (OleDbConnection connection = new OleDbConnection(Aikins.constr))
-                using (OleDbCommand command = new OleDbCommand(query, connection))
-                using (OleDbDataAdapter adapter = new OleDbDataAdapter(command))
-                {
-                    if (parameters != null && parameters.Length > 0)
-                    {
-                        command.Parameters.AddRange(parameters);
-                    }
-
-                    DataTable table = new DataTable();
-                    adapter.Fill(table);
-                    studentsGrid.DataSource = table;
-                    resultLabel.Text = table.Rows.Count + " student record(s)";
-
-                    if (studentsGrid.Columns["STUDENT PIC"] is DataGridViewImageColumn imageCol)
-                    {
-                        imageCol.ImageLayout = DataGridViewImageCellLayout.Zoom;
-                    }
-
-                    if (studentsGrid.Columns["ID"] != null)
-                    {
-                        studentsGrid.Columns["ID"].FillWeight = 45;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("An error occurred: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-        }
-
-        private DataTable GetDataFromDatabase(int id)
-        {
-            DataTable dataTable = new DataTable();
-
-            using (OleDbConnection connection = new OleDbConnection(Aikins.constr))
-            using (OleDbCommand command = new OleDbCommand("SELECT * FROM Students WHERE StudentID = ?", connection))
-            using (OleDbDataAdapter adapter = new OleDbDataAdapter(command))
-            {
-                command.Parameters.AddWithValue("?", id);
-                adapter.Fill(dataTable);
-            }
-
-            return dataTable;
-        }
-
-        private void OpenSelectedStudent()
+        private async void OpenSelectedStudent()
         {
             if (studentsGrid.CurrentRow == null || studentsGrid.CurrentRow.Cells["ID"].Value == null)
             {
                 return;
             }
 
-            int id = Convert.ToInt32(studentsGrid.CurrentRow.Cells["ID"].Value);
-            using (frmStdDetails detailViewForm = new frmStdDetails(GetDataFromDatabase(id)))
+            string id = studentsGrid.CurrentRow.Cells["ID"].Value.ToString();
+            
+            // To maintain compatibility with frmStdDetails which expects a DataTable
+            DataTable studentTable = await _studentService.GetStudentsTableAsync(id);
+
+            using (frmStdDetails detailViewForm = new frmStdDetails(studentTable))
             {
                 detailViewForm.ShowDialog();
             }
@@ -409,9 +352,10 @@ FROM Students";
             }
         }
 
-        private void frmStdView_Load(object sender, EventArgs e)
+        private async void frmStdView_Load(object sender, EventArgs e)
         {
             LoadClasses();
+            await LoadStudents();
         }
 
         private void data_CellContentClick(object sender, DataGridViewCellEventArgs e)
@@ -439,7 +383,7 @@ FROM Students";
         private void txtID_TextChanged(object sender, EventArgs e) { ApplyFilters(); }
         private void gunaButton1_Click(object sender, EventArgs e) { }
         private void gunaButton1_Click_1(object sender, EventArgs e) { new frmAddStd().Show(); }
-        private void gunaButton2_Click(object sender, EventArgs e) { LoadStudents(); }
+        private async void gunaButton2_Click(object sender, EventArgs e) { await LoadStudents(); }
         private void studentsToolStripMenuItem_Click(object sender, EventArgs e) { new frmAddStd().Show(); }
         private void employersToolStripMenuItem_Click(object sender, EventArgs e) { new frmEmployee().Show(); }
         private void adminstrationToolStripMenuItem_Click(object sender, EventArgs e) { new EXAMS().Show(); }

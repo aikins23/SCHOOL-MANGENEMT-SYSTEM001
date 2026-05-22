@@ -29,7 +29,13 @@ namespace kingdom_Preparatory_School_Management_System
 
             form.BackColor = Page;
             form.Font = BaseFont;
+            form.MinimumSize = new Size(Math.Max(form.MinimumSize.Width, 1000), Math.Max(form.MinimumSize.Height, 650));
             ApplyToControls(form.Controls, false);
+        }
+
+        public static void StyleDataGrid(DataGridView grid, bool fillColumns = false)
+        {
+            StyleGrid(grid, fillColumns);
         }
 
         private static void ApplyToControls(Control.ControlCollection controls, bool inNavigationArea)
@@ -68,7 +74,7 @@ namespace kingdom_Preparatory_School_Management_System
                 }
                 else if (control is DataGridView grid)
                 {
-                    StyleGrid(grid);
+                    StyleGrid(grid, false);
                 }
                 else if (control is MenuStrip menu)
                 {
@@ -99,24 +105,64 @@ namespace kingdom_Preparatory_School_Management_System
             SetIfExists(control, "HoverState.FillColor", Gold);
         }
 
-        private static void StyleGrid(DataGridView grid)
+        private static void StyleGrid(DataGridView grid, bool fillColumns)
         {
             grid.BackgroundColor = Surface;
             grid.BorderStyle = BorderStyle.None;
             grid.EnableHeadersVisualStyles = false;
             grid.GridColor = Border;
             grid.RowHeadersVisible = false;
-            grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+            grid.AutoSizeColumnsMode = fillColumns ? DataGridViewAutoSizeColumnsMode.Fill : DataGridViewAutoSizeColumnsMode.DisplayedCells;
+            grid.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.None;
+            grid.AllowUserToResizeColumns = true;
+            grid.AllowUserToResizeRows = false;
             grid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+            grid.MultiSelect = false;
+            grid.ScrollBars = ScrollBars.Both;
+            grid.ColumnHeadersHeight = 42;
+            grid.RowTemplate.Height = 34;
+            grid.ClipboardCopyMode = DataGridViewClipboardCopyMode.EnableAlwaysIncludeHeaderText;
+            grid.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal;
             grid.ColumnHeadersDefaultCellStyle.BackColor = Navy;
             grid.ColumnHeadersDefaultCellStyle.ForeColor = Color.White;
             grid.ColumnHeadersDefaultCellStyle.Font = ButtonFont;
             grid.ColumnHeadersDefaultCellStyle.SelectionBackColor = Navy;
+            grid.ColumnHeadersDefaultCellStyle.WrapMode = DataGridViewTriState.True;
             grid.DefaultCellStyle.BackColor = Surface;
             grid.DefaultCellStyle.ForeColor = Text;
+            grid.DefaultCellStyle.Font = BaseFont;
             grid.DefaultCellStyle.SelectionBackColor = GoldSoft;
             grid.DefaultCellStyle.SelectionForeColor = Text;
+            grid.DefaultCellStyle.WrapMode = DataGridViewTriState.False;
             grid.AlternatingRowsDefaultCellStyle.BackColor = SurfaceAlt;
+            grid.DataBindingComplete -= Grid_DataBindingComplete;
+            grid.DataBindingComplete += Grid_DataBindingComplete;
+        }
+
+        private static void Grid_DataBindingComplete(object sender, DataGridViewBindingCompleteEventArgs e)
+        {
+            if (sender is DataGridView grid)
+            {
+                try
+                {
+                    grid.AutoResizeColumns(DataGridViewAutoSizeColumnsMode.DisplayedCells);
+                    foreach (DataGridViewColumn column in grid.Columns)
+                    {
+                        if (column.Width < 90)
+                        {
+                            column.Width = 90;
+                        }
+                        if (column.Width > 280)
+                        {
+                            column.Width = 280;
+                        }
+                    }
+                }
+                catch
+                {
+                    // Some grids are mid-bind while third-party controls apply their own theme.
+                }
+            }
         }
 
         private static void StyleMenu(MenuStrip menu)

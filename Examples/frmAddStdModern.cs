@@ -29,9 +29,10 @@ namespace kingdom_Preparatory_School_Management_System.Examples
 
         public StudentFormExample()
         {
-            // Initialize service with repository
+            // Initialize service with repository and fee repository
             var repository = new StudentRepository(AppConfig.ConnectionString);
-            _studentService = new StudentService(repository);
+            var feeRepository = new FeeRepository(AppConfig.ConnectionString);
+            _studentService = new StudentService(repository, feeRepository);
         }
 
         /// <summary>

@@ -1,43 +1,46 @@
 using System;
 using System.Data;
-using System.Data.OleDb;
 using System.Drawing;
-using System.Drawing.Imaging;
 using System.IO;
 using System.Windows.Forms;
+using kingdom_Preparatory_School_Management_System.Common;
+using kingdom_Preparatory_School_Management_System.Data;
+using kingdom_Preparatory_School_Management_System.Services;
+using kingdom_Preparatory_School_Management_System.Models;
 
 namespace kingdom_Preparatory_School_Management_System
 {
     public partial class frmEmpDetails : Form
     {
-        private readonly kum Aikins = new kum();
+        private readonly EmployeeService _employeeService;
         private readonly DataTable data;
         private Label statusLabel;
 
-        private static readonly Color PageBackColor = Color.FromArgb(246, 248, 251);
-        private static readonly Color SurfaceColor = Color.White;
-        private static readonly Color PrimaryColor = Color.FromArgb(31, 99, 198);
+        private static readonly Color PageBackColor = UiTheme.Page;
+        private static readonly Color SurfaceColor = UiTheme.Surface;
+        private static readonly Color Navy = UiTheme.Navy;
         private static readonly Color DangerColor = Color.FromArgb(190, 18, 60);
-        private static readonly Color TextColor = Color.FromArgb(25, 36, 49);
-        private static readonly Color MutedTextColor = Color.FromArgb(93, 108, 123);
-        private static readonly Color BorderColor = Color.FromArgb(219, 226, 236);
+        private static readonly Color TextColor = UiTheme.Text;
+        private static readonly Color MutedTextColor = UiTheme.Muted;
+        private static readonly Color BorderColor = UiTheme.Border;
 
-        public frmEmpDetails()
-            : this(new DataTable())
-        {
-        }
+        public frmEmpDetails() : this(new DataTable()) { }
 
         public frmEmpDetails(DataTable data)
         {
             InitializeComponent();
             this.data = data;
+            
+            // Initialize modern architecture
+            var repository = new EmployeeRepository(AppConfig.ConnectionString);
+            _employeeService = new EmployeeService(repository);
+
             BuildModernDetailsView();
         }
 
         private void BuildModernDetailsView()
         {
             SuspendLayout();
-
             Controls.Clear();
             Text = "Employee Details";
             BackColor = PageBackColor;
@@ -47,24 +50,15 @@ namespace kingdom_Preparatory_School_Management_System
 
             PrepareInputs();
 
-            var root = new TableLayoutPanel
-            {
-                Dock = DockStyle.Fill,
-                RowCount = 4,
-                ColumnCount = 1,
-                BackColor = PageBackColor,
-                Padding = new Padding(26)
-            };
+            var root = new TableLayoutPanel { Dock = DockStyle.Fill, RowCount = 4, ColumnCount = 1, BackColor = PageBackColor, Padding = new Padding(26) };
             root.RowStyles.Add(new RowStyle(SizeType.Absolute, 78));
             root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
             root.RowStyles.Add(new RowStyle(SizeType.Absolute, 50));
             root.RowStyles.Add(new RowStyle(SizeType.Absolute, 54));
-
             root.Controls.Add(BuildHeader(), 0, 0);
             root.Controls.Add(BuildFormBody(), 0, 1);
             root.Controls.Add(BuildStatusBar(), 0, 2);
             root.Controls.Add(BuildActions(), 0, 3);
-
             Controls.Add(root);
             ResumeLayout(true);
         }
@@ -80,19 +74,8 @@ namespace kingdom_Preparatory_School_Management_System
             }
 
             txtEMdID.FillColor = UiTheme.SurfaceAlt;
-
-            ResetCombo(cmbGN, new object[] { "MALE", "FEMALE" });
-            ResetCombo(cmbDPT, new object[]
-            {
-                "ADMINISTRATION",
-                "SANITATION & CLEANING",
-                "CRECHE",
-                "NURSERY",
-                "KINDERGARTEN",
-                "LOWER PRIMARY",
-                "UPPER PRIMARY",
-                "JHS (JUNIOR HIGH SCHOOL)"
-            });
+            ResetCombo(cmbGN, AppConfig.GenderOptions);
+            ResetCombo(cmbDPT, new object[] { "ADMINISTRATION", "SANITATION & CLEANING", "CRECHE", "NURSERY", "KINDERGARTEN", "LOWER PRIMARY", "UPPER PRIMARY", "JHS (JUNIOR HIGH SCHOOL)" });
             ResetCombo(CmbPs, new object[] { "NON-POSITIONAL", "HEAD", "DEPUTY", "SECRETARY" });
             ResetCombo(empMD, new object[] { "FULL-TIME", "PART-TIME", "CONTRACT" });
             ResetCombo(empST, new object[] { "ACTIVE", "IN-ACTIVE" });
@@ -126,7 +109,6 @@ namespace kingdom_Preparatory_School_Management_System
                 textBox.BorderRadius = 4;
                 textBox.BorderThickness = 1;
                 textBox.ForeColor = TextColor;
-                textBox.PlaceholderForeColor = MutedTextColor;
                 textBox.Height = 36;
                 return;
             }
@@ -158,90 +140,36 @@ namespace kingdom_Preparatory_School_Management_System
         {
             combo.Items.Clear();
             combo.Items.AddRange(items);
-            if (combo.Items.Count > 0)
-            {
-                combo.SelectedIndex = 0;
-            }
+            if (combo.Items.Count > 0) combo.SelectedIndex = 0;
         }
 
         private Control BuildHeader()
         {
-            var header = new TableLayoutPanel
-            {
-                Dock = DockStyle.Fill,
-                ColumnCount = 2,
-                BackColor = PageBackColor
-            };
+            var header = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, BackColor = PageBackColor };
             header.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 66));
             header.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 34));
-
-            var titleBlock = new Panel { Dock = DockStyle.Fill, BackColor = PageBackColor };
-            titleBlock.Controls.Add(new Label
-            {
-                Dock = DockStyle.Top,
-                Height = 38,
-                Text = "Employee Details",
-                ForeColor = TextColor,
-                Font = new Font("Segoe UI Semibold", 22F, FontStyle.Bold),
-                TextAlign = ContentAlignment.MiddleLeft
-            });
-            titleBlock.Controls.Add(new Label
-            {
-                Dock = DockStyle.Bottom,
-                Height = 28,
-                Text = "Review, update, or terminate a staff record",
-                ForeColor = MutedTextColor,
-                Font = new Font("Segoe UI", 10F),
-                TextAlign = ContentAlignment.MiddleLeft
-            });
-
-            var actions = new FlowLayoutPanel
-            {
-                Dock = DockStyle.Fill,
-                FlowDirection = FlowDirection.RightToLeft,
-                BackColor = PageBackColor,
-                Padding = new Padding(0, 12, 0, 0)
-            };
-            actions.Controls.Add(CreatePrimaryButton("Employee List", () =>
-            {
-                Close();
-                new frmEmpView().Show();
-            }));
-            actions.Controls.Add(CreateSecondaryButton("Dashboard", () =>
-            {
-                Close();
-                new frmDashboard().Show();
-            }));
-
-            header.Controls.Add(titleBlock, 0, 0);
+            var title = new Panel { Dock = DockStyle.Fill, BackColor = PageBackColor };
+            title.Controls.Add(new Label { Dock = DockStyle.Top, Height = 38, Text = "Employee Details", ForeColor = TextColor, Font = new Font("Segoe UI Semibold", 22F, FontStyle.Bold), TextAlign = ContentAlignment.MiddleLeft });
+            title.Controls.Add(new Label { Dock = DockStyle.Bottom, Height = 28, Text = "Review, update, or terminate a staff record", ForeColor = MutedTextColor, Font = new Font("Segoe UI", 10F), TextAlign = ContentAlignment.MiddleLeft });
+            var actions = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.RightToLeft, BackColor = PageBackColor, Padding = new Padding(0, 12, 0, 0) };
+            actions.Controls.Add(CreatePrimaryButton("Employee List", () => { Close(); new frmEmpView().Show(); }));
+            actions.Controls.Add(CreateSecondaryButton("Dashboard", () => { Close(); new frmDashboard().Show(); }));
+            header.Controls.Add(title, 0, 0);
             header.Controls.Add(actions, 1, 0);
             return header;
         }
 
         private Control BuildFormBody()
         {
-            var body = new TableLayoutPanel
-            {
-                Dock = DockStyle.Fill,
-                ColumnCount = 2,
-                BackColor = PageBackColor
-            };
+            var body = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, BackColor = PageBackColor };
             body.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 72));
             body.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 28));
 
-            var detailsStack = new TableLayoutPanel
-            {
-                Dock = DockStyle.Fill,
-                RowCount = 2,
-                ColumnCount = 1,
-                BackColor = PageBackColor,
-                Margin = new Padding(0, 0, 14, 0)
-            };
+            var detailsStack = new TableLayoutPanel { Dock = DockStyle.Fill, RowCount = 2, ColumnCount = 1, BackColor = PageBackColor, Margin = new Padding(0, 0, 14, 0) };
             detailsStack.RowStyles.Add(new RowStyle(SizeType.Percent, 52));
             detailsStack.RowStyles.Add(new RowStyle(SizeType.Percent, 48));
             detailsStack.Controls.Add(BuildPersonalPanel(), 0, 0);
             detailsStack.Controls.Add(BuildEmploymentPanel(), 0, 1);
-
             body.Controls.Add(detailsStack, 0, 0);
             body.Controls.Add(BuildPhotoPanel(), 1, 0);
             return body;
@@ -251,7 +179,6 @@ namespace kingdom_Preparatory_School_Management_System
         {
             var panel = CreateSurfacePanel(new Padding(24, 20, 24, 22), new Padding(0, 0, 0, 14));
             var layout = CreateSectionLayout("Personal Details", 5, 2);
-
             layout.Controls.Add(CreateField("Employee ID", txtEMdID), 0, 1);
             layout.Controls.Add(CreateField("Full Name", txtFN), 1, 1);
             layout.Controls.Add(CreateField("Gender", cmbGN), 0, 2);
@@ -260,7 +187,6 @@ namespace kingdom_Preparatory_School_Management_System
             layout.Controls.Add(CreateField("Department", cmbDPT), 1, 3);
             layout.Controls.Add(CreateField("Home Town", txtHT), 0, 4);
             layout.Controls.Add(CreateField("Residence", txtRD), 1, 4);
-
             panel.Controls.Add(layout);
             return panel;
         }
@@ -269,7 +195,6 @@ namespace kingdom_Preparatory_School_Management_System
         {
             var panel = CreateSurfacePanel(new Padding(24, 20, 24, 22), Padding.Empty);
             var layout = CreateSectionLayout("Employment & Emergency", 5, 2);
-
             layout.Controls.Add(CreateField("Position", CmbPs), 0, 1);
             layout.Controls.Add(CreateField("Employment Date", empdate), 1, 1);
             layout.Controls.Add(CreateField("Employment Mode", empMD), 0, 2);
@@ -278,7 +203,6 @@ namespace kingdom_Preparatory_School_Management_System
             layout.Controls.Add(CreateField("Emergency Contact", empEC), 1, 3);
             layout.Controls.Add(CreateField("Performance Review", empRV), 0, 4);
             layout.Controls.Add(CreateField("Salary", empSA), 1, 4);
-
             panel.Controls.Add(layout);
             return panel;
         }
@@ -286,97 +210,39 @@ namespace kingdom_Preparatory_School_Management_System
         private Control BuildPhotoPanel()
         {
             var panel = CreateSurfacePanel(new Padding(24, 20, 24, 22), Padding.Empty);
-            var layout = new TableLayoutPanel
-            {
-                Dock = DockStyle.Fill,
-                RowCount = 6,
-                ColumnCount = 1,
-                BackColor = SurfaceColor
-            };
+            var layout = new TableLayoutPanel { Dock = DockStyle.Fill, RowCount = 6, ColumnCount = 1, BackColor = SurfaceColor };
             layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 40));
             layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
             layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 48));
             layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 26));
             layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 66));
             layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 70));
-
-            layout.Controls.Add(new Label
-            {
-                Dock = DockStyle.Fill,
-                Text = "Photo",
-                ForeColor = TextColor,
-                Font = new Font("Segoe UI Semibold", 15F, FontStyle.Bold),
-                TextAlign = ContentAlignment.MiddleLeft
-            }, 0, 0);
-
+            layout.Controls.Add(new Label { Dock = DockStyle.Fill, Text = "Photo", ForeColor = TextColor, Font = new Font("Segoe UI Semibold", 15F, FontStyle.Bold), TextAlign = ContentAlignment.MiddleLeft }, 0, 0);
             std_pic.Dock = DockStyle.Fill;
             upload.Dock = DockStyle.Fill;
             upload.Click -= upload_Click;
             upload.Click += upload_Click;
-
             layout.Controls.Add(std_pic, 0, 1);
             layout.Controls.Add(upload, 0, 2);
-            layout.Controls.Add(new Label
-            {
-                Dock = DockStyle.Fill,
-                Text = "Termination date",
-                ForeColor = TextColor,
-                Font = new Font("Segoe UI Semibold", 10F, FontStyle.Bold),
-                TextAlign = ContentAlignment.BottomLeft
-            }, 0, 3);
+            layout.Controls.Add(new Label { Dock = DockStyle.Fill, Text = "Termination date", ForeColor = TextColor, Font = new Font("Segoe UI Semibold", 10F, FontStyle.Bold), TextAlign = ContentAlignment.BottomLeft }, 0, 3);
             layout.Controls.Add(CreateField("Date", DATE), 0, 4);
-            layout.Controls.Add(new Label
-            {
-                Dock = DockStyle.Fill,
-                Text = "Termination moves the employee to rolled-out records before removing them from active staff.",
-                ForeColor = MutedTextColor,
-                Font = new Font("Segoe UI", 9F),
-                TextAlign = ContentAlignment.TopLeft
-            }, 0, 5);
-
+            layout.Controls.Add(new Label { Dock = DockStyle.Fill, Text = "Termination moves the employee to rolled-out records before removing them from active staff.", ForeColor = MutedTextColor, Font = new Font("Segoe UI", 9F), TextAlign = ContentAlignment.TopLeft }, 0, 5);
             panel.Controls.Add(layout);
             return panel;
         }
 
         private Panel CreateSurfacePanel(Padding padding, Padding margin)
         {
-            return new Panel
-            {
-                Dock = DockStyle.Fill,
-                BackColor = SurfaceColor,
-                BorderStyle = BorderStyle.FixedSingle,
-                Padding = padding,
-                Margin = margin
-            };
+            return new Panel { Dock = DockStyle.Fill, BackColor = SurfaceColor, BorderStyle = BorderStyle.FixedSingle, Padding = padding, Margin = margin };
         }
 
         private TableLayoutPanel CreateSectionLayout(string title, int rows, int columns)
         {
-            var layout = new TableLayoutPanel
-            {
-                Dock = DockStyle.Fill,
-                RowCount = rows,
-                ColumnCount = columns,
-                BackColor = SurfaceColor
-            };
+            var layout = new TableLayoutPanel { Dock = DockStyle.Fill, RowCount = rows, ColumnCount = columns, BackColor = SurfaceColor };
             layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
-            for (int i = 1; i < rows; i++)
-            {
-                layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100F / (rows - 1)));
-            }
-            for (int i = 0; i < columns; i++)
-            {
-                layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F / columns));
-            }
-
-            var titleLabel = new Label
-            {
-                Dock = DockStyle.Fill,
-                Text = title,
-                ForeColor = TextColor,
-                Font = new Font("Segoe UI Semibold", 15F, FontStyle.Bold),
-                TextAlign = ContentAlignment.MiddleLeft
-            };
+            for (int i = 1; i < rows; i++) layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100F / (rows - 1)));
+            for (int i = 0; i < columns; i++) layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F / columns));
+            var titleLabel = new Label { Dock = DockStyle.Fill, Text = title, ForeColor = TextColor, Font = new Font("Segoe UI Semibold", 15F, FontStyle.Bold), TextAlign = ContentAlignment.MiddleLeft };
             layout.Controls.Add(titleLabel, 0, 0);
             layout.SetColumnSpan(titleLabel, columns);
             return layout;
@@ -384,27 +250,11 @@ namespace kingdom_Preparatory_School_Management_System
 
         private Control CreateField(string labelText, Control input)
         {
-            var panel = new TableLayoutPanel
-            {
-                Dock = DockStyle.Fill,
-                RowCount = 2,
-                ColumnCount = 1,
-                Padding = new Padding(0, 0, 12, 10),
-                BackColor = SurfaceColor,
-                Margin = Padding.Empty
-            };
+            var panel = new TableLayoutPanel { Dock = DockStyle.Fill, RowCount = 2, ColumnCount = 1, Padding = new Padding(0, 0, 12, 10), BackColor = SurfaceColor, Margin = Padding.Empty };
             panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 22));
             panel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
             panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-            panel.Controls.Add(new Label
-            {
-                Dock = DockStyle.Fill,
-                Text = labelText,
-                ForeColor = MutedTextColor,
-                Font = new Font("Segoe UI", 8.75F),
-                TextAlign = ContentAlignment.MiddleLeft
-            }, 0, 0);
-
+            panel.Controls.Add(new Label { Dock = DockStyle.Fill, Text = labelText, ForeColor = MutedTextColor, Font = new Font("Segoe UI", 8.75F), TextAlign = ContentAlignment.MiddleLeft }, 0, 0);
             input.Dock = DockStyle.Fill;
             panel.Controls.Add(input, 0, 1);
             return panel;
@@ -412,38 +262,20 @@ namespace kingdom_Preparatory_School_Management_System
 
         private Control BuildStatusBar()
         {
-            statusLabel = new Label
-            {
-                Dock = DockStyle.Fill,
-                BackColor = PageBackColor,
-                ForeColor = MutedTextColor,
-                Font = new Font("Segoe UI", 9.5F),
-                TextAlign = ContentAlignment.MiddleLeft,
-                Text = "Ready."
-            };
+            statusLabel = new Label { Dock = DockStyle.Fill, BackColor = PageBackColor, ForeColor = MutedTextColor, Font = new Font("Segoe UI", 9.5F), TextAlign = ContentAlignment.MiddleLeft, Text = "Ready." };
             return statusLabel;
         }
 
         private Control BuildActions()
         {
-            var actions = new TableLayoutPanel
-            {
-                Dock = DockStyle.Fill,
-                ColumnCount = 4,
-                BackColor = PageBackColor
-            };
+            var actions = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 4, BackColor = PageBackColor };
             actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 120));
             actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 150));
             actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 130));
             actions.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-
             actions.Controls.Add(CreatePrimaryButton("Update", UpdateEmployee), 0, 0);
             actions.Controls.Add(CreateDangerButton("Terminate", TerminateEmployee), 1, 0);
-            actions.Controls.Add(CreateSecondaryButton("Employee List", () =>
-            {
-                Close();
-                new frmEmpView().Show();
-            }), 2, 0);
+            actions.Controls.Add(CreateSecondaryButton("Employee List", () => { Close(); new frmEmpView().Show(); }), 2, 0);
             return actions;
         }
 
@@ -479,16 +311,7 @@ namespace kingdom_Preparatory_School_Management_System
 
         private Button CreateButton(string text, Action action)
         {
-            var button = new Button
-            {
-                Dock = DockStyle.Fill,
-                Height = 38,
-                Margin = new Padding(8, 0, 0, 0),
-                Text = text,
-                FlatStyle = FlatStyle.Flat,
-                Font = new Font("Segoe UI Semibold", 9.5F, FontStyle.Bold),
-                Cursor = Cursors.Hand
-            };
+            var button = new Button { Dock = DockStyle.Fill, Height = 38, Margin = new Padding(8, 0, 0, 0), Text = text, FlatStyle = FlatStyle.Flat, Font = new Font("Segoe UI Semibold", 9.5F, FontStyle.Bold), Cursor = Cursors.Hand };
             button.Click += (sender, args) => action();
             return button;
         }
@@ -507,44 +330,37 @@ namespace kingdom_Preparatory_School_Management_System
             }
 
             DataRow row = data.Rows[0];
-            txtEMdID.Text = row["employmentID"].ToString();
-            txtFN.Text = row["fullName"].ToString();
-            cmbGN.Text = row["gender"].ToString();
-            dateDOB.Value = SafeDate(row["dOB"], DateTime.Today.AddYears(-25));
-            txtCN.Text = row["conatct"].ToString();
-            cmbDPT.Text = row["department"].ToString();
-            CmbPs.Text = row["position"].ToString();
-            txtHT.Text = row["homeTown"].ToString();
-            txtRD.Text = row["residence"].ToString();
-            empdate.Value = SafeDate(row["date_of_Emplyment"], DateTime.Today);
-            empMD.Text = row["employment_Mode"].ToString();
-            empST.Text = row["employment_Status"].ToString();
-            empCN.Text = row["emergency_Contact_Person"].ToString();
-            empEC.Text = row["emergency_contact"].ToString();
-            empRV.Text = row["employees_Reviews"].ToString();
-            empSA.Text = row["salary"].ToString();
+            txtEMdID.Text = row["ID"].ToString();
+            txtFN.Text = row["FULL NAME"].ToString();
+            cmbGN.Text = row["GENDER"].ToString();
+            dateDOB.Value = SafeDate(row["DATE OF BIRTH"], DateTime.Today.AddYears(-25));
+            txtCN.Text = row["CONTACT"].ToString();
+            cmbDPT.Text = row["DEPARTMENT"].ToString();
+            CmbPs.Text = row["POSITION"].ToString();
+            txtHT.Text = row["HOME TOWN"].ToString();
+            txtRD.Text = row["RESIDENCE"].ToString();
+            empdate.Value = SafeDate(row["DATE OF EMPLOYMENT"], DateTime.Today);
+            empMD.Text = row["EMPLOYMENT MODE"].ToString();
+            empST.Text = row["EMPLOYMENT STATUS"].ToString();
+            empCN.Text = row["EMERGENCY CONTACT PERSON"].ToString();
+            empEC.Text = row["EMERGENCY CONTACT"].ToString();
+            empRV.Text = row["EMPLOYEE REVIEWS"].ToString();
+            empSA.Text = row["SALARY"].ToString();
             DATE.Value = DateTime.Today;
 
-            if (row.Table.Columns.Contains("pic") && row["pic"] != DBNull.Value)
+            if (row.Table.Columns.Contains("PICTURE") && row["PICTURE"] != DBNull.Value)
             {
-                byte[] imageData = (byte[])row["pic"];
-                using (MemoryStream stream = new MemoryStream(imageData))
+                using (MemoryStream stream = new MemoryStream((byte[])row["PICTURE"]))
                 {
                     std_pic.Image = Image.FromStream(stream);
                 }
             }
-
             statusLabel.Text = "Employee record loaded.";
         }
 
         private DateTime SafeDate(object value, DateTime fallback)
         {
-            if (value == null || value == DBNull.Value)
-            {
-                return fallback;
-            }
-
-            return DateTime.TryParse(value.ToString(), out DateTime parsed) ? parsed : fallback;
+            return value == null || value == DBNull.Value || !DateTime.TryParse(value.ToString(), out DateTime parsed) ? fallback : parsed;
         }
 
         private void upload_Click(object sender, EventArgs e)
@@ -559,159 +375,68 @@ namespace kingdom_Preparatory_School_Management_System
             }
         }
 
-        public byte[] Picture()
+        private Employee MapFormToEmployee()
         {
-            using (MemoryStream stream = new MemoryStream())
+            decimal.TryParse(empSA.Text.Trim(), out decimal salary);
+            return new Employee
             {
-                Image image = std_pic.Image ?? CreateBlankPhoto();
-                image.Save(stream, ImageFormat.Png);
-                return stream.ToArray();
+                EmployeeID = txtEMdID.Text,
+                FullName = txtFN.Text.Trim(),
+                Gender = cmbGN.Text.Trim(),
+                DateOfBirth = dateDOB.Value.Date,
+                Contact = txtCN.Text.Trim(),
+                Department = cmbDPT.Text.Trim(),
+                Position = CmbPs.Text.Trim(),
+                HomeTown = txtHT.Text.Trim(),
+                Residence = txtRD.Text.Trim(),
+                EmploymentDate = empdate.Value.Date,
+                EmploymentMode = empMD.Text.Trim(),
+                EmploymentStatus = empST.Text.Trim(),
+                EmergencyContactPerson = empCN.Text.Trim(),
+                EmergencyContact = empEC.Text.Trim(),
+                PerformanceReview = empRV.Text.Trim(),
+                Salary = salary,
+                ProfilePhoto = ImageHelper.ImageToBytes(std_pic.Image)
+            };
+        }
+
+        private async void UpdateEmployee()
+        {
+            statusLabel.Text = "Updating employee...";
+            var (success, message) = await _employeeService.UpdateEmployeeAsync(MapFormToEmployee());
+
+            if (success)
+            {
+                statusLabel.Text = message;
+                UIHelper.ShowSuccess(message, "Employee Details");
+            }
+            else
+            {
+                statusLabel.Text = "Update failed.";
+                UIHelper.ShowWarning(message, "Employee Details");
             }
         }
 
-        private Image CreateBlankPhoto()
+        private async void TerminateEmployee()
         {
-            Bitmap bitmap = new Bitmap(1, 1);
-            using (Graphics graphics = Graphics.FromImage(bitmap))
+            if (UIHelper.ShowConfirmation("Terminate this employee contract?", "Confirm Termination") != DialogResult.Yes) return;
+
+            statusLabel.Text = "Terminating contract...";
+            var (success, message) = await _employeeService.TerminateEmployeeAsync(txtEMdID.Text, DATE.Value.Date);
+
+            if (success)
             {
-                graphics.Clear(Color.White);
-            }
-            return bitmap;
-        }
-
-        private bool ValidateForm()
-        {
-            if (!int.TryParse(txtEMdID.Text, out _))
-            {
-                MessageBox.Show("Employee ID is not valid.", "Employee Details", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return false;
-            }
-
-            if (string.IsNullOrWhiteSpace(txtFN.Text))
-            {
-                MessageBox.Show("Enter the employee full name.", "Employee Details", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return false;
-            }
-
-            if (!decimal.TryParse(empSA.Text.Trim(), out _))
-            {
-                MessageBox.Show("Enter a valid salary amount.", "Employee Details", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return false;
-            }
-
-            return true;
-        }
-
-        private void UpdateEmployee()
-        {
-            if (!ValidateForm())
-            {
-                return;
-            }
-
-            try
-            {
-                using (OleDbConnection con = new OleDbConnection(Aikins.constr))
-                using (OleDbCommand command = new OleDbCommand(@"
-UPDATE Employee
-SET fullName = ?, gender = ?, dOB = ?, conatct = ?, department = ?, position = ?, homeTown = ?, residence = ?, date_of_Emplyment = ?, employment_Mode = ?, employment_Status = ?, emergency_Contact_Person = ?, emergency_contact = ?, employees_Reviews = ?, salary = ?, pic = ?
-WHERE employmentID = ?", con))
-                {
-                    AddEmployeeParameters(command, includeEmployeeId: true);
-                    con.Open();
-                    int rows = command.ExecuteNonQuery();
-                    statusLabel.Text = rows > 0 ? "Employee updated." : "No matching employee found.";
-                    MessageBox.Show(rows > 0 ? "Employee updated successfully." : "No matching employee found.", "Employee Details", MessageBoxButtons.OK, rows > 0 ? MessageBoxIcon.Information : MessageBoxIcon.Warning);
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("Error: " + ex.Message, "Employee Details", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-        }
-
-        private void AddEmployeeParameters(OleDbCommand command, bool includeEmployeeId)
-        {
-            command.Parameters.AddWithValue("?", txtFN.Text.Trim());
-            command.Parameters.AddWithValue("?", cmbGN.Text.Trim());
-            command.Parameters.AddWithValue("?", dateDOB.Value.Date);
-            command.Parameters.AddWithValue("?", txtCN.Text.Trim());
-            command.Parameters.AddWithValue("?", cmbDPT.Text.Trim());
-            command.Parameters.AddWithValue("?", CmbPs.Text.Trim());
-            command.Parameters.AddWithValue("?", txtHT.Text.Trim());
-            command.Parameters.AddWithValue("?", txtRD.Text.Trim());
-            command.Parameters.AddWithValue("?", empdate.Value.Date);
-            command.Parameters.AddWithValue("?", empMD.Text.Trim());
-            command.Parameters.AddWithValue("?", empST.Text.Trim());
-            command.Parameters.AddWithValue("?", empCN.Text.Trim());
-            command.Parameters.AddWithValue("?", empEC.Text.Trim());
-            command.Parameters.AddWithValue("?", empRV.Text.Trim());
-            command.Parameters.AddWithValue("?", Convert.ToDecimal(empSA.Text.Trim()));
-            command.Parameters.AddWithValue("?", Picture());
-
-            if (includeEmployeeId)
-            {
-                command.Parameters.AddWithValue("?", Convert.ToInt32(txtEMdID.Text));
-            }
-        }
-
-        private void TerminateEmployee()
-        {
-            if (!ValidateForm())
-            {
-                return;
-            }
-
-            DialogResult result = MessageBox.Show("Terminate this employee contract?", "Employee Details", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
-            if (result != DialogResult.Yes)
-            {
-                return;
-            }
-
-            try
-            {
-                using (OleDbConnection con = new OleDbConnection(Aikins.constr))
-                {
-                    con.Open();
-                    string insertQuery = @"
-INSERT INTO Rolled_Out_Employees
-    (employmentID, fullName, gender, dOB, conatct, department, position, homeTown, residence, date_of_Emplyment, employment_Mode, employment_Status, emergency_Contact_Person, emergency_contact, Employees_Reviews, salary, pic, [DATE])
-VALUES
-    (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-
-                    using (OleDbCommand command = new OleDbCommand(insertQuery, con))
-                    {
-                        command.Parameters.AddWithValue("?", Convert.ToInt32(txtEMdID.Text));
-                        AddEmployeeParameters(command, includeEmployeeId: false);
-                        command.Parameters.AddWithValue("?", DATE.Value.Date);
-                        command.ExecuteNonQuery();
-                    }
-
-                    using (OleDbCommand deleteCommand = new OleDbCommand("DELETE FROM Employee WHERE employmentID = ?", con))
-                    {
-                        deleteCommand.Parameters.AddWithValue("?", Convert.ToInt32(txtEMdID.Text));
-                        deleteCommand.ExecuteNonQuery();
-                    }
-                }
-
-                statusLabel.Text = "Employee contract terminated.";
-                MessageBox.Show("Employee moved to rolled-out records.", "Employee Details", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                UIHelper.ShowSuccess(message, "Employee Details");
                 Close();
                 new frmEmpView().Show();
             }
-            catch (Exception ex)
+            else
             {
-                MessageBox.Show("Error: " + ex.Message, "Employee Details", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                statusLabel.Text = "Termination failed.";
+                UIHelper.ShowError(message, "Employee Details");
             }
         }
 
-        private void emp_pic_Click(object sender, EventArgs e) { }
-        private void guna2HtmlLabel12_Click(object sender, EventArgs e) { }
-        private void guna2GroupBox2_Click(object sender, EventArgs e) { }
-        private void guna2GroupBox1_Click(object sender, EventArgs e) { }
-        private void btn_Update_Click(object sender, EventArgs e) { UpdateEmployee(); }
-        private void btnDel_Click(object sender, EventArgs e) { TerminateEmployee(); }
-        private void btnDel_Click_1(object sender, EventArgs e) { TerminateEmployee(); }
         private void gunaPictureBox2_Click(object sender, EventArgs e) { Close(); }
     }
 }

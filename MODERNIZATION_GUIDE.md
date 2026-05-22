@@ -11,16 +11,44 @@ This document outlines the architectural improvements made to the Kingdom Prepar
 ```
 kingdom_Preparatory_School_Management_System/
 ├── Models/
-│   └── Student.cs                 # Data model for student
+│   ├── Student.cs                 # Data model for student
+│   ├── Employee.cs                # Data model for staff
+│   ├── ExamResult.cs              # Data model for academic results
+│   ├── AttendanceRecord.cs        # Data model for presence tracking
+│   ├── LeaveRequest.cs            # Data model for staff leave
+│   └── ClassConfig.cs             # Data model for class settings
 ├── Data/
-│   ├── IStudentRepository.cs       # Repository interface
-│   └── StudentRepository.cs        # OleDb implementation
+│   ├── IStudentRepository.cs       # Repository interfaces
+│   ├── IEmployeeRepository.cs
+│   ├── IExamRepository.cs
+│   ├── IAttendanceRepository.cs
+│   ├── ILeaveRepository.cs
+│   ├── IFeeRepository.cs
+│   ├── IDashboardRepository.cs
+│   ├── IClassRepository.cs
+│   ├── StudentRepository.cs        # OleDb implementations
+│   ├── EmployeeRepository.cs
+│   ├── ExamRepository.cs
+│   ├── AttendanceRepository.cs
+│   ├── LeaveRepository.cs
+│   ├── FeeRepository.cs
+│   ├── DashboardRepository.cs
+│   └── ClassRepository.cs
 ├── Services/
-│   └── StudentService.cs           # Business logic layer
+│   ├── StudentService.cs           # Business logic layers
+│   ├── EmployeeService.cs
+│   ├── ExamService.cs
+│   ├── AttendanceService.cs
+│   ├── LeaveService.cs
+│   ├── DashboardService.cs
+│   ├── AuthService.cs
+│   ├── ClassService.cs
+│   └── ReportCardPdfService.cs
 ├── Common/
 │   ├── AppConfig.cs               # Configuration and constants
 │   ├── UIHelper.cs                # UI utilities
-│   └── ImageHelper.cs             # Image handling utilities
+│   ├── ImageHelper.cs             # Image handling utilities
+│   └── ValidationHelper.cs         # Input validation rules
 ├── Examples/
 │   └── frmAddStdModern.cs        # Modern implementation example
 ├── kum.cs                         # Legacy (marked obsolete)
@@ -367,14 +395,14 @@ For questions or issues:
 
 ---
 
-## Version History
+## 📅 Version History
 
-- **v1.0** (Initial) - Created repository, service, and model layers
-- **v1.1** - Added async/await support
-- **v1.2** - Added comprehensive validation
-- **v1.3** - Added UI helpers and configuration management
+- **v1.0** - Created architecture foundation.
+- **v2.0** - Completed full system modernization across all 18+ forms.
+- **v2.1** - Integrated asynchronous batch processing for promotions and attendance.
 
 ---
 
-**Last Updated:** December 2024
-**Maintained By:** Development Team
+**Last Updated:** May 2026
+**Maintained By:** Gemini CLI Modernization Agent
+

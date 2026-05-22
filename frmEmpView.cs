@@ -1,15 +1,16 @@
 using System;
 using System.Data;
-using System.Data.OleDb;
 using System.Drawing;
 using System.Windows.Forms;
 using kingdom_Preparatory_School_Management_System.Common;
+using kingdom_Preparatory_School_Management_System.Data;
+using kingdom_Preparatory_School_Management_System.Services;
 
 namespace kingdom_Preparatory_School_Management_System
 {
     public partial class frmEmpView : Form
     {
-        private readonly kum Aikins = new kum();
+        private readonly EmployeeService _employeeService;
         private TextBox searchBox;
         private ComboBox departmentFilter;
         private DataGridView employeesGrid;
@@ -23,34 +24,18 @@ namespace kingdom_Preparatory_School_Management_System
         private static readonly Color MutedTextColor = Color.FromArgb(93, 108, 123);
         private static readonly Color BorderColor = Color.FromArgb(219, 226, 236);
 
-        private const string EmployeeListQuery = @"
-SELECT 
-    employmentID AS [ID],
-    CONCAT('EMP', RIGHT('0000' + CAST(employmentID AS VARCHAR), 4)) AS [EMPLOYEE ID],
-    fullName AS [FULL NAME],
-    dOB AS [DATE OF BIRTH],
-    gender AS [GENDER],
-    conatct AS [CONTACT],
-    department AS [DEPARTMENT],
-    position AS [POSITION],
-    homeTown AS [HOME TOWN],
-    residence AS [RESIDENCE],
-    date_of_Emplyment AS [DATE OF EMPLOYMENT],
-    employment_Mode AS [EMPLOYMENT MODE],
-    employment_Status AS [EMPLOYMENT STATUS],
-    emergency_Contact_Person AS [EMERGENCY CONTACT PERSON],
-    emergency_contact AS [EMERGENCY CONTACT],
-    employees_Reviews AS [EMPLOYEE REVIEWS],
-    salary AS [SALARY],
-    pic AS [PICTURE]
-FROM [dbo].[Employee]";
-
         public frmEmpView()
         {
             InitializeComponent();
+
+            // Initialize modern architecture
+            var repository = new EmployeeRepository(AppConfig.ConnectionString);
+            _employeeService = new EmployeeService(repository);
+
             BuildModernEmployeeView();
             NavigationSidebar.AddTo(this);
         }
+
         private void BuildModernEmployeeView()
         {
             SuspendLayout();
@@ -172,7 +157,7 @@ FROM [dbo].[Employee]";
 
             filters.Controls.Add(searchBox, 0, 0);
             filters.Controls.Add(departmentFilter, 1, 0);
-            filters.Controls.Add(CreateSecondaryButton("Refresh", LoadEmployees), 2, 0);
+            filters.Controls.Add(CreateSecondaryButton("Refresh", async () => await LoadEmployees()), 2, 0);
             filters.Controls.Add(CreateSecondaryButton("Clear", ClearFilters), 3, 0);
 
             resultLabel = new Label
@@ -207,11 +192,12 @@ FROM [dbo].[Employee]";
                 AllowUserToDeleteRows = false,
                 ReadOnly = true,
                 RowHeadersVisible = false,
-                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
+                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.DisplayedCells,
                 SelectionMode = DataGridViewSelectionMode.FullRowSelect,
                 MultiSelect = false,
                 EnableHeadersVisualStyles = false
             };
+            UiTheme.StyleDataGrid(employeesGrid);
             employeesGrid.ColumnHeadersDefaultCellStyle.BackColor = SidebarBackColor;
             employeesGrid.ColumnHeadersDefaultCellStyle.ForeColor = Color.White;
             employeesGrid.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI Semibold", 9.5F, FontStyle.Bold);
@@ -263,69 +249,76 @@ FROM [dbo].[Employee]";
             return button;
         }
 
-        private void LoadDepartments()
+        private async void LoadDepartments()
         {
             departmentFilter.Items.Clear();
             departmentFilter.Items.Add("All departments");
-
-            using (OleDbConnection connection = new OleDbConnection(Aikins.constr))
-            using (OleDbCommand command = new OleDbCommand("SELECT DISTINCT department FROM Employee WHERE department IS NOT NULL ORDER BY department", connection))
+            
+            var departments = await _employeeService.GetDepartmentsAsync();
+            foreach (var dept in departments)
             {
-                connection.Open();
-                using (OleDbDataReader reader = command.ExecuteReader())
+                departmentFilter.Items.Add(dept);
+            }
+
+            departmentFilter.SelectedIndex = 0;
+        }
+
+        private async System.Threading.Tasks.Task LoadEmployees(string filterId = null, string filterDept = null)
+        {
+            try
+            {
+                resultLabel.Text = "Loading staff...";
+                DataTable table = await _employeeService.GetEmployeesTableAsync(filterId, filterDept);
+                
+                employeesGrid.DataSource = table;
+                resultLabel.Text = table.Rows.Count + " employee record(s)";
+
+                if (employeesGrid.Columns["PICTURE"] is DataGridViewImageColumn imageCol)
                 {
-                    while (reader.Read())
-                    {
-                        departmentFilter.Items.Add(reader["department"].ToString());
-                    }
+                    imageCol.ImageLayout = DataGridViewImageCellLayout.Zoom;
+                }
+
+                if (employeesGrid.Columns["ID"] != null)
+                {
+                    employeesGrid.Columns["ID"].FillWeight = 45;
                 }
             }
-
-            departmentFilter.SelectedIndex = 0;
-        }
-
-        private void LoadEmployees()
-        {
-            searchBox.Text = "";
-            if (departmentFilter.Items.Count == 0)
+            catch (Exception ex)
             {
-                LoadDepartments();
-                return;
+                UIHelper.ShowError("An error occurred while loading employees: " + ex.Message, "Employees");
             }
-
-            departmentFilter.SelectedIndex = 0;
-            LoadEmployees(EmployeeListQuery);
         }
 
-        private void ApplyFilters()
+        private async void ApplyFilters()
         {
             if (employeesGrid == null || departmentFilter == null || searchBox == null || departmentFilter.Items.Count == 0)
             {
                 return;
             }
 
-            string query = EmployeeListQuery + " WHERE 1 = 1";
-            var parameters = new System.Collections.Generic.List<OleDbParameter>();
+            string filterId = null;
+            string filterDept = null;
 
-            if (int.TryParse(searchBox.Text.Trim(), out int employeeId))
+            if (!string.IsNullOrWhiteSpace(searchBox.Text))
             {
-                query += " AND employmentID = ?";
-                parameters.Add(new OleDbParameter("@employmentID", OleDbType.Integer) { Value = employeeId });
-            }
-            else if (!string.IsNullOrWhiteSpace(searchBox.Text))
-            {
-                employeesGrid.DataSource = null;
-                resultLabel.Text = "Enter a numeric employee ID";
-                return;
+                if (int.TryParse(searchBox.Text.Trim(), out _))
+                {
+                    filterId = searchBox.Text.Trim();
+                }
+                else
+                {
+                    employeesGrid.DataSource = null;
+                    resultLabel.Text = "Enter a numeric employee ID";
+                    return;
+                }
             }
 
             if (departmentFilter.SelectedIndex > 0)
             {
-                query += " AND department = ?";
-                parameters.Add(new OleDbParameter("@department", OleDbType.VarChar) { Value = departmentFilter.Text });
+                filterDept = departmentFilter.Text;
             }
 
-            LoadEmployees(query, parameters.ToArray());
+            await LoadEmployees(filterId, filterDept);
         }
 
         private void ClearFilters()
@@ -335,68 +328,20 @@ FROM [dbo].[Employee]";
             {
                 departmentFilter.SelectedIndex = 0;
             }
-            LoadEmployees(EmployeeListQuery);
+            ApplyFilters();
         }
 
-        private void LoadEmployees(string query, params OleDbParameter[] parameters)
-        {
-            try
-            {
-                using (OleDbConnection connection = new OleDbConnection(Aikins.constr))
-                using (OleDbCommand command = new OleDbCommand(query, connection))
-                using (OleDbDataAdapter adapter = new OleDbDataAdapter(command))
-                {
-                    if (parameters != null && parameters.Length > 0)
-                    {
-                        command.Parameters.AddRange(parameters);
-                    }
-
-                    DataTable table = new DataTable();
-                    adapter.Fill(table);
-                    employeesGrid.DataSource = table;
-                    resultLabel.Text = table.Rows.Count + " employee record(s)";
-
-                    if (employeesGrid.Columns["PICTURE"] is DataGridViewImageColumn imageCol)
-                    {
-                        imageCol.ImageLayout = DataGridViewImageCellLayout.Zoom;
-                    }
-
-                    if (employeesGrid.Columns["ID"] != null)
-                    {
-                        employeesGrid.Columns["ID"].FillWeight = 45;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("An error occurred: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-        }
-
-        private DataTable GetDataFromDatabase(int id)
-        {
-            DataTable dataTable = new DataTable();
-
-            using (OleDbConnection connection = new OleDbConnection(Aikins.constr))
-            using (OleDbCommand command = new OleDbCommand("SELECT * FROM Employee WHERE employmentID = ?", connection))
-            using (OleDbDataAdapter adapter = new OleDbDataAdapter(command))
-            {
-                command.Parameters.AddWithValue("?", id);
-                adapter.Fill(dataTable);
-            }
-
-            return dataTable;
-        }
-
-        private void OpenSelectedEmployee()
+        private async void OpenSelectedEmployee()
         {
             if (employeesGrid.CurrentRow == null || employeesGrid.CurrentRow.Cells["ID"].Value == null)
             {
                 return;
             }
 
-            int id = Convert.ToInt32(employeesGrid.CurrentRow.Cells["ID"].Value);
-            using (frmEmpDetails detailViewForm = new frmEmpDetails(GetDataFromDatabase(id)))
+            string id = employeesGrid.CurrentRow.Cells["ID"].Value.ToString();
+            DataTable employeeTable = await _employeeService.GetEmployeesTableAsync(id);
+
+            using (frmEmpDetails detailViewForm = new frmEmpDetails(employeeTable))
             {
                 detailViewForm.ShowDialog();
             }
@@ -410,9 +355,10 @@ FROM [dbo].[Employee]";
             }
         }
 
-        private void frmEmpView_Load(object sender, EventArgs e)
+        private async void frmEmpView_Load(object sender, EventArgs e)
         {
             LoadDepartments();
+            await LoadEmployees();
         }
 
         private void data_CellContentClick(object sender, DataGridViewCellEventArgs e)
@@ -443,6 +389,6 @@ FROM [dbo].[Employee]";
         private void gunaPictureBox2_Click(object sender, EventArgs e) { }
         private void gunaButton1_Click(object sender, EventArgs e) { new frmEmployee().Show(); }
         private void gunaButton2_Click(object sender, EventArgs e) { }
-        private void gunaButton2_Click_1(object sender, EventArgs e) { LoadEmployees(); }
+        private async void gunaButton2_Click_1(object sender, EventArgs e) { await LoadEmployees(); }
     }
 }

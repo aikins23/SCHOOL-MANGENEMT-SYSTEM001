@@ -1,14 +1,18 @@
 using System;
 using System.Data;
-using System.Data.OleDb;
 using System.Drawing;
 using System.Windows.Forms;
+using kingdom_Preparatory_School_Management_System.Common;
+using kingdom_Preparatory_School_Management_System.Data;
+using kingdom_Preparatory_School_Management_System.Services;
 
 namespace kingdom_Preparatory_School_Management_System
 {
     public partial class frmFessPayment : Form
     {
-        private readonly kum Aikins = new kum();
+        private readonly StudentService _studentService;
+        private readonly IFeeRepository _feeRepository;
+
         private TextBox studentIdBox;
         private TextBox studentNameBox;
         private TextBox classBox;
@@ -29,23 +33,15 @@ namespace kingdom_Preparatory_School_Management_System
         private static readonly Color MutedTextColor = UiTheme.Muted;
         private static readonly Color BorderColor = UiTheme.Border;
 
-        private const string PaymentHistoryQuery = @"
-SELECT
-    [StudentID] AS [STUDENT ID],
-    [ClassID] AS [CLASS ID],
-    [student_name] AS [STUDENT NAME],
-    [Amount_paid] AS [AMOUNT PAID],
-    [Balance] AS [BALANCE],
-    [Date] AS [PAYMENT DATE],
-    [tm] AS [PAYMENT TIME],
-    [payment_mode] AS [PAYMENT MODE],
-    [Bursor_name] AS [BURSAR NAME]
-FROM [payment_record]
-ORDER BY [Date] DESC, [tm] DESC";
-
         public frmFessPayment()
         {
             InitializeComponent();
+
+            // Initialize modern architecture
+            var studentRepo = new StudentRepository(AppConfig.ConnectionString);
+            _feeRepository = new FeeRepository(AppConfig.ConnectionString);
+            _studentService = new StudentService(studentRepo, _feeRepository);
+
             BuildModernPaymentView();
         }
 
@@ -123,7 +119,7 @@ ORDER BY [Date] DESC, [tm] DESC";
                 Close();
                 new frmDashboard().Show();
             }));
-            actions.Controls.Add(CreateSecondaryButton("Refresh", LoadPaymentHistory));
+            actions.Controls.Add(CreateSecondaryButton("Refresh", async () => await LoadPaymentHistory()));
 
             header.Controls.Add(titleBlock, 0, 0);
             header.Controls.Add(actions, 1, 0);
@@ -223,11 +219,12 @@ ORDER BY [Date] DESC, [tm] DESC";
                 AllowUserToDeleteRows = false,
                 ReadOnly = true,
                 RowHeadersVisible = false,
-                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
+                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.DisplayedCells,
                 SelectionMode = DataGridViewSelectionMode.FullRowSelect,
                 MultiSelect = false,
                 EnableHeadersVisualStyles = false
             };
+            UiTheme.StyleDataGrid(paymentGrid);
             paymentGrid.ColumnHeadersDefaultCellStyle.BackColor = SidebarBackColor;
             paymentGrid.ColumnHeadersDefaultCellStyle.ForeColor = Color.White;
             paymentGrid.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI Semibold", 9.5F, FontStyle.Bold);
@@ -320,9 +317,9 @@ ORDER BY [Date] DESC, [tm] DESC";
             return button;
         }
 
-        private void LookupStudent()
+        private async void LookupStudent()
         {
-            if (studentIdBox == null || !int.TryParse(studentIdBox.Text.Trim(), out int studentId))
+            if (studentIdBox == null || string.IsNullOrWhiteSpace(studentIdBox.Text))
             {
                 studentNameBox.Text = "";
                 classBox.Text = "";
@@ -332,166 +329,107 @@ ORDER BY [Date] DESC, [tm] DESC";
 
             try
             {
-                using (OleDbConnection con = new OleDbConnection(Aikins.constr))
+                string studentId = studentIdBox.Text.Trim();
+                var student = await _studentService.GetStudentAsync(studentId);
+                
+                if (student == null)
                 {
-                    con.Open();
-                    if (!LoadLatestPaymentBalance(con, studentId))
-                    {
-                        LoadStudentDefaultBalance(con, studentId);
-                    }
+                    studentNameBox.Text = "";
+                    classBox.Text = "";
+                    balanceBox.Text = "";
+                    statusLabel.Text = "Student not found";
+                    return;
                 }
+
+                studentNameBox.Text = student.FullName;
+                classBox.Text = student.ClassID;
+
+                // Try to get latest payment balance, otherwise default fee
+                decimal? balance = await _feeRepository.GetLatestBalanceAsync(studentId);
+                if (!balance.HasValue)
+                {
+                    balance = await _feeRepository.GetDefaultBalanceAsync(studentId, student.ClassID);
+                }
+
+                balanceBox.Text = (balance ?? 0m).ToString("0.00");
+                statusLabel.Text = "Student details loaded";
             }
             catch (Exception ex)
             {
                 statusLabel.Text = "Lookup failed";
-                MessageBox.Show("An error occurred: " + ex.Message);
+                UIHelper.ShowError("Lookup error: " + ex.Message, "Payment");
             }
         }
 
-        private bool LoadLatestPaymentBalance(OleDbConnection con, int studentId)
+        private async void RecordPayment()
         {
-            string query = @"
-SELECT TOP 1 [StudentID], [student_name], [classID], [Balance]
-FROM [payment_record]
-WHERE [StudentID] = ?
-ORDER BY [Date] DESC, [tm] DESC";
-
-            using (OleDbCommand command = new OleDbCommand(query, con))
+            if (string.IsNullOrWhiteSpace(studentIdBox.Text))
             {
-                command.Parameters.AddWithValue("?", studentId);
-                using (OleDbDataReader reader = command.ExecuteReader())
-                {
-                    if (!reader.Read())
-                    {
-                        return false;
-                    }
-
-                    studentNameBox.Text = reader["student_name"].ToString();
-                    classBox.Text = reader["classID"].ToString();
-                    balanceBox.Text = Convert.ToDecimal(reader["Balance"]).ToString("0.00");
-                    statusLabel.Text = "Loaded latest balance";
-                    return true;
-                }
-            }
-        }
-
-        private void LoadStudentDefaultBalance(OleDbConnection con, int studentId)
-        {
-            string studentQuery = @"
-SELECT [FirstName], [LastName], [ClassID]
-FROM [Students]
-WHERE [StudentID] = ?";
-
-            using (OleDbCommand studentCommand = new OleDbCommand(studentQuery, con))
-            {
-                studentCommand.Parameters.AddWithValue("?", studentId);
-                using (OleDbDataReader studentReader = studentCommand.ExecuteReader())
-                {
-                    if (!studentReader.Read())
-                    {
-                        studentNameBox.Text = "";
-                        classBox.Text = "";
-                        balanceBox.Text = "";
-                        statusLabel.Text = "Student not found";
-                        return;
-                    }
-
-                    studentNameBox.Text = studentReader["FirstName"] + " " + studentReader["LastName"];
-                    classBox.Text = studentReader["ClassID"].ToString();
-                }
-            }
-
-            balanceBox.Text = GetDefaultFeeBalance(con, studentId, classBox.Text).ToString("0.00");
-            statusLabel.Text = "Loaded student fee balance";
-        }
-
-        private decimal GetDefaultFeeBalance(OleDbConnection con, int studentId, string classId)
-        {
-            if (string.Equals(classId, "BASIC 9", StringComparison.OrdinalIgnoreCase))
-            {
-                return 1200m;
-            }
-
-            using (OleDbCommand feeCommand = new OleDbCommand("SELECT TOP 1 [Amount] FROM [fees] WHERE [StudentID] = ? AND [ClassID] = ?", con))
-            {
-                feeCommand.Parameters.AddWithValue("?", studentId);
-                feeCommand.Parameters.AddWithValue("?", classId);
-                object result = feeCommand.ExecuteScalar();
-                return result == null || result == DBNull.Value ? 0m : Convert.ToDecimal(result);
-            }
-        }
-
-        private void RecordPayment()
-        {
-            if (!int.TryParse(studentIdBox.Text.Trim(), out int studentId))
-            {
-                MessageBox.Show("Enter a valid student ID.", "Payment", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                UIHelper.ShowWarning("Enter a student ID.", "Payment");
                 return;
             }
 
             if (!decimal.TryParse(balanceBox.Text, out decimal currentBalance) || !decimal.TryParse(amountBox.Text, out decimal amountPaid))
             {
-                MessageBox.Show("Enter a valid amount.", "Payment", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                UIHelper.ShowWarning("Enter a valid payment amount.", "Payment");
+                return;
+            }
+
+            if (amountPaid <= 0)
+            {
+                UIHelper.ShowWarning("Payment amount must be greater than zero.", "Payment");
                 return;
             }
 
             decimal newBalance = Math.Max(0m, currentBalance - amountPaid);
-
-            string query = @"
-INSERT INTO dbo.payment_record
-    (StudentID, classID, FeeName, Balance, student_name, Amount_paid, [Date], tm, payment_mode, Bursor_name)
-VALUES
-    (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            statusLabel.Text = "Recording payment...";
 
             try
             {
-                using (OleDbConnection con = new OleDbConnection(Aikins.constr))
-                using (OleDbCommand command = new OleDbCommand(query, con))
+                bool success = await _feeRepository.AddPaymentRecordAsync(
+                    studentIdBox.Text.Trim(),
+                    classBox.Text,
+                    studentNameBox.Text,
+                    amountPaid,
+                    newBalance,
+                    paymentModeBox.Text,
+                    bursarBox.Text,
+                    paymentDatePicker.Value.Date
+                );
+
+                if (success)
                 {
-                    command.Parameters.AddWithValue("@StudentID", studentId);
-                    command.Parameters.AddWithValue("@classID", classBox.Text);
-                    command.Parameters.AddWithValue("@FeeName", "School Fees");
-                    command.Parameters.AddWithValue("@Balance", newBalance);
-                    command.Parameters.AddWithValue("@student_name", studentNameBox.Text);
-                    command.Parameters.AddWithValue("@Amount_paid", amountPaid);
-                    command.Parameters.AddWithValue("@Date", paymentDatePicker.Value.Date);
-                    command.Parameters.AddWithValue("@tm", DateTime.Now.ToString("HH:mm:ss"));
-                    command.Parameters.AddWithValue("@payment_mode", paymentModeBox.Text);
-                    command.Parameters.AddWithValue("@Bursor_name", bursarBox.Text);
-
-                    con.Open();
-                    command.ExecuteNonQuery();
+                    balanceBox.Text = newBalance.ToString("0.00");
+                    amountBox.Text = "";
+                    statusLabel.Text = "Payment recorded";
+                    await LoadPaymentHistory();
+                    UIHelper.ShowSuccess("Payment recorded successfully.", "Payment");
                 }
-
-                balanceBox.Text = newBalance.ToString("0.00");
-                amountBox.Text = "";
-                statusLabel.Text = "Payment recorded";
-                LoadPaymentHistory();
-                MessageBox.Show("Payment recorded successfully.", "Payment", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                else
+                {
+                    statusLabel.Text = "Payment failed";
+                    UIHelper.ShowError("Could not save payment record.", "Payment");
+                }
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Payment could not be recorded: " + ex.Message, "Payment", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                statusLabel.Text = "Payment error";
+                UIHelper.ShowError("Error: " + ex.Message, "Payment");
             }
         }
 
-        private void LoadPaymentHistory()
+        private async System.Threading.Tasks.Task LoadPaymentHistory()
         {
             try
             {
-                using (OleDbConnection con = new OleDbConnection(Aikins.constr))
-                using (OleDbCommand command = new OleDbCommand(PaymentHistoryQuery, con))
-                using (OleDbDataAdapter adapter = new OleDbDataAdapter(command))
-                {
-                    DataTable table = new DataTable();
-                    adapter.Fill(table);
-                    paymentGrid.DataSource = table;
-                    statusLabel.Text = table.Rows.Count + " payment record(s)";
-                }
+                statusLabel.Text = "Refreshing history...";
+                DataTable table = await _feeRepository.GetPaymentHistoryTableAsync();
+                paymentGrid.DataSource = table;
+                statusLabel.Text = table.Rows.Count + " payment record(s)";
             }
             catch (Exception ex)
             {
-                MessageBox.Show("An error occurred: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                UIHelper.ShowError("History refresh error: " + ex.Message, "Payment");
             }
         }
 
@@ -505,12 +443,12 @@ VALUES
             bursarBox.Text = "";
             paymentModeBox.SelectedIndex = 0;
             paymentDatePicker.Value = DateTime.Today;
-            statusLabel.Text = "";
+            statusLabel.Text = "Ready.";
         }
 
-        private void frmFessPayment_Load(object sender, EventArgs e)
+        private async void frmFessPayment_Load(object sender, EventArgs e)
         {
-            LoadPaymentHistory();
+            await LoadPaymentHistory();
         }
 
         private void txtStdID_TextChanged(object sender, EventArgs e) { LookupStudent(); }

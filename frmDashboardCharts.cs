@@ -1,22 +1,21 @@
 using System;
 using System.Data;
-using System.Data.OleDb;
 using System.Drawing;
 using System.Windows.Forms;
 using System.Windows.Forms.DataVisualization.Charting;
+using kingdom_Preparatory_School_Management_System.Common;
+using kingdom_Preparatory_School_Management_System.Data;
+using kingdom_Preparatory_School_Management_System.Services;
 
 namespace kingdom_Preparatory_School_Management_System
 {
     /// <summary>
     /// Dashboard Charts Form — Feature #9
-    /// Shows visual analytics: Fees Collected vs Outstanding (bar),
-    /// Student Enrollment by Class (bar), Exam Performance by Subject (bar),
-    /// and Monthly Fee Collection Trend (line).
-    /// Uses System.Windows.Forms.DataVisualization.Charting (built-in, no extra dependencies).
+    /// Updated to use modern 4-layer architecture with DashboardService.
     /// </summary>
     public class frmDashboardCharts : Form
     {
-        private readonly kum Aikins = new kum();
+        private readonly DashboardService _dashboardService;
 
         // Colors matching the school dashboard palette
         private static readonly Color PageBackColor  = UiTheme.Page;
@@ -42,120 +41,72 @@ namespace kingdom_Preparatory_School_Management_System
 
         public frmDashboardCharts()
         {
+            // Initialize modern architecture
+            var repository = new DashboardRepository(AppConfig.ConnectionString);
+            _dashboardService = new DashboardService(repository);
+
             InitializeForm();
+            this.Size = new Size(1300, 820);
             BuildUI();
             Shown += FrmDashboardCharts_Shown;
         }
 
-        private void FrmDashboardCharts_Shown(object sender, EventArgs e)
+        private async void FrmDashboardCharts_Shown(object sender, EventArgs e)
         {
-            if (chartsLoaded)
-            {
-                return;
-            }
-
+            if (chartsLoaded) return;
             chartsLoaded = true;
-            LoadAllCharts();
+            await LoadAllCharts();
         }
-
-        // ──────────────────────────────────────────────────────────────
-        //  FORM SETUP
-        // ──────────────────────────────────────────────────────────────
 
         private void InitializeForm()
         {
-            Text            = "Dashboard Charts — Kingdom Preparatory School";
+            Text            = "Analytics Dashboard - Kingdom Preparatory School";
             BackColor       = PageBackColor;
             Font            = new Font("Segoe UI", 9.5F);
             StartPosition   = FormStartPosition.CenterScreen;
-            MinimumSize     = new Size(1200, 750);
-            Size            = new Size(1300, 820);
+            MinimumSize     = new Size(1280, 780);
+            Size            = new Size(1380, 860);
             FormBorderStyle = FormBorderStyle.Sizable;
         }
-
-        // ──────────────────────────────────────────────────────────────
-        //  UI LAYOUT
-        // ──────────────────────────────────────────────────────────────
 
         private void BuildUI()
         {
             SuspendLayout();
-
-            // Root layout: header row + 2×2 chart grid
-            var root = new TableLayoutPanel
-            {
-                Dock       = DockStyle.Fill,
-                RowCount   = 2,
-                ColumnCount = 1,
-                BackColor  = PageBackColor,
-                Padding    = new Padding(24, 20, 24, 20)
-            };
-            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 88));
+            var root = new TableLayoutPanel { Dock = DockStyle.Fill, RowCount = 2, ColumnCount = 1, BackColor = PageBackColor, Padding = new Padding(24, 20, 24, 20) };
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 96));
             root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-
             root.Controls.Add(BuildHeader(), 0, 0);
             root.Controls.Add(BuildChartGrid(), 0, 1);
-
             Controls.Add(root);
             ResumeLayout(true);
         }
 
         private Control BuildHeader()
         {
-            var panel = new TableLayoutPanel
-            {
-                Dock        = DockStyle.Fill,
-                ColumnCount = 2,
-                BackColor   = PageBackColor
-            };
+            var panel = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, BackColor = PageBackColor };
             panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 65));
             panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 35));
 
-            // Title block
             var titleBlock = new Panel { Dock = DockStyle.Fill, BackColor = PageBackColor };
-            titleBlock.Controls.Add(new Label
-            {
-                Dock      = DockStyle.Top,
-                Height    = 40,
-                Text      = "Dashboard Charts",
-                ForeColor = TextColor,
-                Font      = new Font("Segoe UI Semibold", 22F, FontStyle.Bold),
-                TextAlign = ContentAlignment.MiddleLeft
-            });
-            titleBlock.Controls.Add(new Label
-            {
-                Dock      = DockStyle.Bottom,
-                Height    = 26,
-                Text      = "Visual analytics — fees, enrollment, exam performance & collection trends",
-                ForeColor = MutedColor,
-                Font      = new Font("Segoe UI", 10F),
-                TextAlign = ContentAlignment.MiddleLeft
-            });
+            titleBlock.Controls.Add(new Label { Dock = DockStyle.Top, Height = 40, Text = "Analytics Dashboard", ForeColor = TextColor, Font = new Font("Segoe UI Semibold", 22F, FontStyle.Bold), TextAlign = ContentAlignment.MiddleLeft });
+            titleBlock.Controls.Add(new Label { Dock = DockStyle.Bottom, Height = 26, Text = "Visual analytics for fees, enrollment, exam performance, and collection trends", ForeColor = MutedColor, Font = new Font("Segoe UI", 10F), TextAlign = ContentAlignment.MiddleLeft });
 
-            // Right-side actions
-            var actions = new FlowLayoutPanel
-            {
-                Dock          = DockStyle.Fill,
-                FlowDirection = FlowDirection.RightToLeft,
-                BackColor     = PageBackColor,
-                Padding       = new Padding(0, 14, 0, 0)
-            };
-
+            var actions = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.RightToLeft, BackColor = PageBackColor, Padding = new Padding(0, 14, 0, 0) };
             var refreshBtn = MakePrimaryButton("Refresh Charts");
-            refreshBtn.Click += (s, e) => LoadAllCharts();
+            refreshBtn.Click += async (s, e) => await LoadAllCharts();
+            var resultsBtn = MakeSecondaryButton("Exam Results");
+            resultsBtn.Click += (s, e) => new EXAMSVIEW().Show();
+            var entryBtn = MakeSecondaryButton("Enter Scores");
+            entryBtn.Click += (s, e) => new EXAMS().Show();
+            var dashboardBtn = MakeSecondaryButton("Dashboard");
+            dashboardBtn.Click += (s, e) => { Close(); new frmDashboard().Show(); };
 
-            statusLabel = new Label
-            {
-                AutoSize  = false,
-                Width     = 220,
-                Height    = 36,
-                ForeColor = MutedColor,
-                Font      = new Font("Segoe UI", 9F),
-                TextAlign = ContentAlignment.MiddleRight,
-                Margin    = new Padding(0, 4, 8, 0)
-            };
+            statusLabel = new Label { AutoSize = false, Width = 220, Height = 36, ForeColor = MutedColor, Font = new Font("Segoe UI", 9F), TextAlign = ContentAlignment.MiddleRight, Margin = new Padding(0, 4, 8, 0) };
 
             actions.Controls.Add(refreshBtn);
+            actions.Controls.Add(resultsBtn);
+            actions.Controls.Add(entryBtn);
+            actions.Controls.Add(dashboardBtn);
             actions.Controls.Add(statusLabel);
 
             panel.Controls.Add(titleBlock, 0, 0);
@@ -165,342 +116,135 @@ namespace kingdom_Preparatory_School_Management_System
 
         private Control BuildChartGrid()
         {
-            var grid = new TableLayoutPanel
-            {
-                Dock        = DockStyle.Fill,
-                RowCount    = 2,
-                ColumnCount = 2,
-                BackColor   = PageBackColor
-            };
+            var grid = new TableLayoutPanel { Dock = DockStyle.Fill, RowCount = 2, ColumnCount = 2, BackColor = PageBackColor };
             grid.RowStyles.Add(new RowStyle(SizeType.Percent, 50));
             grid.RowStyles.Add(new RowStyle(SizeType.Percent, 50));
             grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
             grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
 
-            // Chart 1 — Fees: Collected vs Outstanding
             chartFees = CreateChart();
             grid.Controls.Add(WrapInCard("Fees — Collected vs Outstanding", chartFees), 0, 0);
-
-            // Chart 2 — Student Enrollment by Class
             chartEnrollment = CreateChart();
             grid.Controls.Add(WrapInCard("Student Enrollment by Class", chartEnrollment), 1, 0);
-
-            // Chart 3 — Average Exam Score by Subject
             chartExams = CreateChart();
             grid.Controls.Add(WrapInCard("Average Exam Score by Subject", chartExams), 0, 1);
-
-            // Chart 4 — Monthly Fee Collection Trend (line)
             chartTrend = CreateChart();
             grid.Controls.Add(WrapInCard("Monthly Fee Collection Trend", chartTrend), 1, 1);
 
             return grid;
         }
 
-        /// <summary>Wraps a chart inside a titled white card panel.</summary>
         private Panel WrapInCard(string title, Chart chart)
         {
-            var card = new Panel
-            {
-                Dock        = DockStyle.Fill,
-                BackColor   = SurfaceColor,
-                BorderStyle = BorderStyle.FixedSingle,
-                Margin      = new Padding(0, 0, 10, 10),
-                Padding     = new Padding(0)
-            };
-
-            var titleLabel = new Label
-            {
-                Dock      = DockStyle.Top,
-                Height    = 42,
-                Padding   = new Padding(16, 0, 0, 0),
-                Text      = title,
-                ForeColor = TextColor,
-                Font      = new Font("Segoe UI Semibold", 11F, FontStyle.Bold),
-                TextAlign = ContentAlignment.MiddleLeft,
-                BackColor = SurfaceColor
-            };
-
+            var card = new Panel { Dock = DockStyle.Fill, BackColor = SurfaceColor, BorderStyle = BorderStyle.FixedSingle, Margin = new Padding(0, 0, 10, 10), MinimumSize = new Size(100, 100) };
+            var titleLabel = new Label { Dock = DockStyle.Top, Height = 42, Padding = new Padding(16, 0, 0, 0), Text = title, ForeColor = TextColor, Font = new Font("Segoe UI Semibold", 11F, FontStyle.Bold), TextAlign = ContentAlignment.MiddleLeft, BackColor = SurfaceColor };
             chart.Dock = DockStyle.Fill;
             card.Controls.Add(chart);
             card.Controls.Add(titleLabel);
             return card;
         }
 
-        /// <summary>Creates a blank Chart with shared styling applied.</summary>
         private Chart CreateChart()
         {
-            var chart = new Chart { BackColor = SurfaceColor };
+            var chart = new Chart { BackColor = SurfaceColor, Size = new Size(100, 100), AntiAliasing = AntiAliasingStyles.All, TextAntiAliasingQuality = TextAntiAliasingQuality.High };
             chart.ChartAreas.Add(new ChartArea
             {
-                BackColor        = SurfaceColor,
-                BorderColor      = BorderColor,
-                BorderWidth      = 1,
-                AxisX = { MajorGrid = { LineColor = BorderColor }, LabelStyle = { Font = new Font("Segoe UI", 8F), ForeColor = MutedColor } },
+                BackColor = SurfaceColor, BorderColor = BorderColor, BorderWidth = 1,
+                AxisX = { MajorGrid = { LineColor = BorderColor }, LabelStyle = { Font = new Font("Segoe UI", 8F), ForeColor = MutedColor, Angle = -25 } },
                 AxisY = { MajorGrid = { LineColor = Color.FromArgb(235, 238, 242) }, LabelStyle = { Font = new Font("Segoe UI", 8F), ForeColor = MutedColor } }
             });
-            chart.Legends.Add(new Legend
-            {
-                Docking        = Docking.Bottom,
-                Alignment      = StringAlignment.Center,
-                BackColor      = SurfaceColor,
-                BorderColor    = Color.Transparent,
-                Font           = new Font("Segoe UI", 8.5F)
-            });
+            chart.Legends.Add(new Legend { Docking = Docking.Bottom, Alignment = StringAlignment.Center, BackColor = SurfaceColor, BorderColor = Color.Transparent, Font = new Font("Segoe UI", 8.5F) });
             return chart;
         }
 
-        // ──────────────────────────────────────────────────────────────
-        //  DATA LOADING
-        // ──────────────────────────────────────────────────────────────
-
-        private void LoadAllCharts()
+        private async System.Threading.Tasks.Task LoadAllCharts()
         {
             try
             {
-                LoadFeesChart();
-                LoadEnrollmentChart();
-                LoadExamsChart();
-                LoadTrendChart();
+                statusLabel.Text = "Loading analytics...";
+                var metrics = await _dashboardService.GetMetricsAsync();
+
+                PopulateFeesChart(metrics.TotalFeesCollected, metrics.TotalFeesBalance);
+                PopulateEnrollmentChart(metrics.ClassSummary);
+                PopulateExamsChart(metrics.AverageScoresBySubject);
+                PopulateTrendChart(metrics.CollectionTrend);
+
                 statusLabel.Text = "Updated " + DateTime.Now.ToString("h:mm tt");
             }
             catch (Exception ex)
             {
-                statusLabel.Text = "DB unavailable";
-                MessageBox.Show(
-                    "Could not load chart data:\n\n" + ex.Message,
-                    "Chart Error",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Warning);
+                statusLabel.Text = "Refresh failed";
+                UIHelper.ShowWarning("Could not load chart data:\n\n" + ex.Message, "Analytics Dashboard");
             }
         }
 
-        // ── Chart 1: Fees Collected vs Outstanding ────────────────────
-        private void LoadFeesChart()
+        private void PopulateFeesChart(decimal collected, decimal outstanding)
         {
             chartFees.Series.Clear();
-
-            decimal collected  = ToDecimal(Scalar("SELECT COALESCE(SUM(Amount_paid), 0) FROM payment_record"));
-            decimal outstanding = ToDecimal(Scalar("SELECT COALESCE(SUM(Balance), 0)   FROM payment_record WHERE Balance > 0"));
-
-            var serCollected = new Series("Collected")
-            {
-                ChartType  = SeriesChartType.Bar,
-                Color      = GreenColor,
-                IsValueShownAsLabel = true,
-                LabelFormat = "GHS #,##0.00",
-                Font        = new Font("Segoe UI", 8F)
-            };
-            var serOutstanding = new Series("Outstanding")
-            {
-                ChartType  = SeriesChartType.Bar,
-                Color      = RedColor,
-                IsValueShownAsLabel = true,
-                LabelFormat = "GHS #,##0.00",
-                Font        = new Font("Segoe UI", 8F)
-            };
-
+            var serCollected = new Series("Collected") { ChartType = SeriesChartType.Bar, Color = GreenColor, IsValueShownAsLabel = true, LabelFormat = "GHS #,##0.00", Font = new Font("Segoe UI", 8F) };
+            var serOutstanding = new Series("Outstanding") { ChartType = SeriesChartType.Bar, Color = RedColor, IsValueShownAsLabel = true, LabelFormat = "GHS #,##0.00", Font = new Font("Segoe UI", 8F) };
             serCollected.Points.AddXY("Fees", (double)collected);
             serOutstanding.Points.AddXY("Fees", (double)outstanding);
-
             chartFees.Series.Add(serCollected);
             chartFees.Series.Add(serOutstanding);
-
-            var area = chartFees.ChartAreas[0];
-            area.AxisY.LabelStyle.Format = "GHS #,##0";
-            area.AxisX.IsMarginVisible    = false;
+            chartFees.ChartAreas[0].AxisY.LabelStyle.Format = "GHS #,##0";
         }
 
-        // ── Chart 2: Enrollment by Class ─────────────────────────────
-        private void LoadEnrollmentChart()
+        private void PopulateEnrollmentChart(DataTable dt)
         {
             chartEnrollment.Series.Clear();
-
-            DataTable dt = FetchTable("SELECT ClassID, COUNT(*) AS Total FROM Students GROUP BY ClassID ORDER BY ClassID");
-
-            var series = new Series("Students")
-            {
-                ChartType           = SeriesChartType.Column,
-                Color               = PrimaryColor,
-                IsValueShownAsLabel = true,
-                Font                = new Font("Segoe UI", 8F)
-            };
-
-            if (dt.Rows.Count == 0)
-            {
-                series.Points.AddXY("No data", 0);
-            }
-            else
-            {
-                foreach (DataRow row in dt.Rows)
-                    series.Points.AddXY(row["ClassID"].ToString(), Convert.ToInt32(row["Total"]));
-            }
-
+            var series = new Series("Students") { ChartType = SeriesChartType.Column, Color = PrimaryColor, IsValueShownAsLabel = true, Font = new Font("Segoe UI", 8F) };
+            if (dt == null || dt.Rows.Count == 0) series.Points.AddXY("No data", 0);
+            else foreach (DataRow row in dt.Rows) series.Points.AddXY(row["Class"].ToString(), Convert.ToInt32(row["Students"]));
             chartEnrollment.Series.Add(series);
-
-            var area = chartEnrollment.ChartAreas[0];
-            area.AxisX.Interval        = 1;
-            area.AxisX.IsMarginVisible = false;
-            area.AxisY.Minimum         = 0;
+            chartEnrollment.ChartAreas[0].AxisX.Interval = 1;
         }
 
-        // ── Chart 3: Average Exam Score by Subject ────────────────────
-        private void LoadExamsChart()
+        private void PopulateExamsChart(DataTable dt)
         {
             chartExams.Series.Clear();
-
-            // The gt column holds the combined CAT + Exam score.
-            DataTable dt = FetchTable(
-                "SELECT [subject], AVG(gt) AS AvgScore " +
-                "FROM examss GROUP BY [subject] ORDER BY AVG(gt) DESC");
-
-            var series = new Series("Avg Score")
+            var series = new Series("Avg Score") { ChartType = SeriesChartType.Column, Color = AmberColor, IsValueShownAsLabel = true, LabelFormat = "0.0", Font = new Font("Segoe UI", 8F) };
+            if (dt == null || dt.Rows.Count == 0) series.Points.AddXY("No data", 0);
+            else foreach (DataRow row in dt.Rows)
             {
-                ChartType           = SeriesChartType.Column,
-                Color               = AmberColor,
-                IsValueShownAsLabel = true,
-                LabelFormat         = "0.0",
-                Font                = new Font("Segoe UI", 8F)
-            };
-
-            if (dt.Rows.Count == 0)
-            {
-                series.Points.AddXY("No data", 0);
+                string subject = row["subject"].ToString();
+                if (subject.Length > 10) subject = subject.Substring(0, 10) + "...";
+                series.Points.AddXY(subject, Convert.ToDouble(row["AvgScore"]));
             }
-            else
-            {
-                foreach (DataRow row in dt.Rows)
-                {
-                    string subject = row["subject"].ToString();
-                    // Shorten long subject names for readability
-                    if (subject.Length > 10) subject = subject.Substring(0, 10) + "...";
-                    series.Points.AddXY(subject, Convert.ToDouble(row["AvgScore"]));
-                }
-            }
-
             chartExams.Series.Add(series);
-
-            var area = chartExams.ChartAreas[0];
-            area.AxisX.Interval        = 1;
-            area.AxisX.IsMarginVisible = false;
-            area.AxisY.Minimum         = 0;
-            area.AxisY.Maximum         = 100;
-            area.AxisY.Title           = "Score / 100";
-            area.AxisY.TitleFont       = new Font("Segoe UI", 8F);
+            chartExams.ChartAreas[0].AxisY.Maximum = 100;
         }
 
-        // ── Chart 4: Monthly Fee Collection Trend (line) ──────────────
-        private void LoadTrendChart()
+        private void PopulateTrendChart(DataTable dt)
         {
             chartTrend.Series.Clear();
-
-            // Pull monthly totals for the current year
             int year = DateTime.Now.Year;
-            DataTable dt = FetchTable(
-                $"SELECT MONTH([Date]) AS Mo, SUM(Amount_paid) AS Total " +
-                $"FROM payment_record " +
-                $"WHERE YEAR([Date]) = {year} " +
-                $"GROUP BY MONTH([Date]) " +
-                $"ORDER BY MONTH([Date])");
-
-            var series = new Series($"Collection {year}")
-            {
-                ChartType   = SeriesChartType.Line,
-                Color       = PurpleColor,
-                BorderWidth = 3,
-                MarkerStyle = MarkerStyle.Circle,
-                MarkerSize  = 8,
-                MarkerColor = PurpleColor,
-                IsValueShownAsLabel = true,
-                LabelFormat = "GHS #,##0",
-                Font        = new Font("Segoe UI", 8F)
-            };
-
+            var series = new Series($"Collection {year}") { ChartType = SeriesChartType.Line, Color = PurpleColor, BorderWidth = 3, MarkerStyle = MarkerStyle.Circle, MarkerSize = 8, MarkerColor = PurpleColor, IsValueShownAsLabel = true, LabelFormat = "GHS #,##0", Font = new Font("Segoe UI", 8F) };
             string[] monthNames = { "Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec" };
-
-            if (dt.Rows.Count == 0)
-            {
-                // Show flat zero line so the chart area isn't empty
-                for (int m = 1; m <= 12; m++)
-                    series.Points.AddXY(monthNames[m - 1], 0);
-            }
+            if (dt == null || dt.Rows.Count == 0) for (int m = 1; m <= 12; m++) series.Points.AddXY(monthNames[m - 1], 0);
             else
             {
-                // Build a lookup from month → amount
-                var monthly = new decimal[13]; // index 1–12
-                foreach (DataRow row in dt.Rows)
-                {
-                    int mo = Convert.ToInt32(row["Mo"]);
-                    monthly[mo] = Convert.ToDecimal(row["Total"]);
-                }
-
-                // Only plot up to current month so the line doesn't show future zeros
-                int lastMonth = DateTime.Now.Month;
-                for (int m = 1; m <= lastMonth; m++)
-                    series.Points.AddXY(monthNames[m - 1], (double)monthly[m]);
+                var monthly = new decimal[13];
+                foreach (DataRow row in dt.Rows) monthly[Convert.ToInt32(row["Mo"])] = Convert.ToDecimal(row["Total"]);
+                for (int m = 1; m <= DateTime.Now.Month; m++) series.Points.AddXY(monthNames[m - 1], (double)monthly[m]);
             }
-
             chartTrend.Series.Add(series);
-
-            var area = chartTrend.ChartAreas[0];
-            area.AxisX.Interval        = 1;
-            area.AxisX.IsMarginVisible = false;
-            area.AxisY.LabelStyle.Format = "GHS #,##0";
-            area.AxisY.Minimum         = 0;
+            chartTrend.ChartAreas[0].AxisY.LabelStyle.Format = "GHS #,##0";
         }
-
-        // ──────────────────────────────────────────────────────────────
-        //  DB HELPERS
-        // ──────────────────────────────────────────────────────────────
-
-        private object Scalar(string sql)
-        {
-            using (var con = new OleDbConnection(Aikins.constr))
-            using (var cmd = new OleDbCommand(sql, con))
-            {
-                con.Open();
-                object v = cmd.ExecuteScalar();
-                return (v == null || v == DBNull.Value) ? 0 : v;
-            }
-        }
-
-        private DataTable FetchTable(string sql)
-        {
-            var dt = new DataTable();
-            using (var con = new OleDbConnection(Aikins.constr))
-            using (var adp = new OleDbDataAdapter(sql, con))
-            {
-                con.Open();
-                adp.Fill(dt);
-            }
-            return dt;
-        }
-
-        private decimal ToDecimal(object v)
-        {
-            try { return Convert.ToDecimal(v); }
-            catch { return 0; }
-        }
-
-        // ──────────────────────────────────────────────────────────────
-        //  BUTTON FACTORY
-        // ──────────────────────────────────────────────────────────────
 
         private Button MakePrimaryButton(string text)
         {
-            var btn = new Button
-            {
-                Text      = text,
-                Height    = 36,
-                Width     = 148,
-                BackColor = PrimaryColor,
-                ForeColor = Color.White,
-                FlatStyle = FlatStyle.Flat,
-                Font      = new Font("Segoe UI Semibold", 9.5F, FontStyle.Bold),
-                Cursor    = Cursors.Hand,
-                Margin    = new Padding(0, 4, 0, 0)
-            };
+            var btn = new Button { Text = text, Height = 36, Width = 148, BackColor = PrimaryColor, ForeColor = Color.White, FlatStyle = FlatStyle.Flat, Font = new Font("Segoe UI Semibold", 9.5F, FontStyle.Bold), Cursor = Cursors.Hand, Margin = new Padding(0, 4, 0, 0) };
             btn.FlatAppearance.BorderSize = 0;
             btn.FlatAppearance.MouseOverBackColor = Color.FromArgb(22, 78, 160);
+            return btn;
+        }
+
+        private Button MakeSecondaryButton(string text)
+        {
+            var btn = new Button { Text = text, Height = 36, Width = 112, BackColor = SurfaceColor, ForeColor = TextColor, FlatStyle = FlatStyle.Flat, Font = new Font("Segoe UI Semibold", 9.25F, FontStyle.Bold), Cursor = Cursors.Hand, Margin = new Padding(8, 4, 0, 0) };
+            btn.FlatAppearance.BorderColor = BorderColor;
+            btn.FlatAppearance.MouseOverBackColor = UiTheme.GoldSoft;
             return btn;
         }
     }

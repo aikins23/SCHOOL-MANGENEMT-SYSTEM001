@@ -1,16 +1,17 @@
 using System;
 using System.Data;
-using System.Data.OleDb;
-using System.Diagnostics;
 using System.Drawing;
 using System.Windows.Forms;
 using kingdom_Preparatory_School_Management_System.Common;
+using kingdom_Preparatory_School_Management_System.Data;
+using kingdom_Preparatory_School_Management_System.Services;
 
 namespace kingdom_Preparatory_School_Management_System
 {
     public partial class frmDashboard : Form
     {
-        private readonly kum Aikins = new kum();
+        private readonly DashboardService _dashboardService;
+
         private Label studentCountLabel;
         private Label employeeCountLabel;
         private Label feesCollectedLabel;
@@ -30,20 +31,85 @@ namespace kingdom_Preparatory_School_Management_System
         private static readonly Color TextColor = UiTheme.Text;
         private static readonly Color MutedTextColor = UiTheme.Muted;
         private static readonly Color BorderColor = UiTheme.Border;
+public frmDashboard()
+{
+    InitializeComponent();
 
-        public frmDashboard()
+    // Initialize modern architecture
+    var repository = new DashboardRepository(AppConfig.ConnectionString);
+    _dashboardService = new DashboardService(repository);
+
+    BuildModernDashboard();
+    ApplyRolePermissions();
+
+    // Set this as the main dashboard in FormManager
+    FormManager.SetMainDashboard(this);
+
+    // Handle form closing to keep app alive
+    this.FormClosing += FrmDashboard_FormClosing;
+}
+
+private void ApplyRolePermissions()
+{
+    var role = AuthService.CurrentUser.Role;
+    var isUserKnown = AuthService.CurrentUser.IsAuthenticated;
+
+    // Dashboard always accessible
+
+    // Restrict modules based on role
+    bool canManageAdmissions = (role == AuthService.UserRole.Administrator || role == AuthService.UserRole.Headmaster);
+    bool canManageEmployees = (role == AuthService.UserRole.Administrator || role == AuthService.UserRole.Headmaster);
+    bool canManageFees = (role == AuthService.UserRole.Administrator || role == AuthService.UserRole.Accountant || role == AuthService.UserRole.Headmaster);
+    bool canManageExams = (role == AuthService.UserRole.Administrator || role == AuthService.UserRole.Teacher || role == AuthService.UserRole.Headmaster);
+    bool canViewReports = isUserKnown;
+    bool canManageLeave = (role == AuthService.UserRole.Administrator || role == AuthService.UserRole.Headmaster);
+
+    EnableNavButton("Add Student", canManageAdmissions);
+    EnableNavButton("View Students", canViewReports);
+    EnableNavButton("Add Employee", canManageEmployees);
+    EnableNavButton("View Employees", canViewReports);
+    EnableNavButton("Fees Payment", canManageFees);
+    EnableNavButton("Exams", canManageExams);
+    EnableNavButton("Exam Reports", canViewReports);
+    EnableNavButton("Analytics", canViewReports);
+    EnableNavButton("Leave Requests", isUserKnown);
+
+    statusLabel.Text = $"Signed in as {AuthService.CurrentUser.Username} ({role})";
+}
+
+private void EnableNavButton(string text, bool enabled)
+{
+    foreach (Control ctrl in this.Controls)
+    {
+        if (ctrl is TableLayoutPanel root)
         {
-            InitializeComponent();
-            BuildModernDashboard();
-
-            // Set this as the main dashboard in FormManager
-            FormManager.SetMainDashboard(this);
-
-            // Handle form closing to keep app alive
-            this.FormClosing += FrmDashboard_FormClosing;
+            foreach (Control sidebar in root.Controls)
+            {
+                if (sidebar is Panel pnl)
+                {
+                    foreach (Control nav in pnl.Controls)
+                    {
+                        if (nav is FlowLayoutPanel flow)
+                        {
+                            foreach (Control btn in flow.Controls)
+                            {
+                                if (btn is Button b && b.Text == text)
+                                {
+                                    b.Enabled = enabled;
+                                    b.BackColor = enabled ? (b.BackColor == Navy ? Navy : SidebarBackColor) : Color.FromArgb(40, 55, 78);
+                                    b.ForeColor = enabled ? Color.White : Color.Gray;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
+    }
+}
 
-        private void FrmDashboard_FormClosing(object sender, FormClosingEventArgs e)
+private void FrmDashboard_FormClosing(object sender, FormClosingEventArgs e)
+...
         {
             // When dashboard close button is clicked, close all child forms and exit
             if (e.CloseReason == CloseReason.UserClosing)
@@ -62,7 +128,8 @@ namespace kingdom_Preparatory_School_Management_System
             BackColor = PageBackColor;
             Font = new Font("Segoe UI", 9.5F, FontStyle.Regular);
             StartPosition = FormStartPosition.CenterScreen;
-            MinimumSize = new Size(1100, 680);
+            MinimumSize = new Size(1280, 760);
+            Size = new Size(1360, 820);
 
             var root = new TableLayoutPanel
             {
@@ -133,6 +200,13 @@ namespace kingdom_Preparatory_School_Management_System
             nav.Controls.Add(CreateNavButton("Analytics", OpenAnalyticsDashboard));
             nav.Controls.Add(CreateNavButton("Leave Requests", () => OpenForm(new frmLeaveDetails())));
 
+            var role = AuthService.CurrentUser.Role;
+            if (role == AuthService.UserRole.Administrator || role == AuthService.UserRole.Headmaster)
+            {
+                nav.Controls.Add(CreateNavButton("Database Backup", RunBackup));
+                nav.Controls.Add(CreateNavButton("System Logs", ViewLogs));
+            }
+
             var exitButton = CreateNavButton("Exit", Application.Exit);
             exitButton.Dock = DockStyle.Bottom;
 
@@ -154,10 +228,10 @@ namespace kingdom_Preparatory_School_Management_System
                 ColumnCount = 1,
                 RowCount = 4
             };
-            content.RowStyles.Add(new RowStyle(SizeType.Absolute, 76));
-            content.RowStyles.Add(new RowStyle(SizeType.Absolute, 142));
+            content.RowStyles.Add(new RowStyle(SizeType.Absolute, 82));
+            content.RowStyles.Add(new RowStyle(SizeType.Absolute, 150));
             content.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-            content.RowStyles.Add(new RowStyle(SizeType.Absolute, 156));
+            content.RowStyles.Add(new RowStyle(SizeType.Absolute, 166));
 
             var header = new TableLayoutPanel
             {
@@ -173,7 +247,7 @@ namespace kingdom_Preparatory_School_Management_System
             {
                 Dock = DockStyle.Top,
                 Height = 38,
-                Text = "Analytical Dashboard",
+                Text = "Operations And Academic Dashboard",
                 ForeColor = TextColor,
                 Font = new Font("Segoe UI Semibold", 22F, FontStyle.Bold),
                 TextAlign = ContentAlignment.MiddleLeft
@@ -182,7 +256,7 @@ namespace kingdom_Preparatory_School_Management_System
             {
                 Dock = DockStyle.Bottom,
                 Height = 26,
-                Text = "Live overview for students, staff, fees, exams, and leave",
+                Text = "Live school analytics with direct access to records, exams, reports, and charts",
                 ForeColor = MutedTextColor,
                 Font = new Font("Segoe UI", 10F, FontStyle.Regular),
                 TextAlign = ContentAlignment.MiddleLeft
@@ -354,11 +428,11 @@ namespace kingdom_Preparatory_School_Management_System
             actions.RowStyles.Add(new RowStyle(SizeType.Percent, 50));
             actions.RowStyles.Add(new RowStyle(SizeType.Percent, 50));
             actions.Controls.Add(CreateActionButton("Register Student", () => OpenForm(new frmAddStd(), true)), 0, 0);
-            actions.Controls.Add(CreateActionButton("Register Employee", () => OpenForm(new frmEmployee())), 1, 0);
+            actions.Controls.Add(CreateActionButton("Record Attendance", () => OpenForm(new frmAttendance())), 1, 0);
             actions.Controls.Add(CreateActionButton("Record Fees", () => OpenForm(new frmFessPayment())), 2, 0);
-            actions.Controls.Add(CreateActionButton("Enter Exams", () => OpenForm(new EXAMS())), 0, 1);
-            actions.Controls.Add(CreateActionButton("View Reports", () => OpenForm(new EXAMSVIEW())), 1, 1);
-            actions.Controls.Add(CreateActionButton("Analytics Charts", OpenAnalyticsDashboard), 2, 1);
+            actions.Controls.Add(CreateActionButton("Submit Exam Scores", () => OpenForm(new EXAMS())), 0, 1);
+            actions.Controls.Add(CreateActionButton("Generate Report Cards", () => OpenForm(new EXAMSVIEW())), 1, 1);
+            actions.Controls.Add(CreateActionButton("Analytics Dashboard", OpenAnalyticsDashboard), 2, 1);
             actionPanel.Controls.Add(actions);
 
             return actionPanel;
@@ -543,24 +617,25 @@ namespace kingdom_Preparatory_School_Management_System
                 AllowUserToResizeRows = false,
                 RowHeadersVisible = false,
                 SelectionMode = DataGridViewSelectionMode.FullRowSelect,
-                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
-                ColumnHeadersHeight = 34,
-                RowTemplate = { Height = 30 },
+                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.DisplayedCells,
+                ColumnHeadersHeight = 42,
+                RowTemplate = { Height = 34 },
                 GridColor = BorderColor,
                 ScrollBars = ScrollBars.Both
             };
+            UiTheme.StyleDataGrid(grid);
             grid.ThemeStyle.AlternatingRowsStyle.BackColor = UiTheme.SurfaceAlt;
             grid.ThemeStyle.BackColor = Color.White;
             grid.ThemeStyle.GridColor = BorderColor;
             grid.ThemeStyle.HeaderStyle.BackColor = PrimaryColor;
             grid.ThemeStyle.HeaderStyle.ForeColor = Color.White;
             grid.ThemeStyle.HeaderStyle.Font = new Font("Segoe UI Semibold", 9F, FontStyle.Bold);
-            grid.ThemeStyle.HeaderStyle.Height = 34;
+            grid.ThemeStyle.HeaderStyle.Height = 42;
             grid.ThemeStyle.RowsStyle.BackColor = Color.White;
             grid.ThemeStyle.RowsStyle.ForeColor = TextColor;
             grid.ThemeStyle.RowsStyle.SelectionBackColor = UiTheme.GoldSoft;
             grid.ThemeStyle.RowsStyle.SelectionForeColor = TextColor;
-            grid.ThemeStyle.RowsStyle.Height = 30;
+            grid.ThemeStyle.RowsStyle.Height = 34;
 
             grid.ColumnHeadersDefaultCellStyle.BackColor = PrimaryColor;
             grid.ColumnHeadersDefaultCellStyle.ForeColor = Color.White;
@@ -600,21 +675,14 @@ namespace kingdom_Preparatory_School_Management_System
 
         private void OpenForm(Form form, bool hideDashboard = false)
         {
-            if (form == null)
-            {
-                return;
-            }
+            if (form == null) return;
 
             try
             {
                 form.StartPosition = FormStartPosition.CenterScreen;
                 form.Show();
                 form.BringToFront();
-                form.Focus();
-                if (hideDashboard)
-                {
-                    Hide();
-                }
+                if (hideDashboard) Hide();
             }
             catch (Exception ex)
             {
@@ -624,43 +692,58 @@ namespace kingdom_Preparatory_School_Management_System
 
         private void OpenAnalyticsDashboard()
         {
-            OpenForm(new frmDashboardCharts());
+            var charts = new frmDashboardCharts();
+            charts.Show();
+            charts.BringToFront();
         }
 
-        private void RefreshDashboardMetrics()
+        private async void RunBackup()
+        {
+            statusLabel.Text = "Creating database backup...";
+            var (success, message) = await DatabaseBackupService.CreateBackupAsync();
+            if (success) UIHelper.ShowSuccess(message, "System Backup");
+            else UIHelper.ShowError(message, "Backup Error");
+            statusLabel.Text = "Ready.";
+        }
+
+        private void ViewLogs()
+        {
+            string logPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "notifications_log.txt");
+            if (System.IO.File.Exists(logPath))
+            {
+                System.Diagnostics.Process.Start("notepad.exe", logPath);
+            }
+            else
+            {
+                UIHelper.ShowInfo("No notification logs found yet.", "System Logs");
+            }
+        }
+
+        private async void RefreshDashboardMetrics()
         {
             try
             {
-                studentCountLabel.Text = ExecuteScalar("SELECT COUNT(*) FROM Students").ToString();
-                employeeCountLabel.Text = ExecuteScalar("SELECT COUNT(*) FROM Employee").ToString();
-                pendingLeaveLabel.Text = ExecuteScalar("SELECT COUNT(*) FROM emp_leave WHERE UPPER([status]) = 'PENDING'").ToString();
+                statusLabel.Text = "Refreshing school analytics...";
+                var metrics = await _dashboardService.GetMetricsAsync();
 
-                decimal collected = Convert.ToDecimal(ExecuteScalar("SELECT COALESCE(SUM(Amount_paid), 0) FROM payment_record"));
-                feesCollectedLabel.Text = FormatCurrency(collected);
+                studentCountLabel.Text = metrics.StudentCount.ToString();
+                employeeCountLabel.Text = metrics.EmployeeCount.ToString();
+                pendingLeaveLabel.Text = metrics.PendingLeaveCount.ToString();
+                feesCollectedLabel.Text = FormatCurrency(metrics.TotalFeesCollected);
+                feesBalanceLabel.Text = FormatCurrency(metrics.TotalFeesBalance);
+                averageExamLabel.Text = metrics.AverageExamScore.ToString("0.0") + "%";
+                topClassLabel.Text = metrics.TopClass;
 
-                object feeResult = ExecuteScalar("SELECT COALESCE(SUM(Balance), 0) FROM payment_record WHERE Balance > 0");
-                decimal balance = Convert.ToDecimal(feeResult);
-                feesBalanceLabel.Text = FormatCurrency(balance);
-
-                decimal averageExam = Convert.ToDecimal(ExecuteScalar("SELECT COALESCE(AVG(gt), 0) FROM examss"));
-                averageExamLabel.Text = averageExam.ToString("0.0") + "%";
-                string topClass = Convert.ToString(ExecuteScalar("SELECT TOP 1 ClassID FROM Students GROUP BY ClassID ORDER BY COUNT(*) DESC"));
-                topClassLabel.Text = string.IsNullOrWhiteSpace(topClass) || topClass == "0" ? "No data" : topClass;
-
-                recentPaymentsGrid.DataSource = FetchTable(
-                    "SELECT TOP 8 StudentID AS [ID], student_name AS [Student], classID AS [Class], Amount_paid AS [Paid], Balance, [Date] " +
-                    "FROM payment_record ORDER BY [Date] DESC, tm DESC");
-                classSummaryGrid.DataSource = FetchTable(
-                    "SELECT ClassID AS [Class], COUNT(*) AS [Students] FROM Students GROUP BY ClassID ORDER BY ClassID");
-                leaveSummaryGrid.DataSource = FetchTable(
-                    "SELECT [status] AS [Status], COUNT(*) AS [Total] FROM emp_leave GROUP BY [status] ORDER BY [status]");
+                recentPaymentsGrid.DataSource = metrics.RecentPayments;
+                classSummaryGrid.DataSource = metrics.ClassSummary;
+                leaveSummaryGrid.DataSource = metrics.LeaveSummary;
 
                 statusLabel.Text = "Connected to Neat_Academy | " + DateTime.Now.ToString("dd MMM yyyy, h:mm tt");
             }
             catch (Exception ex)
             {
-                statusLabel.Text = "Database unavailable";
-                MessageBox.Show("Dashboard could not load live metrics: " + ex.Message, "Database Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                statusLabel.Text = "Refresh failed";
+                UIHelper.ShowError("Dashboard could not load live metrics: " + ex.Message, "Dashboard");
             }
         }
 
@@ -669,58 +752,9 @@ namespace kingdom_Preparatory_School_Management_System
             return "GHS " + amount.ToString("#,##0.00");
         }
 
-        private object ExecuteScalar(string query)
-        {
-            using (OleDbConnection con = new OleDbConnection(Aikins.constr))
-            using (OleDbCommand cmd = new OleDbCommand(query, con))
-            {
-                con.Open();
-                object value = cmd.ExecuteScalar();
-                return value == DBNull.Value || value == null ? 0 : value;
-            }
-        }
-
-        private DataTable FetchTable(string query)
-        {
-            var table = new DataTable();
-            using (OleDbConnection con = new OleDbConnection(Aikins.constr))
-            using (OleDbDataAdapter adapter = new OleDbDataAdapter(query, con))
-            {
-                con.Open();
-                adapter.Fill(table);
-            }
-
-            return table;
-        }
-
-        private void gunaPictureBox1_Click(object sender, EventArgs e)
-        {
-            Application.Exit();
-        }
-
-        private void gunaPictureBox2_Click(object sender, EventArgs e)
-        {
-            WindowState = FormWindowState.Minimized;
-        }
-
-        private void gunaPictureBox3_Click(object sender, EventArgs e)
-        {
-            WindowState = WindowState == FormWindowState.Maximized ? FormWindowState.Normal : FormWindowState.Maximized;
-        }
-
-        private void bindingNavigatorCountItem_Click(object sender, EventArgs e) { }
-        private void chart1_Click(object sender, EventArgs e) { }
-        private void guna2Panel1_Paint(object sender, PaintEventArgs e) { }
-        private void gunaPanel3_Paint(object sender, PaintEventArgs e) { }
-        private void tStd_Click(object sender, EventArgs e) { }
-        private void gunaLabel5_Click(object sender, EventArgs e) { }
-        private void sendComplaintsToolStripMenuItem_Click(object sender, EventArgs e) { }
-        private void summaryToolStripMenuItem_Click(object sender, EventArgs e) { }
-        private void classToolStripMenuItem_Click(object sender, EventArgs e) { }
-        private void classToolStripMenuItem1_Click(object sender, EventArgs e) { }
-        private void gunaButton11_Click(object sender, EventArgs e) { }
-        private void gunaButton9_Click(object sender, EventArgs e) { }
-
+        private void gunaPictureBox1_Click(object sender, EventArgs e) { Application.Exit(); }
+        private void gunaPictureBox2_Click(object sender, EventArgs e) { WindowState = FormWindowState.Minimized; }
+        private void gunaPictureBox3_Click(object sender, EventArgs e) { WindowState = WindowState == FormWindowState.Maximized ? FormWindowState.Normal : FormWindowState.Maximized; }
         private void gunaButton1_Click(object sender, EventArgs e) { OpenForm(new frmAddStd(), true); }
         private void gunaButton2_Click(object sender, EventArgs e) { OpenForm(new frmStdView()); }
         private void gunaButton3_Click(object sender, EventArgs e) { OpenForm(new frmEmployee()); }

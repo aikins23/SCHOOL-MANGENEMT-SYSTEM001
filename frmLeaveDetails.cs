@@ -1,32 +1,31 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Data;
-using System.Data.OleDb;
 using System.Windows.Forms;
+using kingdom_Preparatory_School_Management_System.Common;
+using kingdom_Preparatory_School_Management_System.Data;
+using kingdom_Preparatory_School_Management_System.Services;
+using kingdom_Preparatory_School_Management_System.Models;
 
 namespace kingdom_Preparatory_School_Management_System
 {
     public partial class frmLeaveDetails : Form
     {
-        kum Aikins = new kum();
+        private readonly LeaveService _leaveService;
 
-        // Default constructor
         public frmLeaveDetails()
         {
             InitializeComponent();
+            var repository = new LeaveRepository(AppConfig.ConnectionString);
+            _leaveService = new LeaveService(repository);
             UiTheme.Apply(this);
         }
 
-        // Constructor that accepts a dictionary of data
-        public frmLeaveDetails(Dictionary<string, string> rowData)
+        public frmLeaveDetails(Dictionary<string, string> rowData) : this()
         {
-            InitializeComponent();
-            UiTheme.Apply(this);
             SetData(rowData);
         }
 
-        // Method to set data in the form controls
         private void SetData(Dictionary<string, string> rowData)
         {
             txtEmployeeId.Text = rowData["ID"];
@@ -34,181 +33,64 @@ namespace kingdom_Preparatory_School_Management_System
             txtdepartment.Text = rowData["DEPARTMENT"];
             txtposition.Text = rowData["POSITION"];
 
-            if (rowData["LEAVE OPTION"] == "With Pay")
-            {
-                rdpay.Checked = true;
-            }
-            else if (rowData["LEAVE OPTION"] == "Without Pay")
-            {
-                rdwPay.Checked = true;
-            }
+            if (rowData["LEAVE OPTION"] == "With Pay") rdpay.Checked = true;
+            else if (rowData["LEAVE OPTION"] == "Without Pay") rdwPay.Checked = true;
 
             switch (rowData["REASONS"])
             {
-                case "Sick":
-                    rdoSick.Checked = true;
-                    break;
-                case "Vacation":
-                    rdoVacation.Checked = true;
-                    break;
-                case "Funeral":
-                    rdoFuneral.Checked = true;
-                    break;
-                case "Paternity":
-                    rdoPaternity.Checked = true;
-                    break;
-                case "Maternity":
-                    rdoMaternity.Checked = true;
-                    break;
-                case "Accident On Duty":
-                    rdoAcidentOnDuty.Checked = true;
-                    break;
+                case "Sick": rdoSick.Checked = true; break;
+                case "Vacation": rdoVacation.Checked = true; break;
+                case "Funeral": rdoFuneral.Checked = true; break;
+                case "Paternity": rdoPaternity.Checked = true; break;
+                case "Maternity": rdoMaternity.Checked = true; break;
+                case "Accident On Duty": rdoAcidentOnDuty.Checked = true; break;
             }
 
-            if (DateTime.TryParse(rowData["START DATE"], out DateTime startDate))
-            {
-                dtpdatestart.Value = startDate;
-            }
-
-            if (DateTime.TryParse(rowData["END DATE"], out DateTime endDate))
-            {
-                dtpenddate.Value = endDate;
-            }
-
+            if (DateTime.TryParse(rowData["START DATE"], out DateTime startDate)) dtpdatestart.Value = startDate;
+            if (DateTime.TryParse(rowData["END DATE"], out DateTime endDate)) dtpenddate.Value = endDate;
             status.Text = rowData["STATUS"];
         }
 
-        private void gunaButton3_Click(object sender, EventArgs e)
+        private async void gunaButton3_Click(object sender, EventArgs e)
         {
             try
             {
-                string leaveFormat = "";
-                string leaveApplied = "";
+                var request = new LeaveRequest
+                {
+                    EmployeeID = txtEmployeeId.Text.Trim(),
+                    EmployeeName = txtName.Text.Trim(),
+                    Department = txtdepartment.Text.Trim(),
+                    Position = txtposition.Text.Trim(),
+                    LeaveOption = rdpay.Checked ? "With Pay" : "Without Pay",
+                    Reason = GetSelectedReason(),
+                    StartDate = dtpdatestart.Value.Date,
+                    EndDate = dtpenddate.Value.Date,
+                    Status = status.Text.Trim()
+                };
 
-                if (rdwPay.Checked)
+                var (success, message) = await _leaveService.UpdateLeaveStatusAsync(request, request.Status);
+                if (success)
                 {
-                    leaveFormat = "Without Pay";
+                    UIHelper.ShowSuccess("Leave application updated successfully.", "Leave Details");
+                    this.DialogResult = DialogResult.OK;
+                    this.Close();
                 }
-                else if (rdpay.Checked)
-                {
-                    leaveFormat = "With Pay";
-                }
-
-                if (rdoSick.Checked)
-                {
-                    leaveApplied = "Sick";
-                }
-                else if (rdoVacation.Checked)
-                {
-                    leaveApplied = "Vacation";
-                }
-                else if (rdoFuneral.Checked)
-                {
-                    leaveApplied = "Funeral";
-                }
-                else if (rdoPaternity.Checked)
-                {
-                    leaveApplied = "Paternity";
-                }
-                else if (rdoMaternity.Checked)
-                {
-                    leaveApplied = "Maternity";
-                }
-                else if (rdoAcidentOnDuty.Checked)
-                {
-                    leaveApplied = "Accident On Duty";
-                }
-
-                Aikins.con = new OleDbConnection(Aikins.constr);
-                Aikins.query = "UPDATE[emp_leave] SET[name] = ?, [department] = ?, [position] = ?, [Leave_op] = ?, [Reasons] = ?, [Start_Date] = ?, [End_Date] = ?, [status] = ? WHERE[employmentID] = ? ";
-
-using (OleDbCommand cmd = new OleDbCommand(Aikins.query, Aikins.con))
-                {
-                    cmd.Parameters.AddWithValue("name", txtName.Text);
-                    cmd.Parameters.AddWithValue("department", txtdepartment.Text);
-                    cmd.Parameters.AddWithValue("position", txtposition.Text);
-                    cmd.Parameters.AddWithValue("LeaveOp", leaveFormat);
-                    cmd.Parameters.AddWithValue("Reasons", leaveApplied);
-                    cmd.Parameters.AddWithValue("StartDate", dtpdatestart.Value);
-                    cmd.Parameters.AddWithValue("EndDate", dtpenddate.Value);
-                    cmd.Parameters.AddWithValue("status", status.Text);
-                    cmd.Parameters.AddWithValue("EmploymentID", txtEmployeeId.Text);
-
-
-                    Aikins.con.Open();
-                    int rowsAffected = cmd.ExecuteNonQuery();
-                    if (rowsAffected > 0)
-                    {
-                        MessageBox.Show("LEAVE APPLICATION UPDATE WAS SUCCESSFUL.");
-                    }
-                    else
-                    {
-                        MessageBox.Show("LEAVE APPLICATION UPDATE WAS UNSUCCESSFUL.");
-                    }
-                }
+                else UIHelper.ShowError(message, "Leave Details");
             }
-            catch (Exception ex)
-            {
-                MessageBox.Show("Error: " + ex.Message);
-            }
-            finally
-            {
-                if (Aikins.con != null && Aikins.con.State == ConnectionState.Open)
-                {
-                    Aikins.con.Close();
-                }
-            }
+            catch (Exception ex) { UIHelper.ShowError(ex.Message, "Leave Details"); }
         }
 
-        private void toolStripMenuItem1_Click(object sender, EventArgs e)
+        private string GetSelectedReason()
         {
-            // Handle the event here if needed
+            if (rdoSick.Checked) return "Sick";
+            if (rdoVacation.Checked) return "Vacation";
+            if (rdoFuneral.Checked) return "Funeral";
+            if (rdoPaternity.Checked) return "Paternity";
+            if (rdoMaternity.Checked) return "Maternity";
+            if (rdoAcidentOnDuty.Checked) return "Accident On Duty";
+            return "Other";
         }
 
-        private void toolStripMenuItem2_Click(object sender, EventArgs e)
-        {
-            // Handle the event here if needed
-        }
-
-        private void studentsToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            new frmAddStd().Show();
-        }
-
-        private void employersToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            new frmEmployee().Show();
-        }
-
-        private void classToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            new EXAMS().Show();
-        }
-
-        private void studentsToolStripMenuItem1_Click(object sender, EventArgs e)
-        {
-            new frmStdView().Show();
-        }
-
-        private void employersToolStripMenuItem1_Click(object sender, EventArgs e)
-        {
-            new frmEmployee().Show();
-        }
-
-        private void classToolStripMenuItem1_Click(object sender, EventArgs e)
-        {
-            new EXAMSVIEW().Show();
-        }
-
-        private void makePaymentToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            new frmFessPayment().Show();
-        }
-
-        private void gunaPictureBox2_Click(object sender, EventArgs e)
-        {
-            this.Close();
-        }
-
+        private void gunaPictureBox2_Click(object sender, EventArgs e) { this.Close(); }
     }
 }

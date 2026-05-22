@@ -17,9 +17,9 @@ namespace kingdom_Preparatory_School_Management_System.Common
             {
                 Name = "pnlGlobalSidebar",
                 Dock = DockStyle.Left,
-                Width = 220,
+                Width = 232,
                 FillColor = UiTheme.Navy,
-                Padding = new Padding(0, 20, 0, 0)
+                Padding = new Padding(14, 20, 14, 14)
             };
 
             // Branding
@@ -27,20 +27,34 @@ namespace kingdom_Preparatory_School_Management_System.Common
             {
                 Text = "KINGDOM PREP",
                 Dock = DockStyle.Top,
-                Height = 60,
+                Height = 48,
                 ForeColor = Color.White,
                 Font = new Font("Segoe UI", 14, FontStyle.Bold),
-                TextAlign = ContentAlignment.MiddleCenter
+                TextAlign = ContentAlignment.MiddleLeft
             };
             sidebar.Controls.Add(lblBrand);
+
+            var lblCaption = new Label
+            {
+                Text = "Academic operations",
+                Dock = DockStyle.Top,
+                Height = 28,
+                ForeColor = Color.FromArgb(190, 202, 220),
+                Font = new Font("Segoe UI", 8.75F),
+                TextAlign = ContentAlignment.TopLeft
+            };
+            sidebar.Controls.Add(lblCaption);
 
             // Nav Buttons
             AddNavButton(sidebar, "Dashboard", "frmDashboard");
             AddNavButton(sidebar, "Students", "frmStdView");
+            AddNavButton(sidebar, "Promotion", "frmStudentPromotion");
             AddNavButton(sidebar, "Staff", "frmEmpView");
             AddNavButton(sidebar, "Attendance", "frmAttendance");
-            AddNavButton(sidebar, "Exams", "EXAMSVIEW");
+            AddNavButton(sidebar, "Submit Exams", "EXAMS");
+            AddNavButton(sidebar, "Report Cards", "EXAMSVIEW");
             AddNavButton(sidebar, "Fees", "frmFess");
+            AddNavButton(sidebar, "Outstanding", "frmOutstandingFees");
             
             // Back/Home at bottom
             var btnHome = CreateButton("Main Menu", () => FormManager.ShowForm<frmDashboard>(form));
@@ -58,7 +72,7 @@ namespace kingdom_Preparatory_School_Management_System.Common
         {
             var btn = CreateButton(text, () => NavigateTo(parent.FindForm(), formName));
             btn.Dock = DockStyle.Top;
-            btn.Height = 50;
+            btn.Height = 44;
             btn.TextAlign = HorizontalAlignment.Left;
             parent.Controls.Add(btn);
             btn.BringToFront();
@@ -77,7 +91,9 @@ namespace kingdom_Preparatory_School_Management_System.Common
                 AnimationHoverSpeed = 0.07F,
                 AnimationSpeed = 0.03F,
                 OnHoverBaseColor = UiTheme.NavyHover,
-                OnHoverForeColor = Color.White
+                OnHoverForeColor = Color.White,
+                Radius = 6,
+                Margin = new Padding(0, 0, 0, 6)
             };
             btn.Click += (s, e) => action();
             return btn;
@@ -91,10 +107,13 @@ namespace kingdom_Preparatory_School_Management_System.Common
             {
                 case "frmDashboard": FormManager.ShowForm<frmDashboard>(current); break;
                 case "frmStdView": FormManager.ShowForm<frmStdView>(current); break;
+                case "frmStudentPromotion": FormManager.ShowForm<frmStudentPromotion>(current); break;
                 case "frmEmpView": FormManager.ShowForm<frmEmpView>(current); break;
                 case "frmAttendance": FormManager.ShowForm<frmAttendance>(current); break;
+                case "EXAMS": FormManager.ShowForm<EXAMS>(current); break;
                 case "EXAMSVIEW": FormManager.ShowForm<EXAMSVIEW>(current); break;
                 case "frmFess": FormManager.ShowForm<frmFess>(current); break;
+                case "frmOutstandingFees": FormManager.ShowForm<frmOutstandingFees>(current); break;
             }
         }
     }

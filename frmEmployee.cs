@@ -1,17 +1,16 @@
 using System;
-using System.Data;
-using System.Data.OleDb;
 using System.Drawing;
-using System.Drawing.Imaging;
-using System.IO;
 using System.Windows.Forms;
 using kingdom_Preparatory_School_Management_System.Common;
+using kingdom_Preparatory_School_Management_System.Data;
+using kingdom_Preparatory_School_Management_System.Services;
+using kingdom_Preparatory_School_Management_System.Models;
 
 namespace kingdom_Preparatory_School_Management_System
 {
     public partial class frmEmployee : Form
     {
-        private readonly kum Aikins = new kum();
+        private readonly EmployeeService _employeeService;
         private Label statusLabel;
 
         private static readonly Color PageBackColor = UiTheme.Page;
@@ -31,6 +30,11 @@ namespace kingdom_Preparatory_School_Management_System
         public frmEmployee()
         {
             InitializeComponent();
+
+            // Initialize modern architecture
+            var repository = new EmployeeRepository(AppConfig.ConnectionString);
+            _employeeService = new EmployeeService(repository);
+
             BuildModernEmployeeForm();
             EnableFormDragging();
         }
@@ -83,7 +87,7 @@ namespace kingdom_Preparatory_School_Management_System
             txtEMdID.FillColor = UiTheme.SurfaceAlt;
 
             cmbGN.Items.Clear();
-            cmbGN.Items.AddRange(new object[] { "MALE", "FEMALE" });
+            cmbGN.Items.AddRange(AppConfig.GenderOptions);
             cmbGN.SelectedIndex = 0;
 
             cmbDPT.Items.Clear();
@@ -451,7 +455,7 @@ namespace kingdom_Preparatory_School_Management_System
             actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 120));
             actions.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
 
-            actions.Controls.Add(CreateSecondaryButton("New", NewEmployee), 0, 0);
+            actions.Controls.Add(CreateSecondaryButton("New", async () => await NewEmployee()), 0, 0);
             actions.Controls.Add(CreatePrimaryButton("Save", SaveEmployee), 1, 0);
             actions.Controls.Add(CreateSecondaryButton("Update", UpdateEmployee), 2, 0);
             actions.Controls.Add(CreateDangerButton("Delete", DeleteEmployee), 3, 0);
@@ -504,53 +508,23 @@ namespace kingdom_Preparatory_School_Management_System
             return button;
         }
 
-        private void frmEmployee_Load(object sender, EventArgs e)
+        private async void frmEmployee_Load(object sender, EventArgs e)
         {
-            SetNextEmployeeId();
+            await SetNextEmployeeId();
         }
 
-        private void frmEmployee_Load_1(object sender, EventArgs e)
-        {
-            SetNextEmployeeId();
-        }
-
-        private void SetNextEmployeeId()
+        private async System.Threading.Tasks.Task SetNextEmployeeId()
         {
             try
             {
-                using (OleDbConnection con = new OleDbConnection(Aikins.constr))
-                using (OleDbCommand command = new OleDbCommand("SELECT ISNULL(MAX(employmentID), 0) + 1 FROM Employee", con))
-                {
-                    con.Open();
-                    txtEMdID.Text = command.ExecuteScalar().ToString();
-                    statusLabel.Text = "Ready for a new employee record.";
-                }
+                txtEMdID.Text = await _employeeService.GenerateNextEmployeeIdAsync();
+                statusLabel.Text = "Ready for a new employee record.";
             }
             catch (Exception ex)
             {
                 statusLabel.Text = "Could not prepare the next employee ID.";
-                MessageBox.Show("Error: " + ex.Message, "Employee Registration", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                UIHelper.ShowError("Error: " + ex.Message, "Employee Registration");
             }
-        }
-
-        public byte[] Picture()
-        {
-            using (MemoryStream stream = new MemoryStream())
-            {
-                Image image = emp_pic.Image ?? CreateBlankPhoto();
-                image.Save(stream, ImageFormat.Png);
-                return stream.ToArray();
-            }
-        }
-
-        private Image CreateBlankPhoto()
-        {
-            Bitmap bitmap = new Bitmap(1, 1);
-            using (Graphics graphics = Graphics.FromImage(bitmap))
-            {
-                graphics.Clear(Color.White);
-            }
-            return bitmap;
         }
 
         private void upload_Click(object sender, EventArgs e)
@@ -560,180 +534,119 @@ namespace kingdom_Preparatory_School_Management_System
                 dialog.Filter = "Image files|*.jpg;*.jpeg;*.png;*.bmp|All files|*.*";
                 if (dialog.ShowDialog() == DialogResult.OK)
                 {
-                    emp_pic.Image = new Bitmap(dialog.FileName);
+                    try
+                    {
+                        emp_pic.Image = new Bitmap(dialog.FileName);
+                        statusLabel.Text = "Photo selected.";
+                    }
+                    catch (Exception ex)
+                    {
+                        statusLabel.Text = "Photo error.";
+                        UIHelper.ShowWarning(ex.Message, "Employee Registration");
+                    }
                 }
             }
         }
 
-        private bool ValidateForm()
+        private Employee MapFormToEmployee()
         {
-            if (string.IsNullOrWhiteSpace(txtFN.Text))
-            {
-                MessageBox.Show("Enter the employee full name.", "Employee Registration", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return false;
-            }
+            decimal.TryParse(empSA.Text.Trim(), out decimal salary);
 
-            if (string.IsNullOrWhiteSpace(txtCN.Text))
+            return new Employee
             {
-                MessageBox.Show("Enter the employee contact.", "Employee Registration", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return false;
-            }
-
-            if (!decimal.TryParse(empSA.Text.Trim(), out _))
-            {
-                MessageBox.Show("Enter a valid salary amount.", "Employee Registration", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return false;
-            }
-
-            return true;
+                EmployeeID = txtEMdID.Text,
+                FullName = txtFN.Text.Trim(),
+                Gender = cmbGN.Text.Trim(),
+                DateOfBirth = dateDOB.Value.Date,
+                Contact = txtCN.Text.Trim(),
+                Department = cmbDPT.Text.Trim(),
+                Position = CmbPs.Text.Trim(),
+                HomeTown = txtHT.Text.Trim(),
+                Residence = txtRD.Text.Trim(),
+                EmploymentDate = empdate.Value.Date,
+                EmploymentMode = empMD.Text.Trim(),
+                EmploymentStatus = empST.Text.Trim(),
+                EmergencyContactPerson = empCN.Text.Trim(),
+                EmergencyContact = empEC.Text.Trim(),
+                PerformanceReview = empRV.Text.Trim(),
+                Salary = salary,
+                ProfilePhoto = ImageHelper.ImageToBytes(emp_pic.Image)
+            };
         }
 
-        private void SaveEmployee()
+        private async void SaveEmployee()
         {
-            if (!ValidateForm())
+            statusLabel.Text = "Saving employee...";
+            var employee = MapFormToEmployee();
+            var (success, message) = await _employeeService.AddEmployeeAsync(employee);
+
+            if (success)
+            {
+                txtEMdID.Text = employee.EmployeeID;
+                statusLabel.Text = message;
+                UIHelper.ShowSuccess(message, "Employee Registration");
+            }
+            else
+            {
+                statusLabel.Text = "Save failed.";
+                UIHelper.ShowWarning(message, "Employee Registration");
+            }
+        }
+
+        private async void UpdateEmployee()
+        {
+            if (string.IsNullOrWhiteSpace(txtEMdID.Text))
+            {
+                UIHelper.ShowWarning("Please select an employee to update.", "Employee Registration");
+                return;
+            }
+
+            statusLabel.Text = "Updating employee...";
+            var employee = MapFormToEmployee();
+            var (success, message) = await _employeeService.UpdateEmployeeAsync(employee);
+
+            if (success)
+            {
+                statusLabel.Text = message;
+                UIHelper.ShowSuccess(message, "Employee Registration");
+            }
+            else
+            {
+                statusLabel.Text = "Update failed.";
+                UIHelper.ShowWarning(message, "Employee Registration");
+            }
+        }
+
+        private async void DeleteEmployee()
+        {
+            if (string.IsNullOrWhiteSpace(txtEMdID.Text))
+            {
+                UIHelper.ShowWarning("Please select an employee to delete.", "Employee Registration");
+                return;
+            }
+
+            if (UIHelper.ShowConfirmation("Delete this employee record?", "Employee Registration") != DialogResult.Yes)
             {
                 return;
             }
 
-            try
-            {
-                int employeeId;
-                using (OleDbConnection con = new OleDbConnection(Aikins.constr))
-                {
-                    con.Open();
-                    employeeId = InsertEmployee(con);
-                }
+            statusLabel.Text = "Deleting employee...";
+            var (success, message) = await _employeeService.DeleteEmployeeAsync(txtEMdID.Text);
 
-                txtEMdID.Text = employeeId.ToString();
-                statusLabel.Text = "Employee saved.";
-                MessageBox.Show("Employee added successfully.", "Employee Registration", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            }
-            catch (Exception ex)
+            if (success)
             {
-                MessageBox.Show("Error: " + ex.Message, "Employee Registration", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                statusLabel.Text = message;
+                UIHelper.ShowSuccess(message, "Employee Registration");
+                await NewEmployee();
+            }
+            else
+            {
+                statusLabel.Text = "Delete failed.";
+                UIHelper.ShowWarning(message, "Employee Registration");
             }
         }
 
-        private int InsertEmployee(OleDbConnection con)
-        {
-            string query = @"
-INSERT INTO Employee
-    (fullName, gender, dOB, conatct, department, position, homeTown, residence, date_of_Emplyment, employment_Mode, employment_Status, emergency_Contact_Person, emergency_contact, employees_Reviews, salary, pic)
-VALUES
-    (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-
-            using (OleDbCommand command = new OleDbCommand(query, con))
-            {
-                AddEmployeeParameters(command, includeEmployeeId: false);
-                command.ExecuteNonQuery();
-            }
-
-            using (OleDbCommand identityCommand = new OleDbCommand("SELECT @@IDENTITY", con))
-            {
-                object result = identityCommand.ExecuteScalar();
-                if (result != null && result != DBNull.Value && int.TryParse(result.ToString(), out int identity))
-                {
-                    return identity;
-                }
-            }
-
-            return Convert.ToInt32(txtEMdID.Text);
-        }
-
-        private void UpdateEmployee()
-        {
-            if (!ValidateForm())
-            {
-                return;
-            }
-
-            if (!int.TryParse(txtEMdID.Text, out int employeeId))
-            {
-                MessageBox.Show("Enter a valid employee ID before updating.", "Employee Registration", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
-            try
-            {
-                using (OleDbConnection con = new OleDbConnection(Aikins.constr))
-                using (OleDbCommand command = new OleDbCommand(@"
-UPDATE Employee
-SET fullName = ?, gender = ?, dOB = ?, conatct = ?, department = ?, position = ?, homeTown = ?, residence = ?, date_of_Emplyment = ?, employment_Mode = ?, employment_Status = ?, emergency_Contact_Person = ?, emergency_contact = ?, employees_Reviews = ?, salary = ?, pic = ?
-WHERE employmentID = ?", con))
-                {
-                    AddEmployeeParameters(command, includeEmployeeId: true);
-                    con.Open();
-                    int rows = command.ExecuteNonQuery();
-                    statusLabel.Text = rows > 0 ? "Employee updated." : "No matching employee found.";
-                    MessageBox.Show(rows > 0 ? "Employee updated successfully." : "No matching employee found.", "Employee Registration", MessageBoxButtons.OK, rows > 0 ? MessageBoxIcon.Information : MessageBoxIcon.Warning);
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("Error: " + ex.Message, "Employee Registration", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-        }
-
-        private void AddEmployeeParameters(OleDbCommand command, bool includeEmployeeId)
-        {
-            command.Parameters.AddWithValue("?", txtFN.Text.Trim());
-            command.Parameters.AddWithValue("?", cmbGN.Text.Trim());
-            command.Parameters.AddWithValue("?", dateDOB.Value.Date);
-            command.Parameters.AddWithValue("?", txtCN.Text.Trim());
-            command.Parameters.AddWithValue("?", cmbDPT.Text.Trim());
-            command.Parameters.AddWithValue("?", CmbPs.Text.Trim());
-            command.Parameters.AddWithValue("?", txtHT.Text.Trim());
-            command.Parameters.AddWithValue("?", txtRD.Text.Trim());
-            command.Parameters.AddWithValue("?", empdate.Value.Date);
-            command.Parameters.AddWithValue("?", empMD.Text.Trim());
-            command.Parameters.AddWithValue("?", empST.Text.Trim());
-            command.Parameters.AddWithValue("?", empCN.Text.Trim());
-            command.Parameters.AddWithValue("?", empEC.Text.Trim());
-            command.Parameters.AddWithValue("?", empRV.Text.Trim());
-            command.Parameters.AddWithValue("?", Convert.ToDecimal(empSA.Text.Trim()));
-            command.Parameters.AddWithValue("?", Picture());
-
-            if (includeEmployeeId)
-            {
-                command.Parameters.AddWithValue("?", Convert.ToInt32(txtEMdID.Text));
-            }
-        }
-
-        private void DeleteEmployee()
-        {
-            if (!int.TryParse(txtEMdID.Text, out int employeeId))
-            {
-                MessageBox.Show("Enter a valid employee ID before deleting.", "Employee Registration", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
-            DialogResult result = MessageBox.Show("Delete this employee record?", "Employee Registration", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
-            if (result != DialogResult.Yes)
-            {
-                return;
-            }
-
-            try
-            {
-                using (OleDbConnection con = new OleDbConnection(Aikins.constr))
-                using (OleDbCommand command = new OleDbCommand("DELETE FROM Employee WHERE employmentID = ?", con))
-                {
-                    command.Parameters.AddWithValue("?", employeeId);
-                    con.Open();
-                    int rows = command.ExecuteNonQuery();
-                    statusLabel.Text = rows > 0 ? "Employee deleted." : "No matching employee found.";
-                    MessageBox.Show(rows > 0 ? "Employee deleted successfully." : "No matching employee found.", "Employee Registration", MessageBoxButtons.OK, rows > 0 ? MessageBoxIcon.Information : MessageBoxIcon.Warning);
-                }
-
-                NewEmployee();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("Error: " + ex.Message, "Employee Registration", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-        }
-
-        private void NewEmployee()
+        private async System.Threading.Tasks.Task NewEmployee()
         {
             txtFN.Text = "";
             txtCN.Text = "";
@@ -751,14 +664,14 @@ WHERE employmentID = ?", con))
             dateDOB.Value = DateTime.Today.AddYears(-25);
             empdate.Value = DateTime.Today;
             emp_pic.Image = null;
-            SetNextEmployeeId();
+            await SetNextEmployeeId();
         }
 
         private void btnSave_Click(object sender, EventArgs e) { SaveEmployee(); }
         private void btnSave_Click_1(object sender, EventArgs e) { SaveEmployee(); }
         private void btn_Update_Click(object sender, EventArgs e) { UpdateEmployee(); }
         private void btnDel_Click(object sender, EventArgs e) { DeleteEmployee(); }
-        private void btnNew_Click(object sender, EventArgs e) { NewEmployee(); }
+        private async void btnNew_Click(object sender, EventArgs e) { await NewEmployee(); }
         private void btnEdit_Click(object sender, EventArgs e) { }
         private void pay_Click(object sender, EventArgs e) { Close(); new frmEmpView().Show(); }
         private void gunaPictureBox1_Click(object sender, EventArgs e) { Application.Exit(); }

@@ -1,31 +1,35 @@
 using System;
 using System.Data;
-using System.Data.OleDb;
 using System.Drawing;
 using System.Windows.Forms;
 using kingdom_Preparatory_School_Management_System.Common;
+using kingdom_Preparatory_School_Management_System.Data;
 
 namespace kingdom_Preparatory_School_Management_System
 {
     public partial class frmFess : Form
     {
-        private readonly kum Aikins = new kum();
+        private readonly IFeeRepository _feeRepository;
         private DataGridView feesGrid;
         private TextBox searchBox;
         private Label resultLabel;
         private DataTable feesTable;
 
-        private static readonly Color PageBackColor = Color.FromArgb(246, 248, 251);
-        private static readonly Color SurfaceColor = Color.White;
-        private static readonly Color SidebarBackColor = Color.FromArgb(17, 35, 58);
-        private static readonly Color PrimaryColor = Color.FromArgb(31, 99, 198);
-        private static readonly Color TextColor = Color.FromArgb(25, 36, 49);
-        private static readonly Color MutedTextColor = Color.FromArgb(93, 108, 123);
-        private static readonly Color BorderColor = Color.FromArgb(219, 226, 236);
+        private static readonly Color PageBackColor = UiTheme.Page;
+        private static readonly Color SurfaceColor = UiTheme.Surface;
+        private static readonly Color SidebarBackColor = UiTheme.Navy;
+        private static readonly Color PrimaryColor = UiTheme.Navy;
+        private static readonly Color TextColor = UiTheme.Text;
+        private static readonly Color MutedTextColor = UiTheme.Muted;
+        private static readonly Color BorderColor = UiTheme.Border;
 
         public frmFess()
         {
             InitializeComponent();
+            
+            // Initialize modern architecture
+            _feeRepository = new FeeRepository(AppConfig.ConnectionString);
+
             BuildModernFeesView();
             NavigationSidebar.AddTo(this);
         }
@@ -60,7 +64,7 @@ namespace kingdom_Preparatory_School_Management_System
             title.Controls.Add(new Label { Dock = DockStyle.Bottom, Height = 28, Text = "Review fee records and open payment collection", ForeColor = MutedTextColor, Font = new Font("Segoe UI", 10F), TextAlign = ContentAlignment.MiddleLeft });
             var actions = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.RightToLeft, BackColor = PageBackColor, Padding = new Padding(0, 12, 0, 0) };
             actions.Controls.Add(CreatePrimaryButton("Make Payment", () => new frmFessPayment().Show()));
-            actions.Controls.Add(CreateSecondaryButton("Refresh", LoadFees));
+            actions.Controls.Add(CreateSecondaryButton("Refresh", async () => await LoadFees()));
             header.Controls.Add(title, 0, 0);
             header.Controls.Add(actions, 1, 0);
             return header;
@@ -86,14 +90,8 @@ namespace kingdom_Preparatory_School_Management_System
         private Control BuildGridShell()
         {
             var shell = new Panel { Dock = DockStyle.Fill, BackColor = SurfaceColor, BorderStyle = BorderStyle.FixedSingle, Padding = new Padding(1) };
-            feesGrid = new DataGridView { Dock = DockStyle.Fill, BackgroundColor = SurfaceColor, BorderStyle = BorderStyle.None, AllowUserToAddRows = false, AllowUserToDeleteRows = false, ReadOnly = true, RowHeadersVisible = false, AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill, SelectionMode = DataGridViewSelectionMode.FullRowSelect, EnableHeadersVisualStyles = false };
-            feesGrid.ColumnHeadersDefaultCellStyle.BackColor = SidebarBackColor;
-            feesGrid.ColumnHeadersDefaultCellStyle.ForeColor = Color.White;
-            feesGrid.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI Semibold", 9.5F, FontStyle.Bold);
-            feesGrid.DefaultCellStyle.SelectionBackColor = Color.FromArgb(219, 234, 254);
-            feesGrid.DefaultCellStyle.SelectionForeColor = TextColor;
-            feesGrid.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(248, 250, 252);
-            feesGrid.GridColor = BorderColor;
+            feesGrid = new DataGridView { Dock = DockStyle.Fill, BackgroundColor = SurfaceColor, BorderStyle = BorderStyle.None, AllowUserToAddRows = false, AllowUserToDeleteRows = false, ReadOnly = true, RowHeadersVisible = false, AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.DisplayedCells, SelectionMode = DataGridViewSelectionMode.FullRowSelect, EnableHeadersVisualStyles = false };
+            UiTheme.StyleDataGrid(feesGrid);
             shell.Controls.Add(feesGrid);
             return shell;
         }
@@ -123,24 +121,18 @@ namespace kingdom_Preparatory_School_Management_System
             return button;
         }
 
-        private void LoadFees()
+        private async System.Threading.Tasks.Task LoadFees()
         {
             try
             {
-                string query = @"SELECT FeeID AS [FEE ID], StudentID AS [STUDENT ID], ClassID AS [CLASS ID], FeeName AS [FEE NAME], Amount AS [AMOUNT] FROM dbo.fees ORDER BY FeeID DESC";
-                using (OleDbConnection con = new OleDbConnection(Aikins.constr))
-                using (OleDbCommand command = new OleDbCommand(query, con))
-                using (OleDbDataAdapter adapter = new OleDbDataAdapter(command))
-                {
-                    feesTable = new DataTable();
-                    adapter.Fill(feesTable);
-                    feesGrid.DataSource = feesTable;
-                    ApplyFilter();
-                }
+                resultLabel.Text = "Loading fees...";
+                feesTable = await _feeRepository.GetFeesTableAsync();
+                feesGrid.DataSource = feesTable;
+                ApplyFilter();
             }
             catch (Exception ex)
             {
-                MessageBox.Show("An error occurred: " + ex.Message, "Fees", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                UIHelper.ShowError("An error occurred: " + ex.Message, "Fees");
             }
         }
 
@@ -152,14 +144,11 @@ namespace kingdom_Preparatory_School_Management_System
             resultLabel.Text = feesTable.DefaultView.Count + " fee record(s)";
         }
 
-        private void frmFess_Load(object sender, EventArgs e) { LoadFees(); }
+        private async void frmFess_Load(object sender, EventArgs e) { await LoadFees(); }
         private void btnEdit_Click(object sender, EventArgs e) { new frmFessPayment().Show(); }
-        private void btnNew_Click(object sender, EventArgs e) { LoadFees(); }
+        private async void btnNew_Click(object sender, EventArgs e) { await LoadFees(); }
         private void gunaPictureBox1_Click(object sender, EventArgs e) { Close(); }
         private void gunaPictureBox2_Click(object sender, EventArgs e) { WindowState = FormWindowState.Minimized; }
         private void gunaPictureBox3_Click(object sender, EventArgs e) { WindowState = WindowState == FormWindowState.Maximized ? FormWindowState.Normal : FormWindowState.Maximized; }
-        private void gunaPanel1_Paint(object sender, PaintEventArgs e) { }
-        private void panel1_Paint(object sender, PaintEventArgs e) { }
-        private void gunaPanel2_Paint(object sender, PaintEventArgs e) { }
     }
 }

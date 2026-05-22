@@ -240,58 +240,29 @@ namespace kingdom_Preparatory_School_Management_System
 
         }
 
-        private void LoginUser()
+        private async void LoginUser()
         {
             string username = TXTUser.Text.Trim();
             string password = TXTPass.Text;
 
-            // Validate input using centralized validation
-            string validationError = AuthService.ValidateLoginCredentials(username, password);
-            if (!string.IsNullOrEmpty(validationError))
+            if (statusLabel != null) statusLabel.Text = "Authenticating...";
+            
+            var (success, message) = await AuthService.LoginAsync(username, password);
+
+            if (success)
             {
-                if (statusLabel != null) statusLabel.Text = validationError;
-                ErrorHandler.ShowWarning("Validation Error", validationError);
-                TXTUser.Focus();
-                return;
+                if (statusLabel != null) statusLabel.Text = "Login successful.";
+                UIHelper.ShowSuccess("Welcome! Loading dashboard...", "Login Success");
+
+                // Open dashboard and close login
+                new frmDashboard().Show();
+                this.Close();
             }
-
-            try
+            else
             {
-                using (var connection = new OleDbConnection(AppConfig.ConnectionString))
-                using (var command = new OleDbCommand("SELECT [Password] FROM Users WHERE Username = ?", connection))
-                {
-                    command.Parameters.Add("?", OleDbType.VarChar).Value = username;
-                    connection.Open();
-
-                    string storedPassword = Convert.ToString(command.ExecuteScalar());
-
-                    if (string.IsNullOrEmpty(storedPassword) || !AuthService.VerifyPassword(password, storedPassword))
-                    {
-                        if (statusLabel != null) statusLabel.Text = "Invalid username or password.";
-                        ErrorHandler.HandleAuthenticationError();
-                        ClearLoginForm();
-                        return;
-                    }
-
-                    TryUpgradePasswordHash(connection, username, password, storedPassword);
-                    if (statusLabel != null) statusLabel.Text = "Login successful.";
-                    ErrorHandler.ShowInfo("Success", "Welcome! Loading dashboard...");
-
-                    // Open dashboard as a new window instead of hiding login
-                    frmDashboard dashboard = new frmDashboard();
-                    dashboard.Show();
-
-                    // Close login form to cleanup
-                    this.Close();
-                }
-            }
-            catch (DataException ex)
-            {
-                ErrorHandler.HandleDataAccessError("authenticate user", ex);
-            }
-            catch (Exception ex)
-            {
-                ErrorHandler.HandleError("Login Error", "An unexpected error occurred during login.", ex);
+                if (statusLabel != null) statusLabel.Text = message;
+                UIHelper.ShowWarning(message, "Login Failed");
+                ClearLoginForm();
             }
         }
 

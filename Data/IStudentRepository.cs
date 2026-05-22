@@ -17,5 +17,9 @@ namespace kingdom_Preparatory_School_Management_System.Data
         Task<bool> DeleteAsync(string studentId);
         Task<bool> ExistsAsync(string studentId);
         Task<string> GenerateNextStudentIdAsync();
+        Task<DataTable> GetAsTableAsync(string filterId = null, string filterClass = null);
+        Task<bool> UpdateStudentClassBatchAsync(IEnumerable<string> studentIds, string newClassId);
+        Task<bool> RollOutAsync(string studentId);
+        Task<DataTable> GetRolledOutAsTableAsync();
     }
 }

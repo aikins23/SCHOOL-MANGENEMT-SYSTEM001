@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using kingdom_Preparatory_School_Management_System.Common;
+using kingdom_Preparatory_School_Management_System.Data;
 
 namespace kingdom_Preparatory_School_Management_System.Services
 {
@@ -10,15 +11,17 @@ namespace kingdom_Preparatory_School_Management_System.Services
     /// </summary>
     public class StudentService
     {
-        private readonly Data.IStudentRepository _repository;
+        private readonly IStudentRepository _repository;
+        private readonly IFeeRepository _feeRepository;
 
-        public StudentService(Data.IStudentRepository repository)
+        public StudentService(IStudentRepository repository, IFeeRepository feeRepository)
         {
             _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+            _feeRepository = feeRepository ?? throw new ArgumentNullException(nameof(feeRepository));
         }
 
         /// <summary>
-        /// Adds a new student after validation
+        /// Adds a new student and their initial fee records after validation
         /// </summary>
         public async Task<(bool Success, string Message)> AddStudentAsync(Models.Student student)
         {
@@ -31,22 +34,25 @@ namespace kingdom_Preparatory_School_Management_System.Services
                     return (false, validationResult.ErrorMessage);
                 }
 
-                // Check if student already exists
-                if (await _repository.ExistsAsync(student.StudentID))
+                // Check if student already exists (if ID provided)
+                if (!string.IsNullOrWhiteSpace(student.StudentID) && await _repository.ExistsAsync(student.StudentID))
                 {
                     return (false, "Student with this ID already exists");
                 }
 
-                // Generate ID if not provided
-                if (string.IsNullOrWhiteSpace(student.StudentID))
+                // Add student to database
+                var result = await _repository.AddAsync(student);
+                if (!result)
                 {
-                    student.StudentID = await _repository.GenerateNextStudentIdAsync();
+                    return (false, "Failed to add student to database");
                 }
 
-                var result = await _repository.AddAsync(student);
-                return result 
-                    ? (true, $"Student {student.FullName} added successfully") 
-                    : (false, "Failed to add student");
+                // Handle initial fee records
+                decimal fee = GetFeeForClass(student.ClassID);
+                await _feeRepository.AddInitialFeeRecordAsync(student.StudentID, student.ClassID, fee);
+                await _feeRepository.AddInitialPaymentRecordAsync(student.StudentID, student.ClassID, student.FullName, fee);
+
+                return (true, $"Student {student.FullName} added successfully with opening fee record");
             }
             catch (Exception ex)
             {
@@ -55,7 +61,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
         }
 
         /// <summary>
-        /// Updates an existing student
+        /// Updates an existing student and their fee records
         /// </summary>
         public async Task<(bool Success, string Message)> UpdateStudentAsync(Models.Student student)
         {
@@ -74,9 +80,17 @@ namespace kingdom_Preparatory_School_Management_System.Services
                 }
 
                 var result = await _repository.UpdateAsync(student);
-                return result 
-                    ? (true, $"Student {student.FullName} updated successfully") 
-                    : (false, "Failed to update student");
+                if (!result)
+                {
+                    return (false, "Failed to update student in database");
+                }
+
+                // Update fee records
+                decimal fee = GetFeeForClass(student.ClassID);
+                await _feeRepository.UpdateFeeRecordAsync(student.StudentID, student.ClassID, fee);
+                await _feeRepository.UpdatePaymentRecordAsync(student.StudentID, student.ClassID, student.FullName, fee);
+
+                return (true, $"Student {student.FullName} updated successfully");
             }
             catch (Exception ex)
             {
@@ -145,6 +159,82 @@ namespace kingdom_Preparatory_School_Management_System.Services
             return await _repository.GenerateNextStudentIdAsync();
         }
 
+        public async Task<DataTable> GetStudentsTableAsync(string filterId = null, string filterClass = null)
+        {
+            return await _repository.GetAsTableAsync(filterId, filterClass);
+        }
+
+        public async Task<DataTable> GetRolledOutStudentsTableAsync()
+        {
+            return await _repository.GetRolledOutAsTableAsync();
+        }
+
+        public async Task<(bool Success, string Message)> PromoteStudentsAsync(IEnumerable<string> studentIds, string targetClassId)
+        {
+            if (studentIds == null || !studentIds.Any()) return (false, "No students selected for promotion.");
+            if (string.IsNullOrWhiteSpace(targetClassId)) return (false, "Target class is required.");
+
+            try
+            {
+                bool result = await _repository.UpdateStudentClassBatchAsync(studentIds, targetClassId);
+                return result 
+                    ? (true, $"{studentIds.Count()} student(s) promoted to {targetClassId} successfully.") 
+                    : (false, "Failed to promote students.");
+            }
+            catch (Exception ex)
+            {
+                return (false, "Error during promotion: " + ex.Message);
+            }
+        }
+
+        public async Task<(bool Success, string Message)> RollOutStudentAsync(string studentId)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(studentId)) return (false, "Student ID is required.");
+                bool result = await _repository.RollOutAsync(studentId);
+                return result 
+                    ? (true, "Student rolled out successfully.") 
+                    : (false, "Failed to roll out student.");
+            }
+            catch (Exception ex)
+            {
+                return (false, "Error during roll out: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Calculates the fee based on class
+        /// </summary>
+        public decimal GetFeeForClass(string classId)
+        {
+            if (string.IsNullOrWhiteSpace(classId)) return 1200m;
+
+            switch (classId.Trim().ToUpperInvariant())
+            {
+                case "CRECHE":
+                    return 2000m;
+                case "NURSERY 1":
+                    return 3450m;
+                case "NURSERY 2":
+                    return 3750m;
+                case "KINDERGARTEN 1":
+                    return 3654m;
+                case "KINDERGARTEN 2":
+                case "BASIC 1":
+                case "BASIC 2":
+                case "BASIC 3":
+                case "BASIC 4":
+                case "BASIC 5":
+                case "BASIC 6":
+                case "BASIC 7":
+                case "BASIC 8":
+                    return 2423m;
+                default:
+                    return 1200m;
+            }
+        }
+
         /// <summary>
         /// Validates student data using centralized ValidationHelper
         /// </summary>
@@ -172,8 +262,8 @@ namespace kingdom_Preparatory_School_Management_System.Services
                 return new ValidationResult(false, "Date of birth must be in the past");
 
             var age = student.GetAge();
-            if (age < 2 || age > 25)
-                return new ValidationResult(false, "Student age must be between 2 and 25 years");
+            if (age < AppConfig.MinStudentAge || age > AppConfig.MaxStudentAge)
+                return new ValidationResult(false, $"Student age must be between {AppConfig.MinStudentAge} and {AppConfig.MaxStudentAge} years");
 
             if (!ValidationHelper.IsNotEmpty(student.Gender))
                 return new ValidationResult(false, "Gender is required");

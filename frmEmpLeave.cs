@@ -1,26 +1,22 @@
-﻿using kingdom_Preparatory_School_Management_System;
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Data.OleDb;
+﻿using System;
 using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
+using kingdom_Preparatory_School_Management_System.Common;
+using kingdom_Preparatory_School_Management_System.Data;
+using kingdom_Preparatory_School_Management_System.Services;
+using kingdom_Preparatory_School_Management_System.Models;
 
 namespace kingdom_Preparatory_School_Management_System
 {
     public partial class frmEmpLeave : Form
     {
+        private readonly LeaveService _leaveService;
+        private readonly EmployeeService _employeeService;
         private Label statusLabel;
 
         private static readonly Color PageBackColor = Color.FromArgb(246, 248, 251);
         private static readonly Color SurfaceColor = Color.White;
         private static readonly Color PrimaryColor = Color.FromArgb(31, 99, 198);
-        private static readonly Color SidebarBackColor = Color.FromArgb(17, 35, 58);
         private static readonly Color TextColor = Color.FromArgb(25, 36, 49);
         private static readonly Color MutedTextColor = Color.FromArgb(93, 108, 123);
         private static readonly Color BorderColor = Color.FromArgb(219, 226, 236);
@@ -28,9 +24,16 @@ namespace kingdom_Preparatory_School_Management_System
         public frmEmpLeave()
         {
             InitializeComponent();
+
+            // Initialize modern architecture
+            var leaveRepo = new LeaveRepository(AppConfig.ConnectionString);
+            _leaveService = new LeaveService(leaveRepo);
+            
+            var employeeRepo = new EmployeeRepository(AppConfig.ConnectionString);
+            _employeeService = new EmployeeService(employeeRepo);
+
             BuildModernLeaveView();
         }
-        kum Aikins = new kum();
 
         private void BuildModernLeaveView()
         {
@@ -428,259 +431,94 @@ namespace kingdom_Preparatory_School_Management_System
             return button;
         }
 
-        private void frmEmpLeave_Load(object sender, EventArgs e)
-        {
-
-        }
-
-        private void closeApplicationToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            Application.Exit();
-        }
-
-        private void gunaPictureBox1_Click(object sender, EventArgs e)
-        {
-            Application.Exit();
-        }
-
-        private void gunaPictureBox2_Click(object sender, EventArgs e)
-        {
-            this.WindowState = FormWindowState.Minimized;
-
-        }
-
-        private void gunaPictureBox3_Click(object sender, EventArgs e)
-        {
-            if (this.WindowState == FormWindowState.Maximized)
-            {
-                this.WindowState = FormWindowState.Normal;
-            }
-            else
-            {
-                this.WindowState = FormWindowState.Maximized;
-            }
-        }
-
-        private void gunaButton2_Click(object sender, EventArgs e)
-        {
-            SubmitLeave();
-        }
-
-        private void SubmitLeave()
+        private async void SubmitLeave()
         {
             try
             {
-                if (!int.TryParse(txtEmployeeId.Text.Trim(), out _))
+                string employeeId = txtEmployeeId.Text.Trim();
+                if (string.IsNullOrWhiteSpace(employeeId))
                 {
-                    MessageBox.Show("Enter a valid employee ID.", "Leave Application", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    UIHelper.ShowWarning("Enter an employee ID.", "Leave Application");
                     return;
                 }
 
-                if (string.IsNullOrWhiteSpace(txtName.Text) || txtName.Text == "NO data Found")
+                if (string.IsNullOrWhiteSpace(txtName.Text))
                 {
-                    MessageBox.Show("Load a valid employee before submitting leave.", "Leave Application", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    UIHelper.ShowWarning("Load a valid employee before submitting leave.", "Leave Application");
                     return;
                 }
 
-                if (dtpenddate.Value.Date < dtpdatestart.Value.Date)
+                var request = new LeaveRequest
                 {
-                    MessageBox.Show("End date cannot be before start date.", "Leave Application", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    return;
-                }
+                    EmployeeID = employeeId,
+                    EmployeeName = txtName.Text.Trim(),
+                    Department = txtdepartment.Text.Trim(),
+                    Position = txtposition.Text.Trim(),
+                    LeaveOption = rdpay.Checked ? "With Pay" : "Without Pay",
+                    Reason = GetSelectedReason(),
+                    StartDate = dtpdatestart.Value.Date,
+                    EndDate = dtpenddate.Value.Date
+                };
 
-                string rdoleaveformat = "", rdoleaveapplied = "";
+                statusLabel.Text = "Submitting application...";
+                var (success, message) = await _leaveService.ApplyForLeaveAsync(request);
 
-                if (rdwPay.Checked)
+                if (success)
                 {
-                    rdoleaveformat = "Without Pay";
+                    statusLabel.Text = message;
+                    UIHelper.ShowSuccess(message, "Leave Application");
+                    ClearForm();
                 }
-                else if (rdpay.Checked)
+                else
                 {
-                    rdoleaveformat = "With Pay";
+                    statusLabel.Text = "Submission failed.";
+                    UIHelper.ShowError(message, "Leave Application");
                 }
-
-                if (rdoSick.Checked)
-                {
-                    rdoleaveapplied = "Sick";
-                }
-                else if (rdoVacation.Checked)
-                {
-                    rdoleaveapplied = "Vacation";
-                }
-                else if (rdoFuneral.Checked)
-                {
-                    rdoleaveapplied = "Funeral";
-                }
-                else if (rdoPaternity.Checked)
-                {
-                    rdoleaveapplied = "Paternity";
-                }
-                else if (rdoMaternity.Checked)
-                {
-                    rdoleaveapplied = "Maternity";
-                }
-                else if (rdoAcidentOnDuty.Checked)
-                {
-                    rdoleaveapplied = "Accident On Duty";
-                }
-
-                Aikins.query = "INSERT INTO [emp_leave] ([employmentID], [name], [department], [position], [Leave_op], [Reasons], [Start_Date], [End_Date], [status]) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
-                using (OleDbConnection con = new OleDbConnection(Aikins.constr))
-                using (OleDbCommand cmd = new OleDbCommand(Aikins.query, con))
-                {
-                    cmd.Parameters.AddWithValue("@EmploymentID", txtEmployeeId.Text);
-                    cmd.Parameters.AddWithValue("@Name", txtName.Text);
-                    cmd.Parameters.AddWithValue("@Department", txtdepartment.Text);
-                    cmd.Parameters.AddWithValue("@Position", txtposition.Text);
-                    cmd.Parameters.AddWithValue("@LeaveOp", rdoleaveformat);
-                    cmd.Parameters.AddWithValue("@Reasons", rdoleaveapplied);
-                    cmd.Parameters.AddWithValue("@StartDate", dtpdatestart.Value.Date);
-                    cmd.Parameters.AddWithValue("@EndDate", dtpenddate.Value.Date);
-                    cmd.Parameters.AddWithValue("@status", "PENDING");
-
-
-                    con.Open();
-                    int rowsAffected = cmd.ExecuteNonQuery();
-                    if (rowsAffected > 0)
-                    {
-                        if (statusLabel != null) statusLabel.Text = "Leave application submitted.";
-                        MessageBox.Show("LEAVE APPLICATION WAS SUCCESSFUL.");
-                    }
-                    else
-                    {
-                        MessageBox.Show("LEAVE APPLICATION WAS UNSUCCESSFUL.");
-                    }
-                }
-         
-
-
             }
-
-
-            catch (Exception ex)
-            {
-                MessageBox.Show("Error: " + ex.Message);
-            }
+            catch (Exception ex) { UIHelper.ShowError(ex.Message, "Leave Application"); }
         }
 
-        private void txtEmployeeId_TextChanged(object sender, EventArgs e)
+        private string GetSelectedReason()
         {
-            if (!int.TryParse(txtEmployeeId.Text.Trim(), out _))
+            if (rdoSick.Checked) return "Sick";
+            if (rdoVacation.Checked) return "Vacation";
+            if (rdoFuneral.Checked) return "Funeral";
+            if (rdoPaternity.Checked) return "Paternity";
+            if (rdoMaternity.Checked) return "Maternity";
+            if (rdoAcidentOnDuty.Checked) return "Accident On Duty";
+            return "Other";
+        }
+
+        private async void txtEmployeeId_TextChanged(object sender, EventArgs e)
+        {
+            string employeeId = txtEmployeeId.Text.Trim();
+            if (string.IsNullOrWhiteSpace(employeeId))
             {
                 txtName.Text = "";
                 txtdepartment.Text = "";
                 txtposition.Text = "";
-                if (statusLabel != null) statusLabel.Text = "Enter a numeric employee ID.";
                 return;
             }
 
             try
             {
-                Aikins.query = "SELECT [fullName], [department], [position] FROM [Employee] WHERE [employmentID] = ?";
-                using (OleDbConnection con = new OleDbConnection(Aikins.constr))
-                using (OleDbCommand command = new OleDbCommand(Aikins.query, con))
-                using (OleDbDataAdapter adapter = new OleDbDataAdapter(command))
+                var employee = await _employeeService.GetEmployeeAsync(employeeId);
+                if (employee != null)
                 {
-                    command.Parameters.AddWithValue("@employmentID", txtEmployeeId.Text);
-                    DataTable employees = new DataTable();
-                    adapter.Fill(employees);
-
-                    if (employees.Rows.Count > 0)
-                    {
-                        DataRow r = employees.Rows[0];
-                        txtName.Text = r["fullName"].ToString();
-                        txtdepartment.Text = r["department"].ToString();
-                        txtposition.Text = r["position"].ToString();
-                        if (statusLabel != null) statusLabel.Text = "Employee loaded.";
-                    }
-                    else
-                    {
-                        txtName.Text = "";
-                        txtdepartment.Text = "";
-                        txtposition.Text = "";
-                        if (statusLabel != null) statusLabel.Text = "Employee not found.";
-                    }
+                    txtName.Text = employee.FullName;
+                    txtdepartment.Text = employee.Department;
+                    txtposition.Text = employee.Position;
+                    statusLabel.Text = "Employee loaded.";
+                }
+                else
+                {
+                    txtName.Text = "";
+                    txtdepartment.Text = "";
+                    txtposition.Text = "";
+                    statusLabel.Text = "Employee not found.";
                 }
             }
-            catch (Exception ex)
-            {
-                MessageBox.Show("An error occurred: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-        }
-
-        private void Label3_Click(object sender, EventArgs e)
-        {
-
-        }
-
-        private void Label6_Click(object sender, EventArgs e)
-        {
-
-        }
-
-        private void Label5_Click(object sender, EventArgs e)
-        {
-
-        }
-
-        private void Label4_Click(object sender, EventArgs e)
-        {
-
-        }
-
-        private void rdpay_CheckedChanged(object sender, EventArgs e)
-        {
-
-        }
-
-        private void rdwPay_CheckedChanged(object sender, EventArgs e)
-        {
-
-        }
-
-        private void rdoSick_CheckedChanged(object sender, EventArgs e)
-        {
-
-        }
-
-        private void rdoVacation_CheckedChanged(object sender, EventArgs e)
-        {
-
-        }
-
-        private void rdoFuneral_CheckedChanged(object sender, EventArgs e)
-        {
-
-        }
-
-        private void rdoAcidentOnDuty_CheckedChanged(object sender, EventArgs e)
-        {
-
-        }
-
-        private void rdoMaternity_CheckedChanged(object sender, EventArgs e)
-        {
-
-        }
-
-        private void rdoPaternity_CheckedChanged(object sender, EventArgs e)
-        {
-
-        }
-
-        private void dtpdatestart_ValueChanged(object sender, EventArgs e)
-        {
-
-        }
-
-        private void txtName_TextChanged(object sender, EventArgs e)
-        {
-
-        }
-
-        private void guna2HtmlLabel1_Click(object sender, EventArgs e)
-        {
-
+            catch { statusLabel.Text = "Lookup error."; }
         }
 
         private void ClearForm()
@@ -693,62 +531,9 @@ namespace kingdom_Preparatory_School_Management_System
             rdoSick.Checked = true;
             dtpdatestart.Value = DateTime.Today;
             dtpenddate.Value = DateTime.Today;
-            if (statusLabel != null) statusLabel.Text = "Ready.";
+            statusLabel.Text = "Ready.";
         }
 
-        // Call ClearForm method where needed, for example, on a button click event
-        private void btnClear_Click(object sender, EventArgs e)
-        {
-            ClearForm();
-        }
-
-        private void studentsToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            new frmAddStd().Show();
-
-        }
-
-        private void employersToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            new frmEmployee().Show();
-        }
-
-        private void classToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            new EXAMS().Show();
-        }
-
-        private void studentsToolStripMenuItem1_Click(object sender, EventArgs e)
-        {
-            new frmStdView().Show();
-        }
-
-        private void employersToolStripMenuItem1_Click(object sender, EventArgs e)
-        {
-            new frmEmpView().Show();
-        }
-
-        private void classToolStripMenuItem1_Click(object sender, EventArgs e)
-        {
-            new EXAMSVIEW().Show();
-        }
-
-        private void makePaymentToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            new frmFessPayment().Show();
-        }
-
-        private void aboutToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            new frmAbout().Show();
-        }
-
-        private void gunaButton1_Click(object sender, EventArgs e)
-        {
-        }
-
-        
+        private void btnClear_Click(object sender, EventArgs e) { ClearForm(); }
     }
 }
- 
-  

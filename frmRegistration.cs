@@ -262,63 +262,28 @@ namespace kingdom_Preparatory_School_Management_System
 
         }
 
-        private void RegisterUser()
+        private async void RegisterUser()
         {
             string username = TXTUsers.Text.Trim();
             string password = TXTPass.Text;
             string confirmPassword = TXTCON_Pass.Text;
             string userType = Cmb_userTY.Text.Trim();
 
-            string validationMessage = AuthService.ValidateRegistration(username, password, confirmPassword, userType);
-            if (!string.IsNullOrWhiteSpace(validationMessage))
+            if (statusLabel != null) statusLabel.Text = "Creating account...";
+
+            var (success, message) = await AuthService.RegisterAsync(username, password, confirmPassword, userType);
+
+            if (success)
             {
-                if (statusLabel != null) statusLabel.Text = validationMessage;
-                MessageBox.Show(validationMessage, "Registration failed", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
-            try
-            {
-                using (var connection = new OleDbConnection(Common.AppConfig.ConnectionString))
-                {
-                    connection.Open();
-                    AuthService.EnsurePasswordColumns(connection);
-
-                    if (UsernameExists(connection, username))
-                    {
-                        if (statusLabel != null) statusLabel.Text = "Username already exists.";
-                        MessageBox.Show("Username already exists. Choose another username.", "Registration failed", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                        TXTUsers.Focus();
-                        return;
-                    }
-
-                    string passwordHash = AuthService.HashPassword(password);
-                    using (var command = new OleDbCommand("INSERT INTO Users (Username, [Password], Con_Password, User_Type) VALUES (?, ?, ?, ?)", connection))
-                    {
-                        command.Parameters.Add("?", OleDbType.VarChar).Value = username;
-                        command.Parameters.Add("?", OleDbType.VarChar).Value = passwordHash;
-                        command.Parameters.Add("?", OleDbType.VarChar).Value = passwordHash;
-                        command.Parameters.Add("?", OleDbType.VarChar).Value = userType;
-                        command.ExecuteNonQuery();
-                    }
-                }
-
-                MessageBox.Show("Your registration was successful", "Congratulations", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 if (statusLabel != null) statusLabel.Text = "Registration successful.";
+                UIHelper.ShowSuccess("Your registration was successful. You can now log in.", "Congratulations");
                 ClearRegistrationForm();
             }
-            catch (Exception ex)
+            else
             {
-                MessageBox.Show("Error: " + ex.Message, "Registration failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-        }
-
-        private bool UsernameExists(OleDbConnection connection, string username)
-        {
-            using (var command = new OleDbCommand("SELECT COUNT(*) FROM Users WHERE Username = ?", connection))
-            {
-                command.Parameters.Add("?", OleDbType.VarChar).Value = username;
-                return Convert.ToInt32(command.ExecuteScalar()) > 0;
+                if (statusLabel != null) statusLabel.Text = message;
+                UIHelper.ShowWarning(message, "Registration Failed");
+                if (message.Contains("username")) TXTUsers.Focus();
             }
         }
 
