@@ -198,6 +198,7 @@
     <Compile Include="Data\AttendanceRepository.cs" />
     <Compile Include="Data\IAttendanceRepository.cs" />
     <Compile Include="Data\DashboardRepository.cs" />
+    <Compile Include="Data\EmployeeRepository.cs" />
     <Compile Include="Data\IEmployeeRepository.cs" />
     <Compile Include="Data\IStudentRepository.cs" />
     <Compile Include="Data\StudentRepository.cs" />
