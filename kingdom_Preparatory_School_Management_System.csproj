@@ -199,9 +199,12 @@
     <Compile Include="Data\IAttendanceRepository.cs" />
     <Compile Include="Data\DashboardRepository.cs" />
     <Compile Include="Data\IEmployeeRepository.cs" />
-    <Compile Include="Data\EmployeeRepository.cs" />
     <Compile Include="Data\IStudentRepository.cs" />
     <Compile Include="Data\StudentRepository.cs" />
+    <Compile Include="Data\IClassRepository.cs" />
+    <Compile Include="Data\ClassRepository.cs" />
+    <Compile Include="Data\ILeaveRepository.cs" />
+    <Compile Include="Data\LeaveRepository.cs" />
     <Compile Include="EmpleaveView.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -247,6 +250,9 @@
     </Compile>
     <Compile Include="frmAttendance.cs">
       <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmAttendance.Designer.cs">
+      <DependentUpon>frmAttendance.cs</DependentUpon>
     </Compile>
     <Compile Include="frmClassAdmin.cs">
       <SubType>Form</SubType>
@@ -345,6 +351,7 @@
     <Compile Include="load.Designer.cs">
       <DependentUpon>load.cs</DependentUpon>
     </Compile>
+    <Compile Include="Models\ClassConfig.cs" />
     <Compile Include="Models\Employee.cs" />
     <Compile Include="Models\AttendanceRecord.cs" />
     <Compile Include="Models\ExamResult.cs" />
@@ -354,9 +361,11 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Services\AttendanceService.cs" />
     <Compile Include="Services\AuthService.cs" />
+    <Compile Include="Services\ClassService.cs" />
     <Compile Include="Services\DashboardService.cs" />
     <Compile Include="Services\EmployeeService.cs" />
     <Compile Include="Services\ExamService.cs" />
+    <Compile Include="Services\LeaveService.cs" />
     <Compile Include="Services\ReportCardPdfService.cs" />
     <Compile Include="Services\StudentService.cs" />
     <Compile Include="UiTheme.cs" />
