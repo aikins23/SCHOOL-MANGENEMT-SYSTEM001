@@ -96,6 +96,9 @@
       <HintPath>packages\Microsoft.Extensions.Primitives.6.0.0\lib\net461\Microsoft.Extensions.Primitives.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.VisualBasic" />
+    <Reference Include="NLog, Version=5.3.4.0, Culture=neutral, PublicKeyToken=5120e14c03d0593c, processorArchitecture=MSIL">
+      <HintPath>packages\NLog.5.3.4\lib\net45\NLog.dll</HintPath>
+    </Reference>
     <Reference Include="PdfSharp, Version=6.1.0.0, Culture=neutral, PublicKeyToken=f94615aa0424f9eb, processorArchitecture=MSIL">
       <HintPath>packages\PDFsharp.6.1.0\lib\netstandard2.0\PdfSharp.dll</HintPath>
     </Reference>
@@ -380,6 +383,7 @@
     <Compile Include="Services\EmployeeService.cs" />
     <Compile Include="Services\ExamService.cs" />
     <Compile Include="Services\LeaveService.cs" />
+    <Compile Include="Services\LoggerHelper.cs" />
     <Compile Include="Services\ReportCardDataService.cs" />
     <Compile Include="Services\ReportCardManager.cs" />
     <Compile Include="Services\ReportCardPDFGenerator.cs" />
@@ -387,6 +391,7 @@
     <Compile Include="Services\ReportCardPrinter.cs" />
     <Compile Include="Services\StudentService.cs" />
     <Compile Include="UiTheme.cs" />
+    <Compile Include="Tests\LoggerHelperTests.cs" />
     <EmbeddedResource Include="EmpleaveView.resx">
       <DependentUpon>EmpleaveView.cs</DependentUpon>
     </EmbeddedResource>
@@ -452,6 +457,9 @@
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
     <None Include="App.config" />
+    <None Include="NLog.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="ARCHITECTURE_DIAGRAMS.md" />
     <None Include="BEFORE_AND_AFTER.md" />
     <None Include="DataSet1.xsc">
