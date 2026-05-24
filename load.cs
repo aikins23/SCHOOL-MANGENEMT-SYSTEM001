@@ -29,6 +29,7 @@ namespace kingdom_Preparatory_School_Management_System
         {
             try
             {
+                // Load school background image - consider applying blur effect for better text readability
                 this.BackgroundImage = Properties.Resources.school_background;
             }
             catch
