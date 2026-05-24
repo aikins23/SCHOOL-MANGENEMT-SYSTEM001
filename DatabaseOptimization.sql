@@ -174,3 +174,32 @@ GO
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_Rolled_Out_Employees_Department' AND object_id = OBJECT_ID(N'dbo.Rolled_Out_Employees'))
     CREATE INDEX IX_Rolled_Out_Employees_Department ON dbo.Rolled_Out_Employees(department);
 GO
+
+-- StudentTermRemarks table for storing teacher remarks and behavioral observations
+IF OBJECT_ID(N'dbo.StudentTermRemarks', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.StudentTermRemarks
+    (
+        ID int IDENTITY(1,1) NOT NULL CONSTRAINT PK_StudentTermRemarks PRIMARY KEY,
+        StudentID varchar(50) NOT NULL,
+        Term varchar(50) NOT NULL,
+        [Year] varchar(20) NOT NULL,
+        ClassTeacherRemarks varchar(max) NULL,
+        HeadTeacherRemarks varchar(max) NULL,
+        Attitude varchar(500) NULL,
+        Interest varchar(500) NULL,
+        Conduct varchar(500) NULL,
+        CreatedDate datetime NOT NULL CONSTRAINT DF_StudentTermRemarks_CreatedDate DEFAULT (GETDATE()),
+        ModifiedDate datetime NULL,
+        CONSTRAINT UC_StudentTermRemarks UNIQUE(StudentID, Term, [Year])
+    );
+END;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_StudentTermRemarks_StudentID' AND object_id = OBJECT_ID(N'dbo.StudentTermRemarks'))
+    CREATE INDEX IX_StudentTermRemarks_StudentID ON dbo.StudentTermRemarks(StudentID);
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_StudentTermRemarks_TermYear' AND object_id = OBJECT_ID(N'dbo.StudentTermRemarks'))
+    CREATE INDEX IX_StudentTermRemarks_TermYear ON dbo.StudentTermRemarks(Term, [Year]);
+GO
