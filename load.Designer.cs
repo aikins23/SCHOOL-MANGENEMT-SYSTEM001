@@ -90,17 +90,18 @@
             this.gunaPictureBox2.TabStop = false;
             // 
             // load
-            // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(5F, 13F);
+            //
+            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.BackColor = System.Drawing.Color.RoyalBlue;
+            this.BackColor = System.Drawing.Color.White;
             this.ClientSize = new System.Drawing.Size(706, 375);
+            this.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch;
             this.Controls.Add(this.gunaPictureBox2);
             this.Controls.Add(this.gunaLabel1);
             this.Controls.Add(this.gunaPictureBox1);
             this.Controls.Add(this.gunaPanel1);
             this.Font = new System.Drawing.Font("Roboto Cn", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.Sizable;
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
             this.Margin = new System.Windows.Forms.Padding(2, 3, 2, 3);
             this.Name = "load";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
