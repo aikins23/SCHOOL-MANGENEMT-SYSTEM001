@@ -201,6 +201,8 @@
     <Compile Include="Data\IEmployeeRepository.cs" />
     <Compile Include="Data\IStudentRepository.cs" />
     <Compile Include="Data\StudentRepository.cs" />
+    <Compile Include="Data\IStudentTermRemarksRepository.cs" />
+    <Compile Include="Data\StudentTermRemarksRepository.cs" />
     <Compile Include="Data\IClassRepository.cs" />
     <Compile Include="Data\ClassRepository.cs" />
     <Compile Include="Data\ILeaveRepository.cs" />
@@ -344,6 +346,12 @@
     <Compile Include="frmStudentPromotion.cs">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Include="Forms\GenerateReportCardsForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\GenerateReportCardsForm.Designer.cs">
+      <DependentUpon>GenerateReportCardsForm.cs</DependentUpon>
+    </Compile>
     <Compile Include="kum.cs" />
     <Compile Include="load.cs">
       <SubType>Form</SubType>
@@ -356,7 +364,12 @@
     <Compile Include="Models\AttendanceRecord.cs" />
     <Compile Include="Models\ExamResult.cs" />
     <Compile Include="Models\LeaveRequest.cs" />
+    <Compile Include="Models\ReportCardData.cs" />
+    <Compile Include="Models\ReportCardOutputAction.cs" />
+    <Compile Include="Models\SchoolInfo.cs" />
     <Compile Include="Models\Student.cs" />
+    <Compile Include="Models\SubjectResult.cs" />
+    <Compile Include="Models\StudentTermRemarks.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Services\AttendanceService.cs" />
@@ -366,7 +379,11 @@
     <Compile Include="Services\EmployeeService.cs" />
     <Compile Include="Services\ExamService.cs" />
     <Compile Include="Services\LeaveService.cs" />
+    <Compile Include="Services\ReportCardDataService.cs" />
+    <Compile Include="Services\ReportCardManager.cs" />
+    <Compile Include="Services\ReportCardPDFGenerator.cs" />
     <Compile Include="Services\ReportCardPdfService.cs" />
+    <Compile Include="Services\ReportCardPrinter.cs" />
     <Compile Include="Services\StudentService.cs" />
     <Compile Include="UiTheme.cs" />
     <EmbeddedResource Include="EmpleaveView.resx">
