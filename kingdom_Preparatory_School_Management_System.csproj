@@ -724,4 +724,11 @@
     </PropertyGroup>
     <Error Condition="!Exists('packages\Microsoft.Extensions.Logging.Abstractions.6.0.0\build\Microsoft.Extensions.Logging.Abstractions.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\Microsoft.Extensions.Logging.Abstractions.6.0.0\build\Microsoft.Extensions.Logging.Abstractions.targets'))" />
   </Target>
+  <Target Name="CopyResourcesToOutputDirectory" AfterTargets="Build">
+    <ItemGroup>
+      <ResourceFiles Include="Resources\school_background.png" />
+      <ResourceFiles Include="Resources\school_logo.png" />
+    </ItemGroup>
+    <Copy SourceFiles="@(ResourceFiles)" DestinationFolder="$(OutputPath)Resources\" SkipUnchangedFiles="true" />
+  </Target>
 </Project>
