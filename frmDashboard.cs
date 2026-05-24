@@ -49,8 +49,8 @@ public frmDashboard()
     this.FormClosing += FrmDashboard_FormClosing;
 }
 
-private void ApplyRolePermissions()
-{
+        private void ApplyRolePermissions()
+        {
     var role = AuthService.CurrentUser.Role;
     var isUserKnown = AuthService.CurrentUser.IsAuthenticated;
 
@@ -77,8 +77,8 @@ private void ApplyRolePermissions()
     statusLabel.Text = $"Signed in as {AuthService.CurrentUser.Username} ({role})";
 }
 
-private void EnableNavButton(string text, bool enabled)
-{
+        private void EnableNavButton(string text, bool enabled)
+        {
     foreach (Control ctrl in this.Controls)
     {
         if (ctrl is TableLayoutPanel root)
@@ -105,11 +105,10 @@ private void EnableNavButton(string text, bool enabled)
                 }
             }
         }
-    }
-}
+            }
+        }
 
-private void FrmDashboard_FormClosing(object sender, FormClosingEventArgs e)
-...
+        private void FrmDashboard_FormClosing(object sender, FormClosingEventArgs e)
         {
             // When dashboard close button is clicked, close all child forms and exit
             if (e.CloseReason == CloseReason.UserClosing)

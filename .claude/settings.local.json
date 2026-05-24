@@ -30,7 +30,14 @@
       "Bash(cd \"/c/Users/DELL/Downloads/New folder \\(2\\)/IPMC PROJECT BUABENG EMMANUEL AIKINS \\(1\\)/BUABENG EMMANUEL AIKINS - Copy\" && base64 Resources/school_background.png | head -c 100)",
       "Bash(base64 Resources/school_background.png)",
       "Read(//tmp/**)",
-      "Bash(cd \"/c/Users/DELL/Downloads/New folder \\(2\\)/IPMC PROJECT BUABENG EMMANUEL AIKINS \\(1\\)/BUABENG EMMANUEL AIKINS - Copy\" && base64 \"Resources/1639128559275-beb32281-19b0-4e5f-9960-8ff17fb91d6d-removebg-preview.png\" > /tmp/logo_base64.txt && wc -l /tmp/logo_base64.txt)"
+      "Bash(cd \"/c/Users/DELL/Downloads/New folder \\(2\\)/IPMC PROJECT BUABENG EMMANUEL AIKINS \\(1\\)/BUABENG EMMANUEL AIKINS - Copy\" && base64 \"Resources/1639128559275-beb32281-19b0-4e5f-9960-8ff17fb91d6d-removebg-preview.png\" > /tmp/logo_base64.txt && wc -l /tmp/logo_base64.txt)",
+      "Bash(cd \"/c/Users/DELL/Downloads/New folder \\(2\\)/IPMC PROJECT BUABENG EMMANUEL AIKINS \\(1\\)/BUABENG EMMANUEL AIKINS - Copy\" && grep -n \"InitializeTimer\\\\|timer1_Tick\" load.cs)",
+      "Bash(msbuild kingdom_Preparatory_School_Management_System.csproj /p:Configuration=Debug /p:Platform=AnyCPU)",
+      "Bash(dotnet clean *)",
+      "Bash(timeout 10 ./bin/Debug/kingdom_Preparatory_School_Management_System.exe)",
+      "Bash(git rm *)",
+      "Bash(dotnet restore *)",
+      "Bash(MSBuild kingdom_Preparatory_School_Management_System.sln)"
     ]
   }
 }

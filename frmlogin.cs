@@ -273,31 +273,6 @@ namespace kingdom_Preparatory_School_Management_System
             TXTUser.Focus();
         }
 
-        private void TryUpgradePasswordHash(OleDbConnection connection, string username, string password, string storedPassword)
-        {
-            if (AuthService.IsHashedPassword(storedPassword))
-            {
-                return;
-            }
-
-            try
-            {
-                AuthService.EnsurePasswordColumns(connection);
-                string passwordHash = AuthService.HashPassword(password);
-                using (var command = new OleDbCommand("UPDATE Users SET [Password] = ?, Con_Password = ? WHERE Username = ?", connection))
-                {
-                    command.Parameters.Add("?", OleDbType.VarChar).Value = passwordHash;
-                    command.Parameters.Add("?", OleDbType.VarChar).Value = passwordHash;
-                    command.Parameters.Add("?", OleDbType.VarChar).Value = username;
-                    command.ExecuteNonQuery();
-                }
-            }
-            catch
-            {
-                // Keep login working if an older database cannot be upgraded yet.
-            }
-        }
-
         private void BTN_Login_Click_1(object sender, EventArgs e)
         {
             LoginUser();

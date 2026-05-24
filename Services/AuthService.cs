@@ -84,6 +84,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
 
             try
             {
+                await EnsureDatabaseSetupAsync();
                 using (var connection = new OleDbConnection(AppConfig.ConnectionString))
                 {
                     await connection.OpenAsync();
@@ -143,6 +144,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
 
             try
             {
+                await EnsureDatabaseSetupAsync();
                 using (var connection = new OleDbConnection(AppConfig.ConnectionString))
                 {
                     await connection.OpenAsync();
@@ -186,6 +188,64 @@ namespace kingdom_Preparatory_School_Management_System.Services
             catch { }
         }
 
+        public static async System.Threading.Tasks.Task EnsureDatabaseSetupAsync()
+        {
+            try
+            {
+                using (var connection = new OleDbConnection(AppConfig.ConnectionString))
+                {
+                    await connection.OpenAsync();
+                    
+                    // 1. Ensure Users table exists
+                    bool tableExists = false;
+                    var schema = connection.GetSchema("Tables", new[] { null, null, "Users", "TABLE" });
+                    if (schema.Rows.Count > 0) tableExists = true;
+
+                    if (!tableExists)
+                    {
+                        // Use NVARCHAR(MAX) for SQL Server compatibility, or MEMO for Access
+                        string textType = IsSqlServer(connection) ? "NVARCHAR(MAX)" : "MEMO";
+                        string sql = $@"CREATE TABLE Users (
+                            Username VARCHAR(50) NOT NULL PRIMARY KEY,
+                            [Password] {textType} NOT NULL,
+                            Con_Password {textType} NULL,
+                            User_Type VARCHAR(50) NULL
+                        )";
+                        Execute(connection, sql);
+                    }
+                    else
+                    {
+                        // 2. Ensure columns exist (for migration)
+                        var columns = connection.GetSchema("Columns", new[] { null, null, "Users" });
+                        bool hasPassword = false, hasConPassword = false, hasUserType = false;
+                        
+                        foreach (DataRow row in columns.Rows)
+                        {
+                            string col = row["COLUMN_NAME"].ToString().ToUpperInvariant();
+                            if (col == "PASSWORD") hasPassword = true;
+                            if (col == "CON_PASSWORD") hasConPassword = true;
+                            if (col == "USER_TYPE") hasUserType = true;
+                        }
+
+                        string textType = IsSqlServer(connection) ? "NVARCHAR(MAX)" : "MEMO";
+                        if (!hasPassword) Execute(connection, $"ALTER TABLE Users ADD COLUMN [Password] {textType}");
+                        if (!hasConPassword) Execute(connection, $"ALTER TABLE Users ADD COLUMN Con_Password {textType}");
+                        if (!hasUserType) Execute(connection, "ALTER TABLE Users ADD COLUMN User_Type VARCHAR(50)");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("Database setup error: " + ex.Message);
+            }
+        }
+
+        private static bool IsSqlServer(OleDbConnection connection)
+        {
+            string provider = connection.Provider.ToUpperInvariant();
+            return provider.Contains("SQL") || provider.Contains("SQLNCLI") || provider.Contains("MSOLEDBSQL");
+        }
+
         public static void EnsurePasswordColumns(OleDbConnection connection)
         {
             if (connection == null) throw new ArgumentNullException(nameof(connection));
@@ -201,8 +261,10 @@ namespace kingdom_Preparatory_School_Management_System.Services
                     if (col == "CON_PASSWORD") hasConPassword = true;
                     if (col == "USER_TYPE") hasUserType = true;
                 }
-                if (!hasPassword) Execute(connection, "ALTER TABLE Users ADD COLUMN [Password] MEMO");
-                if (!hasConPassword) Execute(connection, "ALTER TABLE Users ADD COLUMN Con_Password MEMO");
+
+                string textType = IsSqlServer(connection) ? "NVARCHAR(MAX)" : "MEMO";
+                if (!hasPassword) Execute(connection, $"ALTER TABLE Users ADD COLUMN [Password] {textType}");
+                if (!hasConPassword) Execute(connection, $"ALTER TABLE Users ADD COLUMN Con_Password {textType}");
                 if (!hasUserType) Execute(connection, "ALTER TABLE Users ADD COLUMN User_Type VARCHAR(50)");
             }
             catch { }
