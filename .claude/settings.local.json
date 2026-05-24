@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(superpowers:systematic-debugging)",
+      "Skill(superpowers:systematic-debugging:*)",
+      "Skill(superpowers:brainstorming)",
+      "Skill(superpowers:brainstorming:*)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Skill(superpowers:writing-plans)",
+      "Skill(superpowers:writing-plans:*)",
+      "Skill(superpowers:subagent-driven-development)",
+      "Skill(superpowers:subagent-driven-development:*)",
+      "Skill(superpowers:using-git-worktrees)",
+      "Skill(superpowers:using-git-worktrees:*)",
+      "Bash(git worktree *)",
+      "Read(//c/Users/DELL/.config/superpowers/worktrees/kingdom-prep/feature/splashscreen-redesign/**)",
+      "Bash(dotnet build *)",
+      "Bash(nuget restore *)",
+      "Bash(where msbuild *)",
+      "PowerShell($MSBuildPath = \"C:\\\\Program Files\\\\Microsoft Visual Studio\\\\2022\\\\Community\\\\MSBuild\\\\Current\\\\Bin\\\\MSBuild.exe\"; if \\(Test-Path $MSBuildPath\\) { & $MSBuildPath /version } else { \"MSBuild not found at standard location\"; Get-ChildItem \"C:\\\\Program Files\\\\Microsoft Visual Studio\" -Recurse -Filter \"MSBuild.exe\" -ErrorAction SilentlyContinue | Select-Object -First 5 FullName })",
+      "Skill(superpowers:finishing-a-development-branch)",
+      "Skill(superpowers:finishing-a-development-branch:*)",
+      "Bash(git checkout *)",
+      "Bash(git branch *)",
+      "Bash(git reset *)",
+      "Bash(Get-ChildItem -Recurse -Filter \"load.cs\" -ErrorAction SilentlyContinue)",
+      "Bash(Select-Object -First 5)"
+    ]
+  }
+}

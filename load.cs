@@ -12,7 +12,6 @@ namespace kingdom_Preparatory_School_Management_System
 {
     public partial class load : Form
     {
-        private Timer timer1;
         private Timer animationTimer;
         private int dotAnimationTicks = 0;
         private int dotOpacityPhase = 0;
@@ -23,15 +22,7 @@ namespace kingdom_Preparatory_School_Management_System
         {
             InitializeComponent();
             UiTheme.Apply(this);
-            InitializeTimer();
-        }
-
-        private void InitializeTimer()
-        {
-            timer1 = new Timer();
-            timer1.Interval = 500; // Set the interval (in milliseconds) as needed
-            timer1.Tick += new EventHandler(timer1_Tick);
-            timer1.Start();
+            // Animation initialized in load_Load
         }
 
         private void load_Load(object sender, EventArgs e)
@@ -109,16 +100,5 @@ namespace kingdom_Preparatory_School_Management_System
             fadeTimer.Start();
         }
 
-        private void timer1_Tick(object sender, EventArgs e)
-        {
-            loader.Width += 25;
-            if (loader.Width >= 599)
-            {
-                timer1.Stop();
-                frmlogin frm = new frmlogin();
-                frm.Show();
-                this.Hide();
-            }
-        }
     }
 }
