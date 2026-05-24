@@ -33,14 +33,14 @@ namespace kingdom_Preparatory_School_Management_System.Services
         private static readonly XColor BorderColor = XColor.FromArgb(0xBD, 0xBD, 0xBD);     // Light gray borders
         private static readonly XColor AlternateRowBg = XColor.FromArgb(0xF5, 0xF5, 0xF5);  // Alternate row color
 
-        // Grading legend - configurable scale
+        // Grading legend - numeric scale 1-5 per specification
         private static readonly GradeLevel[] GradingLevels = new[]
         {
-            new GradeLevel { ScoreRange = "80-100", Grade = "A", Remarks = "Advanced" },
-            new GradeLevel { ScoreRange = "70-79", Grade = "B", Remarks = "Proficiency" },
-            new GradeLevel { ScoreRange = "60-69", Grade = "C", Remarks = "Approaching Prof." },
-            new GradeLevel { ScoreRange = "50-59", Grade = "D", Remarks = "Developing" },
-            new GradeLevel { ScoreRange = "Below 50", Grade = "E", Remarks = "Beginning" }
+            new GradeLevel { ScoreRange = "80+", Grade = "1", Remarks = "Advanced(A)" },
+            new GradeLevel { ScoreRange = "75-79", Grade = "2", Remarks = "Proficiency(P)" },
+            new GradeLevel { ScoreRange = "70-74", Grade = "3", Remarks = "Approaching Prof.(AP)" },
+            new GradeLevel { ScoreRange = "65-69", Grade = "4", Remarks = "Developing(D)" },
+            new GradeLevel { ScoreRange = "<65", Grade = "5", Remarks = "Beginning(B)" }
         };
 
         public async Task<byte[]> GeneratePDFAsync(ReportCardData data)
@@ -83,22 +83,24 @@ namespace kingdom_Preparatory_School_Management_System.Services
 
         /// <summary>
         /// Draws the header section with logo, school name, and student photo.
-        /// Layout: [Logo ~25mm] [School Name - Centered] [Photo ~25mm]
+        /// Spec: 120mm height, Logo (left 100×100), School Name (center 60% width), Photo (right 100×120)
         /// </summary>
         private double DrawHeader(XGraphics gfx, PdfPage page, ReportCardData data, double yStart)
         {
-            double headerHeight = 35;  // mm
+            double headerHeight = 120;  // mm - per specification
             double headerBoxX = Margin;
             double headerBoxWidth = PageWidth - (2 * Margin);
+            double centerWidth = headerBoxWidth * 0.60;  // 60% for school name
+            double sideWidth = (headerBoxWidth - centerWidth) / 2;  // 20% each for logo and photo
 
             // Draw header background (dark navy blue)
             gfx.DrawRectangle(
                 new XSolidBrush(HeaderBlue),
                 headerBoxX, yStart, headerBoxWidth, headerHeight);
 
-            // LEFT: Logo placeholder (25mm x 25mm)
-            double logoSize = 20;
-            double logoX = headerBoxX + 3;
+            // LEFT: Logo (100mm x 100mm per specification)
+            double logoSize = 100;
+            double logoX = headerBoxX + 5;
             double logoY = yStart + (headerHeight - logoSize) / 2;
 
             if (data.SchoolInfo?.Logo != null && data.SchoolInfo.Logo.Length > 0)
@@ -122,8 +124,9 @@ namespace kingdom_Preparatory_School_Management_System.Services
                 DrawLogoPlaceholder(gfx, logoX, logoY, logoSize);
             }
 
-            // CENTER: School name (large, bold, white)
-            var schoolNameFont = new XFont("Segoe UI", 18, XFontStyle.Bold);
+            // CENTER: School name (large, bold, white) and contact info
+            double centerX = headerBoxX + sideWidth;
+            var schoolNameFont = new XFont("Segoe UI", 28, XFontStyle.Bold);
             var schoolName = data.SchoolInfo?.Name ?? "KINGDOM PREPARATORY SCHOOL";
             var schoolNameSize = gfx.MeasureString(schoolName, schoolNameFont);
 
@@ -131,11 +134,11 @@ namespace kingdom_Preparatory_School_Management_System.Services
                 schoolName,
                 schoolNameFont,
                 new XSolidBrush(TextLight),
-                headerBoxX + (headerBoxWidth / 2) - (schoolNameSize.Width / 2),
-                yStart + 5);
+                centerX + (centerWidth / 2) - (schoolNameSize.Width / 2),
+                yStart + 30);
 
             // Location and contact info (smaller, white)
-            var contactFont = new XFont("Segoe UI", 7);
+            var contactFont = new XFont("Segoe UI", 11);
             var location = data.SchoolInfo?.Location ?? "";
             var phone = data.SchoolInfo?.PhoneNumbers ?? "";
             var contactText = string.IsNullOrEmpty(location) ? phone : $"{location} | {phone}";
@@ -147,14 +150,15 @@ namespace kingdom_Preparatory_School_Management_System.Services
                     contactText,
                     contactFont,
                     new XSolidBrush(TextLight),
-                    headerBoxX + (headerBoxWidth / 2) - (contactSize.Width / 2),
-                    yStart + 20);
+                    centerX + (centerWidth / 2) - (contactSize.Width / 2),
+                    yStart + 65);
             }
 
-            // RIGHT: Student photo placeholder (20mm x 20mm)
-            double photoSize = 18;
-            double photoX = headerBoxX + headerBoxWidth - photoSize - 3;
-            double photoY = yStart + (headerHeight - photoSize) / 2;
+            // RIGHT: Student photo (100mm x 120mm per specification)
+            double photoWidth = 100;
+            double photoHeight = 120;
+            double photoX = headerBoxX + headerBoxWidth - photoWidth - 5;
+            double photoY = yStart + (headerHeight - photoHeight) / 2;
 
             if (data.ProfilePhoto != null && data.ProfilePhoto.Length > 0)
             {
@@ -163,51 +167,45 @@ namespace kingdom_Preparatory_School_Management_System.Services
                     using (var stream = new MemoryStream(data.ProfilePhoto))
                     {
                         var image = XImage.FromStream(stream);
-                        gfx.DrawImage(image, photoX, photoY, photoSize, photoSize);
+                        gfx.DrawImage(image, photoX, photoY, photoWidth, photoHeight);
                     }
                 }
                 catch
                 {
-                    DrawPhotoPlaceholder(gfx, photoX, photoY, photoSize);
+                    DrawPhotoPlaceholder(gfx, photoX, photoY, photoWidth, photoHeight);
                 }
             }
             else
             {
-                DrawPhotoPlaceholder(gfx, photoX, photoY, photoSize);
+                DrawPhotoPlaceholder(gfx, photoX, photoY, photoWidth, photoHeight);
             }
 
             return yStart + headerHeight + 3;
         }
 
         /// <summary>
-        /// Draws student information in a professional 6-row x 2-column table layout.
-        /// Row 1: Student Name | Admission No
-        /// Row 2: Class | Gender
-        /// Row 3: Term | Academic Year
-        /// Row 4: Closing Date | Resuming Date
-        /// Row 5: Attendance | Number On Roll
-        /// Row 6: Position | Average Score
+        /// Draws student information in a 3-row x 2-column table layout (per specification).
+        /// Row 1: Student Name | Resuming Date
+        /// Row 2: Admission No. | Attendance
+        /// Row 3: Class/Form | Number On Roll
         /// </summary>
         private double DrawStudentInfoTable(XGraphics gfx, PdfPage page, ReportCardData data, double yStart)
         {
             double tableX = Margin;
             double tableWidth = PageWidth - (2 * Margin);
             double colWidth = tableWidth / 2;
-            double rowHeight = 6;
+            double rowHeight = 8;
             double yPos = yStart;
 
             var labelFont = new XFont("Segoe UI", 9, XFontStyle.Bold);
             var valueFont = new XFont("Segoe UI", 9);
 
-            // Define student info rows: (Label, Value, Label, Value)
+            // Define student info rows per specification: (Label, Value, Label, Value)
             var rows = new[]
             {
-                (new[] { "Student Name:", data.StudentName ?? "", "Admission No.:", data.StudentID ?? "" }),
-                (new[] { "Class:", data.ClassID ?? "", "Gender:", data.Gender ?? "" }),
-                (new[] { "Term:", data.Term ?? "", "Academic Year:", data.Year ?? "" }),
-                (new[] { "Closing Date:", "To be announced", "Resuming Date:", "To be announced" }),
-                (new[] { "Attendance:", $"{data.PresentDays}/{data.TotalSchoolDays} ({data.AttendancePercentage}%)", "Number On Roll:", data.TotalStudentsInClass.ToString() }),
-                (new[] { "Position in Class:", $"{FormatPosition(data.OverallPosition)}", "Average Score:", CalculateAverageScore(data).ToString("F1") })
+                (new[] { "Student Name:", data.StudentName ?? "", "Resuming Date:", "To be announced" }),
+                (new[] { "Admission No.:", data.StudentID ?? "", "Attendance:", $"{data.PresentDays}/{data.TotalSchoolDays} ({data.AttendancePercentage}%)" }),
+                (new[] { "Class/Form:", data.ClassID ?? "", "Number On Roll:", data.TotalStudentsInClass.ToString() })
             };
 
             // Draw all rows
@@ -233,19 +231,27 @@ namespace kingdom_Preparatory_School_Management_System.Services
         /// Draws the main subjects table and grading legend side-by-side.
         /// Main table: Subject | Class Score (50%) | Exam Score (60%) | Total (100%) | Grade | Position | Remarks
         /// Legend: Score Range | Grade | Remarks (5 rows)
+        /// Spec: Row height 12mm, fonts 9pt per specification
         /// </summary>
         private double DrawSubjectsAndLegend(XGraphics gfx, PdfPage page, ReportCardData data, double yStart)
         {
+            // Defensive check for null or empty SubjectResults
+            if (data.SubjectResults == null || data.SubjectResults.Count == 0)
+            {
+                return yStart;
+            }
+
             double tableX = Margin;
             double mainTableWidth = PageWidth - (2 * Margin) - 50;  // Leave space for legend
             double legendX = tableX + mainTableWidth + 2;
             double legendWidth = 48;
-            double rowHeight = 5.5;
+            double rowHeight = 12;  // mm - increased from 5.5 per specification
             double yPos = yStart;
 
-            var headerFont = new XFont("Segoe UI", 8, XFontStyle.Bold);
-            var dataFont = new XFont("Segoe UI", 7);
-            var legendFont = new XFont("Segoe UI", 6);
+            var headerFont = new XFont("Segoe UI", 9, XFontStyle.Bold);  // 9pt per specification
+            var dataFont = new XFont("Segoe UI", 9);  // 9pt per specification
+            // Legend uses smaller font (8pt vs 9pt table) to fit in sidebar without reducing readability
+            var legendFont = new XFont("Segoe UI", 8);
 
             // Main table headers
             string[] headers = { "Subject", "Class\nScore\n(50%)", "Exam\nScore\n(60%)", "Total\nScore\n(100%)", "Grade", "Position", "Remarks" };
@@ -253,7 +259,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
 
             // Draw header row with background
             double cellX = tableX;
-            double headerRowHeight = 8;
+            double headerRowHeight = 12;  // Match subject row height for consistency
             for (int i = 0; i < headers.Length; i++)
             {
                 gfx.DrawRectangle(new XSolidBrush(TableHeaderBg), cellX, yPos, colWidths[i], headerRowHeight);
@@ -269,8 +275,9 @@ namespace kingdom_Preparatory_School_Management_System.Services
             yPos += headerRowHeight;
 
             // Draw subject data rows
-            foreach (var subject in data.SubjectResults)
+            for (int subjectIndex = 0; subjectIndex < data.SubjectResults.Count; subjectIndex++)
             {
+                var subject = data.SubjectResults[subjectIndex];
                 cellX = tableX;
 
                 var values = new[]
@@ -284,8 +291,8 @@ namespace kingdom_Preparatory_School_Management_System.Services
                     subject.Remark ?? ""
                 };
 
-                bool isAlternateRow = (data.SubjectResults.IndexOf(subject) % 2) == 1;
-                XColor rowBg = isAlternateRow ? AlternateRowBg : XColor.FromArgb(0xFF, 0xFF, 0xFF);
+                bool isAlternateRow = (subjectIndex % 2) == 1;
+                XColor rowBg = isAlternateRow ? AlternateRowBg : XColor.White;
 
                 for (int i = 0; i < values.Length; i++)
                 {
@@ -345,9 +352,9 @@ namespace kingdom_Preparatory_School_Management_System.Services
         {
             double tableX = Margin;
             double mainTableWidth = PageWidth - (2 * Margin) - 50;
-            double rowHeight = 5.5;
+            double rowHeight = 12;  // mm - match subject row height per specification
 
-            var totalFont = new XFont("Segoe UI", 8, XFontStyle.Bold);
+            var totalFont = new XFont("Segoe UI", 9, XFontStyle.Bold);  // 9pt per specification
             string[] headers = { "Subject", "Class\nScore\n(50%)", "Exam\nScore\n(60%)", "Total\nScore\n(100%)", "Grade", "Position", "Remarks" };
             double[] colWidths = { 22, 10, 10, 10, 8, 10, 13 };
 
@@ -438,6 +445,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
 
         /// <summary>
         /// Draws signature lines for authorized signatories.
+        /// Per specification: School Director (left) | Head Teacher (right)
         /// </summary>
         private double DrawSignatureSection(XGraphics gfx, PdfPage page, double yStart)
         {
@@ -455,9 +463,9 @@ namespace kingdom_Preparatory_School_Management_System.Services
 
             double yLine = yStart + 1;
 
-            // Left column: Class Teacher
+            // Left column: School Director (per specification, not Class Teacher)
             gfx.DrawLine(new XPen(TextDark, 1.0), tableX + 2, yLine + lineHeight, tableX + colWidth - 2, yLine + lineHeight);
-            gfx.DrawString("Class Teacher's Signature", signatureFont, new XSolidBrush(TextDark), tableX + 2, yLine + 4);
+            gfx.DrawString("School Director's Signature", signatureFont, new XSolidBrush(TextDark), tableX + 2, yLine + 4);
             gfx.DrawString("Date: __________________", dateFont, new XSolidBrush(TextDark), tableX + 2, yLine + 6.5);
 
             // Right column: Head Teacher
@@ -481,15 +489,15 @@ namespace kingdom_Preparatory_School_Management_System.Services
         /// <summary>
         /// Helper to draw photo placeholder when student photo is unavailable.
         /// </summary>
-        private void DrawPhotoPlaceholder(XGraphics gfx, double x, double y, double size)
+        private void DrawPhotoPlaceholder(XGraphics gfx, double x, double y, double width, double height)
         {
-            gfx.DrawRectangle(new XPen(TextLight, 1), x, y, size, size);
-            gfx.DrawString("PHOTO", new XFont("Segoe UI", 5), new XSolidBrush(TextLight),
-                x + 0.5, y + size / 2 - 1.5);
+            gfx.DrawRectangle(new XPen(TextLight, 1), x, y, width, height);
+            gfx.DrawString("PHOTO", new XFont("Segoe UI", 8), new XSolidBrush(TextLight),
+                x + 2, y + height / 2 - 3);
         }
 
         /// <summary>
-        /// Formats a score with percentage notation.
+        /// Formats a score to one decimal place (e.g., 85.5, 92.0)
         /// </summary>
         private string FormatScore(decimal score, int maxScore)
         {
@@ -513,29 +521,20 @@ namespace kingdom_Preparatory_School_Management_System.Services
         }
 
         /// <summary>
-        /// Calculates average total score across all subjects.
-        /// </summary>
-        private decimal CalculateAverageScore(ReportCardData data)
-        {
-            if (data.SubjectResults.Count == 0) return 0;
-            decimal sum = 0;
-            foreach (var subject in data.SubjectResults)
-            {
-                sum += subject.TotalScore;
-            }
-            return sum / data.SubjectResults.Count;
-        }
-
-        /// <summary>
-        /// Determines letter grade based on score.
+        /// Determines numeric grade (1-5) based on score per specification.
+        /// Grade 1: Score 80+ (Advanced)
+        /// Grade 2: Score 75-79 (Proficiency)
+        /// Grade 3: Score 70-74 (Approaching Proficiency)
+        /// Grade 4: Score 65-69 (Developing)
+        /// Grade 5: Score <65 (Beginning)
         /// </summary>
         private string GetGradeForScore(decimal score)
         {
-            if (score >= 80) return "A";
-            if (score >= 70) return "B";
-            if (score >= 60) return "C";
-            if (score >= 50) return "D";
-            return "E";
+            if (score >= 80) return "1";
+            if (score >= 75) return "2";
+            if (score >= 70) return "3";
+            if (score >= 65) return "4";
+            return "5";
         }
 
         private class GradeLevel
