@@ -14,6 +14,7 @@
     <Deterministic>true</Deterministic>
     <GenerateResourceUsePreserializedResources>true</GenerateResourceUsePreserializedResources>
     <NoWarn>MSB3822</NoWarn>
+    <RuntimeIdentifiers>win-x86;win-x64</RuntimeIdentifiers>
     <NuGetPackageImportStamp>
     </NuGetPackageImportStamp>
   </PropertyGroup>
