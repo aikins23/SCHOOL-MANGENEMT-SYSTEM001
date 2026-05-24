@@ -79,6 +79,7 @@ namespace kingdom_Preparatory_School_Management_System
             var actions = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.RightToLeft, BackColor = PageBackColor, Padding = new Padding(0, 12, 0, 0) };
             actions.Controls.Add(CreateButton("Enter Scores", () => new EXAMS().Show(), true, 126));
             actions.Controls.Add(CreateButton("Report Card", OpenSelectedResult, false, 126));
+            actions.Controls.Add(CreatePrintReportCardButton());
             actions.Controls.Add(CreateButton("Dashboard", () => new frmDashboard().Show(), false, 112));
             actions.Controls.Add(CreateButton("Refresh", async () => await LoadResults(), false, 96));
 
@@ -188,6 +189,72 @@ namespace kingdom_Preparatory_School_Management_System
             button.FlatAppearance.MouseOverBackColor = primary ? UiTheme.NavyHover : UiTheme.GoldSoft;
             button.Click += (sender, args) => action();
             return button;
+        }
+
+        private Control CreatePrintReportCardButton()
+        {
+            var btn = new Button
+            {
+                Text = "Print Report Card",
+                Height = 36,
+                Width = 144,
+                Margin = new Padding(8, 0, 0, 0),
+                FlatStyle = FlatStyle.Flat,
+                Font = new Font("Segoe UI Semibold", 9.25F, FontStyle.Bold),
+                Cursor = Cursors.Hand,
+                BackColor = SurfaceColor,
+                ForeColor = TextColor
+            };
+            btn.FlatAppearance.BorderColor = BorderColor;
+            btn.FlatAppearance.MouseOverBackColor = UiTheme.GoldSoft;
+
+            btn.Click += async (sender, args) =>
+            {
+                if (resultsGrid.SelectedRows.Count == 0)
+                {
+                    UIHelper.ShowWarning("Please select a student first", "Print Report Card");
+                    return;
+                }
+
+                var selectedRow = resultsGrid.SelectedRows[0];
+                var studentName = selectedRow.Cells["NAME"].Value.ToString();
+                var term = termFilter.SelectedItem?.ToString() ?? "All terms";
+                var year = selectedRow.Cells["YEAR"].Value?.ToString() ?? "2024/2025";
+
+                // Try to find StudentID column, or use NAME if not available
+                var studentId = selectedRow.Cells.Contains("StudentID")
+                    ? selectedRow.Cells["StudentID"].Value.ToString()
+                    : studentName;
+
+                try
+                {
+                    if (term == "All terms")
+                    {
+                        UIHelper.ShowWarning("Please select a specific term", "Print Report Card");
+                        return;
+                    }
+
+                    var remarksRepository = new StudentTermRemarksRepository(AppConfig.ConnectionString);
+                    var dataService = new ReportCardDataService(AppConfig.ConnectionString, remarksRepository);
+                    var pdfGenerator = new ReportCardPDFGenerator();
+                    var printer = new ReportCardPrinter();
+                    var manager = new ReportCardManager(dataService, pdfGenerator, printer);
+
+                    // Show print dialog
+                    if (printer.ShowPrintDialog(out var selectedPrinter))
+                    {
+                        var action = new ReportCardOutputAction { Type = OutputType.Print, PrinterName = selectedPrinter };
+                        await manager.GenerateAndOutputAsync(studentId, term, year, action);
+                        UIHelper.ShowSuccess($"Report card printed for {studentName}", "Print Report Card");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    UIHelper.ShowError($"Error: {ex.Message}", "Print Report Card");
+                }
+            };
+
+            return btn;
         }
 
         private async System.Threading.Tasks.Task LoadResults()
