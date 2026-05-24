@@ -34,9 +34,15 @@
             this.gunaPictureBox1 = new Guna.UI.WinForms.GunaPictureBox();
             this.gunaLabel1 = new Guna.UI.WinForms.GunaLabel();
             this.gunaPictureBox2 = new Guna.UI.WinForms.GunaPictureBox();
+            this.pictureBoxLogo = new PictureBox();
+            this.labelSchoolName = new Label();
+            this.labelTagline = new Label();
+            this.labelLoadingDots = new Label();
+            this.labelCredit = new Label();
             this.gunaPanel1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.gunaPictureBox1)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.gunaPictureBox2)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBoxLogo)).BeginInit();
             this.SuspendLayout();
             // 
             // gunaPanel1
@@ -96,6 +102,69 @@
             this.BackColor = System.Drawing.Color.White;
             this.ClientSize = new System.Drawing.Size(706, 375);
             this.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch;
+            //
+            // pictureBoxLogo
+            //
+            this.pictureBoxLogo.Image = Properties.Resources.school_logo;
+            this.pictureBoxLogo.Location = new System.Drawing.Point(293, 35);
+            this.pictureBoxLogo.Name = "pictureBoxLogo";
+            this.pictureBoxLogo.Size = new System.Drawing.Size(120, 120);
+            this.pictureBoxLogo.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
+            this.pictureBoxLogo.TabIndex = 4;
+            this.pictureBoxLogo.TabStop = false;
+            //
+            // labelSchoolName
+            //
+            this.labelSchoolName.AutoSize = false;
+            this.labelSchoolName.Font = new System.Drawing.Font("Segoe UI", 34F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.labelSchoolName.ForeColor = System.Drawing.Color.White;
+            this.labelSchoolName.Location = new System.Drawing.Point(103, 160);
+            this.labelSchoolName.Name = "labelSchoolName";
+            this.labelSchoolName.Size = new System.Drawing.Size(500, 50);
+            this.labelSchoolName.TabIndex = 5;
+            this.labelSchoolName.Text = "Kingdom Preparatory School";
+            this.labelSchoolName.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            //
+            // labelTagline
+            //
+            this.labelTagline.AutoSize = false;
+            this.labelTagline.Font = new System.Drawing.Font("Segoe UI", 15F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.labelTagline.ForeColor = System.Drawing.Color.LightGray;
+            this.labelTagline.Location = new System.Drawing.Point(103, 220);
+            this.labelTagline.Name = "labelTagline";
+            this.labelTagline.Size = new System.Drawing.Size(500, 30);
+            this.labelTagline.TabIndex = 6;
+            this.labelTagline.Text = "KNOWLEDGE IS POWER";
+            this.labelTagline.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            //
+            // labelLoadingDots
+            //
+            this.labelLoadingDots.AutoSize = false;
+            this.labelLoadingDots.Font = new System.Drawing.Font("Segoe UI", 26F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.labelLoadingDots.ForeColor = System.Drawing.Color.White;
+            this.labelLoadingDots.Location = new System.Drawing.Point(253, 260);
+            this.labelLoadingDots.Name = "labelLoadingDots";
+            this.labelLoadingDots.Size = new System.Drawing.Size(200, 40);
+            this.labelLoadingDots.TabIndex = 7;
+            this.labelLoadingDots.Text = "● ● ● ●";
+            this.labelLoadingDots.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            //
+            // labelCredit
+            //
+            this.labelCredit.AutoSize = false;
+            this.labelCredit.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.labelCredit.ForeColor = System.Drawing.Color.LightGray;
+            this.labelCredit.Location = new System.Drawing.Point(103, 345);
+            this.labelCredit.Name = "labelCredit";
+            this.labelCredit.Size = new System.Drawing.Size(500, 20);
+            this.labelCredit.TabIndex = 8;
+            this.labelCredit.Text = "DEVELOPED BY: DARKTECH HUB";
+            this.labelCredit.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.Controls.Add(this.labelCredit);
+            this.Controls.Add(this.labelLoadingDots);
+            this.Controls.Add(this.labelTagline);
+            this.Controls.Add(this.labelSchoolName);
+            this.Controls.Add(this.pictureBoxLogo);
             this.Controls.Add(this.gunaPictureBox2);
             this.Controls.Add(this.gunaLabel1);
             this.Controls.Add(this.gunaPictureBox1);
@@ -110,6 +179,7 @@
             this.gunaPanel1.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.gunaPictureBox1)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.gunaPictureBox2)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBoxLogo)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -122,5 +192,10 @@
         private Guna.UI.WinForms.GunaPictureBox gunaPictureBox1;
         private Guna.UI.WinForms.GunaLabel gunaLabel1;
         private Guna.UI.WinForms.GunaPictureBox gunaPictureBox2;
+        private PictureBox pictureBoxLogo;
+        private Label labelSchoolName;
+        private Label labelTagline;
+        private Label labelLoadingDots;
+        private Label labelCredit;
     }
 }
