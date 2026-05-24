@@ -78,7 +78,8 @@ namespace kingdom_Preparatory_School_Management_System
 
             var actions = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.RightToLeft, BackColor = PageBackColor, Padding = new Padding(0, 12, 0, 0) };
             actions.Controls.Add(CreateButton("Enter Scores", () => new EXAMS().Show(), true, 126));
-            actions.Controls.Add(CreateButton("Report Card", OpenSelectedResult, false, 126));
+            actions.Controls.Add(CreateButton("View Details", OpenSelectedResult, false, 112));
+            actions.Controls.Add(CreateButton("Print Report Card", ExportSelectedReportCard, false, 150));
             actions.Controls.Add(CreateButton("Dashboard", () => new frmDashboard().Show(), false, 112));
             actions.Controls.Add(CreateButton("Refresh", async () => await LoadResults(), false, 96));
 
@@ -314,6 +315,24 @@ namespace kingdom_Preparatory_School_Management_System
             }
 
             new examsviewdetails(rowData).Show();
+        }
+
+        private void ExportSelectedReportCard()
+        {
+            Dictionary<string, string> rowData = SelectedRowData();
+            if (rowData == null)
+            {
+                UIHelper.ShowInfo("Select a student result row first, then click Print Report Card.", "Print Report Card");
+                return;
+            }
+
+            // Enrich with any extra display fields the PDF layout uses
+            if (!rowData.ContainsKey("CLOSING_DATE"))
+                rowData["CLOSING_DATE"] = "FRIDAY, 1ST AUGUST, 2025";
+            if (!rowData.ContainsKey("RESUMING_DATE"))
+                rowData["RESUMING_DATE"] = "MON., 1ST SEPTEMBER, 2025";
+
+            ReportCardPdfService.Export(rowData);
         }
 
         private Dictionary<string, string> SelectedRowData()
