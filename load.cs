@@ -29,8 +29,20 @@ namespace kingdom_Preparatory_School_Management_System
         {
             try
             {
-                // Load school background image - consider applying blur effect for better text readability
-                this.BackgroundImage = Properties.Resources.school_background;
+                // Load school background image from Resources folder
+                string backgroundImagePath = System.IO.Path.Combine(
+                    System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location),
+                    "Resources",
+                    "school_background.png");
+
+                if (System.IO.File.Exists(backgroundImagePath))
+                {
+                    this.BackgroundImage = System.Drawing.Image.FromFile(backgroundImagePath);
+                }
+                else
+                {
+                    this.BackColor = System.Drawing.Color.White;
+                }
             }
             catch
             {

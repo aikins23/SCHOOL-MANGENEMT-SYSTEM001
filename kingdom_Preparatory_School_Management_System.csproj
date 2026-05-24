@@ -503,6 +503,8 @@
     <Content Include="features to work.txt" />
     <Content Include="Resources\11639128559275-beb32281-19b0-4e5f-9960-8ff17fb91d6d-removebg-preview.png" />
     <Content Include="Resources\1639128559275-beb32281-19b0-4e5f-9960-8ff17fb91d6d-removebg-preview.png" />
+    <Content Include="Resources\school_background.png" />
+    <Content Include="Resources\school_logo.png" />
     <Content Include="Resources\1money.png" />
     <Content Include="Resources\1money1.png" />
     <Content Include="Resources\1user-graduate.png" />
