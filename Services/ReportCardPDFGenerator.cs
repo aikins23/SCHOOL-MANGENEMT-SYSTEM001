@@ -57,9 +57,11 @@ namespace kingdom_Preparatory_School_Management_System.Services
 
                     try
                     {
-                        double yPosition = Margin;
+                        // PDFsharp uses bottom-left origin (y=0 at bottom)
+                        // Start from top margin, but convert to PDF coordinates where y increases upward
+                        double yPosition = PageHeight - Margin;
 
-                        // Draw sections in order per template
+                        // Draw sections in order per template (moving downward in visual space)
                         yPosition = DrawHeader(gfx, page, data, yPosition);
                         yPosition = DrawStudentInfoTable(gfx, page, data, yPosition);
                         yPosition = DrawSubjectsAndLegend(gfx, page, data, yPosition);
@@ -75,6 +77,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
                     }
                     catch (Exception ex)
                     {
+                        LoggerHelper.LogError("Error generating report card PDF", ex);
                         throw new PDFGenerationException("Error generating report card PDF", ex);
                     }
                 }
@@ -94,9 +97,10 @@ namespace kingdom_Preparatory_School_Management_System.Services
             double sideWidth = (headerBoxWidth - centerWidth) / 2;  // 20% each for logo and photo
 
             // Draw header background (dark navy blue)
+            // PDF Y coordinate system: y=0 at bottom, increases upward
             gfx.DrawRectangle(
                 new XSolidBrush(HeaderBlue),
-                headerBoxX, yStart, headerBoxWidth, headerHeight);
+                headerBoxX, yStart - headerHeight, headerBoxWidth, headerHeight);
 
             // LEFT: Logo (100mm x 100mm per specification)
             double logoSize = 100;
@@ -113,9 +117,10 @@ namespace kingdom_Preparatory_School_Management_System.Services
                         gfx.DrawImage(image, logoX, logoY, logoSize, logoSize);
                     }
                 }
-                catch
+                catch (Exception ex)
                 {
                     // If logo fails, draw placeholder
+                    LoggerHelper.LogError("Failed to load school logo image", ex);
                     DrawLogoPlaceholder(gfx, logoX, logoY, logoSize);
                 }
             }
@@ -126,7 +131,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
 
             // CENTER: School name (large, bold, white) and contact info
             double centerX = headerBoxX + sideWidth;
-            var schoolNameFont = new XFont("Segoe UI", 28, XFontStyle.Bold);
+            var schoolNameFont = new XFont("Segoe UI Bold", 28);
             var schoolName = data.SchoolInfo?.Name ?? "KINGDOM PREPARATORY SCHOOL";
             var schoolNameSize = gfx.MeasureString(schoolName, schoolNameFont);
 
@@ -135,7 +140,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
                 schoolNameFont,
                 new XSolidBrush(TextLight),
                 centerX + (centerWidth / 2) - (schoolNameSize.Width / 2),
-                yStart + 30);
+                yStart - 30);
 
             // Location and contact info (smaller, white)
             var contactFont = new XFont("Segoe UI", 11);
@@ -170,8 +175,9 @@ namespace kingdom_Preparatory_School_Management_System.Services
                         gfx.DrawImage(image, photoX, photoY, photoWidth, photoHeight);
                     }
                 }
-                catch
+                catch (Exception ex)
                 {
+                    LoggerHelper.LogError("Failed to load student profile photo", ex);
                     DrawPhotoPlaceholder(gfx, photoX, photoY, photoWidth, photoHeight);
                 }
             }
@@ -180,7 +186,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
                 DrawPhotoPlaceholder(gfx, photoX, photoY, photoWidth, photoHeight);
             }
 
-            return yStart + headerHeight + 3;
+            return yStart - (headerHeight + 3);
         }
 
         /// <summary>
@@ -197,7 +203,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
             double rowHeight = 8;
             double yPos = yStart;
 
-            var labelFont = new XFont("Segoe UI", 9, XFontStyle.Bold);
+            var labelFont = new XFont("Segoe UI Bold", 9);
             var valueFont = new XFont("Segoe UI", 9);
 
             // Define student info rows per specification: (Label, Value, Label, Value)
@@ -221,10 +227,10 @@ namespace kingdom_Preparatory_School_Management_System.Services
                 gfx.DrawString(row[2], labelFont, new XSolidBrush(TextDark), tableX + colWidth + 1, yPos + 1.5);
                 gfx.DrawString(row[3], valueFont, new XSolidBrush(TextDark), tableX + colWidth + 30, yPos + 1.5);
 
-                yPos += rowHeight;
+                yPos -= rowHeight;
             }
 
-            return yPos + 2;
+            return yPos - 2;
         }
 
         /// <summary>
@@ -248,7 +254,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
             double rowHeight = 12;  // mm - increased from 5.5 per specification
             double yPos = yStart;
 
-            var headerFont = new XFont("Segoe UI", 9, XFontStyle.Bold);  // 9pt per specification
+            var headerFont = new XFont("Segoe UI Bold", 9);  // 9pt per specification
             var dataFont = new XFont("Segoe UI", 9);  // 9pt per specification
             // Legend uses smaller font (8pt vs 9pt table) to fit in sidebar without reducing readability
             var legendFont = new XFont("Segoe UI", 8);
@@ -272,7 +278,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
                 cellX += colWidths[i];
             }
 
-            yPos += headerRowHeight;
+            yPos -= headerRowHeight;
 
             // Draw subject data rows
             for (int subjectIndex = 0; subjectIndex < data.SubjectResults.Count; subjectIndex++)
@@ -292,7 +298,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
                 };
 
                 bool isAlternateRow = (subjectIndex % 2) == 1;
-                XColor rowBg = isAlternateRow ? AlternateRowBg : XColor.White;
+                XColor rowBg = isAlternateRow ? AlternateRowBg : XColor.FromArgb(255, 255, 255);
 
                 for (int i = 0; i < values.Length; i++)
                 {
@@ -322,7 +328,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
                 legendCellX += legendColWidths[i];
             }
 
-            legendY += headerRowHeight;
+            legendY -= headerRowHeight;
 
             // Legend data rows
             foreach (var gradeLevel in GradingLevels)
@@ -332,7 +338,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
 
                 for (int i = 0; i < legendValues.Length; i++)
                 {
-                    gfx.DrawRectangle(new XSolidBrush(XColor.White), legendCellX, legendY, legendColWidths[i], rowHeight);
+                    gfx.DrawRectangle(new XSolidBrush(XColor.FromArgb(255, 255, 255)), legendCellX, legendY, legendColWidths[i], rowHeight);
                     gfx.DrawRectangle(new XPen(BorderColor, 0.5), legendCellX, legendY, legendColWidths[i], rowHeight);
                     gfx.DrawString(legendValues[i], legendFont, new XSolidBrush(TextDark),
                         legendCellX + 0.5, legendY + 0.8);
@@ -342,7 +348,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
                 legendY += rowHeight;
             }
 
-            return yPos + 2;
+            return yPos - 2;
         }
 
         /// <summary>
@@ -354,7 +360,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
             double mainTableWidth = PageWidth - (2 * Margin) - 50;
             double rowHeight = 12;  // mm - match subject row height per specification
 
-            var totalFont = new XFont("Segoe UI", 9, XFontStyle.Bold);  // 9pt per specification
+            var totalFont = new XFont("Segoe UI Bold", 9);  // 9pt per specification
             string[] headers = { "Subject", "Class\nScore\n(50%)", "Exam\nScore\n(60%)", "Total\nScore\n(100%)", "Grade", "Position", "Remarks" };
             double[] colWidths = { 22, 10, 10, 10, 8, 10, 13 };
 
@@ -407,7 +413,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
             double tableWidth = PageWidth - (2 * Margin);
             double sectionHeight = 18;
 
-            var labelFont = new XFont("Segoe UI", 9, XFontStyle.Bold);
+            var labelFont = new XFont("Segoe UI Bold", 9);
             var valueFont = new XFont("Segoe UI", 9);
 
             // Draw section background
@@ -440,7 +446,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
             gfx.DrawString("Head Teacher's Remarks:", labelFont, new XSolidBrush(TextDark), tableX + 1, yLine);
             gfx.DrawString(remarks?.HeadTeacherRemarks ?? "Not recorded", valueFont, new XSolidBrush(TextDark), tableX + 45, yLine);
 
-            return yStart + sectionHeight + 2;
+            return yStart - (sectionHeight + 2);
         }
 
         /// <summary>
@@ -473,7 +479,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
             gfx.DrawString("Head Teacher's Signature & Stamp", signatureFont, new XSolidBrush(TextDark), tableX + colWidth + 2, yLine + 4);
             gfx.DrawString("Date: __________________", dateFont, new XSolidBrush(TextDark), tableX + colWidth + 2, yLine + 6.5);
 
-            return yStart + sectionHeight + 1;
+            return yStart - (sectionHeight + 1);
         }
 
         /// <summary>
