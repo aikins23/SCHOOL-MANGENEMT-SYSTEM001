@@ -45,6 +45,15 @@ namespace kingdom_Preparatory_School_Management_System
             EnableFormDragging();
         }
 
+        // ── Layout constants (one place to tune everything) ──────────────────
+        private const int InputH      = 38;   // all text/combo/date inputs
+        private const int LabelH      = 19;   // field caption
+        private const int FieldGap    = 10;   // bottom gap between fields
+        private const int FieldRowH   = LabelH + InputH + FieldGap; // 67 px
+        private const int CardPad     = 22;   // inner card padding
+        private const int HeaderH     = 58;   // section header height
+        private const int SectionGap  = 12;   // gap between cards
+
         private void BuildModernEmployeeForm()
         {
             SuspendLayout();
@@ -55,7 +64,7 @@ namespace kingdom_Preparatory_School_Management_System
             Font = new Font("Segoe UI", 9.5F, FontStyle.Regular);
             StartPosition = FormStartPosition.CenterScreen;
             MinimumSize = new Size(1100, 700);
-            ClientSize = new Size(1200, 760);
+            ClientSize = new Size(1240, 780);
 
             var root = new TableLayoutPanel
             {
@@ -63,12 +72,12 @@ namespace kingdom_Preparatory_School_Management_System
                 RowCount = 4,
                 ColumnCount = 1,
                 BackColor = PageBackColor,
-                Padding = new Padding(28, 22, 28, 16)
+                Padding = new Padding(28, 20, 28, 14)
             };
-            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 72));
-            root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));
-            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 52));
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 68));   // header
+            root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));   // cards
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 26));   // status
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 50));   // buttons
 
             root.Controls.Add(BuildHeader(), 0, 0);
             root.Controls.Add(BuildFormBody(), 0, 1);
@@ -78,7 +87,6 @@ namespace kingdom_Preparatory_School_Management_System
             Controls.Add(root);
             ResumeLayout(true);
 
-            // Prepare inputs after controls are created
             PrepareInputs();
         }
 
@@ -141,41 +149,43 @@ namespace kingdom_Preparatory_School_Management_System
 
         private void StyleInput(Control control)
         {
-            control.Font = new Font("Segoe UI", 10F);
+            control.Font  = new Font("Segoe UI", 9.75F);
             control.Margin = Padding.Empty;
 
-            if (control is Guna.UI2.WinForms.Guna2TextBox textBox)
+            if (control is Guna.UI2.WinForms.Guna2TextBox tb)
             {
-                textBox.FillColor = SurfaceColor;
-                textBox.BorderColor = BorderColor;
-                textBox.FocusedState.BorderColor = UiTheme.Gold;
-                textBox.BorderRadius = 4;
-                textBox.BorderThickness = 1;
-                textBox.ForeColor = TextColor;
-                textBox.Height = 36;
+                tb.FillColor             = SurfaceColor;
+                tb.BorderColor           = BorderColor;
+                tb.FocusedState.BorderColor = UiTheme.Gold;
+                tb.HoverState.BorderColor   = UiTheme.Gold;
+                tb.BorderRadius          = 6;
+                tb.BorderThickness       = 1;
+                tb.ForeColor             = TextColor;
+                tb.Height                = InputH;
                 return;
             }
 
-            if (control is Guna.UI2.WinForms.Guna2ComboBox comboBox)
+            if (control is Guna.UI2.WinForms.Guna2ComboBox cb)
             {
-                comboBox.FillColor = SurfaceColor;
-                comboBox.BorderColor = BorderColor;
-                comboBox.FocusedState.BorderColor = UiTheme.Gold;
-                comboBox.BorderRadius = 4;
-                comboBox.ForeColor = TextColor;
-                comboBox.ItemHeight = 30;
-                comboBox.Height = 36;
+                cb.FillColor             = SurfaceColor;
+                cb.BorderColor           = BorderColor;
+                cb.FocusedState.BorderColor = UiTheme.Gold;
+                cb.HoverState.BorderColor   = UiTheme.Gold;
+                cb.BorderRadius          = 6;
+                cb.ForeColor             = TextColor;
+                cb.ItemHeight            = 32;
+                cb.Height                = InputH;
                 return;
             }
 
-            if (control is Guna.UI2.WinForms.Guna2DateTimePicker datePicker)
+            if (control is Guna.UI2.WinForms.Guna2DateTimePicker dp)
             {
-                datePicker.FillColor = SurfaceColor;
-                datePicker.BorderColor = BorderColor;
-                datePicker.BorderRadius = 4;
-                datePicker.BorderThickness = 1;
-                datePicker.ForeColor = TextColor;
-                datePicker.Height = 36;
+                dp.FillColor             = SurfaceColor;
+                dp.BorderColor           = BorderColor;
+                dp.BorderRadius          = 6;
+                dp.BorderThickness       = 1;
+                dp.ForeColor             = TextColor;
+                dp.Height                = InputH;
             }
         }
 
@@ -237,7 +247,6 @@ namespace kingdom_Preparatory_School_Management_System
 
         private Control BuildFormBody()
         {
-            // 3-column side-by-side: Personal | Employment+Emergency | Photo
             var body = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
@@ -247,8 +256,8 @@ namespace kingdom_Preparatory_School_Management_System
                 Margin = Padding.Empty
             };
             body.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 42));
-            body.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 38));
-            body.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 20));
+            body.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 37));
+            body.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 21));
             body.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
             body.Controls.Add(BuildPersonalPanel(), 0, 0);
@@ -257,62 +266,21 @@ namespace kingdom_Preparatory_School_Management_System
             return body;
         }
 
+        // Personal Details card — 5 field rows × 2 columns
         private Control BuildPersonalPanel()
         {
-            var panel = CreateSurfacePanel(new Padding(20, 18, 20, 18), new Padding(0, 0, 10, 0));
-
-            // Header strip
-            var header = BuildSectionHeader("Personal Details", "Employee ID, name, contact and placement");
-
-            // Grid: 5 rows × 2 columns for fields
-            var grid = new TableLayoutPanel
-            {
-                Dock = DockStyle.Fill,
-                RowCount = 5,
-                ColumnCount = 2,
-                BackColor = SurfaceColor,
-                Margin = Padding.Empty
-            };
-            for (int i = 0; i < 5; i++)
-                grid.RowStyles.Add(new RowStyle(SizeType.Percent, 20));
-            grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
-            grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
-
-            grid.Controls.Add(CreateField("Employee ID", txtEMdID), 0, 0);
-            grid.Controls.Add(CreateField("Full Name", txtFN), 1, 0);
-            grid.Controls.Add(CreateField("Gender", cmbGN), 0, 1);
-            grid.Controls.Add(CreateField("Date of Birth", dateDOB), 1, 1);
-            grid.Controls.Add(CreateField("Department", cmbDPT), 0, 2);
-            grid.Controls.Add(CreateField("Position", CmbPs), 1, 2);
-            grid.Controls.Add(CreateField("Contact", txtCN), 0, 3);
-            grid.Controls.Add(CreateField("Home Town", txtHT), 1, 3);
-            // Residence spans both columns
-            var residenceField = CreateField("Residence", txtRD);
-            grid.Controls.Add(residenceField, 0, 4);
-            grid.SetColumnSpan(residenceField, 2);
-
-            var stack = new TableLayoutPanel
+            var card = CreateCard(new Padding(0, 0, SectionGap, 0));
+            var inner = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
                 RowCount = 2,
                 ColumnCount = 1,
                 BackColor = SurfaceColor,
-                Margin = Padding.Empty
+                Margin = Padding.Empty,
+                Padding = new Padding(CardPad)
             };
-            stack.RowStyles.Add(new RowStyle(SizeType.Absolute, 56));
-            stack.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-            stack.Controls.Add(header, 0, 0);
-            stack.Controls.Add(grid, 0, 1);
-
-            panel.Controls.Add(stack);
-            return panel;
-        }
-
-        private Control BuildEmploymentPanel()
-        {
-            var panel = CreateSurfacePanel(new Padding(20, 18, 20, 18), new Padding(0, 0, 10, 0));
-
-            var header = BuildSectionHeader("Employment & Emergency", "Contract details, status and emergency contacts");
+            inner.RowStyles.Add(new RowStyle(SizeType.Absolute, HeaderH));
+            inner.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
             var grid = new TableLayoutPanel
             {
@@ -322,156 +290,203 @@ namespace kingdom_Preparatory_School_Management_System
                 BackColor = SurfaceColor,
                 Margin = Padding.Empty
             };
-            for (int i = 0; i < 5; i++)
-                grid.RowStyles.Add(new RowStyle(SizeType.Percent, 20));
+            for (int r = 0; r < 5; r++)
+                grid.RowStyles.Add(new RowStyle(SizeType.Absolute, FieldRowH));
             grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
             grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
 
-            grid.Controls.Add(CreateField("Employment Date", empdate), 0, 0);
-            grid.Controls.Add(CreateField("Employment Mode", empMD), 1, 0);
-            grid.Controls.Add(CreateField("Employment Status", empST), 0, 1);
-            grid.Controls.Add(CreateField("Performance Review", empRV), 1, 1);
-            grid.Controls.Add(CreateField("Emergency Contact Person", empCN), 0, 2);
-            grid.Controls.Add(CreateField("Emergency Contact", empEC), 1, 2);
-            // Salary spans both columns
-            var salaryField = CreateField("Salary (GHS)", empSA);
-            grid.Controls.Add(salaryField, 0, 3);
-            grid.SetColumnSpan(salaryField, 2);
+            grid.Controls.Add(CreateField("Employee ID",   txtEMdID), 0, 0);
+            grid.Controls.Add(CreateField("Full Name",     txtFN),    1, 0);
+            grid.Controls.Add(CreateField("Gender",        cmbGN),    0, 1);
+            grid.Controls.Add(CreateField("Date of Birth", dateDOB),  1, 1);
+            grid.Controls.Add(CreateField("Department",    cmbDPT),   0, 2);
+            grid.Controls.Add(CreateField("Position",      CmbPs),    1, 2);
+            grid.Controls.Add(CreateField("Contact",       txtCN),    0, 3);
+            grid.Controls.Add(CreateField("Home Town",     txtHT),    1, 3);
+            var resField = CreateField("Residence", txtRD);
+            grid.Controls.Add(resField, 0, 4);
+            grid.SetColumnSpan(resField, 2);
 
-            // Tip row
-            var tip = new Label
+            inner.Controls.Add(BuildSectionHeader("Personal Details",
+                "ID, name, placement & contact"), 0, 0);
+            inner.Controls.Add(grid, 0, 1);
+            card.Controls.Add(inner);
+            return card;
+        }
+
+        // Employment & Emergency card — 4 field rows × 2 columns + tip strip
+        private Control BuildEmploymentPanel()
+        {
+            var card = CreateCard(new Padding(0, 0, SectionGap, 0));
+            var inner = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
-                Text = "⚑  Keep contact and status current — payroll and leave screens depend on this data.",
-                ForeColor = Color.FromArgb(120, 100, 30),
+                RowCount = 3,
+                ColumnCount = 1,
+                BackColor = SurfaceColor,
+                Margin = Padding.Empty,
+                Padding = new Padding(CardPad)
+            };
+            inner.RowStyles.Add(new RowStyle(SizeType.Absolute, HeaderH));
+            inner.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+            inner.RowStyles.Add(new RowStyle(SizeType.Absolute, 38)); // tip
+
+            var grid = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                RowCount = 4,
+                ColumnCount = 2,
+                BackColor = SurfaceColor,
+                Margin = Padding.Empty
+            };
+            for (int r = 0; r < 4; r++)
+                grid.RowStyles.Add(new RowStyle(SizeType.Absolute, FieldRowH));
+            grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+            grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+
+            grid.Controls.Add(CreateField("Employment Date",          empdate), 0, 0);
+            grid.Controls.Add(CreateField("Employment Mode",          empMD),   1, 0);
+            grid.Controls.Add(CreateField("Employment Status",        empST),   0, 1);
+            grid.Controls.Add(CreateField("Performance Review",       empRV),   1, 1);
+            grid.Controls.Add(CreateField("Emergency Contact Person", empCN),   0, 2);
+            grid.Controls.Add(CreateField("Emergency Contact",        empEC),   1, 2);
+            var salField = CreateField("Salary (GHS)", empSA);
+            grid.Controls.Add(salField, 0, 3);
+            grid.SetColumnSpan(salField, 2);
+
+            var tip = new Panel
+            {
+                Dock = DockStyle.Fill,
                 BackColor = Color.FromArgb(255, 251, 230),
-                Font = new Font("Segoe UI", 8.5F),
+                Margin = Padding.Empty
+            };
+            var tipLbl = new Label
+            {
+                Dock = DockStyle.Fill,
+                Text = "ℹ  Keep contact and status current — payroll and leave screens depend on this data.",
+                ForeColor = Color.FromArgb(113, 91, 13),
+                Font = new Font("Segoe UI", 8.25F),
                 TextAlign = ContentAlignment.MiddleLeft,
                 Padding = new Padding(10, 0, 6, 0)
             };
-            grid.Controls.Add(tip, 0, 4);
-            grid.SetColumnSpan(tip, 2);
+            tip.Controls.Add(tipLbl);
 
-            var stack = new TableLayoutPanel
-            {
-                Dock = DockStyle.Fill,
-                RowCount = 2,
-                ColumnCount = 1,
-                BackColor = SurfaceColor,
-                Margin = Padding.Empty
-            };
-            stack.RowStyles.Add(new RowStyle(SizeType.Absolute, 56));
-            stack.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-            stack.Controls.Add(header, 0, 0);
-            stack.Controls.Add(grid, 0, 1);
-
-            panel.Controls.Add(stack);
-            return panel;
+            inner.Controls.Add(BuildSectionHeader("Employment & Emergency",
+                "Contract, status & emergency contacts"), 0, 0);
+            inner.Controls.Add(grid, 0, 1);
+            inner.Controls.Add(tip, 0, 2);
+            card.Controls.Add(inner);
+            return card;
         }
 
+        // Photo card — photo + upload + caption
         private Control BuildPhotoPanel()
         {
-            var panel = CreateSurfacePanel(new Padding(16, 18, 16, 18), Padding.Empty);
-
-            var layout = new TableLayoutPanel
+            var card = CreateCard(Padding.Empty);
+            var inner = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
                 RowCount = 5,
                 ColumnCount = 1,
                 BackColor = SurfaceColor,
-                Margin = Padding.Empty
+                Margin = Padding.Empty,
+                Padding = new Padding(CardPad)
             };
-            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 36));   // title
-            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 2));    // divider
-            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));   // photo
-            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));   // upload button
-            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 52));   // tip
+            inner.RowStyles.Add(new RowStyle(SizeType.Absolute, HeaderH));  // section title
+            inner.RowStyles.Add(new RowStyle(SizeType.Absolute, 1));        // divider
+            inner.RowStyles.Add(new RowStyle(SizeType.Percent, 100));       // photo
+            inner.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));       // upload btn
+            inner.RowStyles.Add(new RowStyle(SizeType.Absolute, 44));       // caption
 
-            layout.Controls.Add(new Label
+            inner.Controls.Add(BuildSectionHeader("Staff Photo",
+                "Passport-style portrait"), 0, 0);
+
+            inner.Controls.Add(new Panel
             {
                 Dock = DockStyle.Fill,
-                Text = "Staff Photo",
-                ForeColor = TextColor,
-                Font = new Font("Segoe UI Semibold", 12F, FontStyle.Bold),
-                TextAlign = ContentAlignment.MiddleLeft
-            }, 0, 0);
-
-            layout.Controls.Add(new Panel
-            {
-                Dock = DockStyle.Fill,
-                BackColor = BorderColor,
-                Height = 1
+                BackColor = BorderColor
             }, 0, 1);
 
             emp_pic.Dock = DockStyle.Fill;
             emp_pic.BorderStyle = BorderStyle.None;
-            emp_pic.BackColor = Color.FromArgb(245, 246, 250);
+            emp_pic.BackColor = Color.FromArgb(242, 244, 248);
             emp_pic.SizeMode = PictureBoxSizeMode.Zoom;
-            layout.Controls.Add(emp_pic, 0, 2);
+            emp_pic.Margin = new Padding(0, 8, 0, 8);
+            inner.Controls.Add(emp_pic, 0, 2);
 
             upload.Dock = DockStyle.Fill;
             upload.FillColor = UiTheme.Gold;
             upload.ForeColor = TextColor;
             upload.Text = "Upload Photo";
             upload.Font = new Font("Segoe UI Semibold", 9F, FontStyle.Bold);
-            upload.Margin = new Padding(0, 6, 0, 0);
+            upload.BorderRadius = 6;
             upload.Click -= upload_Click;
             upload.Click += upload_Click;
-            layout.Controls.Add(upload, 0, 3);
+            inner.Controls.Add(upload, 0, 3);
 
-            layout.Controls.Add(new Label
+            inner.Controls.Add(new Label
             {
                 Dock = DockStyle.Fill,
-                Text = "Upload a clear portrait photo. Accepted: JPG, PNG, BMP.",
+                Text = "JPG, PNG or BMP  ·  Clear background\nShown on employee profile and reports",
                 ForeColor = MutedTextColor,
-                Font = new Font("Segoe UI", 8.25F),
+                Font = new Font("Segoe UI", 8F),
                 TextAlign = ContentAlignment.TopLeft,
                 Padding = new Padding(0, 6, 0, 0)
             }, 0, 4);
 
-            panel.Controls.Add(layout);
-            return panel;
+            card.Controls.Add(inner);
+            return card;
         }
 
-        /// <summary>Builds a consistent section header with title + subtitle and a bottom divider.</summary>
+        // Consistent section header: bold title + muted subtitle + 1px divider
         private Control BuildSectionHeader(string title, string subtitle)
         {
-            var panel = new Panel
+            var pnl = new Panel
             {
                 Dock = DockStyle.Fill,
                 BackColor = SurfaceColor,
-                Margin = Padding.Empty,
-                Padding = new Padding(0, 0, 0, 8)
+                Margin = Padding.Empty
             };
-
-            panel.Controls.Add(new Panel
+            pnl.Controls.Add(new Panel
             {
                 Dock = DockStyle.Bottom,
-                Height = 2,
+                Height = 1,
                 BackColor = BorderColor
             });
-
-            panel.Controls.Add(new Label
+            pnl.Controls.Add(new Label
             {
                 Dock = DockStyle.Bottom,
-                Height = 18,
+                Height = 17,
                 Text = subtitle,
                 ForeColor = MutedTextColor,
-                Font = new Font("Segoe UI", 8.5F),
+                Font = new Font("Segoe UI", 8.25F),
                 TextAlign = ContentAlignment.BottomLeft
             });
-
-            panel.Controls.Add(new Label
+            pnl.Controls.Add(new Label
             {
                 Dock = DockStyle.Top,
-                Height = 28,
+                Height = 30,
                 Text = title,
                 ForeColor = TextColor,
                 Font = new Font("Segoe UI Semibold", 13F, FontStyle.Bold),
                 TextAlign = ContentAlignment.MiddleLeft
             });
+            return pnl;
+        }
 
-            return panel;
+        /// <summary>
+        /// Creates a white card panel with the given outer margin (used as spacing between cards).
+        /// The caller is responsible for adding a padded inner panel.
+        /// </summary>
+        private Panel CreateCard(Padding margin)
+        {
+            return new Panel
+            {
+                Dock = DockStyle.Fill,
+                BackColor = SurfaceColor,
+                Margin = margin,
+                Padding = Padding.Empty
+            };
         }
 
         private Panel CreateSurfacePanel(Padding padding, Padding margin)
