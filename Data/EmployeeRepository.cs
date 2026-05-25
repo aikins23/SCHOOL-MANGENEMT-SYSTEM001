@@ -266,14 +266,31 @@ namespace kingdom_Preparatory_School_Management_System.Data
                 {
                     await connection.OpenAsync();
                     var query = "SELECT * FROM Employee WHERE 1=1";
-                    if (!string.IsNullOrEmpty(filterId))
-                        query += " AND EmployeeID LIKE '%" + filterId.Replace("'", "''") + "%'";
-                    if (!string.IsNullOrEmpty(filterDepartment))
-                        query += " AND Department = '" + filterDepartment.Replace("'", "''") + "'";
 
-                    using (var adapter = new OleDbDataAdapter(query, connection))
+                    using (var command = new OleDbCommand(connection))
                     {
-                        adapter.Fill(table);
+                        // Add filterId parameter if provided
+                        if (!string.IsNullOrEmpty(filterId))
+                        {
+                            command.Parameters.AddWithValue("@filterId", "%" + filterId + "%");
+                            query += " AND EmployeeID LIKE @filterId";
+                        }
+
+                        // Add filterDepartment parameter if provided
+                        if (!string.IsNullOrEmpty(filterDepartment))
+                        {
+                            command.Parameters.AddWithValue("@filterDepartment", filterDepartment);
+                            query += " AND Department = @filterDepartment";
+                        }
+
+                        // Set the complete parameterized query
+                        command.CommandText = query;
+
+                        // Use DataAdapter with parameterized command
+                        using (var adapter = new OleDbDataAdapter(command))
+                        {
+                            adapter.Fill(table);
+                        }
                     }
                 }
             }
