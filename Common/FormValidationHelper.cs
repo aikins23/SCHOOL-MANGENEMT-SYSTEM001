@@ -15,11 +15,13 @@ namespace kingdom_Preparatory_School_Management_System.Common
         private static readonly Color SuccessColor = Color.White;
 
         /// <summary>
-        /// Validates a required text field and displays error if empty
+        /// Validates a required text field and displays error if empty.
+        /// Uses GetText() internally so Guna2TextBox (which shadows Control.Text
+        /// with 'new' rather than 'override') returns the actual typed value.
         /// </summary>
         public static bool ValidateRequired(Control control, string fieldName)
         {
-            if (string.IsNullOrWhiteSpace(control.Text))
+            if (string.IsNullOrWhiteSpace(GetText(control)))
             {
                 ShowFieldError(control, $"{fieldName} is required");
                 return false;
@@ -30,19 +32,34 @@ namespace kingdom_Preparatory_School_Management_System.Common
         }
 
         /// <summary>
+        /// Reads the visible text from a control, handling Guna2 controls whose
+        /// Text property is declared with 'new' (not 'override'), which means
+        /// calling .Text through a Control reference returns the base empty value.
+        /// </summary>
+        public static string GetText(Control control)
+        {
+            // Cast to the concrete Guna type so the 'new' Text property is called
+            if (control is Guna.UI2.WinForms.Guna2TextBox g2tb)  return g2tb.Text  ?? "";
+            if (control is Guna.UI2.WinForms.Guna2ComboBox g2cb)  return g2cb.Text  ?? "";
+            if (control is Guna.UI2.WinForms.Guna2RichTextBox g2r) return g2r.Text  ?? "";
+            return control.Text ?? "";
+        }
+
+        /// <summary>
         /// Validates numeric input
         /// </summary>
         public static bool ValidateNumeric(Control control, string fieldName, out decimal value)
         {
             value = 0;
+            string text = GetText(control);
 
-            if (string.IsNullOrWhiteSpace(control.Text))
+            if (string.IsNullOrWhiteSpace(text))
             {
                 ShowFieldError(control, $"{fieldName} is required");
                 return false;
             }
 
-            if (!decimal.TryParse(control.Text, out value))
+            if (!decimal.TryParse(text, out value))
             {
                 ShowFieldError(control, $"{fieldName} must be a valid number");
                 return false;
@@ -84,7 +101,8 @@ namespace kingdom_Preparatory_School_Management_System.Common
         /// </summary>
         public static bool ValidateEmail(Control control)
         {
-            if (string.IsNullOrWhiteSpace(control.Text))
+            string text = GetText(control);
+            if (string.IsNullOrWhiteSpace(text))
             {
                 ClearFieldError(control);
                 return true;  // Email is optional
@@ -92,7 +110,7 @@ namespace kingdom_Preparatory_School_Management_System.Common
 
             try
             {
-                var email = new System.Net.Mail.MailAddress(control.Text);
+                var email = new System.Net.Mail.MailAddress(text);
                 ClearFieldError(control);
                 return true;
             }
