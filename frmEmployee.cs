@@ -22,6 +22,11 @@ namespace kingdom_Preparatory_School_Management_System
         private static readonly Color MutedTextColor = UiTheme.Muted;
         private static readonly Color BorderColor = UiTheme.Border;
 
+        // Age constraints for date of birth
+        private const int MinimumEmployeeAge = 21;
+        private const int MaximumEmployeeAge = 65;
+        private const int DefaultEmployeeAge = 35;
+
         // Drag state variables
         private bool isDragging = false;
         private Point dragStartPoint;
@@ -120,7 +125,9 @@ namespace kingdom_Preparatory_School_Management_System
             empRV.Items.AddRange(new object[] { "A: EXCELLENT", "B: GOOD", "C: SATISFACTORY", "D: UNSATISFACTORY" });
             empRV.SelectedIndex = 1;
 
-            dateDOB.Value = DateTime.Today.AddYears(-25);
+            dateDOB.Value = DateTime.Today.AddYears(-DefaultEmployeeAge);
+            dateDOB.MinDate = DateTime.Today.AddYears(-MaximumEmployeeAge);
+            dateDOB.MaxDate = DateTime.Today.AddYears(-MinimumEmployeeAge);
             empdate.Value = DateTime.Today;
             emp_pic.SizeMode = PictureBoxSizeMode.Zoom;
             emp_pic.BackColor = AccentColor;
@@ -510,10 +517,19 @@ namespace kingdom_Preparatory_School_Management_System
 
         private async void frmEmployee_Load(object sender, EventArgs e)
         {
-            await SetNextEmployeeId();
+            try
+            {
+                await InitializeForm();
+                LoggerHelper.LogInfo("frmEmployee loaded successfully");
+            }
+            catch (Exception ex)
+            {
+                UIHelper.ShowError("Error loading form: " + ex.Message, "Employee Management");
+                LoggerHelper.LogError("frmEmployee_Load failed", ex);
+            }
         }
 
-        private async System.Threading.Tasks.Task SetNextEmployeeId()
+        private async System.Threading.Tasks.Task InitializeForm()
         {
             try
             {
@@ -523,7 +539,8 @@ namespace kingdom_Preparatory_School_Management_System
             catch (Exception ex)
             {
                 statusLabel.Text = "Could not prepare the next employee ID.";
-                UIHelper.ShowError("Error: " + ex.Message, "Employee Registration");
+                LoggerHelper.LogError("InitializeForm failed", ex);
+                throw;
             }
         }
 
@@ -576,95 +593,264 @@ namespace kingdom_Preparatory_School_Management_System
 
         private async void SaveEmployee()
         {
-            statusLabel.Text = "Saving employee...";
-            var employee = MapFormToEmployee();
-            var (success, message) = await _employeeService.AddEmployeeAsync(employee);
+            await SaveEmployeeAsync();
+        }
 
-            if (success)
+        private async System.Threading.Tasks.Task SaveEmployeeAsync()
+        {
+            try
             {
-                txtEMdID.Text = employee.EmployeeID;
-                statusLabel.Text = message;
-                UIHelper.ShowSuccess(message, "Employee Registration");
+                if (!ValidateEmployeeFields())
+                    return;
+
+                string action = "add new";
+                if (!ConfirmationHelper.ConfirmSave($"This will {action} employee {txtFN.Text}?"))
+                    return;
+
+                statusLabel.Text = "Saving employee...";
+                var employee = MapFormToEmployee();
+                var (success, message) = await _employeeService.AddEmployeeAsync(employee);
+
+                if (success)
+                {
+                    ConfirmationHelper.ShowInfo("Employee added successfully");
+                    LoggerHelper.LogInfo($"Employee {employee.EmployeeID} added");
+                    statusLabel.Text = message;
+                    await NewEmployee();
+                }
+                else
+                {
+                    statusLabel.Text = "Save failed.";
+                    UIHelper.ShowError(message, "Employee Registration");
+                    LoggerHelper.LogError("SaveEmployeeAsync failed: " + message, null);
+                }
             }
-            else
+            catch (Exception ex)
             {
                 statusLabel.Text = "Save failed.";
-                UIHelper.ShowWarning(message, "Employee Registration");
+                UIHelper.ShowError("Save failed: " + ex.Message, "Employee Management");
+                LoggerHelper.LogError("Employee save failed", ex);
             }
         }
 
         private async void UpdateEmployee()
         {
-            if (string.IsNullOrWhiteSpace(txtEMdID.Text))
-            {
-                UIHelper.ShowWarning("Please select an employee to update.", "Employee Registration");
-                return;
-            }
+            await UpdateEmployeeAsync();
+        }
 
-            statusLabel.Text = "Updating employee...";
-            var employee = MapFormToEmployee();
-            var (success, message) = await _employeeService.UpdateEmployeeAsync(employee);
-
-            if (success)
+        private async System.Threading.Tasks.Task UpdateEmployeeAsync()
+        {
+            try
             {
-                statusLabel.Text = message;
-                UIHelper.ShowSuccess(message, "Employee Registration");
+                if (string.IsNullOrWhiteSpace(txtEMdID.Text))
+                {
+                    UIHelper.ShowWarning("Please select an employee to update.", "Employee Registration");
+                    return;
+                }
+
+                if (!ValidateEmployeeFields())
+                    return;
+
+                string action = "update";
+                if (!ConfirmationHelper.ConfirmSave($"This will {action} employee {txtFN.Text}?"))
+                    return;
+
+                statusLabel.Text = "Updating employee...";
+                var employee = MapFormToEmployee();
+                var (success, message) = await _employeeService.UpdateEmployeeAsync(employee);
+
+                if (success)
+                {
+                    ConfirmationHelper.ShowInfo("Employee updated successfully");
+                    LoggerHelper.LogInfo($"Employee {employee.EmployeeID} updated");
+                    statusLabel.Text = message;
+                    await NewEmployee();
+                }
+                else
+                {
+                    statusLabel.Text = "Update failed.";
+                    UIHelper.ShowError(message, "Employee Registration");
+                    LoggerHelper.LogError("UpdateEmployeeAsync failed: " + message, null);
+                }
             }
-            else
+            catch (Exception ex)
             {
                 statusLabel.Text = "Update failed.";
-                UIHelper.ShowWarning(message, "Employee Registration");
+                UIHelper.ShowError("Update failed: " + ex.Message, "Employee Management");
+                LoggerHelper.LogError("Employee update failed", ex);
             }
         }
 
         private async void DeleteEmployee()
         {
-            if (string.IsNullOrWhiteSpace(txtEMdID.Text))
-            {
-                UIHelper.ShowWarning("Please select an employee to delete.", "Employee Registration");
-                return;
-            }
+            await DeleteEmployeeAsync();
+        }
 
-            if (UIHelper.ShowConfirmation("Delete this employee record?", "Employee Registration") != DialogResult.Yes)
+        private async System.Threading.Tasks.Task DeleteEmployeeAsync()
+        {
+            try
             {
-                return;
-            }
+                if (string.IsNullOrWhiteSpace(txtEMdID.Text))
+                {
+                    UIHelper.ShowWarning("Please select an employee to delete.", "Employee Registration");
+                    return;
+                }
 
-            statusLabel.Text = "Deleting employee...";
-            var (success, message) = await _employeeService.DeleteEmployeeAsync(txtEMdID.Text);
+                string employeeInfo = $"ID: {txtEMdID.Text}\nName: {txtFN.Text}";
+                if (!ConfirmationHelper.ConfirmDelete("Employee", employeeInfo))
+                {
+                    return;
+                }
 
-            if (success)
-            {
-                statusLabel.Text = message;
-                UIHelper.ShowSuccess(message, "Employee Registration");
-                await NewEmployee();
+                statusLabel.Text = "Deleting employee...";
+                var (success, message) = await _employeeService.DeleteEmployeeAsync(txtEMdID.Text);
+
+                if (success)
+                {
+                    ConfirmationHelper.ShowInfo("Employee deleted successfully");
+                    LoggerHelper.LogInfo($"Employee {txtEMdID.Text} deleted");
+                    statusLabel.Text = message;
+                    await NewEmployee();
+                }
+                else
+                {
+                    statusLabel.Text = "Delete failed.";
+                    UIHelper.ShowError(message, "Employee Registration");
+                    LoggerHelper.LogError("DeleteEmployeeAsync failed: " + message, null);
+                }
             }
-            else
+            catch (Exception ex)
             {
                 statusLabel.Text = "Delete failed.";
-                UIHelper.ShowWarning(message, "Employee Registration");
+                UIHelper.ShowError("Delete failed: " + ex.Message, "Employee Management");
+                LoggerHelper.LogError("Employee delete failed", ex);
             }
         }
 
         private async System.Threading.Tasks.Task NewEmployee()
         {
-            txtFN.Text = "";
-            txtCN.Text = "";
-            txtHT.Text = "";
-            txtRD.Text = "";
-            empCN.Text = "";
-            empEC.Text = "";
-            empSA.Text = "";
-            cmbGN.SelectedIndex = 0;
-            cmbDPT.SelectedIndex = 0;
-            CmbPs.SelectedIndex = 0;
-            empMD.SelectedIndex = 0;
-            empST.SelectedIndex = 0;
-            empRV.SelectedIndex = 1;
-            dateDOB.Value = DateTime.Today.AddYears(-25);
-            empdate.Value = DateTime.Today;
-            emp_pic.Image = null;
-            await SetNextEmployeeId();
+            try
+            {
+                txtFN.Text = "";
+                txtCN.Text = "";
+                txtHT.Text = "";
+                txtRD.Text = "";
+                empCN.Text = "";
+                empEC.Text = "";
+                empSA.Text = "";
+                cmbGN.SelectedIndex = 0;
+                cmbDPT.SelectedIndex = 0;
+                CmbPs.SelectedIndex = 0;
+                empMD.SelectedIndex = 0;
+                empST.SelectedIndex = 0;
+                empRV.SelectedIndex = 1;
+                dateDOB.Value = DateTime.Today.AddYears(-DefaultEmployeeAge);
+                empdate.Value = DateTime.Today;
+                emp_pic.Image = null;
+                await InitializeForm();
+                txtFN.Focus();
+            }
+            catch (Exception ex)
+            {
+                LoggerHelper.LogError("NewEmployee failed", ex);
+            }
+        }
+
+        private bool ValidateEmployeeFields()
+        {
+            // Validate Employee ID
+            if (string.IsNullOrWhiteSpace(txtEMdID.Text))
+            {
+                UIHelper.ShowWarning("Employee ID is required.", "Validation");
+                txtEMdID.Focus();
+                return false;
+            }
+
+            // Validate Full Name
+            if (string.IsNullOrWhiteSpace(txtFN.Text))
+            {
+                UIHelper.ShowWarning("Full Name is required.", "Validation");
+                txtFN.Focus();
+                return false;
+            }
+
+            // Validate Department
+            if (cmbDPT.SelectedIndex <= 0)
+            {
+                UIHelper.ShowWarning("Please select a Department.", "Validation");
+                cmbDPT.Focus();
+                return false;
+            }
+
+            // Validate Position
+            if (CmbPs.SelectedIndex <= 0)
+            {
+                UIHelper.ShowWarning("Please select a Position.", "Validation");
+                CmbPs.Focus();
+                return false;
+            }
+
+            // Validate Gender
+            if (cmbGN.SelectedIndex < 0)
+            {
+                UIHelper.ShowWarning("Please select a Gender.", "Validation");
+                cmbGN.Focus();
+                return false;
+            }
+
+            // Validate Date of Birth
+            if (dateDOB.Value.Date > DateTime.Today.AddYears(-MinimumEmployeeAge))
+            {
+                UIHelper.ShowWarning($"Employee must be at least {MinimumEmployeeAge} years old.", "Validation");
+                dateDOB.Focus();
+                return false;
+            }
+
+            if (dateDOB.Value.Date < DateTime.Today.AddYears(-MaximumEmployeeAge))
+            {
+                UIHelper.ShowWarning($"Employee cannot be older than {MaximumEmployeeAge} years.", "Validation");
+                dateDOB.Focus();
+                return false;
+            }
+
+            // Validate Salary
+            if (string.IsNullOrWhiteSpace(empSA.Text))
+            {
+                UIHelper.ShowWarning("Salary is required.", "Validation");
+                empSA.Focus();
+                return false;
+            }
+
+            if (!decimal.TryParse(empSA.Text.Trim(), out decimal salary) || salary < 0)
+            {
+                UIHelper.ShowWarning("Salary must be a valid positive number.", "Validation");
+                empSA.Focus();
+                return false;
+            }
+
+            // Validate Contact (optional but if provided, should be valid)
+            if (!string.IsNullOrWhiteSpace(txtCN.Text))
+            {
+                if (txtCN.Text.Length < 7)
+                {
+                    UIHelper.ShowWarning("Contact number must be at least 7 digits.", "Validation");
+                    txtCN.Focus();
+                    return false;
+                }
+            }
+
+            // Validate Emergency Contact (optional but if provided, should be valid)
+            if (!string.IsNullOrWhiteSpace(empEC.Text))
+            {
+                if (empEC.Text.Length < 7)
+                {
+                    UIHelper.ShowWarning("Emergency contact must be at least 7 digits.", "Validation");
+                    empEC.Focus();
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         private void btnSave_Click(object sender, EventArgs e) { SaveEmployee(); }
