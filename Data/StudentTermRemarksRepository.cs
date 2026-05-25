@@ -3,6 +3,7 @@ using System.Data;
 using System.Data.OleDb;
 using System.Threading.Tasks;
 using kingdom_Preparatory_School_Management_System.Models;
+using kingdom_Preparatory_School_Management_System.Services;
 
 namespace kingdom_Preparatory_School_Management_System.Data
 {
@@ -63,6 +64,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
             }
             catch (Exception ex)
             {
+                LoggerHelper.LogError($"Failed to retrieve student term remarks for student {studentId}, term {term}, year {year}", ex);
                 throw new RepositoryException("Error retrieving student term remarks", ex);
             }
         }
@@ -98,6 +100,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
             }
             catch (Exception ex)
             {
+                LoggerHelper.LogError($"Failed to add student term remarks for student {remarks?.StudentID ?? "unknown"}", ex);
                 throw new RepositoryException("Error adding student term remarks", ex);
             }
         }
@@ -138,6 +141,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
             }
             catch (Exception ex)
             {
+                LoggerHelper.LogError($"Failed to update student term remarks for student {remarks?.StudentID ?? "unknown"}", ex);
                 throw new RepositoryException("Error updating student term remarks", ex);
             }
         }
@@ -164,6 +168,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
             }
             catch (Exception ex)
             {
+                LoggerHelper.LogError($"Failed to delete student term remarks for student {studentId}, term {term}, year {year}", ex);
                 throw new RepositoryException("Error deleting student term remarks", ex);
             }
         }

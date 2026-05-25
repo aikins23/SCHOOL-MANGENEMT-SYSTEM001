@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using kingdom_Preparatory_School_Management_System.Services;
 
 namespace kingdom_Preparatory_School_Management_System.Services
 {
@@ -24,7 +25,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
 
                 // Save temporarily
                 var tempPath = Path.Combine(Path.GetTempPath(), $"ReportCard_{Guid.NewGuid()}.pdf");
-                await File.WriteAllBytesAsync(tempPath, pdfBytes);
+                await Task.Run(() => File.WriteAllBytes(tempPath, pdfBytes));
 
                 try
                 {
@@ -45,11 +46,12 @@ namespace kingdom_Preparatory_School_Management_System.Services
                 {
                     // Clean up temp file (ignore if locked)
                     try { File.Delete(tempPath); }
-                    catch { }
+                    catch (Exception ex) { LoggerHelper.LogWarning($"Failed to delete temporary PDF file: {ex.Message}"); }
                 }
             }
             catch (Exception ex)
             {
+                LoggerHelper.LogError("Error printing report card", ex);
                 throw new PrintingException("Error printing report card", ex);
             }
         }
@@ -66,10 +68,11 @@ namespace kingdom_Preparatory_School_Management_System.Services
                 if (!Directory.Exists(directory))
                     Directory.CreateDirectory(directory);
 
-                await File.WriteAllBytesAsync(filePath, pdfBytes);
+                await Task.Run(() => File.WriteAllBytes(filePath, pdfBytes));
             }
             catch (Exception ex)
             {
+                LoggerHelper.LogError($"Error saving report card to {filePath}", ex);
                 throw new PrintingException($"Error saving report card to {filePath}", ex);
             }
         }
@@ -92,6 +95,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
             }
             catch (Exception ex)
             {
+                LoggerHelper.LogError("Error showing print dialog", ex);
                 throw new PrintingException("Error showing print dialog", ex);
             }
 
@@ -105,8 +109,9 @@ namespace kingdom_Preparatory_School_Management_System.Services
                 var settings = new System.Drawing.Printing.PrinterSettings();
                 return settings.PrinterName;
             }
-            catch
+            catch (Exception ex)
             {
+                LoggerHelper.LogWarning($"Failed to get default printer name, will use system default: {ex.Message}");
                 return null;  // Will use system default
             }
         }
