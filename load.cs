@@ -76,11 +76,24 @@ namespace kingdom_Preparatory_School_Management_System
             Controls.Clear();
 
             // ── Heraldic crest (88 × 90) ─────────────────────────────────────
-            const int logoW = 88, logoH = 90;
-            pictureBoxLogo.Bounds    = new Rectangle((FormW - logoW) / 2, BandH + 14, logoW, logoH);
+            const int logoW = 96, logoH = 96;
+            pictureBoxLogo.Bounds    = new Rectangle((FormW - logoW) / 2, BandH + 10, logoW, logoH);
             pictureBoxLogo.SizeMode  = PictureBoxSizeMode.Zoom;
             pictureBoxLogo.BackColor = Color.Transparent;
             pictureBoxLogo.Paint    += PaintCrestFallback;
+
+            // Try loading real school logo; fallback shield is drawn when Image is null
+            try
+            {
+                string logoPath = System.IO.Path.Combine(
+                    System.IO.Path.GetDirectoryName(
+                        System.Reflection.Assembly.GetExecutingAssembly().Location),
+                    "Resources", "school_logo.png");
+                if (System.IO.File.Exists(logoPath))
+                    pictureBoxLogo.Image = Image.FromFile(logoPath);
+            }
+            catch { /* PaintCrestFallback will draw the KPS shield instead */ }
+
             Controls.Add(pictureBoxLogo);
 
             // ── School name  (Georgia — classic serif) ────────────────────────
