@@ -29,7 +29,9 @@ namespace kingdom_Preparatory_School_Management_System.Services
     public static class LoggerHelper
     {
         // private static readonly Logger _logger = LogManager.GetCurrentClassLogger();
-        private static readonly object _logger = null; // Placeholder
+#pragma warning disable CS0414
+        private static readonly object _logger = null;
+#pragma warning restore CS0414
 
         /// <summary>
         /// Logs an informational message.

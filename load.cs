@@ -14,7 +14,9 @@ namespace kingdom_Preparatory_School_Management_System
     {
         private Timer animationTimer;
         private int dotAnimationTicks = 0;
+#pragma warning disable CS0414
         private int dotOpacityPhase = 0;
+#pragma warning restore CS0414
         private int totalLoadingTicks = 0;
         private int maxLoadingTicks = 100; // ~5 seconds at 50ms
 

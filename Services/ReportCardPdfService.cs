@@ -65,8 +65,8 @@ namespace kingdom_Preparatory_School_Management_System.Services
                 {
                     doc.Info.Title = $"Report Card – {name}";
                     var page = doc.AddPage();
-                    page.Width  = PW;
-                    page.Height = PH;
+                    page.Width  = XUnit.FromPoint(PW);
+                    page.Height = XUnit.FromPoint(PH);
 
                     using (var g = XGraphics.FromPdfPage(page))
                     {

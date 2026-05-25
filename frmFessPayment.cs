@@ -453,7 +453,7 @@ namespace kingdom_Preparatory_School_Management_System
 
         private void txtStdID_TextChanged(object sender, EventArgs e) { LookupStudent(); }
         private void pay_Click(object sender, EventArgs e) { RecordPayment(); }
-        private void btn_Re_Click(object sender, EventArgs e) { LoadPaymentHistory(); }
+        private void btn_Re_Click(object sender, EventArgs e) { _ = LoadPaymentHistory(); }
         private void gunaDateTimePicker1_ValueChanged(object sender, EventArgs e) { }
         private void guna2TextBox8_TextChanged(object sender, EventArgs e) { }
         private void txtpm_TextChanged(object sender, EventArgs e) { }

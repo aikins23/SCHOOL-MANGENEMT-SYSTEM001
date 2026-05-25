@@ -482,7 +482,9 @@
         private System.Windows.Forms.PictureBox pictureBox2;
         private System.Windows.Forms.Label label8;
         private Guna.UI2.WinForms.Guna2Panel guna2Panel1;
+#pragma warning disable CS0649
         private Guna.UI2.WinForms.Guna2GroupBox guna2GroupBox1;
+#pragma warning restore CS0649
         private Guna.UI2.WinForms.Guna2TextBox TXTUsers;
         private Guna.UI2.WinForms.Guna2TextBox TXTPass;
         private Guna.UI2.WinForms.Guna2TextBox TXTCON_Pass;

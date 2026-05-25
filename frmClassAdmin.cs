@@ -17,7 +17,9 @@ namespace kingdom_Preparatory_School_Management_System
         private Guna.UI2.WinForms.Guna2TextBox txtClassName;
         private Guna.UI2.WinForms.Guna2TextBox txtFee;
         private Guna.UI2.WinForms.Guna2TextBox txtLevel;
+#pragma warning disable CS0169
         private Label statusLabel;
+#pragma warning restore CS0169
 
         private static readonly Color Navy = UiTheme.Navy;
         private static readonly Color Surface = UiTheme.Surface;

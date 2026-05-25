@@ -41,6 +41,7 @@
 
         #endregion
 
+        #pragma warning disable CS0169
         private Guna.UI.WinForms.GunaButton gunaButton2;
         public Guna.UI.WinForms.GunaComboBox cmb_cd;
         private Guna.UI.WinForms.GunaPictureBox gunaPictureBox2;
@@ -68,5 +69,6 @@
         private System.Windows.Forms.ToolStripMenuItem aboutToolStripMenuItem;
         private Guna.UI.WinForms.GunaPictureBox gunaPictureBox1;
         private Guna.UI.WinForms.GunaPictureBox gunaPictureBox6;
+        #pragma warning restore CS0169
     }
 }
