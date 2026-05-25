@@ -76,7 +76,8 @@
             this.lab_Register.Size = new System.Drawing.Size(90, 24);
             this.lab_Register.TabIndex = 11;
             this.lab_Register.Text = "REGISTER";
-            this.lab_Register.Click += new System.EventHandler(this.lab_Register_Click);
+            // 
+            //             this.lab_Register.Click += new System.EventHandler(this.lab_Register_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // label7
             // 
@@ -101,7 +102,8 @@
             this.Check.TabIndex = 8;
             this.Check.Text = "SHOW PASSWORD";
             this.Check.UseVisualStyleBackColor = true;
-            this.Check.CheckedChanged += new System.EventHandler(this.Check_CheckedChanged);
+            // 
+            //             this.Check.CheckedChanged += new System.EventHandler(this.Check_CheckedChanged); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // label3
             // 
@@ -212,7 +214,7 @@
             this.panel1.Name = "panel1";
             this.panel1.Size = new System.Drawing.Size(315, 531);
             this.panel1.TabIndex = 15;
-            this.panel1.Paint += new System.Windows.Forms.PaintEventHandler(this.panel1_Paint);
+            // this.panel1.Paint += new System.Windows.Forms.PaintEventHandler(this.panel1_Paint); // TODO: Implement event handler
             // 
             // BTN_Login
             // 
@@ -240,7 +242,8 @@
             this.BTN_Login.TabIndex = 30;
             this.BTN_Login.Text = "LOG IN";
             this.BTN_Login.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
-            this.BTN_Login.Click += new System.EventHandler(this.BTN_Login_Click_1);
+            // 
+            //             this.BTN_Login.Click += new System.EventHandler(this.BTN_Login_Click_1); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // TXTPass
             // 
@@ -306,7 +309,8 @@
             this.pictureBox2.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
             this.pictureBox2.TabIndex = 14;
             this.pictureBox2.TabStop = false;
-            this.pictureBox2.Click += new System.EventHandler(this.pictureBox2_Click);
+            // 
+            //             this.pictureBox2.Click += new System.EventHandler(this.pictureBox2_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // guna2Panel1
             // 
@@ -345,7 +349,7 @@
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.Sizable;
             this.Name = "frmlogin";
             this.Text = "frmlogin";
-            this.Load += new System.EventHandler(this.frmlogin_Load);
+            // this.Load += new System.EventHandler(this.frmlogin_Load); // TODO: Implement event handler
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).EndInit();
             this.panel1.ResumeLayout(false);
             this.panel1.PerformLayout();
@@ -380,3 +384,4 @@
         private Guna.UI.WinForms.GunaButton BTN_Login;
     }
 }
+

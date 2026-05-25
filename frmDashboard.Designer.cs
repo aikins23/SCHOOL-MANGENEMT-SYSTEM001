@@ -116,21 +116,24 @@
             this.studentsToolStripMenuItem.Name = "studentsToolStripMenuItem";
             this.studentsToolStripMenuItem.Size = new System.Drawing.Size(127, 22);
             this.studentsToolStripMenuItem.Text = "Students";
-            this.studentsToolStripMenuItem.Click += new System.EventHandler(this.studentsToolStripMenuItem_Click);
+            // 
+            //             this.studentsToolStripMenuItem.Click += new System.EventHandler(this.studentsToolStripMenuItem_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // employersToolStripMenuItem
             // 
             this.employersToolStripMenuItem.Name = "employersToolStripMenuItem";
             this.employersToolStripMenuItem.Size = new System.Drawing.Size(127, 22);
             this.employersToolStripMenuItem.Text = "Employers";
-            this.employersToolStripMenuItem.Click += new System.EventHandler(this.employersToolStripMenuItem_Click);
+            // 
+            //             this.employersToolStripMenuItem.Click += new System.EventHandler(this.employersToolStripMenuItem_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // classToolStripMenuItem
             // 
             this.classToolStripMenuItem.Name = "classToolStripMenuItem";
             this.classToolStripMenuItem.Size = new System.Drawing.Size(127, 22);
             this.classToolStripMenuItem.Text = "Class";
-            this.classToolStripMenuItem.Click += new System.EventHandler(this.classToolStripMenuItem_Click);
+            // 
+            //             this.classToolStripMenuItem.Click += new System.EventHandler(this.classToolStripMenuItem_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // viewToolStripMenuItem
             // 
@@ -148,21 +151,24 @@
             this.studentsToolStripMenuItem1.Name = "studentsToolStripMenuItem1";
             this.studentsToolStripMenuItem1.Size = new System.Drawing.Size(127, 22);
             this.studentsToolStripMenuItem1.Text = "Students";
-            this.studentsToolStripMenuItem1.Click += new System.EventHandler(this.studentsToolStripMenuItem1_Click);
+            // 
+            //             this.studentsToolStripMenuItem1.Click += new System.EventHandler(this.studentsToolStripMenuItem1_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // employersToolStripMenuItem1
             // 
             this.employersToolStripMenuItem1.Name = "employersToolStripMenuItem1";
             this.employersToolStripMenuItem1.Size = new System.Drawing.Size(127, 22);
             this.employersToolStripMenuItem1.Text = "Employers";
-            this.employersToolStripMenuItem1.Click += new System.EventHandler(this.employersToolStripMenuItem1_Click);
+            // 
+            //             this.employersToolStripMenuItem1.Click += new System.EventHandler(this.employersToolStripMenuItem1_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // classToolStripMenuItem1
             // 
             this.classToolStripMenuItem1.Name = "classToolStripMenuItem1";
             this.classToolStripMenuItem1.Size = new System.Drawing.Size(127, 22);
             this.classToolStripMenuItem1.Text = "Class";
-            this.classToolStripMenuItem1.Click += new System.EventHandler(this.classToolStripMenuItem1_Click);
+            // 
+            //             this.classToolStripMenuItem1.Click += new System.EventHandler(this.classToolStripMenuItem1_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // makePaymentToolStripMenuItem
             // 
@@ -170,7 +176,8 @@
             this.makePaymentToolStripMenuItem.Name = "makePaymentToolStripMenuItem";
             this.makePaymentToolStripMenuItem.Size = new System.Drawing.Size(109, 20);
             this.makePaymentToolStripMenuItem.Text = "&Make payment";
-            this.makePaymentToolStripMenuItem.Click += new System.EventHandler(this.makePaymentToolStripMenuItem_Click);
+            // 
+            //             this.makePaymentToolStripMenuItem.Click += new System.EventHandler(this.makePaymentToolStripMenuItem_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // sendComplaintsToolStripMenuItem
             // 
@@ -178,7 +185,8 @@
             this.sendComplaintsToolStripMenuItem.Name = "sendComplaintsToolStripMenuItem";
             this.sendComplaintsToolStripMenuItem.Size = new System.Drawing.Size(123, 20);
             this.sendComplaintsToolStripMenuItem.Text = "Send &Complaints ";
-            this.sendComplaintsToolStripMenuItem.Click += new System.EventHandler(this.sendComplaintsToolStripMenuItem_Click);
+            // 
+            //             this.sendComplaintsToolStripMenuItem.Click += new System.EventHandler(this.sendComplaintsToolStripMenuItem_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // aboutToolStripMenuItem
             // 
@@ -186,7 +194,8 @@
             this.aboutToolStripMenuItem.Name = "aboutToolStripMenuItem";
             this.aboutToolStripMenuItem.Size = new System.Drawing.Size(64, 20);
             this.aboutToolStripMenuItem.Text = "A&bout";
-            this.aboutToolStripMenuItem.Click += new System.EventHandler(this.aboutToolStripMenuItem_Click);
+            // 
+            //             this.aboutToolStripMenuItem.Click += new System.EventHandler(this.aboutToolStripMenuItem_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // gunaPanel2
             // 
@@ -209,7 +218,8 @@
             this.gunaPictureBox1.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
             this.gunaPictureBox1.TabIndex = 0;
             this.gunaPictureBox1.TabStop = false;
-            this.gunaPictureBox1.Click += new System.EventHandler(this.gunaPictureBox1_Click);
+            // 
+            //             this.gunaPictureBox1.Click += new System.EventHandler(this.gunaPictureBox1_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // guna2Panel1
             // 
@@ -239,7 +249,7 @@
             this.guna2Panel1.ShadowDecoration.Parent = this.guna2Panel1;
             this.guna2Panel1.Size = new System.Drawing.Size(226, 793);
             this.guna2Panel1.TabIndex = 42;
-            this.guna2Panel1.Paint += new System.Windows.Forms.PaintEventHandler(this.guna2Panel1_Paint);
+            // // this.guna2Panel1.Paint += new System.Windows.Forms.PaintEventHandler(this.guna2Panel1_Paint); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // gunaButton13
             // 
@@ -269,7 +279,8 @@
             this.gunaButton13.Text = "LEAVE HISTORY";
             this.gunaButton13.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
             this.gunaButton13.TextOffsetX = 30;
-            this.gunaButton13.Click += new System.EventHandler(this.gunaButton13_Click);
+            // 
+            //             this.gunaButton13.Click += new System.EventHandler(this.gunaButton13_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // gunaButton10
             // 
@@ -299,7 +310,8 @@
             this.gunaButton10.Text = "APPLY LEAVE";
             this.gunaButton10.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
             this.gunaButton10.TextOffsetX = 30;
-            this.gunaButton10.Click += new System.EventHandler(this.gunaButton10_Click);
+            // 
+            //             this.gunaButton10.Click += new System.EventHandler(this.gunaButton10_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // gunaButton12
             // 
@@ -329,7 +341,8 @@
             this.gunaButton12.Text = "LOG OUT";
             this.gunaButton12.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
             this.gunaButton12.TextOffsetX = 80;
-            this.gunaButton12.Click += new System.EventHandler(this.gunaButton12_Click);
+            // 
+            //             this.gunaButton12.Click += new System.EventHandler(this.gunaButton12_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // gunaButton5
             // 
@@ -359,7 +372,8 @@
             this.gunaButton5.Text = "VIEW SCORES";
             this.gunaButton5.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
             this.gunaButton5.TextOffsetX = 50;
-            this.gunaButton5.Click += new System.EventHandler(this.gunaButton5_Click);
+            // 
+            //             this.gunaButton5.Click += new System.EventHandler(this.gunaButton5_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // gunaButton4
             // 
@@ -389,7 +403,8 @@
             this.gunaButton4.Text = "VIEW EMPLOYEES";
             this.gunaButton4.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
             this.gunaButton4.TextOffsetX = 30;
-            this.gunaButton4.Click += new System.EventHandler(this.gunaButton4_Click);
+            // 
+            //             this.gunaButton4.Click += new System.EventHandler(this.gunaButton4_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // gunaCirclePictureBox1
             // 
@@ -434,7 +449,8 @@
             this.gunaButton3.Text = "ADD EMPLOYEES";
             this.gunaButton3.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
             this.gunaButton3.TextOffsetX = 30;
-            this.gunaButton3.Click += new System.EventHandler(this.gunaButton3_Click);
+            // 
+            //             this.gunaButton3.Click += new System.EventHandler(this.gunaButton3_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // gunaButton2
             // 
@@ -464,7 +480,8 @@
             this.gunaButton2.Text = "VIEW STUDENTS";
             this.gunaButton2.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
             this.gunaButton2.TextOffsetX = 30;
-            this.gunaButton2.Click += new System.EventHandler(this.gunaButton2_Click);
+            // 
+            //             this.gunaButton2.Click += new System.EventHandler(this.gunaButton2_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // gunaButton1
             // 
@@ -494,7 +511,8 @@
             this.gunaButton1.Text = "ADD STUDENTS";
             this.gunaButton1.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
             this.gunaButton1.TextOffsetX = 30;
-            this.gunaButton1.Click += new System.EventHandler(this.gunaButton1_Click);
+            // 
+            //             this.gunaButton1.Click += new System.EventHandler(this.gunaButton1_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // gunaButton7
             // 
@@ -524,7 +542,8 @@
             this.gunaButton7.Text = "MAKE PAYMENT";
             this.gunaButton7.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
             this.gunaButton7.TextOffsetX = 30;
-            this.gunaButton7.Click += new System.EventHandler(this.gunaButton7_Click);
+            // 
+            //             this.gunaButton7.Click += new System.EventHandler(this.gunaButton7_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // gunaButton6
             // 
@@ -554,7 +573,8 @@
             this.gunaButton6.Text = "ENTER EXAMS MARKS";
             this.gunaButton6.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
             this.gunaButton6.TextOffsetX = 30;
-            this.gunaButton6.Click += new System.EventHandler(this.gunaButton6_Click);
+            // 
+            //             this.gunaButton6.Click += new System.EventHandler(this.gunaButton6_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // gunaPanel1
             // 
@@ -588,7 +608,8 @@
             this.tStd.TabIndex = 1;
             this.tStd.Text = "0";
             this.tStd.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
-            this.tStd.Click += new System.EventHandler(this.tStd_Click);
+            // 
+            //             this.tStd.Click += new System.EventHandler(this.tStd_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // gunaLabel1
             // 
@@ -610,7 +631,7 @@
             this.gunaPanel3.Name = "gunaPanel3";
             this.gunaPanel3.Size = new System.Drawing.Size(187, 131);
             this.gunaPanel3.TabIndex = 44;
-            this.gunaPanel3.Paint += new System.Windows.Forms.PaintEventHandler(this.gunaPanel3_Paint);
+            // this.gunaPanel3.Paint += new System.Windows.Forms.PaintEventHandler(this.gunaPanel3_Paint); // TODO: Implement event handler
             // 
             // gunaPictureBox3
             // 
@@ -676,7 +697,8 @@
             this.tfess.TabIndex = 1;
             this.tfess.Text = "0";
             this.tfess.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
-            this.tfess.Click += new System.EventHandler(this.gunaLabel5_Click);
+            // 
+            //             this.tfess.Click += new System.EventHandler(this.gunaLabel5_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // gunaLabel6
             // 
@@ -702,7 +724,7 @@
             this.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.Name = "frmDashboard";
             this.Text = "frmDashboard";
-            this.Load += new System.EventHandler(this.frmDashboard_Load);
+            // this.Load += new System.EventHandler(this.frmDashboard_Load); // TODO: Implement event handler
             this.menuStrip1.ResumeLayout(false);
             this.menuStrip1.PerformLayout();
             this.gunaPanel2.ResumeLayout(false);
@@ -762,3 +784,4 @@
         private Guna.UI.WinForms.GunaLabel gunaLabel6;
     }
 }
+

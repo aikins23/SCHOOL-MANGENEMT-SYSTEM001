@@ -204,7 +204,7 @@
             this.gunaPanel1.Name = "gunaPanel1";
             this.gunaPanel1.Size = new System.Drawing.Size(51, 27);
             this.gunaPanel1.TabIndex = 29;
-            this.gunaPanel1.Paint += new System.Windows.Forms.PaintEventHandler(this.gunaPanel1_Paint);
+            // this.gunaPanel1.Paint += new System.Windows.Forms.PaintEventHandler(this.gunaPanel1_Paint); // TODO: Implement event handler
             // 
             // gunaPictureBox1
             // 
@@ -216,7 +216,8 @@
             this.gunaPictureBox1.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
             this.gunaPictureBox1.TabIndex = 0;
             this.gunaPictureBox1.TabStop = false;
-            this.gunaPictureBox1.Click += new System.EventHandler(this.gunaPictureBox1_Click);
+            // 
+            //             this.gunaPictureBox1.Click += new System.EventHandler(this.gunaPictureBox1_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // guna2HtmlLabel1
             // 
@@ -259,7 +260,7 @@
             this.gunaPanel2.Name = "gunaPanel2";
             this.gunaPanel2.Size = new System.Drawing.Size(798, 212);
             this.gunaPanel2.TabIndex = 32;
-            this.gunaPanel2.Paint += new System.Windows.Forms.PaintEventHandler(this.gunaPanel2_Paint);
+            // this.gunaPanel2.Paint += new System.Windows.Forms.PaintEventHandler(this.gunaPanel2_Paint); // TODO: Implement event handler
             // 
             // panel1
             // 
@@ -270,7 +271,7 @@
             this.panel1.Name = "panel1";
             this.panel1.Size = new System.Drawing.Size(368, 55);
             this.panel1.TabIndex = 33;
-            this.panel1.Paint += new System.Windows.Forms.PaintEventHandler(this.panel1_Paint);
+            // this.panel1.Paint += new System.Windows.Forms.PaintEventHandler(this.panel1_Paint); // TODO: Implement event handler
             // 
             // btnEdit
             // 
@@ -297,7 +298,8 @@
             this.btnEdit.Size = new System.Drawing.Size(193, 66);
             this.btnEdit.TabIndex = 32;
             this.btnEdit.Text = "FEE PAYMENT AREA";
-            this.btnEdit.Click += new System.EventHandler(this.btnEdit_Click);
+            // 
+            //             this.btnEdit.Click += new System.EventHandler(this.btnEdit_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // btnNew
             // 
@@ -324,7 +326,8 @@
             this.btnNew.Size = new System.Drawing.Size(121, 66);
             this.btnNew.TabIndex = 30;
             this.btnNew.Text = "ADD FEE";
-            this.btnNew.Click += new System.EventHandler(this.btnNew_Click);
+            // 
+            //             this.btnNew.Click += new System.EventHandler(this.btnNew_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // gunaTextBox5
             // 
@@ -573,7 +576,7 @@
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.Sizable;
             this.Name = "frmFess";
             this.Text = "frmFess";
-            this.Load += new System.EventHandler(this.frmFess_Load);
+            // this.Load += new System.EventHandler(this.frmFess_Load); // TODO: Implement event handler
             this.menuStrip1.ResumeLayout(false);
             this.menuStrip1.PerformLayout();
             this.gunaPanel1.ResumeLayout(false);
@@ -624,3 +627,4 @@
         private System.Windows.Forms.DataGridViewImageColumn VIEW;
     }
 }
+

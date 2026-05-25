@@ -98,7 +98,8 @@
             this.guna2HtmlLabel1.Size = new System.Drawing.Size(391, 31);
             this.guna2HtmlLabel1.TabIndex = 9;
             this.guna2HtmlLabel1.Text = "EMPLOYEE\'S LEAVE APPLICATION  FORM";
-            this.guna2HtmlLabel1.Click += new System.EventHandler(this.guna2HtmlLabel1_Click);
+            // 
+            //             this.guna2HtmlLabel1.Click += new System.EventHandler(this.guna2HtmlLabel1_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // guna2GroupBox1
             // 
@@ -134,7 +135,8 @@
             this.txtName.ReadOnly = true;
             this.txtName.Size = new System.Drawing.Size(240, 26);
             this.txtName.TabIndex = 20;
-            this.txtName.TextChanged += new System.EventHandler(this.txtName_TextChanged);
+            // 
+            //             this.txtName.TextChanged += new System.EventHandler(this.txtName_TextChanged); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // Label5
             // 
@@ -146,7 +148,8 @@
             this.Label5.Size = new System.Drawing.Size(43, 18);
             this.Label5.TabIndex = 19;
             this.Label5.Text = "NAME";
-            this.Label5.Click += new System.EventHandler(this.Label5_Click);
+            // 
+            //             this.Label5.Click += new System.EventHandler(this.Label5_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // txtdepartment
             // 
@@ -171,7 +174,8 @@
             this.Label3.Size = new System.Drawing.Size(92, 18);
             this.Label3.TabIndex = 13;
             this.Label3.Text = "EMPLOYEE ID:";
-            this.Label3.Click += new System.EventHandler(this.Label3_Click);
+            // 
+            //             this.Label3.Click += new System.EventHandler(this.Label3_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // Label6
             // 
@@ -183,7 +187,8 @@
             this.Label6.Size = new System.Drawing.Size(95, 18);
             this.Label6.TabIndex = 17;
             this.Label6.Text = "DEPARTMENT:";
-            this.Label6.Click += new System.EventHandler(this.Label6_Click);
+            // 
+            //             this.Label6.Click += new System.EventHandler(this.Label6_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // txtEmployeeId
             // 
@@ -198,7 +203,8 @@
             this.txtEmployeeId.Name = "txtEmployeeId";
             this.txtEmployeeId.Size = new System.Drawing.Size(240, 26);
             this.txtEmployeeId.TabIndex = 14;
-            this.txtEmployeeId.TextChanged += new System.EventHandler(this.txtEmployeeId_TextChanged);
+            // 
+            //             this.txtEmployeeId.TextChanged += new System.EventHandler(this.txtEmployeeId_TextChanged); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // txtposition
             // 
@@ -223,7 +229,8 @@
             this.Label4.Size = new System.Drawing.Size(71, 18);
             this.Label4.TabIndex = 15;
             this.Label4.Text = "POSITION:";
-            this.Label4.Click += new System.EventHandler(this.Label4_Click);
+            // 
+            //             this.Label4.Click += new System.EventHandler(this.Label4_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // guna2GroupBox2
             // 
@@ -259,7 +266,8 @@
             this.rdoAcidentOnDuty.TabIndex = 14;
             this.rdoAcidentOnDuty.Text = "Accident On Duty";
             this.rdoAcidentOnDuty.UseVisualStyleBackColor = true;
-            this.rdoAcidentOnDuty.CheckedChanged += new System.EventHandler(this.rdoAcidentOnDuty_CheckedChanged);
+            // 
+            //             this.rdoAcidentOnDuty.CheckedChanged += new System.EventHandler(this.rdoAcidentOnDuty_CheckedChanged); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // rdoFuneral
             // 
@@ -273,7 +281,8 @@
             this.rdoFuneral.TabIndex = 13;
             this.rdoFuneral.Text = "Funeral";
             this.rdoFuneral.UseVisualStyleBackColor = true;
-            this.rdoFuneral.CheckedChanged += new System.EventHandler(this.rdoFuneral_CheckedChanged);
+            // 
+            //             this.rdoFuneral.CheckedChanged += new System.EventHandler(this.rdoFuneral_CheckedChanged); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // rdoMaternity
             // 
@@ -287,7 +296,8 @@
             this.rdoMaternity.TabIndex = 12;
             this.rdoMaternity.Text = "Maternity";
             this.rdoMaternity.UseVisualStyleBackColor = true;
-            this.rdoMaternity.CheckedChanged += new System.EventHandler(this.rdoMaternity_CheckedChanged);
+            // 
+            //             this.rdoMaternity.CheckedChanged += new System.EventHandler(this.rdoMaternity_CheckedChanged); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // rdoPaternity
             // 
@@ -301,7 +311,8 @@
             this.rdoPaternity.TabIndex = 11;
             this.rdoPaternity.Text = "Paternity";
             this.rdoPaternity.UseVisualStyleBackColor = true;
-            this.rdoPaternity.CheckedChanged += new System.EventHandler(this.rdoPaternity_CheckedChanged);
+            // 
+            //             this.rdoPaternity.CheckedChanged += new System.EventHandler(this.rdoPaternity_CheckedChanged); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // rdoVacation
             // 
@@ -315,7 +326,8 @@
             this.rdoVacation.TabIndex = 10;
             this.rdoVacation.Text = "Vacation";
             this.rdoVacation.UseVisualStyleBackColor = true;
-            this.rdoVacation.CheckedChanged += new System.EventHandler(this.rdoVacation_CheckedChanged);
+            // 
+            //             this.rdoVacation.CheckedChanged += new System.EventHandler(this.rdoVacation_CheckedChanged); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // rdoSick
             // 
@@ -331,7 +343,8 @@
             this.rdoSick.TabStop = true;
             this.rdoSick.Text = "Sick";
             this.rdoSick.UseVisualStyleBackColor = true;
-            this.rdoSick.CheckedChanged += new System.EventHandler(this.rdoSick_CheckedChanged);
+            // 
+            //             this.rdoSick.CheckedChanged += new System.EventHandler(this.rdoSick_CheckedChanged); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // GroupBox3
             // 
@@ -359,7 +372,8 @@
             this.rdwPay.TabIndex = 0;
             this.rdwPay.Text = "Without Pay";
             this.rdwPay.UseVisualStyleBackColor = true;
-            this.rdwPay.CheckedChanged += new System.EventHandler(this.rdwPay_CheckedChanged);
+            // 
+            //             this.rdwPay.CheckedChanged += new System.EventHandler(this.rdwPay_CheckedChanged); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // rdpay
             // 
@@ -374,7 +388,8 @@
             this.rdpay.TabStop = true;
             this.rdpay.Text = "With Pay";
             this.rdpay.UseVisualStyleBackColor = true;
-            this.rdpay.CheckedChanged += new System.EventHandler(this.rdpay_CheckedChanged);
+            // 
+            //             this.rdpay.CheckedChanged += new System.EventHandler(this.rdpay_CheckedChanged); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // groupBox1
             // 
@@ -445,7 +460,8 @@
             this.dtpdatestart.Name = "dtpdatestart";
             this.dtpdatestart.Size = new System.Drawing.Size(201, 26);
             this.dtpdatestart.TabIndex = 28;
-            this.dtpdatestart.ValueChanged += new System.EventHandler(this.dtpdatestart_ValueChanged);
+            // 
+            //             this.dtpdatestart.ValueChanged += new System.EventHandler(this.dtpdatestart_ValueChanged); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // Label13
             // 
@@ -519,7 +535,8 @@
             this.gunaPictureBox1.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
             this.gunaPictureBox1.TabIndex = 0;
             this.gunaPictureBox1.TabStop = false;
-            this.gunaPictureBox1.Click += new System.EventHandler(this.gunaPictureBox1_Click);
+            // 
+            //             this.gunaPictureBox1.Click += new System.EventHandler(this.gunaPictureBox1_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // panel2
             // 
@@ -557,7 +574,8 @@
             this.gunaButton1.Size = new System.Drawing.Size(108, 60);
             this.gunaButton1.TabIndex = 35;
             this.gunaButton1.Text = "VIEW";
-            this.gunaButton1.Click += new System.EventHandler(this.gunaButton1_Click);
+            // 
+            //             this.gunaButton1.Click += new System.EventHandler(this.gunaButton1_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // gunaButton2
             // 
@@ -584,7 +602,8 @@
             this.gunaButton2.Size = new System.Drawing.Size(110, 60);
             this.gunaButton2.TabIndex = 31;
             this.gunaButton2.Text = "SAVE";
-            this.gunaButton2.Click += new System.EventHandler(this.gunaButton2_Click);
+            // 
+            //             this.gunaButton2.Click += new System.EventHandler(this.gunaButton2_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // btnClear
             // 
@@ -611,7 +630,8 @@
             this.btnClear.Size = new System.Drawing.Size(97, 60);
             this.btnClear.TabIndex = 30;
             this.btnClear.Text = "NEW";
-            this.btnClear.Click += new System.EventHandler(this.btnClear_Click);
+            // 
+            //             this.btnClear.Click += new System.EventHandler(this.btnClear_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // menuStrip1
             // 
@@ -649,21 +669,24 @@
             this.studentsToolStripMenuItem.Name = "studentsToolStripMenuItem";
             this.studentsToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.studentsToolStripMenuItem.Text = "Students";
-            this.studentsToolStripMenuItem.Click += new System.EventHandler(this.studentsToolStripMenuItem_Click);
+            // 
+            //             this.studentsToolStripMenuItem.Click += new System.EventHandler(this.studentsToolStripMenuItem_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // employersToolStripMenuItem
             // 
             this.employersToolStripMenuItem.Name = "employersToolStripMenuItem";
             this.employersToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.employersToolStripMenuItem.Text = "Employers";
-            this.employersToolStripMenuItem.Click += new System.EventHandler(this.employersToolStripMenuItem_Click);
+            // 
+            //             this.employersToolStripMenuItem.Click += new System.EventHandler(this.employersToolStripMenuItem_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // classToolStripMenuItem
             // 
             this.classToolStripMenuItem.Name = "classToolStripMenuItem";
             this.classToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.classToolStripMenuItem.Text = "Exams Record";
-            this.classToolStripMenuItem.Click += new System.EventHandler(this.classToolStripMenuItem_Click);
+            // 
+            //             this.classToolStripMenuItem.Click += new System.EventHandler(this.classToolStripMenuItem_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // viewToolStripMenuItem
             // 
@@ -681,21 +704,24 @@
             this.studentsToolStripMenuItem1.Name = "studentsToolStripMenuItem1";
             this.studentsToolStripMenuItem1.Size = new System.Drawing.Size(180, 22);
             this.studentsToolStripMenuItem1.Text = "Students";
-            this.studentsToolStripMenuItem1.Click += new System.EventHandler(this.studentsToolStripMenuItem1_Click);
+            // 
+            //             this.studentsToolStripMenuItem1.Click += new System.EventHandler(this.studentsToolStripMenuItem1_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // employersToolStripMenuItem1
             // 
             this.employersToolStripMenuItem1.Name = "employersToolStripMenuItem1";
             this.employersToolStripMenuItem1.Size = new System.Drawing.Size(180, 22);
             this.employersToolStripMenuItem1.Text = "Employers";
-            this.employersToolStripMenuItem1.Click += new System.EventHandler(this.employersToolStripMenuItem1_Click);
+            // 
+            //             this.employersToolStripMenuItem1.Click += new System.EventHandler(this.employersToolStripMenuItem1_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // classToolStripMenuItem1
             // 
             this.classToolStripMenuItem1.Name = "classToolStripMenuItem1";
             this.classToolStripMenuItem1.Size = new System.Drawing.Size(180, 22);
             this.classToolStripMenuItem1.Text = "&Exams Record";
-            this.classToolStripMenuItem1.Click += new System.EventHandler(this.classToolStripMenuItem1_Click);
+            // 
+            //             this.classToolStripMenuItem1.Click += new System.EventHandler(this.classToolStripMenuItem1_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // makePaymentToolStripMenuItem
             // 
@@ -703,7 +729,8 @@
             this.makePaymentToolStripMenuItem.Name = "makePaymentToolStripMenuItem";
             this.makePaymentToolStripMenuItem.Size = new System.Drawing.Size(109, 20);
             this.makePaymentToolStripMenuItem.Text = "&Make payment";
-            this.makePaymentToolStripMenuItem.Click += new System.EventHandler(this.makePaymentToolStripMenuItem_Click);
+            // 
+            //             this.makePaymentToolStripMenuItem.Click += new System.EventHandler(this.makePaymentToolStripMenuItem_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // aboutToolStripMenuItem
             // 
@@ -711,7 +738,8 @@
             this.aboutToolStripMenuItem.Name = "aboutToolStripMenuItem";
             this.aboutToolStripMenuItem.Size = new System.Drawing.Size(64, 20);
             this.aboutToolStripMenuItem.Text = "A&bout";
-            this.aboutToolStripMenuItem.Click += new System.EventHandler(this.aboutToolStripMenuItem_Click);
+            // 
+            //             this.aboutToolStripMenuItem.Click += new System.EventHandler(this.aboutToolStripMenuItem_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // frmEmpLeave
             // 
@@ -729,7 +757,7 @@
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.Sizable;
             this.Name = "frmEmpLeave";
             this.Text = "frmEmpLeave";
-            this.Load += new System.EventHandler(this.frmEmpLeave_Load);
+            // // this.Load += new System.EventHandler(this.frmEmpLeave_Load); // TODO: Implement event handler // TODO: Implement event handler
             this.guna2GroupBox1.ResumeLayout(false);
             this.guna2GroupBox1.PerformLayout();
             this.guna2GroupBox2.ResumeLayout(false);
@@ -800,3 +828,4 @@
         private System.Windows.Forms.ToolStripMenuItem aboutToolStripMenuItem;
     }
 }
+

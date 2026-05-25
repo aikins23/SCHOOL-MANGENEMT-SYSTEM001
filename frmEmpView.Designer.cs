@@ -122,7 +122,8 @@
             this.aPPLICATIONToolStripMenuItem.Name = "aPPLICATIONToolStripMenuItem";
             this.aPPLICATIONToolStripMenuItem.Size = new System.Drawing.Size(179, 22);
             this.aPPLICATIONToolStripMenuItem.Text = "NEW EMPLOYEE";
-            this.aPPLICATIONToolStripMenuItem.Click += new System.EventHandler(this.aPPLICATIONToolStripMenuItem_Click);
+            // 
+            //             this.aPPLICATIONToolStripMenuItem.Click += new System.EventHandler(this.aPPLICATIONToolStripMenuItem_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // lEAVEAPPLICATIONToolStripMenuItem
             // 
@@ -320,7 +321,8 @@
             this.gunaPictureBox6.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
             this.gunaPictureBox6.TabIndex = 0;
             this.gunaPictureBox6.TabStop = false;
-            this.gunaPictureBox6.Click += new System.EventHandler(this.gunaPictureBox6_Click);
+            // 
+            //             this.gunaPictureBox6.Click += new System.EventHandler(this.gunaPictureBox6_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // cmb_cd
             // 
@@ -352,7 +354,8 @@
             this.cmb_cd.Size = new System.Drawing.Size(160, 30);
             this.cmb_cd.TabIndex = 36;
             this.cmb_cd.ValueMember = "ClassID";
-            this.cmb_cd.SelectedIndexChanged += new System.EventHandler(this.cmb_cd_SelectedIndexChanged);
+            // 
+            //             this.cmb_cd.SelectedIndexChanged += new System.EventHandler(this.cmb_cd_SelectedIndexChanged); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // txtID
             // 
@@ -372,7 +375,8 @@
             this.txtID.Size = new System.Drawing.Size(160, 30);
             this.txtID.TabIndex = 34;
             this.txtID.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
-            this.txtID.TextChanged += new System.EventHandler(this.txtID_TextChanged);
+            // 
+            //             this.txtID.TextChanged += new System.EventHandler(this.txtID_TextChanged); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // gunaPictureBox2
             // 
@@ -384,7 +388,8 @@
             this.gunaPictureBox2.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
             this.gunaPictureBox2.TabIndex = 35;
             this.gunaPictureBox2.TabStop = false;
-            this.gunaPictureBox2.Click += new System.EventHandler(this.gunaPictureBox2_Click);
+            // 
+            //             this.gunaPictureBox2.Click += new System.EventHandler(this.gunaPictureBox2_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // gunaPictureBox1
             // 
@@ -419,7 +424,8 @@
             this.gunaButton1.Size = new System.Drawing.Size(316, 44);
             this.gunaButton1.TabIndex = 37;
             this.gunaButton1.Text = "ADD EMPLOYEE";
-            this.gunaButton1.Click += new System.EventHandler(this.gunaButton1_Click);
+            // 
+            //             this.gunaButton1.Click += new System.EventHandler(this.gunaButton1_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // gunaButton2
             // 
@@ -443,7 +449,8 @@
             this.gunaButton2.Size = new System.Drawing.Size(122, 30);
             this.gunaButton2.TabIndex = 38;
             this.gunaButton2.Text = "REFRESH";
-            this.gunaButton2.Click += new System.EventHandler(this.gunaButton2_Click_1);
+            // 
+            //             this.gunaButton2.Click += new System.EventHandler(this.gunaButton2_Click_1); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // frmEmpView
             // 
@@ -465,7 +472,7 @@
             this.Name = "frmEmpView";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "frmEmpView";
-            this.Load += new System.EventHandler(this.frmEmpView_Load);
+            // this.Load += new System.EventHandler(this.frmEmpView_Load); // TODO: Implement event handler
             this.menuStrip1.ResumeLayout(false);
             this.menuStrip1.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.data)).EndInit();
@@ -510,3 +517,4 @@
         private System.Windows.Forms.DataGridViewImageColumn VIEW;
     }
 }
+

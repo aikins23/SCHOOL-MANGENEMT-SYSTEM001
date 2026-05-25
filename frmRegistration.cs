@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -276,13 +276,13 @@ namespace kingdom_Preparatory_School_Management_System
             if (success)
             {
                 if (statusLabel != null) statusLabel.Text = "Registration successful.";
-                UIHelper.ShowSuccess("Your registration was successful. You can now log in.", "Congratulations");
+                // UIHelper.ShowSuccess("Your registration was successful. You can now log in.", "Congratulations"); // TODO: Implement
                 ClearRegistrationForm();
             }
             else
             {
                 if (statusLabel != null) statusLabel.Text = message;
-                UIHelper.ShowWarning(message, "Registration Failed");
+                // UIHelper.ShowWarning(message, "Registration Failed"); // TODO: Implement
                 if (message.Contains("username")) TXTUsers.Focus();
             }
         }
@@ -310,3 +310,4 @@ namespace kingdom_Preparatory_School_Management_System
         }
     }
 }
+

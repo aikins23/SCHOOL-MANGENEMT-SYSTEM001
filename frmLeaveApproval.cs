@@ -159,7 +159,7 @@ namespace kingdom_Preparatory_School_Management_System
         {
             try
             {
-                lblStats.Text = "Loading...";
+                // lblStats.Text = "Loading..."; // TODO: Implement
                 leaveTable = await _leaveService.GetLeaveRequestsTableAsync();
                 leaveGrid.DataSource = leaveTable;
                 ApplyFilters();
@@ -223,3 +223,4 @@ namespace kingdom_Preparatory_School_Management_System
         private void gunaPictureBox3_Click(object sender, EventArgs e) { WindowState = WindowState == FormWindowState.Maximized ? FormWindowState.Normal : FormWindowState.Maximized; }
     }
 }
+

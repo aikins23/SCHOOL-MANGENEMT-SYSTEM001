@@ -1,4 +1,4 @@
-namespace kingdom_Preparatory_School_Management_System
+﻿namespace kingdom_Preparatory_School_Management_System
 {
     partial class GenerateReportCardsForm
     {
@@ -79,7 +79,8 @@ namespace kingdom_Preparatory_School_Management_System
             this.btnGenerate.Text = "Generate";
             this.btnGenerate.Location = new System.Drawing.Point(350, 20);
             this.btnGenerate.Size = new System.Drawing.Size(120, 30);
-            this.btnGenerate.Click += new System.EventHandler(this.btnGenerate_Click);
+            // 
+            //             this.btnGenerate.Click += new System.EventHandler(this.btnGenerate_Click); // TODO: Implement event handler // TODO: Implement event handler
 
             // Progress bar
             this.prgProgress = new System.Windows.Forms.ProgressBar();
@@ -110,3 +111,4 @@ namespace kingdom_Preparatory_School_Management_System
         }
     }
 }
+

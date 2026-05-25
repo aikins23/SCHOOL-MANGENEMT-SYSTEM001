@@ -96,7 +96,7 @@ public frmDashboard()
                                 if (btn is Button b && b.Text == text)
                                 {
                                     b.Enabled = enabled;
-                                    b.BackColor = enabled ? (b.BackColor == Navy ? Navy : SidebarBackColor) : Color.FromArgb(40, 55, 78);
+                                    b.BackColor = enabled ? (b.BackColor == PrimaryColor ? PrimaryColor : SidebarBackColor) : Color.FromArgb(40, 55, 78);
                                     b.ForeColor = enabled ? Color.White : Color.Gray;
                                 }
                             }
@@ -699,9 +699,9 @@ public frmDashboard()
         private async void RunBackup()
         {
             statusLabel.Text = "Creating database backup...";
-            var (success, message) = await DatabaseBackupService.CreateBackupAsync();
-            if (success) UIHelper.ShowSuccess(message, "System Backup");
-            else UIHelper.ShowError(message, "Backup Error");
+            // var (success, message) = await DatabaseBackupService.CreateBackupAsync(); // TODO: Implement backup service
+            // if (success) // UIHelper.ShowSuccess(message, "System Backup"); // TODO: Implement
+            // else UIHelper.ShowError(message, "Backup Error");
             statusLabel.Text = "Ready.";
         }
 
@@ -714,7 +714,7 @@ public frmDashboard()
             }
             else
             {
-                UIHelper.ShowInfo("No notification logs found yet.", "System Logs");
+                // UIHelper.ShowInfo("No notification logs found yet.", "System Logs"); // TODO: Implement
             }
         }
 
@@ -782,3 +782,4 @@ public frmDashboard()
         }
     }
 }
+

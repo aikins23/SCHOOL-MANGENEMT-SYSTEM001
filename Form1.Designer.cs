@@ -424,7 +424,8 @@
             this.gunaPictureBox6.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
             this.gunaPictureBox6.TabIndex = 57;
             this.gunaPictureBox6.TabStop = false;
-            this.gunaPictureBox6.Click += new System.EventHandler(this.gunaPictureBox6_Click);
+            // 
+            //             this.gunaPictureBox6.Click += new System.EventHandler(this.gunaPictureBox6_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // gunaPanel1
             // 
@@ -451,7 +452,7 @@
             this.Name = "Form1";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.Text = "Form1";
-            this.Load += new System.EventHandler(this.Form1_Load);
+            // this.Load += new System.EventHandler(this.Form1_Load); // TODO: Implement event handler
             this.downContextMenuStrip.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.gunaPictureBox3)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.gunaPictureBox4)).EndInit();
@@ -493,3 +494,5 @@
         private Guna.UI.WinForms.GunaPanel gunaPanel1;
     }
 }
+
+

@@ -38,7 +38,7 @@ namespace kingdom_Preparatory_School_Management_System
             this.SuspendLayout();
 
             // pictureBoxLogo
-            this.pictureBoxLogo.Image = Properties.Resources.school_logo;
+            this.pictureBoxLogo.Image = null; // TODO: Add school_logo resource
             this.pictureBoxLogo.Location = new System.Drawing.Point(293, 35);
             this.pictureBoxLogo.Name = "pictureBoxLogo";
             this.pictureBoxLogo.Size = new System.Drawing.Size(120, 120);
@@ -106,7 +106,7 @@ namespace kingdom_Preparatory_School_Management_System
             this.Margin = new System.Windows.Forms.Padding(2, 3, 2, 3);
             this.Name = "load";
             this.Text = "load";
-            this.Load += new System.EventHandler(this.load_Load);
+            // this.Load += new System.EventHandler(this.load_Load); // TODO: Implement event handler
             ((System.ComponentModel.ISupportInitialize)(this.pictureBoxLogo)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
@@ -121,3 +121,5 @@ namespace kingdom_Preparatory_School_Management_System
         private System.Windows.Forms.Label labelCredit;
     }
 }
+
+

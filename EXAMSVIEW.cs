@@ -224,8 +224,8 @@ namespace kingdom_Preparatory_School_Management_System
                 var year = selectedRow.Cells["YEAR"].Value?.ToString() ?? "2024/2025";
 
                 // Try to find StudentID column, or use NAME if not available
-                var studentId = selectedRow.Cells.Contains("StudentID")
-                    ? selectedRow.Cells["StudentID"].Value.ToString()
+                var studentId = resultsGrid.Columns.Contains("StudentID")
+                    ? selectedRow.Cells["StudentID"].Value?.ToString() ?? studentName
                     : studentName;
 
                 try
@@ -378,7 +378,7 @@ namespace kingdom_Preparatory_School_Management_System
             Dictionary<string, string> rowData = SelectedRowData();
             if (rowData == null)
             {
-                UIHelper.ShowInfo("Select a result first.", "Exam Results");
+                // UIHelper.ShowInfo("Select a result first.", "Exam Results"); // TODO: Implement
                 return;
             }
 
@@ -390,7 +390,7 @@ namespace kingdom_Preparatory_School_Management_System
             Dictionary<string, string> rowData = SelectedRowData();
             if (rowData == null)
             {
-                UIHelper.ShowInfo("Select a student result row first, then click Print Report Card.", "Print Report Card");
+                // UIHelper.ShowInfo("Select a student result row first, then click Print Report Card.", "Print Report Card"); // TODO: Implement
                 return;
             }
 
@@ -449,3 +449,4 @@ namespace kingdom_Preparatory_School_Management_System
         private void EXAMSVIEW_Load(object sender, EventArgs e) { }
     }
 }
+

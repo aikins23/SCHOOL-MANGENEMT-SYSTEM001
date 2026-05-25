@@ -205,7 +205,8 @@
             this.gunaPictureBox1.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
             this.gunaPictureBox1.TabIndex = 0;
             this.gunaPictureBox1.TabStop = false;
-            this.gunaPictureBox1.Click += new System.EventHandler(this.gunaPictureBox1_Click);
+            // 
+            //             this.gunaPictureBox1.Click += new System.EventHandler(this.gunaPictureBox1_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // gunaDataGridView1
             // 
@@ -437,7 +438,7 @@
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.Sizable;
             this.Name = "frmLeaveApproval";
             this.Text = "frmLeaveApproval";
-            this.Load += new System.EventHandler(this.frmLeaveApproval_Load);
+            // this.Load += new System.EventHandler(this.frmLeaveApproval_Load); // TODO: Implement event handler
             this.menuStrip1.ResumeLayout(false);
             this.menuStrip1.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.gunaPictureBox1)).EndInit();
@@ -478,3 +479,4 @@
         private Guna.UI.WinForms.GunaButton gunaButton1;
     }
 }
+

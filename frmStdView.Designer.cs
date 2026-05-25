@@ -110,21 +110,24 @@
             this.studentsToolStripMenuItem.Name = "studentsToolStripMenuItem";
             this.studentsToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.studentsToolStripMenuItem.Text = "Students";
-            this.studentsToolStripMenuItem.Click += new System.EventHandler(this.studentsToolStripMenuItem_Click);
+            // 
+            //             this.studentsToolStripMenuItem.Click += new System.EventHandler(this.studentsToolStripMenuItem_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // employersToolStripMenuItem
             // 
             this.employersToolStripMenuItem.Name = "employersToolStripMenuItem";
             this.employersToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.employersToolStripMenuItem.Text = "Employers";
-            this.employersToolStripMenuItem.Click += new System.EventHandler(this.employersToolStripMenuItem_Click);
+            // 
+            //             this.employersToolStripMenuItem.Click += new System.EventHandler(this.employersToolStripMenuItem_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // adminstrationToolStripMenuItem
             // 
             this.adminstrationToolStripMenuItem.Name = "adminstrationToolStripMenuItem";
             this.adminstrationToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.adminstrationToolStripMenuItem.Text = "Exams Records";
-            this.adminstrationToolStripMenuItem.Click += new System.EventHandler(this.adminstrationToolStripMenuItem_Click);
+            // 
+            //             this.adminstrationToolStripMenuItem.Click += new System.EventHandler(this.adminstrationToolStripMenuItem_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // viewToolStripMenuItem
             // 
@@ -142,21 +145,24 @@
             this.studentsToolStripMenuItem1.Name = "studentsToolStripMenuItem1";
             this.studentsToolStripMenuItem1.Size = new System.Drawing.Size(180, 22);
             this.studentsToolStripMenuItem1.Text = "Students";
-            this.studentsToolStripMenuItem1.Click += new System.EventHandler(this.studentsToolStripMenuItem1_Click);
+            // 
+            //             this.studentsToolStripMenuItem1.Click += new System.EventHandler(this.studentsToolStripMenuItem1_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // employersToolStripMenuItem1
             // 
             this.employersToolStripMenuItem1.Name = "employersToolStripMenuItem1";
             this.employersToolStripMenuItem1.Size = new System.Drawing.Size(180, 22);
             this.employersToolStripMenuItem1.Text = "Employers";
-            this.employersToolStripMenuItem1.Click += new System.EventHandler(this.employersToolStripMenuItem1_Click);
+            // 
+            //             this.employersToolStripMenuItem1.Click += new System.EventHandler(this.employersToolStripMenuItem1_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // adminstratorsToolStripMenuItem
             // 
             this.adminstratorsToolStripMenuItem.Name = "adminstratorsToolStripMenuItem";
             this.adminstratorsToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.adminstratorsToolStripMenuItem.Text = "Exams Records";
-            this.adminstratorsToolStripMenuItem.Click += new System.EventHandler(this.adminstratorsToolStripMenuItem_Click);
+            // 
+            //             this.adminstratorsToolStripMenuItem.Click += new System.EventHandler(this.adminstratorsToolStripMenuItem_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // makePaymentToolStripMenuItem
             // 
@@ -164,7 +170,8 @@
             this.makePaymentToolStripMenuItem.Name = "makePaymentToolStripMenuItem";
             this.makePaymentToolStripMenuItem.Size = new System.Drawing.Size(109, 20);
             this.makePaymentToolStripMenuItem.Text = "&Make payment";
-            this.makePaymentToolStripMenuItem.Click += new System.EventHandler(this.makePaymentToolStripMenuItem_Click);
+            // 
+            //             this.makePaymentToolStripMenuItem.Click += new System.EventHandler(this.makePaymentToolStripMenuItem_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // aboutToolStripMenuItem
             // 
@@ -172,7 +179,8 @@
             this.aboutToolStripMenuItem.Name = "aboutToolStripMenuItem";
             this.aboutToolStripMenuItem.Size = new System.Drawing.Size(64, 20);
             this.aboutToolStripMenuItem.Text = "A&bout";
-            this.aboutToolStripMenuItem.Click += new System.EventHandler(this.aboutToolStripMenuItem_Click);
+            // 
+            //             this.aboutToolStripMenuItem.Click += new System.EventHandler(this.aboutToolStripMenuItem_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // guna2HtmlLabel1
             // 
@@ -231,7 +239,8 @@
             this.txtID.Size = new System.Drawing.Size(160, 30);
             this.txtID.TabIndex = 10;
             this.txtID.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
-            this.txtID.TextChanged += new System.EventHandler(this.txtID_TextChanged);
+            // 
+            //             this.txtID.TextChanged += new System.EventHandler(this.txtID_TextChanged); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // gunaPictureBox6
             // 
@@ -243,7 +252,8 @@
             this.gunaPictureBox6.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
             this.gunaPictureBox6.TabIndex = 0;
             this.gunaPictureBox6.TabStop = false;
-            this.gunaPictureBox6.Click += new System.EventHandler(this.gunaPictureBox6_Click);
+            // 
+            //             this.gunaPictureBox6.Click += new System.EventHandler(this.gunaPictureBox6_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // gunaPanel1
             // 
@@ -365,7 +375,8 @@
             this.gunaButton1.Size = new System.Drawing.Size(297, 47);
             this.gunaButton1.TabIndex = 31;
             this.gunaButton1.Text = "ADD STUDENT";
-            this.gunaButton1.Click += new System.EventHandler(this.gunaButton1_Click_1);
+            // 
+            //             this.gunaButton1.Click += new System.EventHandler(this.gunaButton1_Click_1); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // gunaButton2
             // 
@@ -389,7 +400,8 @@
             this.gunaButton2.Size = new System.Drawing.Size(122, 30);
             this.gunaButton2.TabIndex = 32;
             this.gunaButton2.Text = "REFRESH";
-            this.gunaButton2.Click += new System.EventHandler(this.gunaButton2_Click);
+            // 
+            //             this.gunaButton2.Click += new System.EventHandler(this.gunaButton2_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // gunaPictureBox4
             // 
@@ -437,7 +449,8 @@
             this.cmb_cd.Size = new System.Drawing.Size(160, 30);
             this.cmb_cd.TabIndex = 15;
             this.cmb_cd.ValueMember = "ClassID";
-            this.cmb_cd.SelectedIndexChanged += new System.EventHandler(this.cmb_cd_SelectedIndexChanged);
+            // 
+            //             this.cmb_cd.SelectedIndexChanged += new System.EventHandler(this.cmb_cd_SelectedIndexChanged); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // frmStdView
             // 
@@ -458,7 +471,7 @@
             this.Name = "frmStdView";
             this.Text = "frmStdView";
             this.TransparencyKey = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(255)))), ((int)(((byte)(128)))));
-            this.Load += new System.EventHandler(this.frmStdView_Load);
+            // this.Load += new System.EventHandler(this.frmStdView_Load); // TODO: Implement event handler
             this.menuStrip1.ResumeLayout(false);
             this.menuStrip1.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.roomsBindingSource)).EndInit();
@@ -507,3 +520,4 @@
         private System.Windows.Forms.DataGridViewImageColumn VIEW;
     }
 }
+

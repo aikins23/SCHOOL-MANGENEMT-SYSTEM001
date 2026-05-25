@@ -413,7 +413,8 @@
             this.upload.Size = new System.Drawing.Size(200, 48);
             this.upload.TabIndex = 21;
             this.upload.Text = "UPLOAD EMPLOYEE\'S PICTURE";
-            this.upload.Click += new System.EventHandler(this.upload_Click);
+            // 
+            //             this.upload.Click += new System.EventHandler(this.upload_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // emp_pic
             // 
@@ -971,7 +972,8 @@
             this.btn_Update.Size = new System.Drawing.Size(115, 63);
             this.btn_Update.TabIndex = 34;
             this.btn_Update.Text = "UPDATE";
-            this.btn_Update.Click += new System.EventHandler(this.btn_Update_Click);
+            // 
+            //             this.btn_Update.Click += new System.EventHandler(this.btn_Update_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // btnDel
             // 
@@ -998,7 +1000,8 @@
             this.btnDel.Size = new System.Drawing.Size(108, 61);
             this.btnDel.TabIndex = 33;
             this.btnDel.Text = "DELETE";
-            this.btnDel.Click += new System.EventHandler(this.btnDel_Click);
+            // 
+            //             this.btnDel.Click += new System.EventHandler(this.btnDel_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // btnSave
             // 
@@ -1025,7 +1028,8 @@
             this.btnSave.Size = new System.Drawing.Size(101, 61);
             this.btnSave.TabIndex = 31;
             this.btnSave.Text = "SAVE";
-            this.btnSave.Click += new System.EventHandler(this.btnSave_Click_1);
+            // 
+            //             this.btnSave.Click += new System.EventHandler(this.btnSave_Click_1); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // btnNew
             // 
@@ -1052,7 +1056,8 @@
             this.btnNew.Size = new System.Drawing.Size(100, 63);
             this.btnNew.TabIndex = 30;
             this.btnNew.Text = "NEW";
-            this.btnNew.Click += new System.EventHandler(this.btnNew_Click);
+            // 
+            //             this.btnNew.Click += new System.EventHandler(this.btnNew_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // gunaPanel2
             // 
@@ -1073,7 +1078,8 @@
             this.gunaPictureBox1.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
             this.gunaPictureBox1.TabIndex = 0;
             this.gunaPictureBox1.TabStop = false;
-            this.gunaPictureBox1.Click += new System.EventHandler(this.gunaPictureBox1_Click);
+            // 
+            //             this.gunaPictureBox1.Click += new System.EventHandler(this.gunaPictureBox1_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // pay
             // 
@@ -1098,7 +1104,8 @@
             this.pay.Size = new System.Drawing.Size(667, 60);
             this.pay.TabIndex = 29;
             this.pay.Text = "VIEW EMPLOYEES";
-            this.pay.Click += new System.EventHandler(this.pay_Click);
+            // 
+            //             this.pay.Click += new System.EventHandler(this.pay_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // frmEmployee
             // 
@@ -1118,7 +1125,7 @@
             this.Name = "frmEmployee";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "frmEmployee";
-            this.Load += new System.EventHandler(this.frmEmployee_Load_1);
+            // this.Load += new System.EventHandler(this.frmEmployee_Load_1); // TODO: Implement event handler
             this.menuStrip1.ResumeLayout(false);
             this.menuStrip1.PerformLayout();
             this.guna2GroupBox1.ResumeLayout(false);
@@ -1202,3 +1209,4 @@
         private Guna.UI.WinForms.GunaPictureBox gunaPictureBox1;
     }
 }
+

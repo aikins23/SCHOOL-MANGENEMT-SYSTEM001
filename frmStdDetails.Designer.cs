@@ -128,21 +128,24 @@
             this.studentsToolStripMenuItem.Name = "studentsToolStripMenuItem";
             this.studentsToolStripMenuItem.Size = new System.Drawing.Size(178, 26);
             this.studentsToolStripMenuItem.Text = "Students";
-            this.studentsToolStripMenuItem.Click += new System.EventHandler(this.studentsToolStripMenuItem_Click);
+            // 
+            //             this.studentsToolStripMenuItem.Click += new System.EventHandler(this.studentsToolStripMenuItem_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // employersToolStripMenuItem
             // 
             this.employersToolStripMenuItem.Name = "employersToolStripMenuItem";
             this.employersToolStripMenuItem.Size = new System.Drawing.Size(178, 26);
             this.employersToolStripMenuItem.Text = "Employers";
-            this.employersToolStripMenuItem.Click += new System.EventHandler(this.employersToolStripMenuItem_Click);
+            // 
+            //             this.employersToolStripMenuItem.Click += new System.EventHandler(this.employersToolStripMenuItem_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // classToolStripMenuItem
             // 
             this.classToolStripMenuItem.Name = "classToolStripMenuItem";
             this.classToolStripMenuItem.Size = new System.Drawing.Size(178, 26);
             this.classToolStripMenuItem.Text = "Exam Record";
-            this.classToolStripMenuItem.Click += new System.EventHandler(this.classToolStripMenuItem_Click);
+            // 
+            //             this.classToolStripMenuItem.Click += new System.EventHandler(this.classToolStripMenuItem_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // viewToolStripMenuItem
             // 
@@ -160,21 +163,24 @@
             this.studentsToolStripMenuItem1.Name = "studentsToolStripMenuItem1";
             this.studentsToolStripMenuItem1.Size = new System.Drawing.Size(185, 26);
             this.studentsToolStripMenuItem1.Text = "Students";
-            this.studentsToolStripMenuItem1.Click += new System.EventHandler(this.studentsToolStripMenuItem1_Click);
+            // 
+            //             this.studentsToolStripMenuItem1.Click += new System.EventHandler(this.studentsToolStripMenuItem1_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // employersToolStripMenuItem1
             // 
             this.employersToolStripMenuItem1.Name = "employersToolStripMenuItem1";
             this.employersToolStripMenuItem1.Size = new System.Drawing.Size(185, 26);
             this.employersToolStripMenuItem1.Text = "Employers";
-            this.employersToolStripMenuItem1.Click += new System.EventHandler(this.employersToolStripMenuItem1_Click);
+            // 
+            //             this.employersToolStripMenuItem1.Click += new System.EventHandler(this.employersToolStripMenuItem1_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // classToolStripMenuItem1
             // 
             this.classToolStripMenuItem1.Name = "classToolStripMenuItem1";
             this.classToolStripMenuItem1.Size = new System.Drawing.Size(185, 26);
             this.classToolStripMenuItem1.Text = "Exams Record";
-            this.classToolStripMenuItem1.Click += new System.EventHandler(this.classToolStripMenuItem1_Click);
+            // 
+            //             this.classToolStripMenuItem1.Click += new System.EventHandler(this.classToolStripMenuItem1_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // makePaymentToolStripMenuItem
             // 
@@ -182,7 +188,8 @@
             this.makePaymentToolStripMenuItem.Name = "makePaymentToolStripMenuItem";
             this.makePaymentToolStripMenuItem.Size = new System.Drawing.Size(140, 24);
             this.makePaymentToolStripMenuItem.Text = "&Make payment";
-            this.makePaymentToolStripMenuItem.Click += new System.EventHandler(this.makePaymentToolStripMenuItem_Click);
+            // 
+            //             this.makePaymentToolStripMenuItem.Click += new System.EventHandler(this.makePaymentToolStripMenuItem_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // aboutToolStripMenuItem
             // 
@@ -190,7 +197,8 @@
             this.aboutToolStripMenuItem.Name = "aboutToolStripMenuItem";
             this.aboutToolStripMenuItem.Size = new System.Drawing.Size(81, 24);
             this.aboutToolStripMenuItem.Text = "A&bout";
-            this.aboutToolStripMenuItem.Click += new System.EventHandler(this.aboutToolStripMenuItem_Click);
+            // 
+            //             this.aboutToolStripMenuItem.Click += new System.EventHandler(this.aboutToolStripMenuItem_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // guna2GroupBox1
             // 
@@ -636,7 +644,8 @@
             this.upload.Size = new System.Drawing.Size(249, 55);
             this.upload.TabIndex = 21;
             this.upload.Text = "UPLOAD STUDENT\'S PICTURE";
-            this.upload.Click += new System.EventHandler(this.upload_Click);
+            // 
+            //             this.upload.Click += new System.EventHandler(this.upload_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // guna2GroupBox2
             // 
@@ -885,7 +894,8 @@
             this.gunaButton1.Size = new System.Drawing.Size(155, 85);
             this.gunaButton1.TabIndex = 36;
             this.gunaButton1.Text = "RE-ENROLL";
-            this.gunaButton1.Click += new System.EventHandler(this.gunaButton1_Click);
+            // 
+            //             this.gunaButton1.Click += new System.EventHandler(this.gunaButton1_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // btn_view
             // 
@@ -913,7 +923,8 @@
             this.btn_view.Size = new System.Drawing.Size(135, 81);
             this.btn_view.TabIndex = 35;
             this.btn_view.Text = "PRINT";
-            this.btn_view.Click += new System.EventHandler(this.btn_view_Click);
+            // 
+            //             this.btn_view.Click += new System.EventHandler(this.btn_view_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // btn_Update
             // 
@@ -941,7 +952,8 @@
             this.btn_Update.Size = new System.Drawing.Size(135, 81);
             this.btn_Update.TabIndex = 34;
             this.btn_Update.Text = "UPDATE";
-            this.btn_Update.Click += new System.EventHandler(this.btn_Update_Click);
+            // 
+            //             this.btn_Update.Click += new System.EventHandler(this.btn_Update_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // btnDel
             // 
@@ -969,7 +981,8 @@
             this.btnDel.Size = new System.Drawing.Size(155, 85);
             this.btnDel.TabIndex = 33;
             this.btnDel.Text = "ROLL OUT";
-            this.btnDel.Click += new System.EventHandler(this.btnDel_Click);
+            // 
+            //             this.btnDel.Click += new System.EventHandler(this.btnDel_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // pay
             // 
@@ -995,7 +1008,8 @@
             this.pay.Size = new System.Drawing.Size(429, 75);
             this.pay.TabIndex = 38;
             this.pay.Text = "VIEW STUDENTS";
-            this.pay.Click += new System.EventHandler(this.pay_Click);
+            // 
+            //             this.pay.Click += new System.EventHandler(this.pay_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // std_pic
             // 
@@ -1018,7 +1032,8 @@
             this.gunaPictureBox1.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
             this.gunaPictureBox1.TabIndex = 9;
             this.gunaPictureBox1.TabStop = false;
-            this.gunaPictureBox1.Click += new System.EventHandler(this.gunaPictureBox1_Click);
+            // 
+            //             this.gunaPictureBox1.Click += new System.EventHandler(this.gunaPictureBox1_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // gunaPictureBox6
             // 
@@ -1031,7 +1046,8 @@
             this.gunaPictureBox6.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
             this.gunaPictureBox6.TabIndex = 58;
             this.gunaPictureBox6.TabStop = false;
-            this.gunaPictureBox6.Click += new System.EventHandler(this.gunaPictureBox6_Click);
+            // 
+            //             this.gunaPictureBox6.Click += new System.EventHandler(this.gunaPictureBox6_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // frmStdDetails
             // 
@@ -1051,7 +1067,7 @@
             this.Name = "frmStdDetails";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "frmStdDetails";
-            this.Load += new System.EventHandler(this.frmStdDetails_Load);
+            // this.Load += new System.EventHandler(this.frmStdDetails_Load); // TODO: Implement event handler
             this.menuStrip1.ResumeLayout(false);
             this.menuStrip1.PerformLayout();
             this.guna2GroupBox1.ResumeLayout(false);
@@ -1125,3 +1141,4 @@
         private Guna.UI.WinForms.GunaButton gunaButton1;
     }
 }
+

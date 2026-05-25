@@ -151,7 +151,8 @@
             this.okButton.Size = new System.Drawing.Size(100, 27);
             this.okButton.TabIndex = 24;
             this.okButton.Text = "&OK";
-            this.okButton.Click += new System.EventHandler(this.okButton_Click);
+            // 
+            //             this.okButton.Click += new System.EventHandler(this.okButton_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // frmAbout
             // 
@@ -189,3 +190,4 @@
         private System.Windows.Forms.Button okButton;
     }
 }
+

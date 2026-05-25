@@ -267,8 +267,9 @@ namespace kingdom_Preparatory_School_Management_System.Data
                     await connection.OpenAsync();
                     var query = "SELECT * FROM Employee WHERE 1=1";
 
-                    using (var command = new OleDbCommand(connection))
+                    using (var command = new OleDbCommand())
                     {
+                        command.Connection = connection;
                         // Add filterId parameter if provided
                         if (!string.IsNullOrEmpty(filterId))
                         {

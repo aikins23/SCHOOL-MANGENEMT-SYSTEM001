@@ -187,7 +187,8 @@
             this.btn_Update.OnPressedDepth = 40;
             this.btn_Update.Size = new System.Drawing.Size(101, 66);
             this.btn_Update.TabIndex = 34;
-            this.btn_Update.Click += new System.EventHandler(this.btn_Update_Click);
+            // 
+            //             this.btn_Update.Click += new System.EventHandler(this.btn_Update_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // btnDel
             // 
@@ -214,7 +215,8 @@
             this.btnDel.Size = new System.Drawing.Size(202, 69);
             this.btnDel.TabIndex = 33;
             this.btnDel.Text = "TERMINATE CONTRACT";
-            this.btnDel.Click += new System.EventHandler(this.btnDel_Click_1);
+            // 
+            //             this.btnDel.Click += new System.EventHandler(this.btnDel_Click_1); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // gunaPanel2
             // 
@@ -390,7 +392,8 @@
             this.guna2GroupBox1.Size = new System.Drawing.Size(397, 548);
             this.guna2GroupBox1.TabIndex = 43;
             this.guna2GroupBox1.Text = "PERSONAL INFORMATION";
-            this.guna2GroupBox1.Click += new System.EventHandler(this.guna2GroupBox1_Click);
+            // 
+            //             this.guna2GroupBox1.Click += new System.EventHandler(this.guna2GroupBox1_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // CmbPs
             // 
@@ -492,7 +495,8 @@
             this.std_pic.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
             this.std_pic.TabIndex = 20;
             this.std_pic.TabStop = false;
-            this.std_pic.Click += new System.EventHandler(this.emp_pic_Click);
+            // 
+            //             this.std_pic.Click += new System.EventHandler(this.emp_pic_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // guna2HtmlLabel12
             // 
@@ -504,7 +508,8 @@
             this.guna2HtmlLabel12.Size = new System.Drawing.Size(116, 17);
             this.guna2HtmlLabel12.TabIndex = 22;
             this.guna2HtmlLabel12.Text = "EMPLOYEE\'S PICTURE";
-            this.guna2HtmlLabel12.Click += new System.EventHandler(this.guna2HtmlLabel12_Click);
+            // 
+            //             this.guna2HtmlLabel12.Click += new System.EventHandler(this.guna2HtmlLabel12_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // cmbDPT
             // 
@@ -549,7 +554,8 @@
             this.upload.Size = new System.Drawing.Size(157, 48);
             this.upload.TabIndex = 21;
             this.upload.Text = "UPLOAD EMPLOYEE\'S PICTURE";
-            this.upload.Click += new System.EventHandler(this.upload_Click);
+            // 
+            //             this.upload.Click += new System.EventHandler(this.upload_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // txtFN
             // 
@@ -787,7 +793,8 @@
             this.guna2GroupBox2.Size = new System.Drawing.Size(395, 388);
             this.guna2GroupBox2.TabIndex = 44;
             this.guna2GroupBox2.Text = "EMPLOYMENT AND  EMERGENCY INFORMATION";
-            this.guna2GroupBox2.Click += new System.EventHandler(this.guna2GroupBox2_Click);
+            // 
+            //             this.guna2GroupBox2.Click += new System.EventHandler(this.guna2GroupBox2_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // DATE
             // 
@@ -1063,7 +1070,8 @@
             this.gunaPictureBox2.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
             this.gunaPictureBox2.TabIndex = 45;
             this.gunaPictureBox2.TabStop = false;
-            this.gunaPictureBox2.Click += new System.EventHandler(this.gunaPictureBox2_Click);
+            // 
+            //             this.gunaPictureBox2.Click += new System.EventHandler(this.gunaPictureBox2_Click); // TODO: Implement event handler // TODO: Implement event handler
             // 
             // frmEmpDetails
             // 
@@ -1081,7 +1089,7 @@
             this.Name = "frmEmpDetails";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "frmEmpDetails";
-            this.Load += new System.EventHandler(this.frmEmpDetails_Load);
+            // this.Load += new System.EventHandler(this.frmEmpDetails_Load); // TODO: Implement event handler
             this.panel1.ResumeLayout(false);
             this.gunaPanel2.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.gunaPictureBox1)).EndInit();
@@ -1163,3 +1171,4 @@
         public Guna.UI2.WinForms.Guna2DateTimePicker DATE;
     }
 }
+

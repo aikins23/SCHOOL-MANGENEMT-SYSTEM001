@@ -282,9 +282,9 @@ namespace kingdom_Preparatory_School_Management_System
         private Button CreatePrimaryButton(string text, Action action)
         {
             var button = CreateButton(text, action);
-            button.BackColor = PrimaryColor;
+            button.BackColor = Color.FromArgb(25, 32, 71);
             button.ForeColor = Color.White;
-            button.FlatAppearance.BorderColor = PrimaryColor;
+            button.FlatAppearance.BorderColor = Color.FromArgb(25, 32, 71);
             button.FlatAppearance.MouseOverBackColor = Color.FromArgb(23, 82, 172);
             return button;
         }
@@ -440,3 +440,4 @@ namespace kingdom_Preparatory_School_Management_System
         private void gunaPictureBox2_Click(object sender, EventArgs e) { Close(); }
     }
 }
+
