@@ -31,7 +31,14 @@ namespace kingdom_Preparatory_School_Management_System
         private static readonly Color PrimaryColor = UiTheme.Navy;
         private static readonly Color TextColor = UiTheme.Text;
         private static readonly Color MutedTextColor = UiTheme.Muted;
-        private static readonly Color BorderColor = UiTheme.Border;
+        private static readonly Color BorderColor  = UiTheme.Border;
+
+        // ── Per-card accent colours ────────────────────────────────────────────
+        private static readonly Color AccentBlue  = Color.FromArgb( 59, 130, 246);
+        private static readonly Color AccentGreen = Color.FromArgb( 16, 185, 129);
+        private static readonly Color AccentGold  = Color.FromArgb(212, 175,  55);
+        private static readonly Color AccentRed   = Color.FromArgb(239,  68,  68);
+
 public frmDashboard()
 {
     InitializeComponent();
@@ -154,66 +161,145 @@ public frmDashboard()
         {
             var sidebar = new Panel
             {
-                Dock = DockStyle.Fill,
+                Dock      = DockStyle.Fill,
                 BackColor = SidebarBackColor,
-                Padding = new Padding(18, 22, 18, 18)
+                Padding   = Padding.Empty
             };
 
-            var title = new Label
+            // ── Brand block ───────────────────────────────────────────────────
+            var brand = new Panel
             {
-                Dock = DockStyle.Top,
-                Height = 44,
-                Text = "KPS Admin",
+                Dock      = DockStyle.Top,
+                Height    = 84,
+                BackColor = SidebarBackColor,
+                Padding   = new Padding(16, 18, 16, 10)
+            };
+
+            // Gold circular badge with "K"
+            var badge = new Panel { Size = new Size(42, 42), Location = new Point(16, 21), BackColor = Color.Transparent };
+            badge.Paint += (s, e) =>
+            {
+                var g = e.Graphics;
+                g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+                using (var br = new SolidBrush(AccentGold))
+                    g.FillEllipse(br, 0, 0, 41, 41);
+                using (var f  = new Font("Georgia", 16F, FontStyle.Bold))
+                using (var tb = new SolidBrush(Color.FromArgb(8, 14, 52)))
+                {
+                    var sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
+                    g.DrawString("K", f, tb, new RectangleF(0, 0, 42, 42), sf);
+                }
+            };
+
+            brand.Controls.Add(badge);
+            brand.Controls.Add(new Label
+            {
+                Text      = "KPS Admin",
                 ForeColor = Color.White,
-                Font = new Font("Segoe UI Semibold", 16F, FontStyle.Bold),
+                Font      = new Font("Segoe UI Semibold", 13F, FontStyle.Bold),
+                Bounds    = new Rectangle(66, 22, 150, 22),
                 TextAlign = ContentAlignment.MiddleLeft
-            };
-
-            var subtitle = new Label
+            });
+            brand.Controls.Add(new Label
             {
-                Dock = DockStyle.Top,
-                Height = 34,
-                Text = "School management",
-                ForeColor = Color.FromArgb(182, 194, 210),
-                Font = new Font("Segoe UI", 9F, FontStyle.Regular),
-                TextAlign = ContentAlignment.TopLeft
-            };
+                Text      = "School Management",
+                ForeColor = Color.FromArgb(130, 150, 180),
+                Font      = new Font("Segoe UI", 8.25F),
+                Bounds    = new Rectangle(66, 44, 150, 18),
+                TextAlign = ContentAlignment.MiddleLeft
+            });
 
+            // ── Gold brand divider ────────────────────────────────────────────
+            var topDivider = new Panel { Dock = DockStyle.Top, Height = 1, BackColor = Color.FromArgb(36, 48, 88) };
+
+            // ── Nav section ───────────────────────────────────────────────────
             var nav = new FlowLayoutPanel
             {
-                Dock = DockStyle.Top,
+                Dock          = DockStyle.Top,
                 FlowDirection = FlowDirection.TopDown,
-                WrapContents = false,
-                Height = 470,
-                Padding = new Padding(0, 16, 0, 0),
-                BackColor = SidebarBackColor
+                WrapContents  = false,
+                Height        = 490,
+                Padding       = new Padding(16, 12, 16, 0),
+                BackColor     = SidebarBackColor
             };
 
-            nav.Controls.Add(CreateNavButton("Dashboard", null, true));
-            nav.Controls.Add(CreateNavButton("Add Student", () => OpenForm(new frmAddStd(), true)));
-            nav.Controls.Add(CreateNavButton("View Students", () => OpenForm(new frmStdView())));
-            nav.Controls.Add(CreateNavButton("Add Employee", () => OpenForm(new frmEmployee())));
+            nav.Controls.Add(CreateNavButton("Dashboard",      null,                                       true));
+            nav.Controls.Add(CreateNavButton("Add Student",    () => OpenForm(new frmAddStd(), true)));
+            nav.Controls.Add(CreateNavButton("View Students",  () => OpenForm(new frmStdView())));
+            nav.Controls.Add(CreateNavButton("Add Employee",   () => OpenForm(new frmEmployee())));
             nav.Controls.Add(CreateNavButton("View Employees", () => OpenForm(new frmEmpView())));
-            nav.Controls.Add(CreateNavButton("Fees Payment", () => OpenForm(new frmFessPayment())));
-            nav.Controls.Add(CreateNavButton("Exams", () => OpenForm(new EXAMS())));
-            nav.Controls.Add(CreateNavButton("Exam Reports", () => OpenForm(new EXAMSVIEW())));
-            nav.Controls.Add(CreateNavButton("Analytics", OpenAnalyticsDashboard));
+            nav.Controls.Add(CreateNavButton("Fees Payment",   () => OpenForm(new frmFessPayment())));
+            nav.Controls.Add(CreateNavButton("Exams",          () => OpenForm(new EXAMS())));
+            nav.Controls.Add(CreateNavButton("Exam Reports",   () => OpenForm(new EXAMSVIEW())));
+            nav.Controls.Add(CreateNavButton("Analytics",      OpenAnalyticsDashboard));
             nav.Controls.Add(CreateNavButton("Leave Requests", () => OpenForm(new frmLeaveDetails())));
 
             var role = AuthService.CurrentUser.Role;
             if (role == AuthService.UserRole.Administrator || role == AuthService.UserRole.Headmaster)
             {
                 nav.Controls.Add(CreateNavButton("Database Backup", RunBackup));
-                nav.Controls.Add(CreateNavButton("System Logs", ViewLogs));
+                nav.Controls.Add(CreateNavButton("System Logs",     ViewLogs));
             }
 
-            var exitButton = CreateNavButton("Exit", Application.Exit);
-            exitButton.Dock = DockStyle.Bottom;
+            // ── User info footer ──────────────────────────────────────────────
+            var exitBtn = CreateNavButton("Exit", Application.Exit);
+            exitBtn.Dock      = DockStyle.Bottom;
+            exitBtn.ForeColor = Color.FromArgb(239, 80, 80);
+            exitBtn.Margin    = Padding.Empty;
+            exitBtn.Padding   = new Padding(16, 0, 0, 0);
 
-            sidebar.Controls.Add(exitButton);
+            var bottomDivider = new Panel { Dock = DockStyle.Bottom, Height = 1, BackColor = Color.FromArgb(36, 48, 88) };
+
+            var userFooter = new Panel
+            {
+                Dock      = DockStyle.Bottom,
+                Height    = 62,
+                BackColor = Color.FromArgb(8, 14, 52),
+                Padding   = new Padding(16, 10, 16, 10)
+            };
+
+            // Blue circular avatar with username initial
+            var avatar = new Panel { Size = new Size(38, 38), Location = new Point(16, 12), BackColor = Color.Transparent };
+            avatar.Paint += (s, e) =>
+            {
+                var g = e.Graphics;
+                g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+                using (var br = new SolidBrush(AccentBlue))
+                    g.FillEllipse(br, 0, 0, 37, 37);
+                string init = AuthService.CurrentUser?.Username?.Length > 0
+                    ? AuthService.CurrentUser.Username[0].ToString().ToUpper() : "U";
+                using (var f  = new Font("Segoe UI Semibold", 14F, FontStyle.Bold))
+                using (var tb = new SolidBrush(Color.White))
+                {
+                    var sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
+                    g.DrawString(init, f, tb, new RectangleF(0, 0, 38, 38), sf);
+                }
+            };
+
+            userFooter.Controls.Add(avatar);
+            userFooter.Controls.Add(new Label
+            {
+                Text      = AuthService.CurrentUser?.Username ?? "User",
+                ForeColor = Color.White,
+                Font      = new Font("Segoe UI Semibold", 9F, FontStyle.Bold),
+                Bounds    = new Rectangle(62, 12, 140, 18),
+                TextAlign = ContentAlignment.MiddleLeft
+            });
+            userFooter.Controls.Add(new Label
+            {
+                Text      = AuthService.CurrentUser?.Role.ToString() ?? "",
+                ForeColor = Color.FromArgb(120, 145, 175),
+                Font      = new Font("Segoe UI", 8F),
+                Bounds    = new Rectangle(62, 30, 140, 16),
+                TextAlign = ContentAlignment.MiddleLeft
+            });
+
+            sidebar.Controls.Add(exitBtn);
+            sidebar.Controls.Add(bottomDivider);
+            sidebar.Controls.Add(userFooter);
             sidebar.Controls.Add(nav);
-            sidebar.Controls.Add(subtitle);
-            sidebar.Controls.Add(title);
+            sidebar.Controls.Add(topDivider);
+            sidebar.Controls.Add(brand);
 
             return sidebar;
         }
@@ -242,23 +328,28 @@ public frmDashboard()
             header.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 70));
             header.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 30));
 
+            int    hr       = DateTime.Now.Hour;
+            string greeting = hr < 12 ? "Good morning" : hr < 17 ? "Good afternoon" : "Good evening";
+            string userName = AuthService.CurrentUser?.Username ?? "User";
+            string dateStr  = DateTime.Now.ToString("dddd, dd MMMM yyyy");
+
             var titleBlock = new Panel { Dock = DockStyle.Fill, BackColor = PageBackColor };
             titleBlock.Controls.Add(new Label
             {
-                Dock = DockStyle.Top,
-                Height = 38,
-                Text = "Operations And Academic Dashboard",
+                Dock      = DockStyle.Top,
+                Height    = 40,
+                Text      = $"{greeting}, {userName}!",
                 ForeColor = TextColor,
-                Font = new Font("Segoe UI Semibold", 22F, FontStyle.Bold),
+                Font      = new Font("Segoe UI Semibold", 22F, FontStyle.Bold),
                 TextAlign = ContentAlignment.MiddleLeft
             });
             titleBlock.Controls.Add(new Label
             {
-                Dock = DockStyle.Bottom,
-                Height = 26,
-                Text = "Live school analytics with direct access to records, exams, reports, and charts",
+                Dock      = DockStyle.Bottom,
+                Height    = 24,
+                Text      = $"Operations & Academic Dashboard  ·  {dateStr}",
                 ForeColor = MutedTextColor,
-                Font = new Font("Segoe UI", 10F, FontStyle.Regular),
+                Font      = new Font("Segoe UI", 9.5F, FontStyle.Regular),
                 TextAlign = ContentAlignment.MiddleLeft
             });
 
@@ -290,10 +381,10 @@ public frmDashboard()
             feesCollectedLabel = new Label();
             feesBalanceLabel = new Label();
 
-            metricGrid.Controls.Add(CreateMetricCard("Students", studentCountLabel, "Active student records"), 0, 0);
-            metricGrid.Controls.Add(CreateMetricCard("Employees", employeeCountLabel, "Current staff records"), 1, 0);
-            metricGrid.Controls.Add(CreateMetricCard("Fees Collected", feesCollectedLabel, "Total recorded payments"), 2, 0);
-            metricGrid.Controls.Add(CreateMetricCard("Outstanding Fees", feesBalanceLabel, "Positive fee balances"), 3, 0);
+            metricGrid.Controls.Add(CreateMetricCard("Students",        studentCountLabel,  "Active student records",  AccentBlue,  "STUDENTS"),  0, 0);
+            metricGrid.Controls.Add(CreateMetricCard("Employees",       employeeCountLabel, "Current staff records",   AccentGreen, "EMPLOYEES"), 1, 0);
+            metricGrid.Controls.Add(CreateMetricCard("Fees Collected",  feesCollectedLabel, "Total recorded payments", AccentGold,  "REVENUE"),   2, 0);
+            metricGrid.Controls.Add(CreateMetricCard("Outstanding Fees",feesBalanceLabel,   "Positive fee balances",   AccentRed,   "BALANCE"),   3, 0);
 
             var analyticsGrid = BuildAnalyticsGrid();
             var actionPanel = BuildQuickActionsPanel();
@@ -442,64 +533,94 @@ public frmDashboard()
         {
             var button = new Button
             {
-                Width = 204,
-                Height = 42,
-                Margin = new Padding(0, 0, 0, 8),
-                Text = text,
-                TextAlign = ContentAlignment.MiddleLeft,
-                FlatStyle = FlatStyle.Flat,
-                BackColor = selected ? PrimaryColor : SidebarBackColor,
-                ForeColor = Color.White,
-                Font = new Font("Segoe UI Semibold", 9.5F, FontStyle.Bold),
-                Padding = new Padding(14, 0, 0, 0),
-                Cursor = Cursors.Hand
+                Width  = 208,
+                Height = 44,
+                Margin = new Padding(0, 0, 0, 4),
+                Text   = text,
+                TextAlign  = ContentAlignment.MiddleLeft,
+                FlatStyle  = FlatStyle.Flat,
+                BackColor  = selected ? Color.FromArgb(22, 34, 78) : SidebarBackColor,
+                ForeColor  = selected ? Color.White : Color.FromArgb(165, 182, 205),
+                Font    = new Font("Segoe UI", 9.5F, selected ? FontStyle.Bold : FontStyle.Regular),
+                Padding = new Padding(selected ? 20 : 16, 0, 0, 0),
+                Cursor  = Cursors.Hand
             };
-            button.FlatAppearance.BorderSize = 0;
-            button.FlatAppearance.MouseOverBackColor = selected ? PrimaryColor : SidebarHoverColor;
-            button.FlatAppearance.MouseDownBackColor = Color.Black;
-            if (action != null)
+            button.FlatAppearance.BorderSize          = 0;
+            button.FlatAppearance.MouseOverBackColor  = Color.FromArgb(22, 34, 78);
+            button.FlatAppearance.MouseDownBackColor  = Color.FromArgb(10, 18, 56);
+
+            // Gold left-bar accent on selected item
+            if (selected)
             {
-                button.Click += (sender, args) => action();
+                button.Paint += (s, e) =>
+                {
+                    using (var br = new SolidBrush(AccentGold))
+                        e.Graphics.FillRectangle(br, 0, 8, 4, button.Height - 16);
+                };
             }
+
+            if (action != null)
+                button.Click += (sender, args) => action();
+
             return button;
         }
 
-        private Control CreateMetricCard(string title, Label valueLabel, string caption)
+        private Control CreateMetricCard(string title, Label valueLabel, string caption,
+                                         Color accent, string tag)
         {
             var card = CreateModernPanel(8);
-            card.Dock = DockStyle.Fill;
-            card.Margin = new Padding(0, 0, 14, 0);
-            card.Padding = new Padding(18);
+            card.Dock    = DockStyle.Fill;
+            card.Margin  = new Padding(0, 0, 14, 0);
+            card.Padding = new Padding(18, 14, 18, 14);
 
-            var titleLabel = new Label
+            // Coloured top accent strip (4 px, painted on the panel itself)
+            card.Paint += (s, e) =>
             {
-                Dock = DockStyle.Top,
-                Height = 26,
-                Text = title,
-                ForeColor = MutedTextColor,
-                Font = new Font("Segoe UI", 9.5F, FontStyle.Regular),
+                using (var br = new SolidBrush(accent))
+                    e.Graphics.FillRectangle(br, 0, 0, card.Width, 4);
+            };
+
+            // Tag chip (e.g. "STUDENTS") in accent colour
+            var tagLabel = new Label
+            {
+                Dock      = DockStyle.Top,
+                Height    = 20,
+                Text      = tag,
+                ForeColor = accent,
+                Font      = new Font("Segoe UI", 7.5F, FontStyle.Bold),
                 TextAlign = ContentAlignment.MiddleLeft
             };
 
-            valueLabel.Dock = DockStyle.Top;
-            valueLabel.Height = 42;
-            valueLabel.Text = "--";
+            var titleLabel = new Label
+            {
+                Dock      = DockStyle.Top,
+                Height    = 24,
+                Text      = title,
+                ForeColor = MutedTextColor,
+                Font      = new Font("Segoe UI", 9.25F, FontStyle.Regular),
+                TextAlign = ContentAlignment.MiddleLeft
+            };
+
+            valueLabel.Dock      = DockStyle.Top;
+            valueLabel.Height    = 44;
+            valueLabel.Text      = "--";
             valueLabel.ForeColor = TextColor;
-            valueLabel.Font = new Font("Segoe UI Semibold", 22F, FontStyle.Bold);
+            valueLabel.Font      = new Font("Segoe UI Semibold", 24F, FontStyle.Bold);
             valueLabel.TextAlign = ContentAlignment.MiddleLeft;
 
             var captionLabel = new Label
             {
-                Dock = DockStyle.Fill,
-                Text = caption,
+                Dock      = DockStyle.Fill,
+                Text      = caption,
                 ForeColor = MutedTextColor,
-                Font = new Font("Segoe UI", 8.75F, FontStyle.Regular),
+                Font      = new Font("Segoe UI", 8.5F, FontStyle.Regular),
                 TextAlign = ContentAlignment.BottomLeft
             };
 
             card.Controls.Add(captionLabel);
             card.Controls.Add(valueLabel);
             card.Controls.Add(titleLabel);
+            card.Controls.Add(tagLabel);
             return card;
         }
 
@@ -565,25 +686,49 @@ public frmDashboard()
         private Control CreateSectionPanel(string title)
         {
             var section = CreateModernPanel(8);
-            section.Dock = DockStyle.Fill;
-            section.Padding = new Padding(0, 46, 0, 0);
+            section.Dock    = DockStyle.Fill;
+            section.Padding = new Padding(0, 49, 0, 0);
+
+            // Navy header bar with white title text
             var titleLabel = new Label
             {
-                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
-                Height = 46,
-                Width = section.ClientSize.Width,
-                Location = new Point(0, 0),
-                Padding = new Padding(18, 0, 0, 0),
-                Text = title,
-                BackColor = Color.White,
-                ForeColor = TextColor,
-                Font = new Font("Segoe UI Semibold", 13F, FontStyle.Bold),
+                Anchor    = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
+                Height    = 46,
+                Width     = section.ClientSize.Width,
+                Location  = new Point(0, 0),
+                Padding   = new Padding(18, 0, 0, 0),
+                Text      = title,
+                BackColor = SidebarBackColor,
+                ForeColor = Color.White,
+                Font      = new Font("Segoe UI Semibold", 11F, FontStyle.Bold),
                 TextAlign = ContentAlignment.MiddleLeft
             };
-            section.Resize += (sender, args) => titleLabel.Width = section.ClientSize.Width;
-            section.Layout += (sender, args) => titleLabel.Width = section.ClientSize.Width;
+
+            // Gold accent line below the header
+            var accent = new Panel
+            {
+                Anchor    = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
+                Height    = 3,
+                Width     = section.ClientSize.Width,
+                Location  = new Point(0, 46),
+                BackColor = AccentGold
+            };
+
+            section.Resize += (s, e) =>
+            {
+                titleLabel.Width = section.ClientSize.Width;
+                accent.Width     = section.ClientSize.Width;
+            };
+            section.Layout += (s, e) =>
+            {
+                titleLabel.Width = section.ClientSize.Width;
+                accent.Width     = section.ClientSize.Width;
+            };
+
+            section.Controls.Add(accent);
             section.Controls.Add(titleLabel);
             titleLabel.BringToFront();
+            accent.BringToFront();
             return section;
         }
 
@@ -650,25 +795,40 @@ public frmDashboard()
             return grid;
         }
 
+        // Cycle accent colours across quick-action buttons
+        private static readonly Color[] _actionAccents =
+        {
+            Color.FromArgb(59,  130, 246),   // blue  – Register Student
+            Color.FromArgb(16,  185, 129),   // green – Record Attendance
+            Color.FromArgb(212, 175,  55),   // gold  – Record Fees
+            Color.FromArgb(139,  92, 246),   // violet– Submit Exam Scores
+            Color.FromArgb(239, 100,  68),   // orange– Generate Report Cards
+            Color.FromArgb(20,  184, 166),   // teal  – Analytics Dashboard
+        };
+        private int _actionAccentIdx = 0;
+
         private Control CreateActionButton(string text, Action action)
         {
+            Color accent = _actionAccents[_actionAccentIdx % _actionAccents.Length];
+            _actionAccentIdx++;
+
             var button = new Guna.UI2.WinForms.Guna2Button
             {
-                Dock = DockStyle.Fill,
-                Margin = new Padding(8),
-                Text = text,
-                FillColor = Color.White,
-                ForeColor = TextColor,
-                Font = new Font("Segoe UI Semibold", 10F, FontStyle.Bold),
-                Cursor = Cursors.Hand,
-                BorderColor = UiTheme.Border,
-                BorderRadius = 6,
-                BorderThickness = 1,
-                PressedColor = Color.Black
+                Dock             = DockStyle.Fill,
+                Margin           = new Padding(8),
+                Text             = text,
+                FillColor        = Color.White,
+                ForeColor        = TextColor,
+                Font             = new Font("Segoe UI Semibold", 9.75F, FontStyle.Bold),
+                Cursor           = Cursors.Hand,
+                BorderColor      = accent,
+                BorderRadius     = 8,
+                BorderThickness  = 2,
+                PressedColor     = Color.FromArgb(245, 245, 252)
             };
-            button.HoverState.FillColor = UiTheme.GoldSoft;
-            button.HoverState.BorderColor = UiTheme.Gold;
-            button.HoverState.ForeColor = TextColor;
+            button.HoverState.FillColor   = accent;
+            button.HoverState.BorderColor = accent;
+            button.HoverState.ForeColor   = Color.White;
             button.Click += (sender, args) => action();
             return button;
         }
