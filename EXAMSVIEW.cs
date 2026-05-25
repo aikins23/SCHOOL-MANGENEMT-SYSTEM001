@@ -445,8 +445,19 @@ namespace kingdom_Preparatory_School_Management_System
             }
         }
 
-        private async void EXAMSVIEW_Load_1(object sender, EventArgs e) { await LoadResults(); }
-        private void EXAMSVIEW_Load(object sender, EventArgs e) { }
+        private async void EXAMSVIEW_Load(object sender, EventArgs e)
+        {
+            try
+            {
+                await LoadResults();
+                LoggerHelper.LogInfo("EXAMSVIEW loaded successfully");
+            }
+            catch (Exception ex)
+            {
+                UIHelper.ShowError("Error loading exams: " + ex.Message, "EXAMSVIEW");
+                LoggerHelper.LogError("EXAMSVIEW_Load failed", ex);
+            }
+        }
     }
 }
 
