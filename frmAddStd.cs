@@ -497,7 +497,66 @@ namespace kingdom_Preparatory_School_Management_System
 
         private async void frmAddStd_Load(object sender, EventArgs e)
         {
-            await SetNextStudentId();
+            try
+            {
+                LoadClassDropdown();
+                LoadGenderDropdown();
+                SetDateOfBirthRange();
+                txtStdID.Focus();
+                LoggerHelper.LogInfo("frmAddStd loaded successfully");
+            }
+            catch (Exception ex)
+            {
+                UIHelper.ShowError("Error loading form: " + ex.Message, "Student Registration");
+                LoggerHelper.LogError("frmAddStd_Load failed", ex);
+            }
+        }
+
+        private void LoadClassDropdown()
+        {
+            cmbCID.Items.Clear();
+            cmbCID.Items.Add("Select Class");
+            foreach (var className in AppConfig.ClassNames)
+            {
+                cmbCID.Items.Add(className);
+            }
+            cmbCID.SelectedIndex = 0;
+        }
+
+        private void LoadGenderDropdown()
+        {
+            cmbGN.Items.Clear();
+            cmbGN.Items.Add("Select Gender");
+            cmbGN.Items.Add("Male");
+            cmbGN.Items.Add("Female");
+            cmbGN.Items.Add("Other");
+            cmbGN.SelectedIndex = 0;
+        }
+
+        private void SetDateOfBirthRange()
+        {
+            dateDOB.MaxDate = DateTime.Now.AddYears(-5);  // Minimum age 5
+            dateDOB.MinDate = DateTime.Now.AddYears(-80); // Maximum age 80
+            dateDOB.Value = DateTime.Now.AddYears(-15);   // Default age 15
+        }
+
+        private void ClearStudentDetails()
+        {
+            txtFN.Text = "";
+            txtLN.Text = "";
+            cmbCID.SelectedIndex = 0;
+            dateDOB.Value = DateTime.Now.AddYears(-15);
+            txtEM.Text = "";
+            txtEC.Text = "";
+            txtHT.Text = "";
+            txtRD.Text = "";
+            cmbGN.SelectedIndex = 0;
+            txtAG.Text = "";
+            txtGN.Text = "";
+            txtGE.Text = "";
+            txtGL.Text = "";
+            dateAD.Value = DateTime.Today;
+            std_pic.Image = null;
         }
 
         private async System.Threading.Tasks.Task SetNextStudentId()
@@ -572,94 +631,174 @@ namespace kingdom_Preparatory_School_Management_System
 
         private async void SaveStudent()
         {
-            statusLabel.Text = "Saving student...";
-            var student = MapFormToStudent();
-            var (success, message) = await _studentService.AddStudentAsync(student);
+            try
+            {
+                // Validate all required fields
+                if (!FormValidationHelper.ValidateRequired(txtStdID, "Student ID"))
+                    return;
 
-            if (success)
-            {
-                txtStdID.Text = student.StudentID;
-                statusLabel.Text = message;
-                UIHelper.ShowSuccess(message, "Student Admission");
+                if (!FormValidationHelper.ValidateRequired(txtFN, "First Name"))
+                    return;
+
+                if (!FormValidationHelper.ValidateComboBox(cmbCID, "Class"))
+                    return;
+
+                // Date range is already enforced via SetDateOfBirthRange
+                if (dateDOB.Value == null)
+                {
+                    UIHelper.ShowWarning("Date of Birth is required", "Validation");
+                    return;
+                }
+
+                if (!FormValidationHelper.ValidateEmail(txtEM))
+                    return;
+
+                // Confirmation
+                string action = statusLabel.Text.Contains("New") ? "add new" : "update";
+                if (!ConfirmationHelper.ConfirmSave($"This will {action} student {txtFN.Text}?"))
+                    return;
+
+                // Save to database
+                var student = MapFormToStudent();
+
+                bool isNew = await _studentService.GetStudentAsync(student.StudentID) == null;
+                var (success, message) = isNew
+                    ? await _studentService.AddStudentAsync(student)
+                    : await _studentService.UpdateStudentAsync(student);
+
+                if (success)
+                {
+                    ConfirmationHelper.ShowInfo($"Student {(isNew ? "added" : "updated")} successfully");
+                    LoggerHelper.LogInfo($"Student {student.StudentID} {(isNew ? "added" : "updated")}");
+                    txtStdID.Text = "";
+                    ClearStudentDetails();
+                    txtStdID.Focus();
+                }
+                else
+                {
+                    UIHelper.ShowError("Could not save student", "Error");
+                }
             }
-            else
+            catch (Exception ex)
             {
-                statusLabel.Text = "Save failed.";
-                UIHelper.ShowWarning(message, "Student Admission");
+                UIHelper.ShowError("Save failed: " + ex.Message, "Student Registration");
+                LoggerHelper.LogError("Student save failed", ex);
             }
         }
 
         private async void UpdateStudent()
         {
-            if (string.IsNullOrWhiteSpace(txtStdID.Text))
+            try
             {
-                UIHelper.ShowWarning("Please select a student to update.", "Student Admission");
-                return;
-            }
+                // Validate all required fields
+                if (!FormValidationHelper.ValidateRequired(txtStdID, "Student ID"))
+                    return;
 
-            statusLabel.Text = "Updating student...";
-            var student = MapFormToStudent();
-            var (success, message) = await _studentService.UpdateStudentAsync(student);
+                if (!FormValidationHelper.ValidateRequired(txtFN, "First Name"))
+                    return;
 
-            if (success)
-            {
-                statusLabel.Text = message;
-                UIHelper.ShowSuccess(message, "Student Admission");
+                if (!FormValidationHelper.ValidateComboBox(cmbCID, "Class"))
+                    return;
+
+                // Date range is already enforced via SetDateOfBirthRange
+                if (dateDOB.Value == null)
+                {
+                    UIHelper.ShowWarning("Date of Birth is required", "Validation");
+                    return;
+                }
+
+                if (!FormValidationHelper.ValidateEmail(txtEM))
+                    return;
+
+                // Confirmation
+                if (!ConfirmationHelper.ConfirmSave($"This will update student {txtFN.Text}?"))
+                    return;
+
+                statusLabel.Text = "Updating student...";
+                var student = MapFormToStudent();
+                var (success, message) = await _studentService.UpdateStudentAsync(student);
+
+                if (success)
+                {
+                    ConfirmationHelper.ShowInfo(message);
+                    LoggerHelper.LogInfo($"Student {student.StudentID} updated");
+                    statusLabel.Text = message;
+                }
+                else
+                {
+                    statusLabel.Text = "Update failed.";
+                    UIHelper.ShowWarning(message, "Student Admission");
+                }
             }
-            else
+            catch (Exception ex)
             {
-                statusLabel.Text = "Update failed.";
-                UIHelper.ShowWarning(message, "Student Admission");
+                UIHelper.ShowError("Update failed: " + ex.Message, "Student Registration");
+                LoggerHelper.LogError("Student update failed", ex);
             }
         }
 
         private async void RollOutStudent()
         {
-            if (string.IsNullOrWhiteSpace(txtStdID.Text))
+            try
             {
-                UIHelper.ShowWarning("Please select a student to roll out.", "Student Admission");
-                return;
-            }
+                if (!FormValidationHelper.ValidateRequired(txtStdID, "Student ID"))
+                    return;
 
-            if (UIHelper.ShowConfirmation("Roll out this student and remove them from active students?", "Student Admission") != DialogResult.Yes)
-            {
-                return;
-            }
+                if (!ConfirmationHelper.ConfirmDelete("Student",
+                    $"ID: {txtStdID.Text}\nName: {txtFN.Text}"))
+                {
+                    return;
+                }
 
-            statusLabel.Text = "Rolling out student...";
-            var (success, message) = await _studentService.DeleteStudentAsync(txtStdID.Text);
+                statusLabel.Text = "Rolling out student...";
+                var (success, message) = await _studentService.DeleteStudentAsync(txtStdID.Text.Trim());
 
-            if (success)
-            {
-                statusLabel.Text = message;
-                UIHelper.ShowSuccess(message, "Student Admission");
-                await NewStudent();
+                if (success)
+                {
+                    ConfirmationHelper.ShowInfo("Student deleted successfully");
+                    LoggerHelper.LogInfo($"Student {txtStdID.Text} deleted");
+                    await NewStudent();
+                }
+                else
+                {
+                    UIHelper.ShowError("Could not delete student", "Error");
+                }
             }
-            else
+            catch (Exception ex)
             {
-                statusLabel.Text = "Roll out failed.";
-                UIHelper.ShowWarning(message, "Student Admission");
+                UIHelper.ShowError("Delete failed: " + ex.Message, "Error");
+                LoggerHelper.LogError("Student delete failed", ex);
             }
         }
 
         private async System.Threading.Tasks.Task NewStudent()
         {
-            txtFN.Text = "";
-            txtLN.Text = "";
-            txtEM.Text = "";
-            txtHT.Text = "";
-            txtRD.Text = "";
-            txtAG.Text = "";
-            txtEC.Text = "";
-            txtGN.Text = "";
-            txtGE.Text = "";
-            txtGL.Text = "";
-            cmbGN.SelectedIndex = 0;
-            cmbCID.SelectedIndex = 0;
-            dateDOB.Value = DateTime.Today.AddYears(-5);
-            dateAD.Value = DateTime.Today;
-            std_pic.Image = null;
-            await SetNextStudentId();
+            try
+            {
+                txtStdID.Text = "";
+                ClearStudentDetails();
+                await SetNextStudentId();
+                txtStdID.Focus();
+            }
+            catch (Exception ex)
+            {
+                LoggerHelper.LogError("Clear button failed", ex);
+            }
+        }
+
+        private void btnClear_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                txtStdID.Text = "";
+                ClearStudentDetails();
+                statusLabel.Text = "Form cleared. Ready for new student.";
+                txtStdID.Focus();
+            }
+            catch (Exception ex)
+            {
+                LoggerHelper.LogError("Clear button failed", ex);
+            }
         }
 
         private async void txtStdID_TextChanged(object sender, EventArgs e)
@@ -668,6 +807,7 @@ namespace kingdom_Preparatory_School_Management_System
             {
                 if (txtStdID.Text.Length < 3)
                 {
+                    ClearStudentDetails();
                     return;
                 }
 
@@ -702,6 +842,7 @@ namespace kingdom_Preparatory_School_Management_System
                 else
                 {
                     // New student - clear details
+                    ClearStudentDetails();
                     statusLabel.Text = "New student ID. Ready to add.";
                 }
             }
