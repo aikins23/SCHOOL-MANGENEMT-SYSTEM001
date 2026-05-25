@@ -662,12 +662,61 @@ namespace kingdom_Preparatory_School_Management_System
             await SetNextStudentId();
         }
 
+        private async void txtStdID_TextChanged(object sender, EventArgs e)
+        {
+            try
+            {
+                if (txtStdID.Text.Length < 3)
+                {
+                    return;
+                }
+
+                string studentId = txtStdID.Text.Trim();
+                var existingStudent = await _studentService.GetStudentAsync(studentId);
+
+                if (existingStudent != null)
+                {
+                    // Student exists - load for editing
+                    txtFN.Text = existingStudent.FirstName ?? "";
+                    txtLN.Text = existingStudent.LastName ?? "";
+                    cmbCID.Text = existingStudent.ClassID ?? "";
+                    dateDOB.Value = existingStudent.DateOfBirth;
+                    txtEM.Text = existingStudent.Email ?? "";
+                    txtEC.Text = existingStudent.EmergencyContact ?? "";
+                    txtHT.Text = existingStudent.HomeTown ?? "";
+                    txtRD.Text = existingStudent.Residence ?? "";
+                    cmbGN.Text = existingStudent.Gender ?? "";
+                    txtAG.Text = existingStudent.Allergies ?? "";
+                    txtGN.Text = existingStudent.GuardianName ?? "";
+                    txtGE.Text = existingStudent.GuardianEmail ?? "";
+                    txtGL.Text = existingStudent.GuardianLocation ?? "";
+                    dateAD.Value = existingStudent.AdmissionDate;
+
+                    if (existingStudent.ProfilePhoto != null && existingStudent.ProfilePhoto.Length > 0)
+                    {
+                        std_pic.Image = ImageHelper.BytesToImage(existingStudent.ProfilePhoto);
+                    }
+
+                    statusLabel.Text = "Student found. Ready to update.";
+                }
+                else
+                {
+                    // New student - clear details
+                    statusLabel.Text = "New student ID. Ready to add.";
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggerHelper.LogError("Student ID lookup failed", ex);
+                statusLabel.Text = "Error looking up student.";
+            }
+        }
+
         private async void btnNew_Click(object sender, EventArgs e) { await NewStudent(); }
         private void btnSave_Click_1(object sender, EventArgs e) { SaveStudent(); }
         private void btn_Update_Click(object sender, EventArgs e) { UpdateStudent(); }
         private void btnDel_Click(object sender, EventArgs e) { RollOutStudent(); }
         private void btnEdit_Click(object sender, EventArgs e) { }
-        private void txtStdID_TextChanged(object sender, EventArgs e) { }
         private void gunaButton1_Click(object sender, EventArgs e) { Close(); new frmStdView().Show(); }
         private void gunaPictureBox1_Click(object sender, EventArgs e) { Application.Exit(); }
         private void gunaPictureBox2_Click(object sender, EventArgs e) { WindowState = FormWindowState.Minimized; }
