@@ -14,7 +14,7 @@ namespace kingdom_Preparatory_School_Management_System
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new frmAddStd());
+            Application.Run(new frmEmployee());
         }
     }
 }
