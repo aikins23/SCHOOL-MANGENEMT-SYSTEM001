@@ -155,11 +155,12 @@ namespace kingdom_Preparatory_School_Management_System
                 new Rectangle(24, 393, 120, 18),
                 ContentAlignment.MiddleLeft));
 
+            // Span the full available width so any name length fits
             Controls.Add(Lbl(
-                "DEVELOPED BY DARKTECH HUB",
+                "DEVELOPED BY: BUABENG EMMANUEL AIKINS",
                 new Font("Segoe UI", 8F, FontStyle.Regular),
                 FooterFg,
-                new Rectangle(536, 393, 120, 18),
+                new Rectangle(24, 393, 632, 18),   // x=24 → x=656, right-aligned
                 ContentAlignment.MiddleRight));
 
             ResumeLayout(false);
