@@ -54,7 +54,8 @@ namespace kingdom_Preparatory_School_Management_System
             BackColor = PageBackColor;
             Font = new Font("Segoe UI", 9.5F, FontStyle.Regular);
             StartPosition = FormStartPosition.CenterScreen;
-            MinimumSize = new Size(1180, 720);
+            MinimumSize = new Size(1100, 700);
+            ClientSize = new Size(1200, 760);
 
             var root = new TableLayoutPanel
             {
@@ -62,12 +63,12 @@ namespace kingdom_Preparatory_School_Management_System
                 RowCount = 4,
                 ColumnCount = 1,
                 BackColor = PageBackColor,
-                Padding = new Padding(26)
+                Padding = new Padding(28, 22, 28, 16)
             };
-            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 78));
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 72));
             root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 50));
-            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 54));
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 52));
 
             root.Controls.Add(BuildHeader(), 0, 0);
             root.Controls.Add(BuildFormBody(), 0, 1);
@@ -236,129 +237,240 @@ namespace kingdom_Preparatory_School_Management_System
 
         private Control BuildFormBody()
         {
+            // 3-column side-by-side: Personal | Employment+Emergency | Photo
             var body = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
-                ColumnCount = 2,
-                BackColor = PageBackColor
-            };
-            body.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 72));
-            body.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 28));
-
-            var detailsStack = new TableLayoutPanel
-            {
-                Dock = DockStyle.Fill,
-                RowCount = 2,
-                ColumnCount = 1,
+                ColumnCount = 3,
+                RowCount = 1,
                 BackColor = PageBackColor,
-                Margin = new Padding(0, 0, 14, 0)
+                Margin = Padding.Empty
             };
-            detailsStack.RowStyles.Add(new RowStyle(SizeType.Percent, 52));
-            detailsStack.RowStyles.Add(new RowStyle(SizeType.Percent, 48));
-            detailsStack.Controls.Add(BuildPersonalPanel(), 0, 0);
-            detailsStack.Controls.Add(BuildEmploymentPanel(), 0, 1);
+            body.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 42));
+            body.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 38));
+            body.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 20));
+            body.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
-            body.Controls.Add(detailsStack, 0, 0);
-            body.Controls.Add(BuildPhotoPanel(), 1, 0);
+            body.Controls.Add(BuildPersonalPanel(), 0, 0);
+            body.Controls.Add(BuildEmploymentPanel(), 1, 0);
+            body.Controls.Add(BuildPhotoPanel(), 2, 0);
             return body;
         }
 
         private Control BuildPersonalPanel()
         {
-            var panel = CreateSurfacePanel(new Padding(18), new Padding(0, 0, 0, 14));
-            var layout = CreateSectionLayout("Personal Details", 5, 2);
+            var panel = CreateSurfacePanel(new Padding(20, 18, 20, 18), new Padding(0, 0, 10, 0));
 
-            layout.Controls.Add(CreateField("Employee ID", txtEMdID), 0, 1);
-            layout.Controls.Add(CreateField("Full Name", txtFN), 1, 1);
-            layout.Controls.Add(CreateField("Gender", cmbGN), 0, 2);
-            layout.Controls.Add(CreateField("Date of Birth", dateDOB), 1, 2);
-            layout.Controls.Add(CreateField("Contact", txtCN), 0, 3);
-            layout.Controls.Add(CreateField("Department", cmbDPT), 1, 3);
-            layout.Controls.Add(CreateField("Home Town", txtHT), 0, 4);
-            layout.Controls.Add(CreateField("Residence", txtRD), 1, 4);
+            // Header strip
+            var header = BuildSectionHeader("Personal Details", "Employee ID, name, contact and placement");
 
-            panel.Controls.Add(layout);
+            // Grid: 5 rows × 2 columns for fields
+            var grid = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                RowCount = 5,
+                ColumnCount = 2,
+                BackColor = SurfaceColor,
+                Margin = Padding.Empty
+            };
+            for (int i = 0; i < 5; i++)
+                grid.RowStyles.Add(new RowStyle(SizeType.Percent, 20));
+            grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+            grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+
+            grid.Controls.Add(CreateField("Employee ID", txtEMdID), 0, 0);
+            grid.Controls.Add(CreateField("Full Name", txtFN), 1, 0);
+            grid.Controls.Add(CreateField("Gender", cmbGN), 0, 1);
+            grid.Controls.Add(CreateField("Date of Birth", dateDOB), 1, 1);
+            grid.Controls.Add(CreateField("Department", cmbDPT), 0, 2);
+            grid.Controls.Add(CreateField("Position", CmbPs), 1, 2);
+            grid.Controls.Add(CreateField("Contact", txtCN), 0, 3);
+            grid.Controls.Add(CreateField("Home Town", txtHT), 1, 3);
+            // Residence spans both columns
+            var residenceField = CreateField("Residence", txtRD);
+            grid.Controls.Add(residenceField, 0, 4);
+            grid.SetColumnSpan(residenceField, 2);
+
+            var stack = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                RowCount = 2,
+                ColumnCount = 1,
+                BackColor = SurfaceColor,
+                Margin = Padding.Empty
+            };
+            stack.RowStyles.Add(new RowStyle(SizeType.Absolute, 56));
+            stack.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+            stack.Controls.Add(header, 0, 0);
+            stack.Controls.Add(grid, 0, 1);
+
+            panel.Controls.Add(stack);
             return panel;
         }
 
         private Control BuildEmploymentPanel()
         {
-            var panel = CreateSurfacePanel(new Padding(18), Padding.Empty);
-            var layout = CreateSectionLayout("Employment & Emergency", 5, 2);
+            var panel = CreateSurfacePanel(new Padding(20, 18, 20, 18), new Padding(0, 0, 10, 0));
 
-            layout.Controls.Add(CreateField("Position", CmbPs), 0, 1);
-            layout.Controls.Add(CreateField("Employment Date", empdate), 1, 1);
-            layout.Controls.Add(CreateField("Employment Mode", empMD), 0, 2);
-            layout.Controls.Add(CreateField("Employment Status", empST), 1, 2);
-            layout.Controls.Add(CreateField("Emergency Contact Person", empCN), 0, 3);
-            layout.Controls.Add(CreateField("Emergency Contact", empEC), 1, 3);
-            layout.Controls.Add(CreateField("Performance Review", empRV), 0, 4);
-            layout.Controls.Add(CreateField("Salary", empSA), 1, 4);
+            var header = BuildSectionHeader("Employment & Emergency", "Contract details, status and emergency contacts");
 
-            panel.Controls.Add(layout);
+            var grid = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                RowCount = 5,
+                ColumnCount = 2,
+                BackColor = SurfaceColor,
+                Margin = Padding.Empty
+            };
+            for (int i = 0; i < 5; i++)
+                grid.RowStyles.Add(new RowStyle(SizeType.Percent, 20));
+            grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+            grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+
+            grid.Controls.Add(CreateField("Employment Date", empdate), 0, 0);
+            grid.Controls.Add(CreateField("Employment Mode", empMD), 1, 0);
+            grid.Controls.Add(CreateField("Employment Status", empST), 0, 1);
+            grid.Controls.Add(CreateField("Performance Review", empRV), 1, 1);
+            grid.Controls.Add(CreateField("Emergency Contact Person", empCN), 0, 2);
+            grid.Controls.Add(CreateField("Emergency Contact", empEC), 1, 2);
+            // Salary spans both columns
+            var salaryField = CreateField("Salary (GHS)", empSA);
+            grid.Controls.Add(salaryField, 0, 3);
+            grid.SetColumnSpan(salaryField, 2);
+
+            // Tip row
+            var tip = new Label
+            {
+                Dock = DockStyle.Fill,
+                Text = "⚑  Keep contact and status current — payroll and leave screens depend on this data.",
+                ForeColor = Color.FromArgb(120, 100, 30),
+                BackColor = Color.FromArgb(255, 251, 230),
+                Font = new Font("Segoe UI", 8.5F),
+                TextAlign = ContentAlignment.MiddleLeft,
+                Padding = new Padding(10, 0, 6, 0)
+            };
+            grid.Controls.Add(tip, 0, 4);
+            grid.SetColumnSpan(tip, 2);
+
+            var stack = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                RowCount = 2,
+                ColumnCount = 1,
+                BackColor = SurfaceColor,
+                Margin = Padding.Empty
+            };
+            stack.RowStyles.Add(new RowStyle(SizeType.Absolute, 56));
+            stack.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+            stack.Controls.Add(header, 0, 0);
+            stack.Controls.Add(grid, 0, 1);
+
+            panel.Controls.Add(stack);
             return panel;
         }
 
         private Control BuildPhotoPanel()
         {
-            var panel = CreateSurfacePanel(new Padding(18), Padding.Empty);
+            var panel = CreateSurfacePanel(new Padding(16, 18, 16, 18), Padding.Empty);
+
             var layout = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
-                RowCount = 6,
+                RowCount = 5,
                 ColumnCount = 1,
-                BackColor = SurfaceColor
+                BackColor = SurfaceColor,
+                Margin = Padding.Empty
             };
-            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
-            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 44));
-            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 22));
-            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 54));
-            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 86));
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 36));   // title
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 2));    // divider
+            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));   // photo
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));   // upload button
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 52));   // tip
 
             layout.Controls.Add(new Label
             {
                 Dock = DockStyle.Fill,
-                Text = "Photo",
+                Text = "Staff Photo",
                 ForeColor = TextColor,
-                Font = new Font("Segoe UI Semibold", 15F, FontStyle.Bold),
+                Font = new Font("Segoe UI Semibold", 12F, FontStyle.Bold),
                 TextAlign = ContentAlignment.MiddleLeft
             }, 0, 0);
 
+            layout.Controls.Add(new Panel
+            {
+                Dock = DockStyle.Fill,
+                BackColor = BorderColor,
+                Height = 1
+            }, 0, 1);
+
             emp_pic.Dock = DockStyle.Fill;
             emp_pic.BorderStyle = BorderStyle.None;
+            emp_pic.BackColor = Color.FromArgb(245, 246, 250);
+            emp_pic.SizeMode = PictureBoxSizeMode.Zoom;
+            layout.Controls.Add(emp_pic, 0, 2);
+
             upload.Dock = DockStyle.Fill;
+            upload.FillColor = UiTheme.Gold;
+            upload.ForeColor = TextColor;
+            upload.Text = "Upload Photo";
+            upload.Font = new Font("Segoe UI Semibold", 9F, FontStyle.Bold);
+            upload.Margin = new Padding(0, 6, 0, 0);
             upload.Click -= upload_Click;
             upload.Click += upload_Click;
+            layout.Controls.Add(upload, 0, 3);
 
-            layout.Controls.Add(emp_pic, 0, 1);
-            layout.Controls.Add(upload, 0, 2);
             layout.Controls.Add(new Label
             {
                 Dock = DockStyle.Fill,
-                Text = "Record quality",
-                ForeColor = TextColor,
-                Font = new Font("Segoe UI Semibold", 10F, FontStyle.Bold),
-                TextAlign = ContentAlignment.BottomLeft
-            }, 0, 3);
-            layout.Controls.Add(new Label
-            {
-                Dock = DockStyle.Fill,
-                Text = "Use current contact and employment status so payroll and leave screens stay reliable.",
+                Text = "Upload a clear portrait photo. Accepted: JPG, PNG, BMP.",
                 ForeColor = MutedTextColor,
-                Font = new Font("Segoe UI", 9F),
-                TextAlign = ContentAlignment.TopLeft
+                Font = new Font("Segoe UI", 8.25F),
+                TextAlign = ContentAlignment.TopLeft,
+                Padding = new Padding(0, 6, 0, 0)
             }, 0, 4);
-            layout.Controls.Add(new Label
-            {
-                Dock = DockStyle.Fill,
-                Text = "Upload a clear portrait photo for quick identification.",
-                ForeColor = MutedTextColor,
-                Font = new Font("Segoe UI", 9F),
-                TextAlign = ContentAlignment.BottomLeft
-            }, 0, 5);
 
             panel.Controls.Add(layout);
+            return panel;
+        }
+
+        /// <summary>Builds a consistent section header with title + subtitle and a bottom divider.</summary>
+        private Control BuildSectionHeader(string title, string subtitle)
+        {
+            var panel = new Panel
+            {
+                Dock = DockStyle.Fill,
+                BackColor = SurfaceColor,
+                Margin = Padding.Empty,
+                Padding = new Padding(0, 0, 0, 8)
+            };
+
+            panel.Controls.Add(new Panel
+            {
+                Dock = DockStyle.Bottom,
+                Height = 2,
+                BackColor = BorderColor
+            });
+
+            panel.Controls.Add(new Label
+            {
+                Dock = DockStyle.Bottom,
+                Height = 18,
+                Text = subtitle,
+                ForeColor = MutedTextColor,
+                Font = new Font("Segoe UI", 8.5F),
+                TextAlign = ContentAlignment.BottomLeft
+            });
+
+            panel.Controls.Add(new Label
+            {
+                Dock = DockStyle.Top,
+                Height = 28,
+                Text = title,
+                ForeColor = TextColor,
+                Font = new Font("Segoe UI Semibold", 13F, FontStyle.Bold),
+                TextAlign = ContentAlignment.MiddleLeft
+            });
+
             return panel;
         }
 
@@ -374,38 +486,6 @@ namespace kingdom_Preparatory_School_Management_System
             };
         }
 
-        private TableLayoutPanel CreateSectionLayout(string title, int rows, int columns)
-        {
-            var layout = new TableLayoutPanel
-            {
-                Dock = DockStyle.Fill,
-                RowCount = rows,
-                ColumnCount = columns,
-                BackColor = SurfaceColor
-            };
-            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
-            for (int i = 1; i < rows; i++)
-            {
-                layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100F / (rows - 1)));
-            }
-            for (int i = 0; i < columns; i++)
-            {
-                layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F / columns));
-            }
-
-            var titleLabel = new Label
-            {
-                Dock = DockStyle.Fill,
-                Text = title,
-                ForeColor = TextColor,
-                Font = new Font("Segoe UI Semibold", 15F, FontStyle.Bold),
-                TextAlign = ContentAlignment.MiddleLeft
-            };
-            layout.Controls.Add(titleLabel, 0, 0);
-            layout.SetColumnSpan(titleLabel, columns);
-            return layout;
-        }
-
         private Control CreateField(string labelText, Control input)
         {
             var panel = new TableLayoutPanel
@@ -413,11 +493,11 @@ namespace kingdom_Preparatory_School_Management_System
                 Dock = DockStyle.Fill,
                 RowCount = 2,
                 ColumnCount = 1,
-                Padding = new Padding(0, 0, 10, 10),
+                Padding = new Padding(0, 4, 8, 4),
                 BackColor = SurfaceColor,
                 Margin = Padding.Empty
             };
-            panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 22));
+            panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 20));
             panel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
             panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
 
@@ -427,13 +507,12 @@ namespace kingdom_Preparatory_School_Management_System
                 Text = labelText,
                 UseMnemonic = false,
                 ForeColor = MutedTextColor,
-                Font = new Font("Segoe UI", 8.75F),
-                TextAlign = ContentAlignment.MiddleLeft,
+                Font = new Font("Segoe UI", 8.25F),
+                TextAlign = ContentAlignment.BottomLeft,
                 AutoEllipsis = true
             }, 0, 0);
 
             input.Dock = DockStyle.Fill;
-            input.Height = 36;
             panel.Controls.Add(input, 0, 1);
             return panel;
         }
@@ -454,23 +533,36 @@ namespace kingdom_Preparatory_School_Management_System
 
         private Control BuildActions()
         {
+            var wrapper = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 2,
+                RowCount = 1,
+                BackColor = PageBackColor
+            };
+            wrapper.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); // spacer
+            wrapper.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 560)); // button cluster
+
             var actions = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
-                ColumnCount = 5,
+                ColumnCount = 4,
+                RowCount = 1,
                 BackColor = PageBackColor
             };
-            actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 120));
-            actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 120));
-            actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 120));
-            actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 120));
-            actions.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            actions.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
+            actions.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
+            actions.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
+            actions.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
 
             actions.Controls.Add(CreateSecondaryButton("New", async () => await NewEmployee()), 0, 0);
             actions.Controls.Add(CreatePrimaryButton("Save", async () => await SaveEmployeeAsync()), 1, 0);
             actions.Controls.Add(CreateSecondaryButton("Update", async () => await UpdateEmployee()), 2, 0);
             actions.Controls.Add(CreateDangerButton("Delete", async () => await DeleteEmployee()), 3, 0);
-            return actions;
+
+            wrapper.Controls.Add(new Panel { Dock = DockStyle.Fill, BackColor = PageBackColor }, 0, 0);
+            wrapper.Controls.Add(actions, 1, 0);
+            return wrapper;
         }
 
         private Button CreatePrimaryButton(string text, Func<Task> asyncAction)
@@ -508,12 +600,12 @@ namespace kingdom_Preparatory_School_Management_System
             var button = new Button
             {
                 Dock = DockStyle.Fill,
-                Height = 38,
-                Margin = new Padding(8, 0, 0, 0),
+                Margin = new Padding(6, 0, 0, 0),
                 Text = text,
                 FlatStyle = FlatStyle.Flat,
                 Font = new Font("Segoe UI Semibold", 9.5F, FontStyle.Bold),
-                Cursor = Cursors.Hand
+                Cursor = Cursors.Hand,
+                FlatAppearance = { BorderSize = 1 }
             };
             button.Click += async (sender, args) => await asyncAction();
             return button;
