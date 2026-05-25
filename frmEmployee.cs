@@ -285,13 +285,14 @@ namespace kingdom_Preparatory_School_Management_System
             var grid = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
-                RowCount = 5,
+                RowCount = 6,   // 5 data rows + 1 spacer that absorbs extra height
                 ColumnCount = 2,
                 BackColor = SurfaceColor,
                 Margin = Padding.Empty
             };
             for (int r = 0; r < 5; r++)
                 grid.RowStyles.Add(new RowStyle(SizeType.Absolute, FieldRowH));
+            grid.RowStyles.Add(new RowStyle(SizeType.Percent, 100)); // spacer — prevents last data row from expanding
             grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
             grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
 
@@ -334,13 +335,14 @@ namespace kingdom_Preparatory_School_Management_System
             var grid = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
-                RowCount = 4,
+                RowCount = 5,   // 4 data rows + 1 spacer that absorbs extra height
                 ColumnCount = 2,
                 BackColor = SurfaceColor,
                 Margin = Padding.Empty
             };
             for (int r = 0; r < 4; r++)
                 grid.RowStyles.Add(new RowStyle(SizeType.Absolute, FieldRowH));
+            grid.RowStyles.Add(new RowStyle(SizeType.Percent, 100)); // spacer — prevents last data row from expanding
             grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
             grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
 
@@ -458,6 +460,7 @@ namespace kingdom_Preparatory_School_Management_System
                 Dock = DockStyle.Bottom,
                 Height = 17,
                 Text = subtitle,
+                UseMnemonic = false,   // prevent & being treated as accelerator
                 ForeColor = MutedTextColor,
                 Font = new Font("Segoe UI", 8.25F),
                 TextAlign = ContentAlignment.BottomLeft
@@ -467,6 +470,7 @@ namespace kingdom_Preparatory_School_Management_System
                 Dock = DockStyle.Top,
                 Height = 30,
                 Text = title,
+                UseMnemonic = false,   // prevent & being treated as accelerator
                 ForeColor = TextColor,
                 Font = new Font("Segoe UI Semibold", 13F, FontStyle.Bold),
                 TextAlign = ContentAlignment.MiddleLeft
