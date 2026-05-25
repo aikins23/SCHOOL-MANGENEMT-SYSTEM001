@@ -1,6 +1,7 @@
 using System;
 using System.Data;
 using System.Drawing;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using kingdom_Preparatory_School_Management_System.Common;
 using kingdom_Preparatory_School_Management_System.Data;
@@ -17,6 +18,13 @@ namespace kingdom_Preparatory_School_Management_System
         private TextBox searchBox;
         private Label resultLabel;
         private DataTable leaveTable;
+
+        // Grid column constants
+        private const string IdColumnName = "ID";
+        private const string NameColumnName = "NAME";
+        private const string LeaveTypeColumnName = "LEAVE TYPE";
+        private const string StartDateColumnName = "START DATE";
+        private const string StatusColumnName = "STATUS";
 
         private static readonly Color PageBackColor = UiTheme.Page;
         private static readonly Color SurfaceColor = UiTheme.Surface;
@@ -115,9 +123,20 @@ namespace kingdom_Preparatory_School_Management_System
             actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 120));
             actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 120));
             actions.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-            actions.Controls.Add(CreatePrimaryButton("Approve", () => UpdateSelectedStatus("APPROVED")), 0, 0);
-            actions.Controls.Add(CreateDangerButton("Reject", () => UpdateSelectedStatus("REJECTED")), 1, 0);
-            actions.Controls.Add(CreateSecondaryButton("Refresh", async () => await LoadLeaveRequests()), 2, 0);
+
+            var approveBtn = CreatePrimaryButton("Approve", null);
+            approveBtn.Click += async (sender, args) => await ApproveLeaveAsync();
+
+            var rejectBtn = CreateDangerButton("Reject", null);
+            rejectBtn.Click += async (sender, args) => await RejectLeaveAsync();
+
+            var refreshBtn = CreateSecondaryButton("Refresh", null);
+            refreshBtn.Click += async (sender, args) => await LoadLeaveRequests();
+
+            actions.Controls.Add(approveBtn, 0, 0);
+            actions.Controls.Add(rejectBtn, 1, 0);
+            actions.Controls.Add(refreshBtn, 2, 0);
+
             return actions;
         }
 
@@ -151,22 +170,42 @@ namespace kingdom_Preparatory_School_Management_System
         private Button CreateButton(string text, Action action)
         {
             var button = new Button { Width = 112, Height = 36, Margin = new Padding(8, 0, 0, 0), Text = text, FlatStyle = FlatStyle.Flat, Font = new Font("Segoe UI Semibold", 9.5F, FontStyle.Bold), Cursor = Cursors.Hand };
-            button.Click += (sender, args) => action();
+            if (action != null)
+            {
+                button.Click += (sender, args) => action();
+            }
             return button;
         }
 
-        private async System.Threading.Tasks.Task LoadLeaveRequests()
+        private async Task LoadPendingLeavesAsync()
         {
             try
             {
-                // lblStats.Text = "Loading..."; // TODO: Implement
-                leaveTable = await _leaveService.GetLeaveRequestsTableAsync();
+                leaveTable = await _leaveService.GetLeaveRequestsTableAsync("PENDING");
                 leaveGrid.DataSource = leaveTable;
                 ApplyFilters();
+                LoggerHelper.LogInfo($"Loaded {leaveTable.Rows.Count} pending leave requests");
             }
             catch (Exception ex)
             {
-                UIHelper.ShowError("An error occurred: " + ex.Message, "Leave Approval");
+                UIHelper.ShowError("Error loading leave requests: " + ex.Message, "Leave Approval");
+                LoggerHelper.LogError("LoadPendingLeavesAsync failed", ex);
+            }
+        }
+
+        private async Task LoadLeaveRequests()
+        {
+            try
+            {
+                leaveTable = await _leaveService.GetLeaveRequestsTableAsync();
+                leaveGrid.DataSource = leaveTable;
+                ApplyFilters();
+                LoggerHelper.LogInfo("Loaded all leave requests");
+            }
+            catch (Exception ex)
+            {
+                UIHelper.ShowError("Error loading leave requests: " + ex.Message, "Leave Approval");
+                LoggerHelper.LogError("LoadLeaveRequests failed", ex);
             }
         }
 
@@ -187,37 +226,115 @@ namespace kingdom_Preparatory_School_Management_System
             resultLabel.Text = leaveTable.DefaultView.Count + " leave request(s)";
         }
 
-        private async void UpdateSelectedStatus(string status)
+        private async Task ApproveLeaveAsync()
         {
-            if (leaveGrid.CurrentRow == null)
-            {
-                UIHelper.ShowWarning("Select a leave request first.", "Leave Approval");
-                return;
-            }
-
-            var request = new LeaveRequest
-            {
-                EmployeeID = leaveGrid.CurrentRow.Cells["ID"].Value.ToString(),
-                StartDate = Convert.ToDateTime(leaveGrid.CurrentRow.Cells["START DATE"].Value)
-            };
-
             try
             {
-                var (success, message) = await _leaveService.UpdateLeaveStatusAsync(request, status);
+                if (leaveGrid.CurrentRow == null)
+                {
+                    ConfirmationHelper.ShowWarning("Please select a leave request to approve.", "Leave Approval");
+                    return;
+                }
+
+                string employeeName = leaveGrid.CurrentRow.Cells[NameColumnName].Value?.ToString() ?? "Unknown";
+                string leaveType = leaveGrid.CurrentRow.Cells[LeaveTypeColumnName].Value?.ToString() ?? "Unknown";
+
+                if (!ConfirmationHelper.ConfirmSave($"Approve {leaveType} for {employeeName}?"))
+                {
+                    LoggerHelper.LogInfo($"User cancelled approval for {employeeName}");
+                    return;
+                }
+
+                var request = new LeaveRequest
+                {
+                    EmployeeID = leaveGrid.CurrentRow.Cells[IdColumnName].Value?.ToString() ?? "",
+                    StartDate = Convert.ToDateTime(leaveGrid.CurrentRow.Cells[StartDateColumnName].Value)
+                };
+
+                var (success, message) = await _leaveService.UpdateLeaveStatusAsync(request, "APPROVED");
+
                 if (success)
                 {
+                    ConfirmationHelper.ShowInfo("Leave approved successfully.", "Leave Approval");
+                    LoggerHelper.LogInfo($"Leave approved for {employeeName} ({request.EmployeeID})");
                     await LoadLeaveRequests();
-                    UIHelper.ShowSuccess(message, "Leave Approval");
                 }
-                else UIHelper.ShowError(message, "Leave Approval");
+                else
+                {
+                    UIHelper.ShowError(message, "Leave Approval");
+                    LoggerHelper.LogWarning($"Failed to approve leave: {message}");
+                }
             }
             catch (Exception ex)
             {
-                UIHelper.ShowError("Status could not be updated: " + ex.Message, "Leave Approval");
+                UIHelper.ShowError("Approval failed: " + ex.Message, "Leave Approval");
+                LoggerHelper.LogError("ApproveLeaveAsync failed", ex);
             }
         }
 
-        private async void frmLeaveApproval_Load(object sender, EventArgs e) { await LoadLeaveRequests(); }
+        private async Task RejectLeaveAsync()
+        {
+            try
+            {
+                if (leaveGrid.CurrentRow == null)
+                {
+                    ConfirmationHelper.ShowWarning("Please select a leave request to reject.", "Leave Approval");
+                    return;
+                }
+
+                string employeeName = leaveGrid.CurrentRow.Cells[NameColumnName].Value?.ToString() ?? "Unknown";
+
+                if (!ConfirmationHelper.ConfirmDelete("Leave Request",
+                    $"Reject leave for {employeeName}?\n\nThis action cannot be undone."))
+                {
+                    LoggerHelper.LogInfo($"User cancelled rejection for {employeeName}");
+                    return;
+                }
+
+                var request = new LeaveRequest
+                {
+                    EmployeeID = leaveGrid.CurrentRow.Cells[IdColumnName].Value?.ToString() ?? "",
+                    StartDate = Convert.ToDateTime(leaveGrid.CurrentRow.Cells[StartDateColumnName].Value)
+                };
+
+                var (success, message) = await _leaveService.UpdateLeaveStatusAsync(request, "REJECTED");
+
+                if (success)
+                {
+                    ConfirmationHelper.ShowInfo("Leave rejected successfully.", "Leave Approval");
+                    LoggerHelper.LogInfo($"Leave rejected for {employeeName} ({request.EmployeeID})");
+                    await LoadLeaveRequests();
+                }
+                else
+                {
+                    UIHelper.ShowError(message, "Leave Approval");
+                    LoggerHelper.LogWarning($"Failed to reject leave: {message}");
+                }
+            }
+            catch (Exception ex)
+            {
+                UIHelper.ShowError("Rejection failed: " + ex.Message, "Leave Approval");
+                LoggerHelper.LogError("RejectLeaveAsync failed", ex);
+            }
+        }
+
+        private async void frmLeaveApproval_Load(object sender, EventArgs e)
+        {
+            try
+            {
+                await LoadLeaveRequests();
+                LoggerHelper.LogInfo("frmLeaveApproval loaded successfully");
+            }
+            catch (Exception ex)
+            {
+                UIHelper.ShowError("Error loading form: " + ex.Message, "Leave Approval");
+                LoggerHelper.LogError("frmLeaveApproval_Load failed", ex);
+            }
+        }
+
+        private async void btnApprove_Click(object sender, EventArgs e) { await ApproveLeaveAsync(); }
+        private async void btnReject_Click(object sender, EventArgs e) { await RejectLeaveAsync(); }
+        private async void btnRefresh_Click(object sender, EventArgs e) { await LoadLeaveRequests(); }
         private void gunaPictureBox1_Click(object sender, EventArgs e) { Close(); }
         private void gunaPictureBox2_Click(object sender, EventArgs e) { WindowState = FormWindowState.Minimized; }
         private void gunaPictureBox3_Click(object sender, EventArgs e) { WindowState = WindowState == FormWindowState.Maximized ? FormWindowState.Normal : FormWindowState.Maximized; }
