@@ -1,6 +1,7 @@
 using System;
 using System.Data;
 using System.Drawing;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using kingdom_Preparatory_School_Management_System.Common;
 using kingdom_Preparatory_School_Management_System.Data;
@@ -718,7 +719,7 @@ public frmDashboard()
             }
         }
 
-        private async void RefreshDashboardMetrics()
+        private async Task LoadDashboardStatisticsAsync()
         {
             try
             {
@@ -738,11 +739,13 @@ public frmDashboard()
                 leaveSummaryGrid.DataSource = metrics.LeaveSummary;
 
                 statusLabel.Text = "Connected to Neat_Academy | " + DateTime.Now.ToString("dd MMM yyyy, h:mm tt");
+                LoggerHelper.LogInfo("Dashboard statistics loaded successfully");
             }
             catch (Exception ex)
             {
                 statusLabel.Text = "Refresh failed";
                 UIHelper.ShowError("Dashboard could not load live metrics: " + ex.Message, "Dashboard");
+                LoggerHelper.LogError("LoadDashboardStatisticsAsync failed", ex);
             }
         }
 
@@ -754,6 +757,130 @@ public frmDashboard()
         private void gunaPictureBox1_Click(object sender, EventArgs e) { Application.Exit(); }
         private void gunaPictureBox2_Click(object sender, EventArgs e) { WindowState = FormWindowState.Minimized; }
         private void gunaPictureBox3_Click(object sender, EventArgs e) { WindowState = WindowState == FormWindowState.Maximized ? FormWindowState.Normal : FormWindowState.Maximized; }
+        private void btnAddStudent_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                OpenForm(new frmAddStd(), true);
+                _ = LoadDashboardStatisticsAsync();
+            }
+            catch (Exception ex)
+            {
+                LoggerHelper.LogError("Navigate to Add Student failed", ex);
+            }
+        }
+
+        private void btnViewStudents_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                OpenForm(new frmStdView());
+            }
+            catch (Exception ex)
+            {
+                LoggerHelper.LogError("Navigate to View Students failed", ex);
+            }
+        }
+
+        private void btnAddEmployee_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                OpenForm(new frmEmployee());
+            }
+            catch (Exception ex)
+            {
+                LoggerHelper.LogError("Navigate to Add Employee failed", ex);
+            }
+        }
+
+        private void btnViewEmployees_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                OpenForm(new frmEmpView());
+            }
+            catch (Exception ex)
+            {
+                LoggerHelper.LogError("Navigate to View Employees failed", ex);
+            }
+        }
+
+        private void btnViewExams_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                OpenForm(new EXAMSVIEW());
+            }
+            catch (Exception ex)
+            {
+                LoggerHelper.LogError("Navigate to View Exams failed", ex);
+            }
+        }
+
+        private void btnExams_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                OpenForm(new EXAMS());
+            }
+            catch (Exception ex)
+            {
+                LoggerHelper.LogError("Navigate to Exams failed", ex);
+            }
+        }
+
+        private void btnRecordFees_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                OpenForm(new frmFessPayment());
+                _ = LoadDashboardStatisticsAsync();
+            }
+            catch (Exception ex)
+            {
+                LoggerHelper.LogError("Navigate to Record Fees failed", ex);
+            }
+        }
+
+        private void btnFees_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                OpenForm(new frmFess());
+            }
+            catch (Exception ex)
+            {
+                LoggerHelper.LogError("Navigate to Fees failed", ex);
+            }
+        }
+
+        private void btnEmployeeLeave_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                OpenForm(new frmEmpLeave());
+                _ = LoadDashboardStatisticsAsync();
+            }
+            catch (Exception ex)
+            {
+                LoggerHelper.LogError("Navigate to Employee Leave failed", ex);
+            }
+        }
+
+        private void btnLeaveDetails_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                OpenForm(new frmLeaveDetails());
+                _ = LoadDashboardStatisticsAsync();
+            }
+            catch (Exception ex)
+            {
+                LoggerHelper.LogError("Navigate to Leave Details failed", ex);
+            }
+        }
+
         private void gunaButton1_Click(object sender, EventArgs e) { OpenForm(new frmAddStd(), true); }
         private void gunaButton2_Click(object sender, EventArgs e) { OpenForm(new frmStdView()); }
         private void gunaButton3_Click(object sender, EventArgs e) { OpenForm(new frmEmployee()); }
@@ -771,14 +898,36 @@ public frmDashboard()
         private void makePaymentToolStripMenuItem_Click(object sender, EventArgs e) { OpenForm(new frmFessPayment()); }
         private void aboutToolStripMenuItem_Click(object sender, EventArgs e) { OpenForm(new frmAbout()); }
 
-        private void frmDashboard_Load(object sender, EventArgs e)
+        private async void frmDashboard_Load(object sender, EventArgs e)
         {
-            RefreshDashboardMetrics();
+            try
+            {
+                await LoadDashboardStatisticsAsync();
+                LoggerHelper.LogInfo("frmDashboard loaded successfully");
+            }
+            catch (Exception ex)
+            {
+                UIHelper.ShowError("Error loading dashboard: " + ex.Message, "Dashboard");
+                LoggerHelper.LogError("frmDashboard_Load failed", ex);
+            }
+        }
+
+        private async void btnRefresh_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                await LoadDashboardStatisticsAsync();
+                ConfirmationHelper.ShowInfo("Dashboard updated", "Dashboard");
+            }
+            catch (Exception ex)
+            {
+                LoggerHelper.LogError("Dashboard refresh failed", ex);
+            }
         }
 
         private void gunaButton12_Click(object sender, EventArgs e)
         {
-            RefreshDashboardMetrics();
+            _ = LoadDashboardStatisticsAsync();
         }
     }
 }
