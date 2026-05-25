@@ -39,9 +39,8 @@ namespace kingdom_Preparatory_School_Management_System.Common
         public static string GetText(Control control)
         {
             // Cast to the concrete Guna type so the 'new' Text property is called
-            if (control is Guna.UI2.WinForms.Guna2TextBox g2tb)  return g2tb.Text  ?? "";
-            if (control is Guna.UI2.WinForms.Guna2ComboBox g2cb)  return g2cb.Text  ?? "";
-            if (control is Guna.UI2.WinForms.Guna2RichTextBox g2r) return g2r.Text  ?? "";
+            if (control is Guna.UI2.WinForms.Guna2TextBox g2tb) return g2tb.Text ?? "";
+            if (control is Guna.UI2.WinForms.Guna2ComboBox g2cb) return g2cb.Text ?? "";
             return control.Text ?? "";
         }
 
