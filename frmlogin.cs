@@ -30,6 +30,11 @@ namespace kingdom_Preparatory_School_Management_System
         {
             InitializeComponent();
             BuildModernLoginView();
+
+            // Event handlers are commented-out in the designer — wire them here
+            BTN_Login.Click          += (s, e) => LoginUser();
+            Check.CheckedChanged     += Check_CheckedChanged;
+            lab_Register.Click       += lab_Register_Click;
         }
 
         private void BuildModernLoginView()
@@ -213,10 +218,7 @@ namespace kingdom_Preparatory_School_Management_System
 
         }
 
-        private void BTN_Login_Click(object sender, EventArgs e)
-        {
-            LoginUser();
-        }
+        private void BTN_Login_Click(object sender, EventArgs e) => LoginUser();
 
         private void lab_Register_Click(object sender, EventArgs e)
         {
@@ -287,9 +289,6 @@ namespace kingdom_Preparatory_School_Management_System
             TXTUser.Focus();
         }
 
-        private void BTN_Login_Click_1(object sender, EventArgs e)
-        {
-            LoginUser();
-        }
+        private void BTN_Login_Click_1(object sender, EventArgs e) => LoginUser();
     }
 }
