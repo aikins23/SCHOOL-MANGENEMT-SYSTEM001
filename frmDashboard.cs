@@ -55,6 +55,9 @@ public frmDashboard()
 
     // Handle form closing to keep app alive
     this.FormClosing += FrmDashboard_FormClosing;
+
+    // Load event is commented-out in designer — wire it manually
+    this.Load += frmDashboard_Load;
 }
 
         private void ApplyRolePermissions()
@@ -315,7 +318,7 @@ public frmDashboard()
                 RowCount = 4
             };
             content.RowStyles.Add(new RowStyle(SizeType.Absolute, 82));
-            content.RowStyles.Add(new RowStyle(SizeType.Absolute, 150));
+            content.RowStyles.Add(new RowStyle(SizeType.Absolute, 180));
             content.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
             content.RowStyles.Add(new RowStyle(SizeType.Absolute, 166));
 
@@ -571,7 +574,7 @@ public frmDashboard()
             var card = CreateModernPanel(8);
             card.Dock    = DockStyle.Fill;
             card.Margin  = new Padding(0, 0, 14, 0);
-            card.Padding = new Padding(18, 14, 18, 14);
+            card.Padding = new Padding(18, 16, 18, 12);
 
             // Coloured top accent strip (4 px, painted on the panel itself)
             card.Paint += (s, e) =>
