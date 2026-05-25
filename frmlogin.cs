@@ -259,24 +259,59 @@ namespace kingdom_Preparatory_School_Management_System
                 if (success)
                 {
                     if (statusLabel != null) statusLabel.Text = "Login successful.";
-                    LoggerHelper.LogInfo($"User logged in: {username}");
+
+                    // Attempt to log, but continue even if logging fails
+                    try
+                    {
+                        LoggerHelper.LogInfo($"User logged in: {username}");
+                    }
+                    catch (Exception logEx)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Failed to log info: {logEx.Message}");
+                    }
+
                     UIHelper.ShowSuccess("Welcome! Loading dashboard...", "Login Success");
 
-                    // Open dashboard and close login
-                    new frmDashboard().Show();
-                    this.Close();
+                    // Show dashboard then hide login.
+                    // We Hide (not Close) because Application.Run(frmlogin) keeps
+                    // the message loop alive only while this form exists. Closing it
+                    // would exit the app before the dashboard appears.
+                    // frmDashboard already calls Application.Exit() in all its
+                    // exit paths, which will terminate the process cleanly.
+                    var dashboard = new frmDashboard();
+                    dashboard.Show();
+                    this.Hide();
                 }
                 else
                 {
                     if (statusLabel != null) statusLabel.Text = message;
-                    LoggerHelper.LogWarning($"Login failed for user {username}");
+
+                    // Attempt to log, but continue even if logging fails
+                    try
+                    {
+                        LoggerHelper.LogWarning($"Login failed for user {username}");
+                    }
+                    catch (Exception logEx)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Failed to log warning: {logEx.Message}");
+                    }
+
                     UIHelper.ShowWarning(message, "Login Failed");
                     ClearLoginForm();
                 }
             }
             catch (Exception ex)
             {
-                LoggerHelper.LogError("LoginUser failed", ex);
+                // Attempt to log the error, but don't let logging failure prevent error display
+                try
+                {
+                    LoggerHelper.LogError("LoginUser failed", ex);
+                }
+                catch (Exception logEx)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Failed to log error: {logEx.Message}\nOriginal error: {ex.Message}");
+                }
+
                 if (statusLabel != null) statusLabel.Text = "Login error.";
                 UIHelper.ShowError("Login failed: " + ex.Message, "Login");
             }
