@@ -1,5 +1,6 @@
 using System;
 using System.Drawing;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using kingdom_Preparatory_School_Management_System.Common;
 using kingdom_Preparatory_School_Management_System.Data;
@@ -22,6 +23,12 @@ namespace kingdom_Preparatory_School_Management_System
         private static readonly Color TextColor = UiTheme.Text;
         private static readonly Color MutedTextColor = UiTheme.Muted;
         private static readonly Color BorderColor = UiTheme.Border;
+
+        // Magic number constants
+        private const int MIN_STUDENT_ID_LENGTH = 3;
+        private const int MIN_STUDENT_AGE = 5;
+        private const int MAX_STUDENT_AGE = 80;
+        private const int DEFAULT_STUDENT_AGE = 15;
 
         // Drag state variables
         private bool isDragging = false;
@@ -443,15 +450,25 @@ namespace kingdom_Preparatory_School_Management_System
             actions.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
 
             actions.Controls.Add(CreateSecondaryButton("New", async () => await NewStudent()), 0, 0);
-            actions.Controls.Add(CreatePrimaryButton("Save", SaveStudent), 1, 0);
-            actions.Controls.Add(CreateSecondaryButton("Update", UpdateStudent), 2, 0);
-            actions.Controls.Add(CreateDangerButton("Roll Out", RollOutStudent), 3, 0);
+            actions.Controls.Add(CreatePrimaryButton("Save", async () => await SaveStudent()), 1, 0);
+            actions.Controls.Add(CreateSecondaryButton("Update", async () => await UpdateStudent()), 2, 0);
+            actions.Controls.Add(CreateDangerButton("Roll Out", async () => await RollOutStudent()), 3, 0);
             return actions;
         }
 
         private Button CreatePrimaryButton(string text, Action action)
         {
             var button = CreateButton(text, action);
+            button.BackColor = PrimaryColor;
+            button.ForeColor = Color.White;
+            button.FlatAppearance.BorderColor = PrimaryColor;
+            button.FlatAppearance.MouseOverBackColor = UiTheme.NavyHover;
+            return button;
+        }
+
+        private Button CreatePrimaryButton(string text, Func<Task> asyncAction)
+        {
+            var button = CreateButton(text, asyncAction);
             button.BackColor = PrimaryColor;
             button.ForeColor = Color.White;
             button.FlatAppearance.BorderColor = PrimaryColor;
@@ -469,9 +486,29 @@ namespace kingdom_Preparatory_School_Management_System
             return button;
         }
 
+        private Button CreateSecondaryButton(string text, Func<Task> asyncAction)
+        {
+            var button = CreateButton(text, asyncAction);
+            button.BackColor = SurfaceColor;
+            button.ForeColor = TextColor;
+            button.FlatAppearance.BorderColor = BorderColor;
+            button.FlatAppearance.MouseOverBackColor = AccentColor;
+            return button;
+        }
+
         private Button CreateDangerButton(string text, Action action)
         {
             var button = CreateButton(text, action);
+            button.BackColor = SurfaceColor;
+            button.ForeColor = DangerColor;
+            button.FlatAppearance.BorderColor = Color.FromArgb(254, 205, 211);
+            button.FlatAppearance.MouseOverBackColor = Color.FromArgb(255, 241, 242);
+            return button;
+        }
+
+        private Button CreateDangerButton(string text, Func<Task> asyncAction)
+        {
+            var button = CreateButton(text, asyncAction);
             button.BackColor = SurfaceColor;
             button.ForeColor = DangerColor;
             button.FlatAppearance.BorderColor = Color.FromArgb(254, 205, 211);
@@ -492,6 +529,22 @@ namespace kingdom_Preparatory_School_Management_System
                 Cursor = Cursors.Hand
             };
             button.Click += (sender, args) => action();
+            return button;
+        }
+
+        private Button CreateButton(string text, Func<Task> asyncAction)
+        {
+            var button = new Button
+            {
+                Dock = DockStyle.Fill,
+                Height = 38,
+                Margin = new Padding(8, 0, 0, 0),
+                Text = text,
+                FlatStyle = FlatStyle.Flat,
+                Font = new Font("Segoe UI Semibold", 9.5F, FontStyle.Bold),
+                Cursor = Cursors.Hand
+            };
+            button.Click += async (sender, args) => await asyncAction();
             return button;
         }
 
@@ -535,9 +588,9 @@ namespace kingdom_Preparatory_School_Management_System
 
         private void SetDateOfBirthRange()
         {
-            dateDOB.MaxDate = DateTime.Now.AddYears(-5);  // Minimum age 5
-            dateDOB.MinDate = DateTime.Now.AddYears(-80); // Maximum age 80
-            dateDOB.Value = DateTime.Now.AddYears(-15);   // Default age 15
+            dateDOB.MaxDate = DateTime.Now.AddYears(-MIN_STUDENT_AGE);
+            dateDOB.MinDate = DateTime.Now.AddYears(-MAX_STUDENT_AGE);
+            dateDOB.Value = DateTime.Now.AddYears(-DEFAULT_STUDENT_AGE);
         }
 
         private void ClearStudentDetails()
@@ -545,7 +598,7 @@ namespace kingdom_Preparatory_School_Management_System
             txtFN.Text = "";
             txtLN.Text = "";
             cmbCID.SelectedIndex = 0;
-            dateDOB.Value = DateTime.Now.AddYears(-15);
+            dateDOB.Value = DateTime.Now.AddYears(-DEFAULT_STUDENT_AGE);
             txtEM.Text = "";
             txtEC.Text = "";
             txtHT.Text = "";
@@ -565,11 +618,19 @@ namespace kingdom_Preparatory_School_Management_System
             {
                 txtStdID.Text = await _studentService.GenerateNextStudentIdAsync();
                 statusLabel.Text = "Ready for a new admission.";
+                LoggerHelper.LogInfo($"Next student ID generated: {txtStdID.Text}");
+            }
+            catch (ApplicationException appEx)
+            {
+                LoggerHelper.LogWarning($"Student ID generation issue: {appEx.Message}");
+                statusLabel.Text = "Could not generate student ID.";
+                UIHelper.ShowWarning("Could not generate student ID. Database may be unreachable.", "ID Generation");
             }
             catch (Exception ex)
             {
+                LoggerHelper.LogError("SetNextStudentId failed", ex);
                 statusLabel.Text = "Could not prepare the next student ID.";
-                UIHelper.ShowError("Error: " + ex.Message, "Student Admission");
+                UIHelper.ShowError("Unexpected error generating student ID", "Error");
             }
         }
 
@@ -582,9 +643,12 @@ namespace kingdom_Preparatory_School_Management_System
                 {
                     try
                     {
-                        if (new System.IO.FileInfo(dialog.FileName).Length > AppConfig.MaxPhotoSizeBytes)
+                        var fileInfo = new System.IO.FileInfo(dialog.FileName);
+                        if (fileInfo.Length > AppConfig.MaxPhotoSizeBytes)
                         {
-                            UIHelper.ShowWarning($"Photo exceeds maximum size of {AppConfig.MaxPhotoSizeMB}MB.");
+                            var sizeInMB = fileInfo.Length / (1024.0 * 1024.0);
+                            LoggerHelper.LogWarning($"Photo upload rejected: {sizeInMB:F2}MB exceeds {AppConfig.MaxPhotoSizeMB}MB limit");
+                            UIHelper.ShowWarning($"Photo must be smaller than {AppConfig.MaxPhotoSizeMB}MB");
                             return;
                         }
 
@@ -596,10 +660,12 @@ namespace kingdom_Preparatory_School_Management_System
                         }
 
                         statusLabel.Text = "Photo selected.";
+                        LoggerHelper.LogInfo($"Photo uploaded successfully for student {txtStdID.Text}");
                     }
                     catch (Exception ex)
                     {
                         statusLabel.Text = "Photo was not accepted.";
+                        LoggerHelper.LogError("Photo upload failed", ex);
                         UIHelper.ShowWarning(ex.Message, "Student Admission");
                     }
                 }
@@ -625,32 +691,38 @@ namespace kingdom_Preparatory_School_Management_System
                 GuardianEmail = txtGE.Text.Trim(),
                 GuardianLocation = txtGL.Text.Trim(),
                 AdmissionDate = dateAD.Value.Date,
-                ProfilePhoto = ImageHelper.ImageToBytes(std_pic.Image)
+                ProfilePhoto = std_pic.Image != null ? ImageHelper.ImageToBytes(std_pic.Image) : null
             };
         }
 
-        private async void SaveStudent()
+        private bool ValidateStudentFields()
+        {
+            if (!FormValidationHelper.ValidateRequired(txtStdID, "Student ID"))
+                return false;
+
+            if (!FormValidationHelper.ValidateRequired(txtFN, "First Name"))
+                return false;
+
+            if (!FormValidationHelper.ValidateComboBox(cmbCID, "Class"))
+                return false;
+
+            if (dateDOB.Value == null)
+            {
+                UIHelper.ShowError("Date of Birth is required", "Validation");
+                return false;
+            }
+
+            if (!FormValidationHelper.ValidateEmail(txtEM))
+                return false;
+
+            return true;
+        }
+
+        private async Task SaveStudent()
         {
             try
             {
-                // Validate all required fields
-                if (!FormValidationHelper.ValidateRequired(txtStdID, "Student ID"))
-                    return;
-
-                if (!FormValidationHelper.ValidateRequired(txtFN, "First Name"))
-                    return;
-
-                if (!FormValidationHelper.ValidateComboBox(cmbCID, "Class"))
-                    return;
-
-                // Date range is already enforced via SetDateOfBirthRange
-                if (dateDOB.Value == null)
-                {
-                    UIHelper.ShowWarning("Date of Birth is required", "Validation");
-                    return;
-                }
-
-                if (!FormValidationHelper.ValidateEmail(txtEM))
+                if (!ValidateStudentFields())
                     return;
 
                 // Confirmation
@@ -686,28 +758,11 @@ namespace kingdom_Preparatory_School_Management_System
             }
         }
 
-        private async void UpdateStudent()
+        private async Task UpdateStudent()
         {
             try
             {
-                // Validate all required fields
-                if (!FormValidationHelper.ValidateRequired(txtStdID, "Student ID"))
-                    return;
-
-                if (!FormValidationHelper.ValidateRequired(txtFN, "First Name"))
-                    return;
-
-                if (!FormValidationHelper.ValidateComboBox(cmbCID, "Class"))
-                    return;
-
-                // Date range is already enforced via SetDateOfBirthRange
-                if (dateDOB.Value == null)
-                {
-                    UIHelper.ShowWarning("Date of Birth is required", "Validation");
-                    return;
-                }
-
-                if (!FormValidationHelper.ValidateEmail(txtEM))
+                if (!ValidateStudentFields())
                     return;
 
                 // Confirmation
@@ -737,7 +792,7 @@ namespace kingdom_Preparatory_School_Management_System
             }
         }
 
-        private async void RollOutStudent()
+        private async Task RollOutStudent()
         {
             try
             {
@@ -805,7 +860,7 @@ namespace kingdom_Preparatory_School_Management_System
         {
             try
             {
-                if (txtStdID.Text.Length < 3)
+                if (txtStdID.Text.Length < MIN_STUDENT_ID_LENGTH)
                 {
                     ClearStudentDetails();
                     return;
@@ -854,10 +909,9 @@ namespace kingdom_Preparatory_School_Management_System
         }
 
         private async void btnNew_Click(object sender, EventArgs e) { await NewStudent(); }
-        private void btnSave_Click_1(object sender, EventArgs e) { SaveStudent(); }
-        private void btn_Update_Click(object sender, EventArgs e) { UpdateStudent(); }
-        private void btnDel_Click(object sender, EventArgs e) { RollOutStudent(); }
-        private void btnEdit_Click(object sender, EventArgs e) { }
+        private async void btnSave_Click_1(object sender, EventArgs e) { await SaveStudent(); }
+        private async void btn_Update_Click(object sender, EventArgs e) { await UpdateStudent(); }
+        private async void btnDel_Click(object sender, EventArgs e) { await RollOutStudent(); }
         private void gunaButton1_Click(object sender, EventArgs e) { Close(); new frmStdView().Show(); }
         private void gunaPictureBox1_Click(object sender, EventArgs e) { Application.Exit(); }
         private void gunaPictureBox2_Click(object sender, EventArgs e) { WindowState = FormWindowState.Minimized; }
