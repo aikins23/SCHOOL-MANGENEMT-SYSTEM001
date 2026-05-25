@@ -32,6 +32,10 @@ namespace kingdom_Preparatory_School_Management_System
 
             BuildModernFeesView();
             NavigationSidebar.AddTo(this);
+
+            // Wire events commented-out in designer
+            gunaPictureBox1.Click += gunaPictureBox1_Click;
+            btnEdit.Click         += btnEdit_Click;
         }
         private void BuildModernFeesView()
         {

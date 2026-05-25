@@ -19,6 +19,9 @@ namespace kingdom_Preparatory_School_Management_System
             var repository = new LeaveRepository(AppConfig.ConnectionString);
             _leaveService = new LeaveService(repository);
             UiTheme.Apply(this);
+
+            // Wire events commented-out in designer
+            gunaPictureBox2.Click += gunaPictureBox2_Click;
         }
 
         public frmLeaveDetails(Dictionary<string, string> rowData) : this()

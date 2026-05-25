@@ -39,6 +39,15 @@ namespace kingdom_Preparatory_School_Management_System
             _studentService = new StudentService(studentRepo, feeRepo);
 
             BuildModernStudentDetailsView();
+
+            // Wire events commented-out in designer
+            upload.Click            += upload_Click;
+            gunaButton1.Click       += gunaButton1_Click;
+            btn_Update.Click        += btn_Update_Click;
+            btnDel.Click            += btnDel_Click;
+            pay.Click               += pay_Click;
+            gunaPictureBox1.Click   += gunaPictureBox1_Click;
+            gunaPictureBox6.Click   += gunaPictureBox6_Click;
         }
 
         private void BuildModernStudentDetailsView()

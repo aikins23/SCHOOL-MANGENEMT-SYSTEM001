@@ -34,6 +34,13 @@ namespace kingdom_Preparatory_School_Management_System
 
             BuildModernEmployeeView();
             NavigationSidebar.AddTo(this);
+
+            // Wire events commented-out in designer
+            cmb_cd.SelectedIndexChanged += cmb_cd_SelectedIndexChanged;
+            txtID.TextChanged           += txtID_TextChanged;
+            gunaPictureBox2.Click       += gunaPictureBox2_Click;
+            gunaButton1.Click           += gunaButton1_Click;
+            gunaButton2.Click           += gunaButton2_Click_1;
         }
 
         private void BuildModernEmployeeView()

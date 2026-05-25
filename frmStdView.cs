@@ -35,6 +35,17 @@ namespace kingdom_Preparatory_School_Management_System
 
             BuildModernStudentView();
             NavigationSidebar.AddTo(this);
+
+            // Wire events commented-out in designer
+            cmb_cd.SelectedIndexChanged             += cmb_cd_SelectedIndexChanged;
+            gunaPictureBox6.Click                   += gunaPictureBox6_Click;
+            gunaButton1.Click                       += gunaButton1_Click_1;
+            studentsToolStripMenuItem.Click         += studentsToolStripMenuItem_Click;
+            employersToolStripMenuItem.Click        += employersToolStripMenuItem_Click;
+            adminstrationToolStripMenuItem.Click    += adminstrationToolStripMenuItem_Click;
+            adminstratorsToolStripMenuItem.Click    += adminstratorsToolStripMenuItem_Click;
+            makePaymentToolStripMenuItem.Click      += makePaymentToolStripMenuItem_Click;
+            aboutToolStripMenuItem.Click            += aboutToolStripMenuItem_Click;
         }
 
         private void BuildModernStudentView()

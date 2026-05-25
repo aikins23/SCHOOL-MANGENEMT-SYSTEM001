@@ -23,6 +23,11 @@ namespace kingdom_Preparatory_School_Management_System
 
             UiTheme.Apply(this);
             UiTheme.StyleDataGrid(data);
+
+            // Wire events commented-out in designer
+            gunaPictureBox1.Click += gunaPictureBox1_Click;
+            gunaButton2.Click     += gunaButton2_Click;
+            this.Load             += EmpleaveView_Load;
         }
 
         private async void EmpleaveView_Load(object sender, EventArgs e) { await LoadData(); }

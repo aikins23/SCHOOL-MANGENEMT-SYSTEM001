@@ -43,6 +43,9 @@ namespace kingdom_Preparatory_School_Management_System
             _leaveService = new LeaveService(repository);
 
             BuildModernApprovalView();
+
+            // Wire events commented-out in designer
+            gunaPictureBox1.Click += gunaPictureBox1_Click;
         }
 
         private void BuildModernApprovalView()

@@ -31,6 +31,14 @@ namespace kingdom_Preparatory_School_Management_System
         {
             InitializeComponent();
             BuildModernRegistrationView();
+
+            // Wire events commented-out in designer
+            BTN_Register.Click          += BTN_Register_Click_1;
+            Check_Pass.CheckedChanged   += Check_Pass_CheckedChanged;
+            Cmb_userTY.SelectedIndexChanged += Cmb_userTY_SelectedIndexChanged;
+            TXTCON_Pass.TextChanged     += TXTCON_Pass_TextChanged;
+            lab_Log_in.Click            += lab_Log_in_Click;
+            pictureBox2.Click           += pictureBox2_Click;
         }
 
         private void BuildModernRegistrationView()

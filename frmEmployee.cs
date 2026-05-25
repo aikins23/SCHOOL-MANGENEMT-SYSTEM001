@@ -43,6 +43,11 @@ namespace kingdom_Preparatory_School_Management_System
 
             BuildModernEmployeeForm();
             EnableFormDragging();
+
+            // Wire events commented-out in designer
+            upload.Click          += upload_Click;
+            gunaPictureBox1.Click += gunaPictureBox1_Click;
+            pay.Click             += pay_Click;
         }
 
         // ── Layout constants (one place to tune everything) ──────────────────

@@ -16,6 +16,9 @@ namespace kingdom_Preparatory_School_Management_System
             InitializeComponent();
             this.Text = String.Format("About {0}", AssemblyTitle);
             BuildModernAboutView();
+
+            // Wire events commented-out in designer
+            okButton.Click += okButton_Click;
         }
 
         private void BuildModernAboutView()

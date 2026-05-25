@@ -46,6 +46,11 @@ namespace kingdom_Preparatory_School_Management_System
 
             BuildModernAdmissionView();
             EnableFormDragging();
+
+            // Wire events commented-out in designer
+            upload.Click            += upload_Click;
+            gunaPictureBox1.Click   += gunaPictureBox1_Click;
+            gunaButton1.Click       += gunaButton1_Click;
         }
 
         private void BuildModernAdmissionView()

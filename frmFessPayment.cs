@@ -43,6 +43,12 @@ namespace kingdom_Preparatory_School_Management_System
             _studentService = new StudentService(studentRepo, _feeRepository);
 
             BuildModernPaymentView();
+
+            // Wire events commented-out in designer
+            btn_Re.Click              += btn_Re_Click;
+            pay.Click                 += pay_Click;
+            txtStdID.TextChanged      += txtStdID_TextChanged;
+            gunaPictureBox1.Click     += gunaPictureBox1_Click_1;
         }
 
         private void BuildModernPaymentView()
