@@ -435,18 +435,23 @@ namespace kingdom_Preparatory_School_Management_System
         {
             try
             {
-                string employeeId = txtEmployeeId.Text.Trim();
-                if (string.IsNullOrWhiteSpace(employeeId))
+                // 1. Validation guards
+                if (!FormValidationHelper.ValidateRequired(txtEmployeeId, "Employee ID")) return;
+                if (!FormValidationHelper.ValidateRequired(txtName, "Employee Name")) return;
+
+                if (dtpenddate.Value.Date < dtpdatestart.Value.Date)
                 {
-                    UIHelper.ShowWarning("Enter an employee ID.", "Leave Application");
+                    ConfirmationHelper.ShowWarning("End date cannot be before start date.", "Leave Application");
                     return;
                 }
 
-                if (string.IsNullOrWhiteSpace(txtName.Text))
-                {
-                    UIHelper.ShowWarning("Load a valid employee before submitting leave.", "Leave Application");
-                    return;
-                }
+                // 2. Confirmation
+                if (!ConfirmationHelper.ConfirmSave(
+                    $"Submit leave application for {txtName.Text.Trim()} ({GetSelectedReason()}, " +
+                    $"{dtpdatestart.Value.ToShortDateString()} to {dtpenddate.Value.ToShortDateString()})?")) return;
+
+                // 3. Business logic
+                string employeeId = txtEmployeeId.Text.Trim();
 
                 var request = new LeaveRequest
                 {
@@ -466,16 +471,22 @@ namespace kingdom_Preparatory_School_Management_System
                 if (success)
                 {
                     statusLabel.Text = message;
+                    LoggerHelper.LogInfo($"Leave application submitted for employee {employeeId} ({request.Reason})");
                     UIHelper.ShowSuccess(message, "Leave Application");
                     ClearForm();
                 }
                 else
                 {
                     statusLabel.Text = "Submission failed.";
+                    LoggerHelper.LogWarning("Leave submission failed: " + message);
                     UIHelper.ShowError(message, "Leave Application");
                 }
             }
-            catch (Exception ex) { UIHelper.ShowError(ex.Message, "Leave Application"); }
+            catch (Exception ex)
+            {
+                LoggerHelper.LogError("SubmitLeave failed", ex);
+                UIHelper.ShowError("Submit leave failed: " + ex.Message, "Employee Leave");
+            }
         }
 
         private string GetSelectedReason()

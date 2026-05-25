@@ -287,46 +287,57 @@ namespace kingdom_Preparatory_School_Management_System
 
         private async void SaveAttendance()
         {
-            if (isReportMode) return;
-            
-            var records = new List<AttendanceRecord>();
-            string type = comboType.Text;
-            DateTime date = datePicker.Value.Date;
-
-            foreach (DataGridViewRow row in dataGrid.Rows)
+            try
             {
-                string status = row.Cells["StatusCol"].Value?.ToString() ?? "";
-                if (string.IsNullOrEmpty(status)) continue;
+                if (isReportMode) return;
 
-                records.Add(new AttendanceRecord
+                var records = new List<AttendanceRecord>();
+                string type = comboType.Text;
+                DateTime date = datePicker.Value.Date;
+
+                foreach (DataGridViewRow row in dataGrid.Rows)
                 {
-                    ReferenceID = row.Cells["ID"].Value.ToString(),
-                    ReferenceType = type,
-                    FullName = row.Cells["Full Name"].Value.ToString(),
-                    Date = date,
-                    Status = status,
-                    Remarks = row.Cells["Remarks"].Value?.ToString() ?? ""
-                });
-            }
+                    string status = row.Cells["StatusCol"].Value?.ToString() ?? "";
+                    if (string.IsNullOrEmpty(status)) continue;
 
-            if (records.Count == 0)
-            {
-                UIHelper.ShowWarning("No attendance marks to save.", "Attendance");
-                return;
-            }
+                    records.Add(new AttendanceRecord
+                    {
+                        ReferenceID = row.Cells["ID"].Value.ToString(),
+                        ReferenceType = type,
+                        FullName = row.Cells["Full Name"].Value.ToString(),
+                        Date = date,
+                        Status = status,
+                        Remarks = row.Cells["Remarks"].Value?.ToString() ?? ""
+                    });
+                }
 
-            lblStats.Text = "Saving...";
-            var (success, message) = await _attendanceService.SaveBatchAsync(records);
+                if (records.Count == 0)
+                {
+                    ConfirmationHelper.ShowWarning("No attendance marks to save.", "Attendance");
+                    return;
+                }
 
-            if (success)
-            {
-                UIHelper.ShowSuccess(message, "Attendance");
-                await LoadTargetList();
+                if (!ConfirmationHelper.ConfirmBulkOperation("save attendance for", records.Count)) return;
+
+                lblStats.Text = "Saving...";
+                var (success, message) = await _attendanceService.SaveBatchAsync(records);
+
+                if (success)
+                {
+                    UIHelper.ShowSuccess(message, "Attendance");
+                    await LoadTargetList();
+                }
+                else
+                {
+                    UIHelper.ShowError(message, "Attendance");
+                    lblStats.Text = "Save failed.";
+                }
             }
-            else
+            catch (Exception ex)
             {
-                UIHelper.ShowError(message, "Attendance");
-                lblStats.Text = "Save failed.";
+                LoggerHelper.LogError("SaveAttendance failed", ex);
+                lblStats.Text = "Save error.";
+                UIHelper.ShowError("Save attendance failed: " + ex.Message, "Attendance");
             }
         }
     }

@@ -172,24 +172,34 @@ namespace kingdom_Preparatory_School_Management_System
 
         private async void PromoteStudents()
         {
-            if (comboTargetClass.SelectedIndex < 0) { UIHelper.ShowWarning("Select a Target Class.", "Promotion"); return; }
-            if (comboSourceClass.Text == comboTargetClass.Text) { UIHelper.ShowWarning("Target class must be different from Source class.", "Promotion"); return; }
-
-            var selectedIds = new List<string>();
-            foreach (DataGridViewRow row in studentGrid.Rows)
-            {
-                if (Convert.ToBoolean(row.Cells["SelectCol"].Value))
-                {
-                    selectedIds.Add(row.Cells["ID"].Value.ToString());
-                }
-            }
-
-            if (selectedIds.Count == 0) { UIHelper.ShowWarning("Select at least one student to promote.", "Promotion"); return; }
-
-            if (UIHelper.ShowConfirmation($"Promote {selectedIds.Count} students to {comboTargetClass.Text}?", "Confirm Promotion") != DialogResult.Yes) return;
-
             try
             {
+                if (!FormValidationHelper.ValidateComboBox(comboSourceClass, "Source Class")) return;
+                if (!FormValidationHelper.ValidateComboBox(comboTargetClass, "Target Class")) return;
+
+                if (comboSourceClass.Text == comboTargetClass.Text)
+                {
+                    ConfirmationHelper.ShowWarning("Target class must be different from Source class.", "Promotion");
+                    return;
+                }
+
+                var selectedIds = new List<string>();
+                foreach (DataGridViewRow row in studentGrid.Rows)
+                {
+                    if (Convert.ToBoolean(row.Cells["SelectCol"].Value))
+                    {
+                        selectedIds.Add(row.Cells["ID"].Value.ToString());
+                    }
+                }
+
+                if (selectedIds.Count == 0)
+                {
+                    ConfirmationHelper.ShowWarning("Select at least one student to promote.", "Promotion");
+                    return;
+                }
+
+                if (!ConfirmationHelper.ConfirmBulkOperation($"promote to {comboTargetClass.Text}", selectedIds.Count)) return;
+
                 lblCount.Text = "Promoting...";
                 var (success, message) = await _studentService.PromoteStudentsAsync(selectedIds, comboTargetClass.Text);
 
@@ -200,7 +210,11 @@ namespace kingdom_Preparatory_School_Management_System
                 }
                 else UIHelper.ShowError(message, "Promotion");
             }
-            catch (Exception ex) { UIHelper.ShowError("Promotion failed: " + ex.Message, "Promotion"); }
+            catch (Exception ex)
+            {
+                LoggerHelper.LogError("PromoteStudents failed", ex);
+                UIHelper.ShowError("Promote students failed: " + ex.Message, "Student Promotion");
+            }
         }
 
         private void InitializeComponent()

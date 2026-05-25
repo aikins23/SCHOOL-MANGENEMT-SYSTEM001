@@ -179,17 +179,20 @@ namespace kingdom_Preparatory_School_Management_System
 
         private void ExportDefaulters()
         {
-            if (feesTable == null || feesTable.DefaultView.Count == 0)
-            {
-                // UIHelper.ShowInfo("No data to export.", "Outstanding Fees"); // TODO: Implement
-                return;
-            }
-
             try
             {
+                if (feesTable == null || feesTable.DefaultView.Count == 0)
+                {
+                    ConfirmationHelper.ShowInfo("No data to export.", "Outstanding Fees");
+                    return;
+                }
+
+                int recordCount = feesTable.DefaultView.Count;
+                if (!ConfirmationHelper.ConfirmSave($"Export defaulters list ({recordCount} records) to Desktop?")) return;
+
                 string desktop = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
                 string path = Path.Combine(desktop, $"Defaulters_List_{DateTime.Now:yyyyMMdd_HHmmss}.csv");
-                
+
                 using (StreamWriter sw = new StreamWriter(path))
                 {
                     sw.WriteLine("ID,Student Name,Class,Balance Owed,Last Payment");
@@ -198,10 +201,14 @@ namespace kingdom_Preparatory_School_Management_System
                         sw.WriteLine($"{row["ID"]},{row["Student Name"]},{row["Class"]},{row["Balance Owed"]},{row["Last Payment"]}");
                     }
                 }
-                
+
                 UIHelper.ShowSuccess($"Defaulters list exported to Desktop:\n{Path.GetFileName(path)}", "Export Success");
             }
-            catch (Exception ex) { UIHelper.ShowError("Export failed: " + ex.Message, "Outstanding Fees"); }
+            catch (Exception ex)
+            {
+                LoggerHelper.LogError("ExportDefaulters failed", ex);
+                UIHelper.ShowError("Export defaulters failed: " + ex.Message, "Outstanding Fees");
+            }
         }
 
         private void InitializeComponent()

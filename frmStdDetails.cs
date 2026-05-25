@@ -398,38 +398,73 @@ namespace kingdom_Preparatory_School_Management_System
 
         private async void UpdateStudent()
         {
-            statusLabel.Text = "Updating student...";
-            var (success, message) = await _studentService.UpdateStudentAsync(MapFormToStudent());
+            try
+            {
+                // 1. Validation guards
+                if (!FormValidationHelper.ValidateRequired(txtStdID, "Student ID")) return;
+                if (!FormValidationHelper.ValidateRequired(txtFN, "First Name")) return;
+                if (!FormValidationHelper.ValidateRequired(txtLN, "Last Name")) return;
+                if (!FormValidationHelper.ValidateComboBox(cmbCID, "Class")) return;
+                if (!FormValidationHelper.ValidateComboBox(cmbGN, "Gender")) return;
+                if (!FormValidationHelper.ValidateEmail(txtEM)) return;
+                if (!FormValidationHelper.ValidateEmail(txtGE)) return;
 
-            if (success)
-            {
-                statusLabel.Text = message;
-                UIHelper.ShowSuccess(message, "Student Details");
+                // 2. Confirmation
+                if (!ConfirmationHelper.ConfirmSave($"Update student {txtFN.Text} {txtLN.Text} (ID: {txtStdID.Text})?")) return;
+
+                // 3. Business logic
+                statusLabel.Text = "Updating student...";
+                var (success, message) = await _studentService.UpdateStudentAsync(MapFormToStudent());
+
+                if (success)
+                {
+                    statusLabel.Text = message;
+                    LoggerHelper.LogInfo($"Student updated: {txtStdID.Text} - {txtFN.Text} {txtLN.Text}");
+                    UIHelper.ShowSuccess(message, "Student Details");
+                }
+                else
+                {
+                    statusLabel.Text = "Update failed.";
+                    LoggerHelper.LogWarning("Student update failed: " + message);
+                    UIHelper.ShowWarning(message, "Student Details");
+                }
             }
-            else
+            catch (Exception ex)
             {
-                statusLabel.Text = "Update failed.";
-                UIHelper.ShowWarning(message, "Student Details");
+                LoggerHelper.LogError("UpdateStudent failed", ex);
+                UIHelper.ShowError("Update student failed: " + ex.Message, "Student Details");
             }
         }
 
         private async void RollOutStudent()
         {
-            if (UIHelper.ShowConfirmation("Roll out this student?", "Confirm Roll Out") != DialogResult.Yes) return;
-
-            statusLabel.Text = "Rolling out student...";
-            var (success, message) = await _studentService.RollOutStudentAsync(txtStdID.Text);
-
-            if (success)
+            try
             {
-                UIHelper.ShowSuccess(message, "Student Details");
-                Close();
-                new frmStdView().Show();
+                if (!FormValidationHelper.ValidateRequired(txtStdID, "Student ID")) return;
+
+                if (!ConfirmationHelper.ConfirmDelete("Student", $"ID: {txtStdID.Text}\nName: {txtFN.Text} {txtLN.Text}"))
+                    return;
+
+                statusLabel.Text = "Rolling out student...";
+                var (success, message) = await _studentService.RollOutStudentAsync(txtStdID.Text);
+
+                if (success)
+                {
+                    LoggerHelper.LogInfo($"Student rolled out: {txtStdID.Text}");
+                    UIHelper.ShowSuccess(message, "Student Details");
+                    Close();
+                    new frmStdView().Show();
+                }
+                else
+                {
+                    statusLabel.Text = "Roll out failed.";
+                    UIHelper.ShowError(message, "Student Details");
+                }
             }
-            else
+            catch (Exception ex)
             {
-                statusLabel.Text = "Roll out failed.";
-                UIHelper.ShowError(message, "Student Details");
+                LoggerHelper.LogError("RollOutStudent failed", ex);
+                UIHelper.ShowError("Rollout student failed: " + ex.Message, "Student Details");
             }
         }
 

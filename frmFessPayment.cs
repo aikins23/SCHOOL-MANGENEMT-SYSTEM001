@@ -363,29 +363,31 @@ namespace kingdom_Preparatory_School_Management_System
 
         private async void RecordPayment()
         {
-            if (string.IsNullOrWhiteSpace(studentIdBox.Text))
-            {
-                UIHelper.ShowWarning("Enter a student ID.", "Payment");
-                return;
-            }
-
-            if (!decimal.TryParse(balanceBox.Text, out decimal currentBalance) || !decimal.TryParse(amountBox.Text, out decimal amountPaid))
-            {
-                UIHelper.ShowWarning("Enter a valid payment amount.", "Payment");
-                return;
-            }
-
-            if (amountPaid <= 0)
-            {
-                UIHelper.ShowWarning("Payment amount must be greater than zero.", "Payment");
-                return;
-            }
-
-            decimal newBalance = Math.Max(0m, currentBalance - amountPaid);
-            statusLabel.Text = "Recording payment...";
-
             try
             {
+                if (!FormValidationHelper.ValidateRequired(studentIdBox, "Student ID")) return;
+                if (!FormValidationHelper.ValidateNumeric(amountBox, "Amount Paid", out decimal amountPaid)) return;
+                if (!FormValidationHelper.ValidateRequired(bursarBox, "Bursar Name")) return;
+
+                if (amountPaid <= 0)
+                {
+                    ConfirmationHelper.ShowWarning("Payment amount must be greater than zero.", "Payment");
+                    return;
+                }
+
+                if (!decimal.TryParse(balanceBox.Text, out decimal currentBalance))
+                {
+                    ConfirmationHelper.ShowWarning("Student balance is not available. Look up a valid student first.", "Payment");
+                    return;
+                }
+
+                decimal newBalance = Math.Max(0m, currentBalance - amountPaid);
+
+                string changeDescription = $"Record payment of GHS {amountPaid:N2} for {studentNameBox.Text} (ID: {studentIdBox.Text.Trim()})?";
+                if (!ConfirmationHelper.ConfirmSave(changeDescription)) return;
+
+                statusLabel.Text = "Recording payment...";
+
                 bool success = await _feeRepository.AddPaymentRecordAsync(
                     studentIdBox.Text.Trim(),
                     classBox.Text,
@@ -413,8 +415,9 @@ namespace kingdom_Preparatory_School_Management_System
             }
             catch (Exception ex)
             {
+                LoggerHelper.LogError("RecordPayment failed", ex);
                 statusLabel.Text = "Payment error";
-                UIHelper.ShowError("Error: " + ex.Message, "Payment");
+                UIHelper.ShowError("Record payment failed: " + ex.Message, "Fee Payment");
             }
         }
 

@@ -375,9 +375,8 @@ namespace kingdom_Preparatory_School_Management_System
             }
         }
 
-        private Employee MapFormToEmployee()
+        private Employee MapFormToEmployee(decimal salary)
         {
-            decimal.TryParse(empSA.Text.Trim(), out decimal salary);
             return new Employee
             {
                 EmployeeID = txtEMdID.Text,
@@ -402,38 +401,72 @@ namespace kingdom_Preparatory_School_Management_System
 
         private async void UpdateEmployee()
         {
-            statusLabel.Text = "Updating employee...";
-            var (success, message) = await _employeeService.UpdateEmployeeAsync(MapFormToEmployee());
+            try
+            {
+                // 1. Validation guards
+                if (!FormValidationHelper.ValidateRequired(txtEMdID, "Employee ID")) return;
+                if (!FormValidationHelper.ValidateRequired(txtFN, "Full Name")) return;
+                if (!FormValidationHelper.ValidateComboBox(cmbGN, "Gender")) return;
+                if (!FormValidationHelper.ValidateComboBox(cmbDPT, "Department")) return;
+                if (!FormValidationHelper.ValidateComboBox(CmbPs, "Position")) return;
+                if (!FormValidationHelper.ValidateNumeric(empSA, "Salary", out decimal salary)) return;
 
-            if (success)
-            {
-                statusLabel.Text = message;
-                UIHelper.ShowSuccess(message, "Employee Details");
+                // 2. Confirmation
+                if (!ConfirmationHelper.ConfirmSave($"Update employee {txtFN.Text} (ID: {txtEMdID.Text})?")) return;
+
+                // 3. Business logic
+                statusLabel.Text = "Updating employee...";
+                var (success, message) = await _employeeService.UpdateEmployeeAsync(MapFormToEmployee(salary));
+
+                if (success)
+                {
+                    statusLabel.Text = message;
+                    LoggerHelper.LogInfo($"Employee updated: {txtEMdID.Text} - {txtFN.Text}");
+                    UIHelper.ShowSuccess(message, "Employee Details");
+                }
+                else
+                {
+                    statusLabel.Text = "Update failed.";
+                    LoggerHelper.LogWarning("Employee update failed: " + message);
+                    UIHelper.ShowWarning(message, "Employee Details");
+                }
             }
-            else
+            catch (Exception ex)
             {
-                statusLabel.Text = "Update failed.";
-                UIHelper.ShowWarning(message, "Employee Details");
+                LoggerHelper.LogError("UpdateEmployee failed", ex);
+                UIHelper.ShowError("Update employee failed: " + ex.Message, "Employee Details");
             }
         }
 
         private async void TerminateEmployee()
         {
-            if (UIHelper.ShowConfirmation("Terminate this employee contract?", "Confirm Termination") != DialogResult.Yes) return;
-
-            statusLabel.Text = "Terminating contract...";
-            var (success, message) = await _employeeService.TerminateEmployeeAsync(txtEMdID.Text, DATE.Value.Date);
-
-            if (success)
+            try
             {
-                UIHelper.ShowSuccess(message, "Employee Details");
-                Close();
-                new frmEmpView().Show();
+                if (!FormValidationHelper.ValidateRequired(txtEMdID, "Employee ID")) return;
+
+                if (!ConfirmationHelper.ConfirmDelete("Employee", $"ID: {txtEMdID.Text}\nName: {txtFN.Text}\nTermination Date: {DATE.Value.ToShortDateString()}"))
+                    return;
+
+                statusLabel.Text = "Terminating contract...";
+                var (success, message) = await _employeeService.TerminateEmployeeAsync(txtEMdID.Text, DATE.Value.Date);
+
+                if (success)
+                {
+                    LoggerHelper.LogInfo($"Employee terminated: {txtEMdID.Text}");
+                    UIHelper.ShowSuccess(message, "Employee Details");
+                    Close();
+                    new frmEmpView().Show();
+                }
+                else
+                {
+                    statusLabel.Text = "Termination failed.";
+                    UIHelper.ShowError(message, "Employee Details");
+                }
             }
-            else
+            catch (Exception ex)
             {
-                statusLabel.Text = "Termination failed.";
-                UIHelper.ShowError(message, "Employee Details");
+                LoggerHelper.LogError("TerminateEmployee failed", ex);
+                UIHelper.ShowError("Terminate employee failed: " + ex.Message, "Employee Details");
             }
         }
 

@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Data.OleDb;
+using kingdom_Preparatory_School_Management_System.Common;
 using kingdom_Preparatory_School_Management_System.Services;
 
 
@@ -264,26 +265,52 @@ namespace kingdom_Preparatory_School_Management_System
 
         private async void RegisterUser()
         {
-            string username = TXTUsers.Text.Trim();
-            string password = TXTPass.Text;
-            string confirmPassword = TXTCON_Pass.Text;
-            string userType = Cmb_userTY.Text.Trim();
-
-            if (statusLabel != null) statusLabel.Text = "Creating account...";
-
-            var (success, message) = await AuthService.RegisterAsync(username, password, confirmPassword, userType);
-
-            if (success)
+            try
             {
-                if (statusLabel != null) statusLabel.Text = "Registration successful.";
-                // UIHelper.ShowSuccess("Your registration was successful. You can now log in.", "Congratulations"); // TODO: Implement
-                ClearRegistrationForm();
+                // 1. Validation guards
+                if (!FormValidationHelper.ValidateRequired(TXTUsers, "Username")) return;
+                if (!FormValidationHelper.ValidateRequired(TXTPass, "Password")) return;
+                if (!FormValidationHelper.ValidateRequired(TXTCON_Pass, "Confirm Password")) return;
+                if (!FormValidationHelper.ValidateComboBox(Cmb_userTY, "User Type")) return;
+
+                if (TXTPass.Text != TXTCON_Pass.Text)
+                {
+                    ConfirmationHelper.ShowWarning("Passwords do not match.", "Registration");
+                    TXTCON_Pass.Focus();
+                    return;
+                }
+
+                // 2. Confirmation
+                if (!ConfirmationHelper.ConfirmSave($"Create user account for '{TXTUsers.Text.Trim()}'?")) return;
+
+                // 3. Business logic
+                string username = TXTUsers.Text.Trim();
+                string password = TXTPass.Text;
+                string confirmPassword = TXTCON_Pass.Text;
+                string userType = Cmb_userTY.Text.Trim();
+
+                if (statusLabel != null) statusLabel.Text = "Creating account...";
+
+                var (success, message) = await AuthService.RegisterAsync(username, password, confirmPassword, userType);
+
+                if (success)
+                {
+                    if (statusLabel != null) statusLabel.Text = "Registration successful.";
+                    LoggerHelper.LogInfo($"User registered: {username} ({userType})");
+                    ConfirmationHelper.ShowInfo("Your registration was successful. You can now log in.", "Congratulations");
+                    ClearRegistrationForm();
+                }
+                else
+                {
+                    if (statusLabel != null) statusLabel.Text = message;
+                    ConfirmationHelper.ShowWarning(message, "Registration Failed");
+                    if (message.Contains("username")) TXTUsers.Focus();
+                }
             }
-            else
+            catch (Exception ex)
             {
-                if (statusLabel != null) statusLabel.Text = message;
-                // UIHelper.ShowWarning(message, "Registration Failed"); // TODO: Implement
-                if (message.Contains("username")) TXTUsers.Focus();
+                LoggerHelper.LogError("RegisterUser failed", ex);
+                UIHelper.ShowError("Registration failed: " + ex.Message, "Register User");
             }
         }
 

@@ -55,6 +55,22 @@ namespace kingdom_Preparatory_School_Management_System
         {
             try
             {
+                // 1. Validation guards
+                if (!FormValidationHelper.ValidateRequired(txtEmployeeId, "Employee ID")) return;
+                if (!FormValidationHelper.ValidateRequired(txtName, "Employee Name")) return;
+                if (!FormValidationHelper.ValidateComboBox(status, "Status")) return;
+
+                if (dtpenddate.Value.Date < dtpdatestart.Value.Date)
+                {
+                    ConfirmationHelper.ShowWarning("End date cannot be before start date.", "Leave Details");
+                    return;
+                }
+
+                // 2. Confirmation
+                if (!ConfirmationHelper.ConfirmSave(
+                    $"Update leave status to '{status.Text.Trim()}' for {txtName.Text.Trim()} (ID: {txtEmployeeId.Text.Trim()})?")) return;
+
+                // 3. Business logic
                 var request = new LeaveRequest
                 {
                     EmployeeID = txtEmployeeId.Text.Trim(),
@@ -71,13 +87,22 @@ namespace kingdom_Preparatory_School_Management_System
                 var (success, message) = await _leaveService.UpdateLeaveStatusAsync(request, request.Status);
                 if (success)
                 {
+                    LoggerHelper.LogInfo($"Leave status updated for {request.EmployeeID} to {request.Status}");
                     UIHelper.ShowSuccess("Leave application updated successfully.", "Leave Details");
                     this.DialogResult = DialogResult.OK;
                     this.Close();
                 }
-                else UIHelper.ShowError(message, "Leave Details");
+                else
+                {
+                    LoggerHelper.LogWarning("Leave status update failed: " + message);
+                    UIHelper.ShowError(message, "Leave Details");
+                }
             }
-            catch (Exception ex) { UIHelper.ShowError(ex.Message, "Leave Details"); }
+            catch (Exception ex)
+            {
+                LoggerHelper.LogError("UpdateLeaveStatus failed", ex);
+                UIHelper.ShowError("Update leave status failed: " + ex.Message, "Leave Details");
+            }
         }
 
         private string GetSelectedReason()

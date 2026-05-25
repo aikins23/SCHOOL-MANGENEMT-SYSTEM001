@@ -103,34 +103,53 @@ namespace kingdom_Preparatory_School_Management_System
 
         private async void SaveClass()
         {
-            if (string.IsNullOrEmpty(txtClassName.Text)) return;
-            
-            decimal.TryParse(txtFee.Text, out decimal fee);
-            int.TryParse(txtLevel.Text, out int level);
+            try
+            {
+                if (!FormValidationHelper.ValidateRequired(txtClassName, "Class Name")) return;
+                if (!FormValidationHelper.ValidateNumeric(txtFee, "Tuition Fee", out decimal fee)) return;
+                if (!FormValidationHelper.ValidateNumeric(txtLevel, "Promotion Order", out decimal levelDec)) return;
 
-            var config = new ClassConfig {
-                ClassName = txtClassName.Text.Trim().ToUpperInvariant(),
-                TuitionFee = fee,
-                PromotionLevel = level
-            };
+                int level = (int)levelDec;
 
-            var (success, message) = await _classService.SaveClassAsync(config);
-            if (success) {
-                await LoadClasses();
-                UIHelper.ShowSuccess(message, "Class Admin");
-            } else UIHelper.ShowError(message, "Class Admin");
+                if (!ConfirmationHelper.ConfirmSave($"Save class '{txtClassName.Text.Trim().ToUpperInvariant()}'?")) return;
+
+                var config = new ClassConfig {
+                    ClassName = txtClassName.Text.Trim().ToUpperInvariant(),
+                    TuitionFee = fee,
+                    PromotionLevel = level
+                };
+
+                var (success, message) = await _classService.SaveClassAsync(config);
+                if (success) {
+                    await LoadClasses();
+                    UIHelper.ShowSuccess(message, "Class Admin");
+                } else UIHelper.ShowError(message, "Class Admin");
+            }
+            catch (Exception ex)
+            {
+                LoggerHelper.LogError("SaveClass failed", ex);
+                UIHelper.ShowError("Save class failed: " + ex.Message, "Class Administration");
+            }
         }
 
         private async void DeleteClass()
         {
-            if (string.IsNullOrEmpty(txtClassName.Text)) return;
-            if (UIHelper.ShowConfirmation("Delete this class? Configuration will be removed.", "Confirm Delete") != DialogResult.Yes) return;
+            try
+            {
+                if (!FormValidationHelper.ValidateRequired(txtClassName, "Class Name")) return;
+                if (!ConfirmationHelper.ConfirmDelete("Class", $"Class Name: {txtClassName.Text.Trim().ToUpperInvariant()}")) return;
 
-            var (success, message) = await _classService.DeleteClassAsync(txtClassName.Text.Trim());
-            if (success) {
-                await LoadClasses();
-                UIHelper.ShowSuccess(message, "Class Admin");
-            } else UIHelper.ShowError(message, "Class Admin");
+                var (success, message) = await _classService.DeleteClassAsync(txtClassName.Text.Trim());
+                if (success) {
+                    await LoadClasses();
+                    UIHelper.ShowSuccess(message, "Class Admin");
+                } else UIHelper.ShowError(message, "Class Admin");
+            }
+            catch (Exception ex)
+            {
+                LoggerHelper.LogError("DeleteClass failed", ex);
+                UIHelper.ShowError("Delete class failed: " + ex.Message, "Class Administration");
+            }
         }
 
         private void InitializeComponent() {

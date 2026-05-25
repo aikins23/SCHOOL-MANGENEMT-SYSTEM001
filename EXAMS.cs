@@ -535,57 +535,64 @@ namespace kingdom_Preparatory_School_Management_System
 
         private async void SaveAllResults()
         {
-            if (string.IsNullOrWhiteSpace(studentNameBox.Text) || string.IsNullOrWhiteSpace(classBox.Text))
+            try
             {
-                UIHelper.ShowWarning("Load a valid student first.", "Exam Submission");
-                return;
-            }
+                // Validation
+                if (!FormValidationHelper.ValidateRequired(studentIdBox, "Student ID")) return;
+                if (!FormValidationHelper.ValidateRequired(studentNameBox, "Student Name")) return;
+                if (!FormValidationHelper.ValidateRequired(classBox, "Class")) return;
+                if (!FormValidationHelper.ValidateComboBox(termBox, "Term")) return;
+                if (!FormValidationHelper.ValidateRequired(yearBox, "Year")) return;
 
-            if (termBox.SelectedIndex < 0 || string.IsNullOrWhiteSpace(yearBox.Text))
-            {
-                UIHelper.ShowWarning("Select the term and enter the academic year.", "Exam Submission");
-                return;
-            }
-
-            var results = new List<ExamResult>();
-            foreach (var entry in subjectRows)
-            {
-                var row = entry.Value;
-                if (!decimal.TryParse(row.Total.Text, out _)) continue;
-
-                results.Add(new ExamResult
+                var results = new List<ExamResult>();
+                foreach (var entry in subjectRows)
                 {
-                    StudentId = studentIdBox.Text.Trim(),
-                    StudentName = studentNameBox.Text.Trim(),
-                    ClassId = classBox.Text.Trim(),
-                    Subject = entry.Key,
-                    Term = termBox.Text,
-                    Year = yearBox.Text.Trim(),
-                    Category1 = decimal.Parse(row.Cat1.Text),
-                    Category2 = decimal.Parse(row.Cat2.Text),
-                    Category3 = decimal.Parse(row.Cat3.Text),
-                    ExamScore = decimal.Parse(row.Exam.Text)
-                });
-            }
+                    var row = entry.Value;
+                    if (!decimal.TryParse(row.Total.Text, out _)) continue;
 
-            if (results.Count == 0)
-            {
-                UIHelper.ShowWarning("No valid subject scores to save.", "Exam Submission");
-                return;
-            }
+                    results.Add(new ExamResult
+                    {
+                        StudentId = studentIdBox.Text.Trim(),
+                        StudentName = studentNameBox.Text.Trim(),
+                        ClassId = classBox.Text.Trim(),
+                        Subject = entry.Key,
+                        Term = termBox.Text,
+                        Year = yearBox.Text.Trim(),
+                        Category1 = decimal.Parse(row.Cat1.Text),
+                        Category2 = decimal.Parse(row.Cat2.Text),
+                        Category3 = decimal.Parse(row.Cat3.Text),
+                        ExamScore = decimal.Parse(row.Exam.Text)
+                    });
+                }
 
-            statusLabel.Text = "Saving results...";
-            var (success, message) = await _examService.SaveResultsAsync(results);
+                if (results.Count == 0)
+                {
+                    ConfirmationHelper.ShowWarning("No valid subject scores to save.", "Exam Submission");
+                    return;
+                }
 
-            if (success)
-            {
-                statusLabel.Text = message;
-                UIHelper.ShowSuccess(message, "Exam Submission");
+                if (!ConfirmationHelper.ConfirmBulkOperation("save exam results", results.Count)) return;
+
+                statusLabel.Text = "Saving results...";
+                var (success, message) = await _examService.SaveResultsAsync(results);
+
+                if (success)
+                {
+                    LoggerHelper.LogInfo($"Saved {results.Count} exam results for student {studentIdBox.Text}");
+                    statusLabel.Text = message;
+                    UIHelper.ShowSuccess(message, "Exam Submission");
+                }
+                else
+                {
+                    statusLabel.Text = "Save failed.";
+                    UIHelper.ShowError(message, "Exam Submission");
+                }
             }
-            else
+            catch (Exception ex)
             {
-                statusLabel.Text = "Save failed.";
-                UIHelper.ShowError(message, "Exam Submission");
+                LoggerHelper.LogError("SaveAllResults failed", ex);
+                statusLabel.Text = "Save error.";
+                UIHelper.ShowError("Save exam results failed: " + ex.Message, "Exam Results");
             }
         }
 

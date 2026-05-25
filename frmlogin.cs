@@ -242,27 +242,41 @@ namespace kingdom_Preparatory_School_Management_System
 
         private async void LoginUser()
         {
-            string username = TXTUser.Text.Trim();
-            string password = TXTPass.Text;
-
-            if (statusLabel != null) statusLabel.Text = "Authenticating...";
-            
-            var (success, message) = await AuthService.LoginAsync(username, password);
-
-            if (success)
+            try
             {
-                if (statusLabel != null) statusLabel.Text = "Login successful.";
-                UIHelper.ShowSuccess("Welcome! Loading dashboard...", "Login Success");
+                if (!FormValidationHelper.ValidateRequired(TXTUser, "Username")) return;
+                if (!FormValidationHelper.ValidateRequired(TXTPass, "Password")) return;
 
-                // Open dashboard and close login
-                new frmDashboard().Show();
-                this.Close();
+                string username = TXTUser.Text.Trim();
+                string password = TXTPass.Text;
+
+                if (statusLabel != null) statusLabel.Text = "Authenticating...";
+
+                var (success, message) = await AuthService.LoginAsync(username, password);
+
+                if (success)
+                {
+                    if (statusLabel != null) statusLabel.Text = "Login successful.";
+                    LoggerHelper.LogInfo($"User logged in: {username}");
+                    UIHelper.ShowSuccess("Welcome! Loading dashboard...", "Login Success");
+
+                    // Open dashboard and close login
+                    new frmDashboard().Show();
+                    this.Close();
+                }
+                else
+                {
+                    if (statusLabel != null) statusLabel.Text = message;
+                    LoggerHelper.LogWarning($"Login failed for user {username}");
+                    UIHelper.ShowWarning(message, "Login Failed");
+                    ClearLoginForm();
+                }
             }
-            else
+            catch (Exception ex)
             {
-                if (statusLabel != null) statusLabel.Text = message;
-                UIHelper.ShowWarning(message, "Login Failed");
-                ClearLoginForm();
+                LoggerHelper.LogError("LoginUser failed", ex);
+                if (statusLabel != null) statusLabel.Text = "Login error.";
+                UIHelper.ShowError("Login failed: " + ex.Message, "Login");
             }
         }
 
