@@ -1,5 +1,6 @@
 using System;
 using System.Drawing;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using kingdom_Preparatory_School_Management_System.Common;
 using kingdom_Preparatory_School_Management_System.Data;
@@ -55,8 +56,6 @@ namespace kingdom_Preparatory_School_Management_System
             StartPosition = FormStartPosition.CenterScreen;
             MinimumSize = new Size(1180, 720);
 
-            PrepareInputs();
-
             var root = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
@@ -77,6 +76,9 @@ namespace kingdom_Preparatory_School_Management_System
 
             Controls.Add(root);
             ResumeLayout(true);
+
+            // Prepare inputs after controls are created
+            PrepareInputs();
         }
 
         private void PrepareInputs()
@@ -214,15 +216,17 @@ namespace kingdom_Preparatory_School_Management_System
                 BackColor = PageBackColor,
                 Padding = new Padding(0, 12, 0, 0)
             };
-            actions.Controls.Add(CreatePrimaryButton("View Employees", () =>
+            actions.Controls.Add(CreatePrimaryButton("View Employees", async () =>
             {
                 Close();
                 new frmEmpView().Show();
+                await Task.CompletedTask;
             }));
-            actions.Controls.Add(CreateSecondaryButton("Dashboard", () =>
+            actions.Controls.Add(CreateSecondaryButton("Dashboard", async () =>
             {
                 Close();
                 new frmDashboard().Show();
+                await Task.CompletedTask;
             }));
 
             header.Controls.Add(titleBlock, 0, 0);
@@ -463,15 +467,15 @@ namespace kingdom_Preparatory_School_Management_System
             actions.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
 
             actions.Controls.Add(CreateSecondaryButton("New", async () => await NewEmployee()), 0, 0);
-            actions.Controls.Add(CreatePrimaryButton("Save", SaveEmployee), 1, 0);
-            actions.Controls.Add(CreateSecondaryButton("Update", UpdateEmployee), 2, 0);
-            actions.Controls.Add(CreateDangerButton("Delete", DeleteEmployee), 3, 0);
+            actions.Controls.Add(CreatePrimaryButton("Save", async () => await SaveEmployeeAsync()), 1, 0);
+            actions.Controls.Add(CreateSecondaryButton("Update", async () => await UpdateEmployee()), 2, 0);
+            actions.Controls.Add(CreateDangerButton("Delete", async () => await DeleteEmployee()), 3, 0);
             return actions;
         }
 
-        private Button CreatePrimaryButton(string text, Action action)
+        private Button CreatePrimaryButton(string text, Func<Task> asyncAction)
         {
-            var button = CreateButton(text, action);
+            var button = CreateButton(text, asyncAction);
             button.BackColor = PrimaryColor;
             button.ForeColor = Color.White;
             button.FlatAppearance.BorderColor = PrimaryColor;
@@ -479,9 +483,9 @@ namespace kingdom_Preparatory_School_Management_System
             return button;
         }
 
-        private Button CreateSecondaryButton(string text, Action action)
+        private Button CreateSecondaryButton(string text, Func<Task> asyncAction)
         {
-            var button = CreateButton(text, action);
+            var button = CreateButton(text, asyncAction);
             button.BackColor = SurfaceColor;
             button.ForeColor = TextColor;
             button.FlatAppearance.BorderColor = BorderColor;
@@ -489,9 +493,9 @@ namespace kingdom_Preparatory_School_Management_System
             return button;
         }
 
-        private Button CreateDangerButton(string text, Action action)
+        private Button CreateDangerButton(string text, Func<Task> asyncAction)
         {
-            var button = CreateButton(text, action);
+            var button = CreateButton(text, asyncAction);
             button.BackColor = SurfaceColor;
             button.ForeColor = DangerColor;
             button.FlatAppearance.BorderColor = Color.FromArgb(254, 205, 211);
@@ -499,7 +503,7 @@ namespace kingdom_Preparatory_School_Management_System
             return button;
         }
 
-        private Button CreateButton(string text, Action action)
+        private Button CreateButton(string text, Func<Task> asyncAction)
         {
             var button = new Button
             {
@@ -511,7 +515,7 @@ namespace kingdom_Preparatory_School_Management_System
                 Font = new Font("Segoe UI Semibold", 9.5F, FontStyle.Bold),
                 Cursor = Cursors.Hand
             };
-            button.Click += (sender, args) => action();
+            button.Click += async (sender, args) => await asyncAction();
             return button;
         }
 
@@ -534,6 +538,7 @@ namespace kingdom_Preparatory_School_Management_System
             try
             {
                 txtEMdID.Text = await _employeeService.GenerateNextEmployeeIdAsync();
+                ClearEmployeeDetails();
                 statusLabel.Text = "Ready for a new employee record.";
             }
             catch (Exception ex)
@@ -541,6 +546,73 @@ namespace kingdom_Preparatory_School_Management_System
                 statusLabel.Text = "Could not prepare the next employee ID.";
                 LoggerHelper.LogError("InitializeForm failed", ex);
                 throw;
+            }
+        }
+
+        private void ClearEmployeeDetails()
+        {
+            txtFN.Text = "";
+            txtCN.Text = "";
+            txtHT.Text = "";
+            txtRD.Text = "";
+            empCN.Text = "";
+            empEC.Text = "";
+            empSA.Text = "";
+            cmbGN.SelectedIndex = 0;
+            cmbDPT.SelectedIndex = 0;
+            CmbPs.SelectedIndex = 0;
+            empMD.SelectedIndex = 0;
+            empST.SelectedIndex = 0;
+            empRV.SelectedIndex = 1;
+            dateDOB.Value = DateTime.Today.AddYears(-DefaultEmployeeAge);
+            empdate.Value = DateTime.Today;
+            emp_pic.Image = null;
+        }
+
+        private async void txtEmployeeID_TextChanged(object sender, EventArgs e)
+        {
+            try
+            {
+                if (txtEMdID.Text.Length < 3)
+                {
+                    ClearEmployeeDetails();
+                    return;
+                }
+
+                string employeeId = txtEMdID.Text.Trim();
+                var existingEmployee = await _employeeService.GetEmployeeAsync(employeeId);
+
+                if (existingEmployee != null)
+                {
+                    // Employee exists - load for editing
+                    txtFN.Text = existingEmployee.FullName ?? "";
+                    cmbDPT.Text = existingEmployee.Department ?? "";
+                    CmbPs.Text = existingEmployee.Position ?? "";
+                    dateDOB.Value = existingEmployee.DateOfBirth;
+                    txtCN.Text = existingEmployee.Contact ?? "";
+                    empSA.Text = existingEmployee.Salary.ToString("0.00");
+                    cmbGN.Text = existingEmployee.Gender ?? "";
+                    txtHT.Text = existingEmployee.HomeTown ?? "";
+                    txtRD.Text = existingEmployee.Residence ?? "";
+                    empdate.Value = existingEmployee.EmploymentDate;
+                    empMD.Text = existingEmployee.EmploymentMode ?? "";
+                    empST.Text = existingEmployee.EmploymentStatus ?? "";
+                    empCN.Text = existingEmployee.EmergencyContactPerson ?? "";
+                    empEC.Text = existingEmployee.EmergencyContact ?? "";
+                    empRV.Text = existingEmployee.PerformanceReview ?? "";
+
+                    statusLabel.Text = $"Loaded employee: {existingEmployee.FullName}";
+                }
+                else
+                {
+                    // New employee
+                    ClearEmployeeDetails();
+                    statusLabel.Text = "Ready for new employee.";
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggerHelper.LogError("Employee ID lookup failed", ex);
             }
         }
 
@@ -591,11 +663,6 @@ namespace kingdom_Preparatory_School_Management_System
             };
         }
 
-        private async void SaveEmployee()
-        {
-            await SaveEmployeeAsync();
-        }
-
         private async System.Threading.Tasks.Task SaveEmployeeAsync()
         {
             try
@@ -603,85 +670,44 @@ namespace kingdom_Preparatory_School_Management_System
                 if (!ValidateEmployeeFields())
                     return;
 
-                string action = "add new";
-                if (!ConfirmationHelper.ConfirmSave($"This will {action} employee {txtFN.Text}?"))
+                // Confirmation
+                if (!ConfirmationHelper.ConfirmSave($"This will save employee {txtFN.Text}?"))
                     return;
 
-                statusLabel.Text = "Saving employee...";
+                // Save to database
                 var employee = MapFormToEmployee();
-                var (success, message) = await _employeeService.AddEmployeeAsync(employee);
+
+                bool isNew = await _employeeService.GetEmployeeAsync(employee.EmployeeID) == null;
+                var (success, message) = isNew
+                    ? await _employeeService.AddEmployeeAsync(employee)
+                    : await _employeeService.UpdateEmployeeAsync(employee);
 
                 if (success)
                 {
-                    ConfirmationHelper.ShowInfo("Employee added successfully");
-                    LoggerHelper.LogInfo($"Employee {employee.EmployeeID} added");
-                    statusLabel.Text = message;
-                    await NewEmployee();
+                    ConfirmationHelper.ShowInfo($"Employee {(isNew ? "added" : "updated")} successfully");
+                    LoggerHelper.LogInfo($"Employee {employee.EmployeeID} {(isNew ? "added" : "updated")}");
+                    txtEMdID.Text = "";
+                    ClearEmployeeDetails();
+                    txtEMdID.Focus();
                 }
                 else
                 {
-                    statusLabel.Text = "Save failed.";
-                    UIHelper.ShowError(message, "Employee Registration");
-                    LoggerHelper.LogError("SaveEmployeeAsync failed: " + message, null);
+                    UIHelper.ShowError("Could not save employee", "Error");
                 }
             }
             catch (Exception ex)
             {
-                statusLabel.Text = "Save failed.";
-                UIHelper.ShowError("Save failed: " + ex.Message, "Employee Management");
+                UIHelper.ShowError("Save failed: " + ex.Message, "Employee Registration");
                 LoggerHelper.LogError("Employee save failed", ex);
             }
         }
 
-        private async void UpdateEmployee()
+        private async System.Threading.Tasks.Task UpdateEmployee()
         {
-            await UpdateEmployeeAsync();
+            await SaveEmployeeAsync();
         }
 
-        private async System.Threading.Tasks.Task UpdateEmployeeAsync()
-        {
-            try
-            {
-                if (string.IsNullOrWhiteSpace(txtEMdID.Text))
-                {
-                    UIHelper.ShowWarning("Please select an employee to update.", "Employee Registration");
-                    return;
-                }
-
-                if (!ValidateEmployeeFields())
-                    return;
-
-                string action = "update";
-                if (!ConfirmationHelper.ConfirmSave($"This will {action} employee {txtFN.Text}?"))
-                    return;
-
-                statusLabel.Text = "Updating employee...";
-                var employee = MapFormToEmployee();
-                var (success, message) = await _employeeService.UpdateEmployeeAsync(employee);
-
-                if (success)
-                {
-                    ConfirmationHelper.ShowInfo("Employee updated successfully");
-                    LoggerHelper.LogInfo($"Employee {employee.EmployeeID} updated");
-                    statusLabel.Text = message;
-                    await NewEmployee();
-                }
-                else
-                {
-                    statusLabel.Text = "Update failed.";
-                    UIHelper.ShowError(message, "Employee Registration");
-                    LoggerHelper.LogError("UpdateEmployeeAsync failed: " + message, null);
-                }
-            }
-            catch (Exception ex)
-            {
-                statusLabel.Text = "Update failed.";
-                UIHelper.ShowError("Update failed: " + ex.Message, "Employee Management");
-                LoggerHelper.LogError("Employee update failed", ex);
-            }
-        }
-
-        private async void DeleteEmployee()
+        private async System.Threading.Tasks.Task DeleteEmployee()
         {
             await DeleteEmployeeAsync();
         }
@@ -731,24 +757,8 @@ namespace kingdom_Preparatory_School_Management_System
         {
             try
             {
-                txtFN.Text = "";
-                txtCN.Text = "";
-                txtHT.Text = "";
-                txtRD.Text = "";
-                empCN.Text = "";
-                empEC.Text = "";
-                empSA.Text = "";
-                cmbGN.SelectedIndex = 0;
-                cmbDPT.SelectedIndex = 0;
-                CmbPs.SelectedIndex = 0;
-                empMD.SelectedIndex = 0;
-                empST.SelectedIndex = 0;
-                empRV.SelectedIndex = 1;
-                dateDOB.Value = DateTime.Today.AddYears(-DefaultEmployeeAge);
-                empdate.Value = DateTime.Today;
-                emp_pic.Image = null;
                 await InitializeForm();
-                txtFN.Focus();
+                txtEMdID.Focus();
             }
             catch (Exception ex)
             {
@@ -758,47 +768,22 @@ namespace kingdom_Preparatory_School_Management_System
 
         private bool ValidateEmployeeFields()
         {
-            // Validate Employee ID
-            if (string.IsNullOrWhiteSpace(txtEMdID.Text))
-            {
-                UIHelper.ShowWarning("Employee ID is required.", "Validation");
-                txtEMdID.Focus();
+            if (!FormValidationHelper.ValidateRequired(txtEMdID, "Employee ID"))
                 return false;
-            }
 
-            // Validate Full Name
-            if (string.IsNullOrWhiteSpace(txtFN.Text))
-            {
-                UIHelper.ShowWarning("Full Name is required.", "Validation");
-                txtFN.Focus();
+            if (!FormValidationHelper.ValidateRequired(txtFN, "Full Name"))
                 return false;
-            }
 
-            // Validate Department
-            if (cmbDPT.SelectedIndex <= 0)
-            {
-                UIHelper.ShowWarning("Please select a Department.", "Validation");
-                cmbDPT.Focus();
+            if (!FormValidationHelper.ValidateComboBox(cmbDPT, "Department"))
                 return false;
-            }
 
-            // Validate Position
-            if (CmbPs.SelectedIndex <= 0)
-            {
-                UIHelper.ShowWarning("Please select a Position.", "Validation");
-                CmbPs.Focus();
+            if (!FormValidationHelper.ValidateComboBox(CmbPs, "Position"))
                 return false;
-            }
 
-            // Validate Gender
-            if (cmbGN.SelectedIndex < 0)
-            {
-                UIHelper.ShowWarning("Please select a Gender.", "Validation");
-                cmbGN.Focus();
+            if (!FormValidationHelper.ValidateComboBox(cmbGN, "Gender"))
                 return false;
-            }
 
-            // Validate Date of Birth
+            // Validate Date of Birth (custom for Guna2DateTimePicker)
             if (dateDOB.Value.Date > DateTime.Today.AddYears(-MinimumEmployeeAge))
             {
                 UIHelper.ShowWarning($"Employee must be at least {MinimumEmployeeAge} years old.", "Validation");
@@ -813,20 +798,8 @@ namespace kingdom_Preparatory_School_Management_System
                 return false;
             }
 
-            // Validate Salary
-            if (string.IsNullOrWhiteSpace(empSA.Text))
-            {
-                UIHelper.ShowWarning("Salary is required.", "Validation");
-                empSA.Focus();
+            if (!FormValidationHelper.ValidateNumeric(empSA, "Salary", out decimal salary))
                 return false;
-            }
-
-            if (!decimal.TryParse(empSA.Text.Trim(), out decimal salary) || salary < 0)
-            {
-                UIHelper.ShowWarning("Salary must be a valid positive number.", "Validation");
-                empSA.Focus();
-                return false;
-            }
 
             // Validate Contact (optional but if provided, should be valid)
             if (!string.IsNullOrWhiteSpace(txtCN.Text))
@@ -853,17 +826,14 @@ namespace kingdom_Preparatory_School_Management_System
             return true;
         }
 
-        private void btnSave_Click(object sender, EventArgs e) { SaveEmployee(); }
-        private void btnSave_Click_1(object sender, EventArgs e) { SaveEmployee(); }
-        private void btn_Update_Click(object sender, EventArgs e) { UpdateEmployee(); }
-        private void btnDel_Click(object sender, EventArgs e) { DeleteEmployee(); }
+        private async void btnSave_Click(object sender, EventArgs e) { await SaveEmployeeAsync(); }
+        private async void btn_Update_Click(object sender, EventArgs e) { await UpdateEmployee(); }
+        private async void btnDel_Click(object sender, EventArgs e) { await DeleteEmployee(); }
         private async void btnNew_Click(object sender, EventArgs e) { await NewEmployee(); }
-        private void btnEdit_Click(object sender, EventArgs e) { }
         private void pay_Click(object sender, EventArgs e) { Close(); new frmEmpView().Show(); }
         private void gunaPictureBox1_Click(object sender, EventArgs e) { Application.Exit(); }
         private void gunaPictureBox2_Click(object sender, EventArgs e) { WindowState = FormWindowState.Minimized; }
         private void gunaPictureBox3_Click(object sender, EventArgs e) { WindowState = WindowState == FormWindowState.Maximized ? FormWindowState.Normal : FormWindowState.Maximized; }
-        private void gunaButton1_Click(object sender, EventArgs e) { }
 
         /// <summary>
         /// Enables form dragging functionality by subscribing to mouse events on all controls
