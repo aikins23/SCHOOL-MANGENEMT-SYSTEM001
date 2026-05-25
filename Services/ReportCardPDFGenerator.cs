@@ -320,6 +320,11 @@ namespace kingdom_Preparatory_School_Management_System.Services
             /// </summary>
             public const double PhotoPlaceholderTextOffsetY = 3;
 
+            /// <summary>
+            /// Vertical offset to center placeholder text within logo area (1.5mm)
+            /// </summary>
+            public const double LogoPlaceholderTextCenteringOffset = 1.5;
+
             // ==================== PEN WIDTHS & BORDER STYLES (in points) ====================
             /// <summary>
             /// Standard border width for table cells (0.5 points)
@@ -875,7 +880,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
         {
             gfx.DrawRectangle(new XPen(TextLight, PDFConstants.PlaceholderBorderWidth), x, y, size, size);
             gfx.DrawString("LOGO", new XFont(PDFConstants.DefaultFontFamily, PDFConstants.LogoPlaceholderFontSize), new XSolidBrush(TextLight),
-                x + PDFConstants.LogoPlaceholderTextOffsetX, y + size / 2 - 1.5);
+                x + PDFConstants.LogoPlaceholderTextOffsetX, y + size / 2 - PDFConstants.LogoPlaceholderTextCenteringOffset);
         }
 
         /// <summary>
