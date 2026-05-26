@@ -128,7 +128,10 @@ namespace kingdom_Preparatory_School_Management_System
                 var uniqueClasses = classes.Select(s => s.ClassID).Distinct().OrderBy(c => c).ToList();
                 foreach (var cls in uniqueClasses) classFilter.Items.Add(cls);
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Services.LoggerHelper.LogError("Failed to load classes for filtering in frmOutstandingFees", ex);
+            }
         }
 
         private async System.Threading.Tasks.Task LoadOutstandingData()

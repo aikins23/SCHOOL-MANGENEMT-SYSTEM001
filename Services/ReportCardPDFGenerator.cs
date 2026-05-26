@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using kingdom_Preparatory_School_Management_System.Models;
 using PdfSharp.Drawing;
@@ -9,424 +10,44 @@ using PdfSharp.Pdf;
 namespace kingdom_Preparatory_School_Management_System.Services
 {
     /// <summary>
-    /// Generates professional PDF report cards matching Kingdom Preparatory School template.
-    /// Layout includes:
-    /// - Header with logo, school name, and student photo
-    /// - Student information table (6 rows x 2 columns)
-    /// - Subjects table with class score (50%), exam score (60%), total (100%), grade, position, remarks
-    /// - Grading legend on right side of subjects table
-    /// - Total scores row
-    /// - Remarks section (attitude, interest, conduct, teacher comments)
-    /// - Signature section
+    /// Generates the official Kingdom Preparatory School terminal report layout.
+    /// The dimensions are point-based for A4 output and are tuned to match card.png.
     /// </summary>
     public class ReportCardPDFGenerator
     {
-        // Color definitions - Professional navy blue theme
-        private static readonly XColor HeaderBlue = XColor.FromArgb(0x1A, 0x23, 0x32);      // Dark navy header
-        private static readonly XColor TableHeaderBg = XColor.FromArgb(0x2C, 0x3E, 0x50);   // Table header
-        private static readonly XColor TextDark = XColor.FromArgb(0x1F, 0x2E, 0x3D);        // Dark text
-        private static readonly XColor TextLight = XColor.FromArgb(0xFF, 0xFF, 0xFF);       // White text
-        private static readonly XColor BorderColor = XColor.FromArgb(0xBD, 0xBD, 0xBD);     // Light gray borders
-        private static readonly XColor AlternateRowBg = XColor.FromArgb(0xF5, 0xF5, 0xF5);  // Alternate row color
-        private static readonly XColor WhiteBackground = XColor.FromArgb(0xFF, 0xFF, 0xFF); // White background
+        private const double PageWidth = 595;
+        private const double PageHeight = 842;
+        private const double ReportX = 55;
+        private const double ReportY = 58;
+        private const double ReportWidth = 485;
 
-        /// <summary>
-        /// Contains all magic number constants used in PDF layout and formatting.
-        /// Organized by category: Page Measurements, Font Sizes, Spacing & Dimensions, and Pen Widths.
-        /// All measurements in millimeters unless otherwise noted.
-        /// </summary>
-        private static class PDFConstants
+        private const double HeaderHeight = 105;
+        private const double InfoRowHeight = 23;
+        private const double SubjectHeaderHeight = 42;
+        private const double SubjectRowHeight = 23;
+        private const double RemarksRowHeight = 23;
+        private const double PromotedRowHeight = 22;
+        private const double SignatureHeight = 48;
+        private const double BottomLegendHeight = 45;
+
+        private static readonly XColor Navy = XColor.FromArgb(9, 35, 96);
+        private static readonly XColor LightBlue = XColor.FromArgb(189, 214, 238);
+        private static readonly XColor Gold = XColor.FromArgb(210, 190, 36);
+        private static readonly XColor Black = XColors.Black;
+        private static readonly XColor White = XColors.White;
+
+        private static XPen Border(double width = 0.7) => new XPen(Black, width);
+        private static XSolidBrush Brush(XColor color) => new XSolidBrush(color);
+        private static XFont Font(double size, bool bold = false) =>
+            new XFont("Arial", size, bold ? XFontStyleEx.Bold : XFontStyleEx.Regular);
+
+        private static readonly GradeLevel[] GradeLevels =
         {
-            // ==================== PAGE MEASUREMENTS (in millimeters) ====================
-            /// <summary>
-            /// Width of A4 page in millimeters (standard paper width)
-            /// </summary>
-            public const double PageWidth = 210;
-
-            /// <summary>
-            /// Height of A4 page in millimeters (standard paper height)
-            /// </summary>
-            public const double PageHeight = 297;
-
-            /// <summary>
-            /// Top, bottom, left, and right margin from page edges in millimeters
-            /// </summary>
-            public const double Margin = 8;
-
-            /// <summary>
-            /// Height of the header section containing logo, school name, and student photo (120mm)
-            /// </summary>
-            public const double HeaderHeight = 120;
-
-            /// <summary>
-            /// Width of school logo in header section (100mm)
-            /// </summary>
-            public const double LogoWidth = 100;
-
-            /// <summary>
-            /// Height of school logo in header section (100mm)
-            /// </summary>
-            public const double LogoHeight = 100;
-
-            /// <summary>
-            /// Horizontal offset of logo from left edge of header (5mm padding)
-            /// </summary>
-            public const double LogoLeftPadding = 5;
-
-            /// <summary>
-            /// Width of student photo in header section (100mm)
-            /// </summary>
-            public const double PhotoWidth = 100;
-
-            /// <summary>
-            /// Height of student photo in header section (120mm)
-            /// </summary>
-            public const double PhotoHeight = 120;
-
-            /// <summary>
-            /// Horizontal offset of photo from right edge of header (5mm padding)
-            /// </summary>
-            public const double PhotoRightPadding = 5;
-
-            /// <summary>
-            /// Percentage of header width allocated to center section (school name) = 60%
-            /// </summary>
-            public const double CenterSectionPercentage = 0.60;
-
-            /// <summary>
-            /// Height of each row in student information table (8mm per row)
-            /// </summary>
-            public const double StudentInfoRowHeight = 8;
-
-            /// <summary>
-            /// Height of each row in subjects and legend tables (12mm per row)
-            /// </summary>
-            public const double SubjectsTableRowHeight = 12;
-
-            /// <summary>
-            /// Height of behavioral remarks section (18mm)
-            /// </summary>
-            public const double RemarksTableHeight = 18;
-
-            /// <summary>
-            /// Height of signature section (12mm)
-            /// </summary>
-            public const double SignatureTableHeight = 12;
-
-            /// <summary>
-            /// Width of grading legend sidebar on right of main subjects table (48mm)
-            /// </summary>
-            public const double LegendWidth = 48;
-
-            /// <summary>
-            /// Horizontal gap between main table and legend (2mm)
-            /// </summary>
-            public const double TableLegendGap = 2;
-
-            /// <summary>
-            /// Vertical spacing below header section before next content (3mm)
-            /// </summary>
-            public const double HeaderBottomGap = 3;
-
-            /// <summary>
-            /// Vertical spacing below student info table before next content (2mm)
-            /// </summary>
-            public const double StudentInfoTableBottomGap = 2;
-
-            /// <summary>
-            /// Vertical spacing below subjects table before next content (2mm)
-            /// </summary>
-            public const double SubjectsTableBottomGap = 2;
-
-            /// <summary>
-            /// Vertical spacing below signature section before page end (1mm)
-            /// </summary>
-            public const double SignatureTableBottomGap = 1;
-
-            /// <summary>
-            /// Height of header row in subjects and legend tables (12mm)
-            /// </summary>
-            public const double TableHeaderHeight = 12;
-
-            // ==================== FONT SIZES (in points) ====================
-            /// <summary>
-            /// Font size for school name in header (28pt)
-            /// </summary>
-            public const int SchoolNameFontSize = 28;
-
-            /// <summary>
-            /// Font size for contact information in header (11pt)
-            /// </summary>
-            public const int HeaderContactFontSize = 11;
-
-            /// <summary>
-            /// Font size for student info table labels and values (9pt)
-            /// </summary>
-            public const int StudentInfoFontSize = 9;
-
-            /// <summary>
-            /// Font size for subjects table headers and data (9pt)
-            /// </summary>
-            public const int SubjectsTableFontSize = 9;
-
-            /// <summary>
-            /// Font size for grading legend text (8pt - smaller than main table)
-            /// </summary>
-            public const int LegendFontSize = 8;
-
-            /// <summary>
-            /// Font size for remarks section text (9pt)
-            /// </summary>
-            public const int RemarksFontSize = 9;
-
-            /// <summary>
-            /// Font size for signature section labels (8pt)
-            /// </summary>
-            public const int SignatureLabelFontSize = 8;
-
-            /// <summary>
-            /// Font size for date field in signature section (7pt)
-            /// </summary>
-            public const int SignatureDateFontSize = 7;
-
-            /// <summary>
-            /// Font size for logo/photo placeholder text (6pt for logo, 8pt for photo)
-            /// </summary>
-            public const int LogoPlaceholderFontSize = 6;
-
-            /// <summary>
-            /// Font size for photo placeholder text (8pt)
-            /// </summary>
-            public const int PhotoPlaceholderFontSize = 8;
-
-            // ==================== SPACING & TEXT POSITIONING (in millimeters) ====================
-            /// <summary>
-            /// Left padding for text within cells (1mm)
-            /// </summary>
-            public const double CellTextLeftPadding = 1;
-
-            /// <summary>
-            /// Top padding for text within cells (1.5mm for small rows, 0.8mm for tall rows)
-            /// </summary>
-            public const double CellTextTopPaddingSmall = 1.5;
-
-            /// <summary>
-            /// Top padding for text within cells in subjects table (0.8mm)
-            /// </summary>
-            public const double CellTextTopPaddingLarge = 0.8;
-
-            /// <summary>
-            /// Offset for left column values in student info table (30mm from column start)
-            /// </summary>
-            public const double StudentInfoValueColumnOffset = 30;
-
-            /// <summary>
-            /// X-offset for header school name (moved right by 30mm from center)
-            /// </summary>
-            public const double HeaderSchoolNameYOffset = 30;
-
-            /// <summary>
-            /// Y-offset for contact info text in header, relative to center (65mm down from top)
-            /// </summary>
-            public const double HeaderContactInfoYOffset = 65;
-
-            /// <summary>
-            /// Vertical spacing for behavioral section title to first item (3.5mm)
-            /// </summary>
-            public const double RemarksLabelSpacing = 3.5;
-
-            /// <summary>
-            /// Horizontal offset for "Interest" label in remarks section (40mm from left)
-            /// </summary>
-            public const double RemarksInterestLabelX = 40;
-
-            /// <summary>
-            /// Horizontal offset for "Interest" value in remarks section (55mm from left)
-            /// </summary>
-            public const double RemarksInterestValueX = 55;
-
-            /// <summary>
-            /// Horizontal offset for "Conduct" label in remarks section (75mm from left)
-            /// </summary>
-            public const double RemarksConductLabelX = 75;
-
-            /// <summary>
-            /// Horizontal offset for "Conduct" value in remarks section (90mm from left)
-            /// </summary>
-            public const double RemarksConductValueX = 90;
-
-            /// <summary>
-            /// Horizontal offset for teacher remarks value in remarks section (45mm from left)
-            /// </summary>
-            public const double RemarksValueX = 45;
-
-            /// <summary>
-            /// Vertical spacing for behavioral items in remarks section (4mm between rows)
-            /// </summary>
-            public const double RemarksRowSpacing = 4;
-
-            /// <summary>
-            /// Height of signature line in signature section (3mm from top)
-            /// </summary>
-            public const double SignatureLineHeight = 3;
-
-            /// <summary>
-            /// Vertical offset for signature line label below line (4mm)
-            /// </summary>
-            public const double SignatureLineLabelOffset = 4;
-
-            /// <summary>
-            /// Vertical offset for date field below signature line (6.5mm)
-            /// </summary>
-            public const double SignatureDateOffset = 6.5;
-
-            /// <summary>
-            /// Horizontal padding for signature section content (2mm from edges)
-            /// </summary>
-            public const double SignatureSectionPadding = 2;
-
-            /// <summary>
-            /// Vertical padding for remarks section content (1mm from top)
-            /// </summary>
-            public const double RemarksSectionTopPadding = 1;
-
-            /// <summary>
-            /// Vertical offset for "Attitude" label in remarks (1mm from section top)
-            /// </summary>
-            public const double RemarksAttitudeYOffset = 0; // Will be added to base Y
-
-            /// <summary>
-            /// Horizontal offset for "Attitude" value in remarks section (20mm from left)
-            /// </summary>
-            public const double RemarksAttitudeValueX = 20;
-
-            /// <summary>
-            /// Vertical offset for "Class Teacher's Remarks" label (4mm down from attitude line)
-            /// </summary>
-            public const double RemarksClassTeacherYOffset = 4;
-
-            /// <summary>
-            /// Logo placeholder text offset from top left (1mm, size/2 - 1.5mm)
-            /// </summary>
-            public const double LogoPlaceholderTextOffsetX = 1;
-
-            /// <summary>
-            /// Photo placeholder text offset from top left (2mm horizontally)
-            /// </summary>
-            public const double PhotoPlaceholderTextOffsetX = 2;
-
-            /// <summary>
-            /// Photo placeholder text vertical centering offset (height/2 - 3mm)
-            /// </summary>
-            public const double PhotoPlaceholderTextOffsetY = 3;
-
-            /// <summary>
-            /// Vertical offset to center placeholder text within logo area (1.5mm)
-            /// </summary>
-            public const double LogoPlaceholderTextCenteringOffset = 1.5;
-
-            // ==================== PEN WIDTHS & BORDER STYLES (in points) ====================
-            /// <summary>
-            /// Standard border width for table cells (0.5 points)
-            /// </summary>
-            public const double StandardBorderWidth = 0.5;
-
-            /// <summary>
-            /// Bold border width for total row (1.0 points)
-            /// </summary>
-            public const double BoldBorderWidth = 1.0;
-
-            /// <summary>
-            /// Signature line width (1.0 points)
-            /// </summary>
-            public const double SignatureLineWidth = 1.0;
-
-            /// <summary>
-            /// Placeholder border width (1 point)
-            /// </summary>
-            public const double PlaceholderBorderWidth = 1;
-
-            // ==================== LEGEND COLUMN WIDTHS (in millimeters) ====================
-            /// <summary>
-            /// Width of "Score Range" column in grading legend (16mm)
-            /// </summary>
-            public const double LegendScoreRangeColumnWidth = 16;
-
-            /// <summary>
-            /// Width of "Grade" column in grading legend (8mm)
-            /// </summary>
-            public const double LegendGradeColumnWidth = 8;
-
-            /// <summary>
-            /// Width of "Remarks" column in grading legend (24mm)
-            /// </summary>
-            public const double LegendRemarksColumnWidth = 24;
-
-            // ==================== SUBJECTS TABLE COLUMN WIDTHS (in millimeters) ====================
-            /// <summary>
-            /// Width of "Subject" column in subjects table (22mm)
-            /// </summary>
-            public const double SubjectsTableSubjectColumnWidth = 22;
-
-            /// <summary>
-            /// Width of "Class Score (50%)" column in subjects table (10mm)
-            /// </summary>
-            public const double SubjectsTableClassScoreColumnWidth = 10;
-
-            /// <summary>
-            /// Width of "Exam Score (60%)" column in subjects table (10mm)
-            /// </summary>
-            public const double SubjectsTableExamScoreColumnWidth = 10;
-
-            /// <summary>
-            /// Width of "Total Score (100%)" column in subjects table (10mm)
-            /// </summary>
-            public const double SubjectsTableTotalScoreColumnWidth = 10;
-
-            /// <summary>
-            /// Width of "Grade" column in subjects table (8mm)
-            /// </summary>
-            public const double SubjectsTableGradeColumnWidth = 8;
-
-            /// <summary>
-            /// Width of "Position" column in subjects table (10mm)
-            /// </summary>
-            public const double SubjectsTablePositionColumnWidth = 10;
-
-            /// <summary>
-            /// Width of "Remarks" column in subjects table (13mm)
-            /// </summary>
-            public const double SubjectsTableRemarksColumnWidth = 13;
-
-            // ==================== STRING FORMATTING CONSTANTS ====================
-            /// <summary>
-            /// Default font family for all text elements
-            /// </summary>
-            public const string DefaultFontFamily = "Segoe UI";
-
-            /// <summary>
-            /// Font family for bold text elements
-            /// </summary>
-            public const string BoldFontFamily = "Segoe UI Bold";
-        }
-
-        // Logging and computed layout values
-        private static class LayoutCalculations
-        {
-            /// <summary>
-            /// Calculate main table width (total width minus margins, minus legend space)
-            /// </summary>
-            public static double MainTableWidth => PDFConstants.PageWidth - (2 * PDFConstants.Margin) - PDFConstants.LegendWidth;
-        }
-
-        // Grading legend - numeric scale 1-5 per specification
-        private static readonly GradeLevel[] GradingLevels = new[]
-        {
-            new GradeLevel { ScoreRange = "80+", Grade = "1", Remarks = "Advanced(A)" },
-            new GradeLevel { ScoreRange = "75-79", Grade = "2", Remarks = "Proficiency(P)" },
-            new GradeLevel { ScoreRange = "70-74", Grade = "3", Remarks = "Approaching Prof.(AP)" },
-            new GradeLevel { ScoreRange = "65-69", Grade = "4", Remarks = "Developing(D)" },
-            new GradeLevel { ScoreRange = "<65", Grade = "5", Remarks = "Beginning(B)" }
+            new GradeLevel("80+", "1", "Advance(A)"),
+            new GradeLevel("75-79", "2", "Proficiency(P)"),
+            new GradeLevel("70-74", "3", "Approaching\nProficiency(AP)"),
+            new GradeLevel("65-69", "4", "Developing"),
+            new GradeLevel("64% -", "5", "Beginning")
         };
 
         public async Task<byte[]> GeneratePDFAsync(ReportCardData data)
@@ -435,479 +56,501 @@ namespace kingdom_Preparatory_School_Management_System.Services
             {
                 using (var document = new PdfDocument())
                 {
+                    document.Info.Title = $"Report Card - {data?.StudentName ?? "Student"}";
+
                     var page = document.AddPage();
-                    page.Width = XUnit.FromMillimeter(PDFConstants.PageWidth);
-                    page.Height = XUnit.FromMillimeter(PDFConstants.PageHeight);
+                    page.Width = XUnit.FromPoint(PageWidth);
+                    page.Height = XUnit.FromPoint(PageHeight);
 
-                    var gfx = XGraphics.FromPdfPage(page);
-
-                    try
+                    using (var gfx = XGraphics.FromPdfPage(page))
                     {
-                        // PDFsharp uses bottom-left origin (y=0 at bottom)
-                        // Start from top margin, but convert to PDF coordinates where y increases upward
-                        double yPosition = PDFConstants.PageHeight - PDFConstants.Margin;
-
-                        // Draw sections in order per template (moving downward in visual space)
-                        yPosition = DrawHeader(gfx, page, data, yPosition);
-                        yPosition = DrawStudentInfoTable(gfx, page, data, yPosition);
-                        yPosition = DrawSubjectsAndLegend(gfx, page, data, yPosition);
-                        yPosition = DrawTotalRow(gfx, page, data, yPosition);
-                        yPosition = DrawRemarksSection(gfx, page, data, yPosition);
-                        yPosition = DrawSignatureSection(gfx, page, yPosition);
-
-                        using (var stream = new MemoryStream())
+                        try
                         {
-                            document.Save(stream, false);
-                            return stream.ToArray();
+                            double y = ReportY;
+                            y = DrawHeader(gfx, y, data);
+                            y = DrawStudentInfo(gfx, y, data);
+                            y = DrawSubjectsAndGrading(gfx, y, data);
+                            y = DrawRemarks(gfx, y, data);
+                            y = DrawSignatures(gfx, y);
+                            y = DrawBottomGradingScale(gfx, y);
+
+                            gfx.DrawRectangle(Border(1.2), ReportX, ReportY, ReportWidth, y - ReportY);
+                        }
+                        catch (Exception ex)
+                        {
+                            LoggerHelper.LogError("Error generating report card PDF", ex);
+                            throw new PDFGenerationException("Error generating report card PDF", ex);
                         }
                     }
-                    catch (Exception ex)
+
+                    using (var stream = new MemoryStream())
                     {
-                        LoggerHelper.LogError("Error generating report card PDF", ex);
-                        throw new PDFGenerationException("Error generating report card PDF", ex);
+                        document.Save(stream, false);
+                        return stream.ToArray();
                     }
                 }
             });
         }
 
-        /// <summary>
-        /// Draws the header section with logo, school name, and student photo.
-        /// Spec: 120mm height, Logo (left 100×100), School Name (center 60% width), Photo (right 100×120)
-        /// </summary>
-        private double DrawHeader(XGraphics gfx, PdfPage page, ReportCardData data, double yStart)
+        private double DrawHeader(XGraphics gfx, double y, ReportCardData data)
         {
-            double headerBoxX = PDFConstants.Margin;
-            double headerBoxWidth = PDFConstants.PageWidth - (2 * PDFConstants.Margin);
-            double centerWidth = headerBoxWidth * PDFConstants.CenterSectionPercentage;
-            double sideWidth = (headerBoxWidth - centerWidth) / 2;
+            DrawFilledCell(gfx, ReportX, y, ReportWidth, HeaderHeight, Navy, 1.2);
 
-            // Draw header background (dark navy blue)
-            // PDF Y coordinate system: y=0 at bottom, increases upward
-            gfx.DrawRectangle(
-                new XSolidBrush(HeaderBlue),
-                headerBoxX, yStart - PDFConstants.HeaderHeight, headerBoxWidth, PDFConstants.HeaderHeight);
+            double logoSize = 76;
+            double logoX = ReportX + 25;
+            double logoY = y + 10;
+            DrawImageOrLogoPlaceholder(gfx, data?.SchoolInfo?.Logo, logoX, logoY, logoSize, logoSize);
 
-            // LEFT: Logo (100mm x 100mm per specification)
-            double logoX = headerBoxX + PDFConstants.LogoLeftPadding;
-            double logoY = yStart + (PDFConstants.HeaderHeight - PDFConstants.LogoHeight) / 2;
+            double photoW = 86;
+            double photoH = 78;
+            double photoX = ReportX + ReportWidth - photoW - 16;
+            double photoY = y + 8;
+            DrawImageOrPhotoPlaceholder(gfx, data?.ProfilePhoto, photoX, photoY, photoW, photoH);
 
-            if (data.SchoolInfo?.Logo != null && data.SchoolInfo.Logo.Length > 0)
-            {
-                try
-                {
-                    using (var stream = new MemoryStream(data.SchoolInfo.Logo))
-                    {
-                        var image = XImage.FromStream(stream);
-                        gfx.DrawImage(image, logoX, logoY, PDFConstants.LogoWidth, PDFConstants.LogoHeight);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    // If logo fails, draw placeholder
-                    LoggerHelper.LogError("Failed to load school logo image", ex);
-                    DrawLogoPlaceholder(gfx, logoX, logoY, PDFConstants.LogoWidth);
-                }
-            }
-            else
-            {
-                DrawLogoPlaceholder(gfx, logoX, logoY, PDFConstants.LogoWidth);
-            }
+            double textX = logoX + logoSize + 18;
+            double textW = photoX - textX - 10;
+            string schoolName = data?.SchoolInfo?.Name ?? "KINGDOM PREPARATORY SCHOOL";
+            string location = data?.SchoolInfo?.Location ?? "AKIM ODA- ABENASE";
+            string phone = data?.SchoolInfo?.PhoneNumbers ?? "0548050141/0246087609";
 
-            // CENTER: School name (large, bold, white) and contact info
-            double centerX = headerBoxX + sideWidth;
-            var schoolNameFont = new XFont(PDFConstants.BoldFontFamily, PDFConstants.SchoolNameFontSize);
-            var schoolName = data.SchoolInfo?.Name ?? "KINGDOM PREPARATORY SCHOOL";
-            var schoolNameSize = gfx.MeasureString(schoolName, schoolNameFont);
+            CenterText(gfx, schoolName, textX, y + 30, textW, Font(13, true), White);
+            CenterText(gfx, location, textX, y + 48, textW, Font(11, true), White);
+            CenterText(gfx, phone, textX, y + 64, textW, Font(10, true), White);
+            CenterText(gfx, "STUDENT TERMINAL REPORT", textX, y + 82, textW, Font(12, true), White);
 
-            gfx.DrawString(
-                schoolName,
-                schoolNameFont,
-                new XSolidBrush(TextLight),
-                centerX + (centerWidth / 2) - (schoolNameSize.Width / 2),
-                yStart - PDFConstants.HeaderSchoolNameYOffset);
-
-            // Location and contact info (smaller, white)
-            var contactFont = new XFont(PDFConstants.DefaultFontFamily, PDFConstants.HeaderContactFontSize);
-            var location = data.SchoolInfo?.Location ?? "";
-            var phone = data.SchoolInfo?.PhoneNumbers ?? "";
-            var contactText = string.IsNullOrEmpty(location) ? phone : $"{location} | {phone}";
-
-            if (!string.IsNullOrEmpty(contactText))
-            {
-                var contactSize = gfx.MeasureString(contactText, contactFont);
-                gfx.DrawString(
-                    contactText,
-                    contactFont,
-                    new XSolidBrush(TextLight),
-                    centerX + (centerWidth / 2) - (contactSize.Width / 2),
-                    yStart + PDFConstants.HeaderContactInfoYOffset);
-            }
-
-            // RIGHT: Student photo (100mm x 120mm per specification)
-            double photoX = headerBoxX + headerBoxWidth - PDFConstants.PhotoWidth - PDFConstants.PhotoRightPadding;
-            double photoY = yStart + (PDFConstants.HeaderHeight - PDFConstants.PhotoHeight) / 2;
-
-            if (data.ProfilePhoto != null && data.ProfilePhoto.Length > 0)
-            {
-                try
-                {
-                    using (var stream = new MemoryStream(data.ProfilePhoto))
-                    {
-                        var image = XImage.FromStream(stream);
-                        gfx.DrawImage(image, photoX, photoY, PDFConstants.PhotoWidth, PDFConstants.PhotoHeight);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    LoggerHelper.LogError("Failed to load student profile photo", ex);
-                    DrawPhotoPlaceholder(gfx, photoX, photoY, PDFConstants.PhotoWidth, PDFConstants.PhotoHeight);
-                }
-            }
-            else
-            {
-                DrawPhotoPlaceholder(gfx, photoX, photoY, PDFConstants.PhotoWidth, PDFConstants.PhotoHeight);
-            }
-
-            return yStart - (PDFConstants.HeaderHeight + PDFConstants.HeaderBottomGap);
+            return y + HeaderHeight;
         }
 
-        /// <summary>
-        /// Draws student information in a 3-row x 2-column table layout (per specification).
-        /// Row 1: Student Name | Resuming Date
-        /// Row 2: Admission No. | Attendance
-        /// Row 3: Class/Form | Number On Roll
-        /// </summary>
-        private double DrawStudentInfoTable(XGraphics gfx, PdfPage page, ReportCardData data, double yStart)
+        private double DrawStudentInfo(XGraphics gfx, double y, ReportCardData data)
         {
-            double tableX = PDFConstants.Margin;
-            double tableWidth = PDFConstants.PageWidth - (2 * PDFConstants.Margin);
-            double colWidth = tableWidth / 2;
-            double yPos = yStart;
+            double leftPairW = ReportWidth * 0.59;
+            double rightPairW = ReportWidth - leftPairW;
+            double leftLabelW = 82;
+            double rightLabelW = 78;
+            double rightValueW = rightPairW - rightLabelW;
+            var rows = BuildInfoRows(data).ToList();
 
-            var labelFont = new XFont(PDFConstants.BoldFontFamily, PDFConstants.StudentInfoFontSize);
-            var valueFont = new XFont(PDFConstants.DefaultFontFamily, PDFConstants.StudentInfoFontSize);
-
-            // Define student info rows per specification: (Label, Value, Label, Value)
-            var rows = new[]
+            for (int i = 0; i < rows.Count; i++)
             {
-                (new[] { "Student Name:", data.StudentName ?? "", "Resuming Date:", "To be announced" }),
-                (new[] { "Admission No.:", data.StudentID ?? "", "Attendance:", $"{data.PresentDays}/{data.TotalSchoolDays} ({data.AttendancePercentage}%)" }),
-                (new[] { "Class/Form:", data.ClassID ?? "", "Number On Roll:", data.TotalStudentsInClass.ToString() })
-            };
+                var row = rows[i];
+                double rowY = y + (i * InfoRowHeight);
 
-            // Draw all rows
-            foreach (var row in rows)
-            {
-                // Left column
-                gfx.DrawRectangle(new XPen(BorderColor, PDFConstants.StandardBorderWidth), tableX, yPos, colWidth, PDFConstants.StudentInfoRowHeight);
-                gfx.DrawString(row[0], labelFont, new XSolidBrush(TextDark), tableX + PDFConstants.CellTextLeftPadding, yPos + PDFConstants.CellTextTopPaddingSmall);
-                gfx.DrawString(row[1], valueFont, new XSolidBrush(TextDark), tableX + PDFConstants.StudentInfoValueColumnOffset, yPos + PDFConstants.CellTextTopPaddingSmall);
+                DrawCell(gfx, ReportX, rowY, leftLabelW, InfoRowHeight);
+                DrawLeftText(gfx, row.LeftLabel, ReportX, rowY, leftLabelW, InfoRowHeight, Font(7.8, true));
 
-                // Right column
-                gfx.DrawRectangle(new XPen(BorderColor, PDFConstants.StandardBorderWidth), tableX + colWidth, yPos, colWidth, PDFConstants.StudentInfoRowHeight);
-                gfx.DrawString(row[2], labelFont, new XSolidBrush(TextDark), tableX + colWidth + PDFConstants.CellTextLeftPadding, yPos + PDFConstants.CellTextTopPaddingSmall);
-                gfx.DrawString(row[3], valueFont, new XSolidBrush(TextDark), tableX + colWidth + PDFConstants.StudentInfoValueColumnOffset, yPos + PDFConstants.CellTextTopPaddingSmall);
+                DrawCell(gfx, ReportX + leftLabelW, rowY, leftPairW - leftLabelW, InfoRowHeight);
+                CenterTextInCell(gfx, row.LeftValue, ReportX + leftLabelW, rowY, leftPairW - leftLabelW, InfoRowHeight, Font(7.8));
 
-                yPos -= PDFConstants.StudentInfoRowHeight;
+                DrawCell(gfx, ReportX + leftPairW, rowY, rightLabelW, InfoRowHeight);
+                DrawLeftText(gfx, row.RightLabel, ReportX + leftPairW, rowY, rightLabelW, InfoRowHeight, Font(7.8, true));
+
+                DrawCell(gfx, ReportX + leftPairW + rightLabelW, rowY, rightValueW, InfoRowHeight);
+                DrawInfoRightValue(gfx, row, ReportX + leftPairW + rightLabelW, rowY, rightValueW);
             }
 
-            return yPos - PDFConstants.StudentInfoTableBottomGap;
+            return y + rows.Count * InfoRowHeight;
         }
 
-        /// <summary>
-        /// Draws the main subjects table and grading legend side-by-side.
-        /// Main table: Subject | Class Score (50%) | Exam Score (60%) | Total (100%) | Grade | Position | Remarks
-        /// Legend: Score Range | Grade | Remarks (5 rows)
-        /// Spec: Row height 12mm, fonts 9pt per specification
-        /// </summary>
-        private double DrawSubjectsAndLegend(XGraphics gfx, PdfPage page, ReportCardData data, double yStart)
+        private IEnumerable<InfoRow> BuildInfoRows(ReportCardData data)
         {
-            // Defensive check for null or empty SubjectResults
-            if (data.SubjectResults == null || data.SubjectResults.Count == 0)
+            string academicYear = string.IsNullOrWhiteSpace(data?.Year) ? "2024/2025" : data.Year;
+            string term = string.IsNullOrWhiteSpace(data?.Term) ? "TERM 3" : data.Term.ToUpperInvariant();
+
+            yield return new InfoRow("Student Name:", data?.StudentName ?? "", "Resuming Date:", "MON.,1ST SEPTEMBER,2025");
+            yield return new InfoRow("Admission No.:", data?.StudentID ?? "", "Attendance:", "",
+                data?.PresentDays > 0 ? data.PresentDays.ToString() : "",
+                data?.TotalSchoolDays > 0 ? data.TotalSchoolDays.ToString() : "");
+            yield return new InfoRow("Class/Form:", data?.ClassID ?? "", "Number On Roll:", data?.TotalStudentsInClass > 0 ? data.TotalStudentsInClass.ToString() : "");
+            yield return new InfoRow("Gender:", data?.Gender?.ToUpperInvariant() ?? "", "Position in Class:", FormatPosition(data?.OverallPosition ?? 0));
+            yield return new InfoRow("Term:", term, "Average Score:", FormatScore(GetAverageTotal(data)));
+            yield return new InfoRow("Closing Date:", "FRIDAY,1ST AUGUST, 2025", "Academic Year", academicYear);
+        }
+
+        private void DrawInfoRightValue(XGraphics gfx, InfoRow row, double x, double y, double width)
+        {
+            if (row.RightLabel.StartsWith("Attendance", StringComparison.OrdinalIgnoreCase))
             {
-                return yStart;
+                CenterTextInCell(gfx, row.AttendancePresent, x, y, width * 0.38, InfoRowHeight, Font(14));
+                DrawCell(gfx, x + width * 0.38, y, width * 0.28, InfoRowHeight);
+                CenterTextInCell(gfx, "Out of", x + width * 0.38, y, width * 0.28, InfoRowHeight, Font(7, true));
+                DrawCell(gfx, x + width * 0.66, y, width * 0.34, InfoRowHeight);
+                CenterTextInCell(gfx, row.AttendanceTotal, x + width * 0.66, y, width * 0.34, InfoRowHeight, Font(10));
+                return;
             }
 
-            double tableX = PDFConstants.Margin;
-            double mainTableWidth = LayoutCalculations.MainTableWidth;
-            double legendX = tableX + mainTableWidth + PDFConstants.TableLegendGap;
-            double yPos = yStart;
+            var font = row.RightLabel == "Academic Year" || row.RightLabel.StartsWith("Number", StringComparison.OrdinalIgnoreCase)
+                ? Font(15)
+                : Font(7.7);
+            CenterTextInCell(gfx, row.RightValue, x, y, width, InfoRowHeight, font);
+        }
 
-            var headerFont = new XFont(PDFConstants.BoldFontFamily, PDFConstants.SubjectsTableFontSize);
-            var dataFont = new XFont(PDFConstants.DefaultFontFamily, PDFConstants.SubjectsTableFontSize);
-            var legendFont = new XFont(PDFConstants.DefaultFontFamily, PDFConstants.LegendFontSize);
+        private double DrawSubjectsAndGrading(XGraphics gfx, double y, ReportCardData data)
+        {
+            var subjects = GetSubjectRows(data).ToList();
+            double leftTableW = ReportWidth * 0.76;
+            double gradingW = ReportWidth - leftTableW;
 
-            // Main table headers
-            string[] headers = { "Subject", "Class\nScore\n(50%)", "Exam\nScore\n(60%)", "Total\nScore\n(100%)", "Grade", "Position", "Remarks" };
-            double[] colWidths = {
-                PDFConstants.SubjectsTableSubjectColumnWidth,
-                PDFConstants.SubjectsTableClassScoreColumnWidth,
-                PDFConstants.SubjectsTableExamScoreColumnWidth,
-                PDFConstants.SubjectsTableTotalScoreColumnWidth,
-                PDFConstants.SubjectsTableGradeColumnWidth,
-                PDFConstants.SubjectsTablePositionColumnWidth,
-                PDFConstants.SubjectsTableRemarksColumnWidth
+            double[] widths =
+            {
+                leftTableW * 0.270,   // Subjects
+                leftTableW * 0.110,   // Class Score
+                leftTableW * 0.110,   // Exam Score
+                leftTableW * 0.110,   // Total Score
+                leftTableW * 0.085,   // Grade
+                leftTableW * 0.130,   // Position Per Subject
+                leftTableW * 0.185    // Remarks (was 0.110 — widened to fit "Outstanding")
             };
 
-            // Draw header row with background
-            double cellX = tableX;
+            string[] headers =
+            {
+                "Subjects",
+                "Class\nScore\n(50%)",
+                "Exam\nScore\n(50%)",
+                "Total\nScore\n(100%)",
+                "Grade",
+                "Position\nPer\nSubject",
+                "Remarks"
+            };
+
+            double x = ReportX;
             for (int i = 0; i < headers.Length; i++)
             {
-                gfx.DrawRectangle(new XSolidBrush(TableHeaderBg), cellX, yPos, colWidths[i], PDFConstants.TableHeaderHeight);
-                gfx.DrawRectangle(new XPen(BorderColor, PDFConstants.StandardBorderWidth), cellX, yPos, colWidths[i], PDFConstants.TableHeaderHeight);
-
-                // Multi-line header text
-                gfx.DrawString(headers[i], headerFont, new XSolidBrush(TextLight), cellX + PDFConstants.CellTextLeftPadding, yPos + PDFConstants.CellTextLeftPadding,
-                    new XStringFormat { Alignment = XStringAlignment.Center, LineAlignment = XLineAlignment.Center });
-
-                cellX += colWidths[i];
+                DrawFilledCell(gfx, x, y, widths[i], SubjectHeaderHeight, LightBlue);
+                DrawMultilineCenter(gfx, headers[i], x, y, widths[i], SubjectHeaderHeight, Font(7, true), Black);
+                x += widths[i];
             }
 
-            yPos -= PDFConstants.TableHeaderHeight;
+            double gradingX = ReportX + leftTableW;
+            DrawFilledCell(gfx, gradingX, y, gradingW, SubjectHeaderHeight, Navy);
+            CenterTextInCell(gfx, "Grading System", gradingX, y, gradingW, SubjectHeaderHeight, Font(8, true), Gold);
 
-            // Draw subject data rows
-            for (int subjectIndex = 0; subjectIndex < data.SubjectResults.Count; subjectIndex++)
+            double rowY = y + SubjectHeaderHeight;
+            for (int i = 0; i < subjects.Count; i++)
             {
-                var subject = data.SubjectResults[subjectIndex];
-                cellX = tableX;
-
-                var values = new[]
-                {
-                    subject.Subject ?? "",
-                    FormatScore(subject.ClassScore, 50),
-                    FormatScore(subject.ExamScore, 60),
-                    FormatScore(subject.TotalScore, 100),
-                    subject.Grade ?? "-",
-                    FormatPosition(subject.PositionInClass),
-                    subject.Remark ?? ""
-                };
-
-                bool isAlternateRow = (subjectIndex % 2) == 1;
-                XColor rowBg = isAlternateRow ? AlternateRowBg : WhiteBackground;
-
-                for (int i = 0; i < values.Length; i++)
-                {
-                    gfx.DrawRectangle(new XSolidBrush(rowBg), cellX, yPos, colWidths[i], PDFConstants.SubjectsTableRowHeight);
-                    gfx.DrawRectangle(new XPen(BorderColor, PDFConstants.StandardBorderWidth), cellX, yPos, colWidths[i], PDFConstants.SubjectsTableRowHeight);
-                    gfx.DrawString(values[i], dataFont, new XSolidBrush(TextDark), cellX + PDFConstants.CellTextLeftPadding, yPos + PDFConstants.CellTextTopPaddingLarge);
-
-                    cellX += colWidths[i];
-                }
-
-                yPos += PDFConstants.SubjectsTableRowHeight;
+                DrawSubjectRow(gfx, subjects[i], ReportX, rowY, widths, false);
+                DrawGradingSideRow(gfx, gradingX, rowY, gradingW, i);
+                rowY += SubjectRowHeight;
             }
 
-            // Draw legend on right side (starting from header row Y)
-            double legendY = yStart;
-            string[] legendHeaders = { "Score Range", "Grade", "Remarks" };
-            double[] legendColWidths = {
-                PDFConstants.LegendScoreRangeColumnWidth,
-                PDFConstants.LegendGradeColumnWidth,
-                PDFConstants.LegendRemarksColumnWidth
-            };
+            var total = BuildTotalRow(subjects);
+            DrawSubjectRow(gfx, total, ReportX, rowY, widths, true);
+            DrawFilledCell(gfx, gradingX, rowY, gradingW, SubjectRowHeight, LightBlue);
 
-            // Legend header
-            double legendCellX = legendX;
-            for (int i = 0; i < legendHeaders.Length; i++)
-            {
-                gfx.DrawRectangle(new XSolidBrush(TableHeaderBg), legendCellX, legendY, legendColWidths[i], PDFConstants.TableHeaderHeight);
-                gfx.DrawRectangle(new XPen(BorderColor, PDFConstants.StandardBorderWidth), legendCellX, legendY, legendColWidths[i], PDFConstants.TableHeaderHeight);
-                gfx.DrawString(legendHeaders[i], headerFont, new XSolidBrush(TextLight),
-                    legendCellX + PDFConstants.CellTextLeftPadding, legendY + 2, new XStringFormat { Alignment = XStringAlignment.Center });
-                legendCellX += legendColWidths[i];
-            }
-
-            legendY -= PDFConstants.TableHeaderHeight;
-
-            // Legend data rows
-            foreach (var gradeLevel in GradingLevels)
-            {
-                legendCellX = legendX;
-                var legendValues = new[] { gradeLevel.ScoreRange, gradeLevel.Grade, gradeLevel.Remarks };
-
-                for (int i = 0; i < legendValues.Length; i++)
-                {
-                    gfx.DrawRectangle(new XSolidBrush(WhiteBackground), legendCellX, legendY, legendColWidths[i], PDFConstants.SubjectsTableRowHeight);
-                    gfx.DrawRectangle(new XPen(BorderColor, PDFConstants.StandardBorderWidth), legendCellX, legendY, legendColWidths[i], PDFConstants.SubjectsTableRowHeight);
-                    gfx.DrawString(legendValues[i], legendFont, new XSolidBrush(TextDark),
-                        legendCellX + PDFConstants.CellTextLeftPadding, legendY + PDFConstants.CellTextTopPaddingLarge);
-                    legendCellX += legendColWidths[i];
-                }
-
-                legendY += PDFConstants.SubjectsTableRowHeight;
-            }
-
-            return yPos - PDFConstants.SubjectsTableBottomGap;
+            return rowY + SubjectRowHeight;
         }
 
-        /// <summary>
-        /// Draws a totals row showing aggregate scores across all subjects.
-        /// </summary>
-        private double DrawTotalRow(XGraphics gfx, PdfPage page, ReportCardData data, double yStart)
+        private void DrawSubjectRow(XGraphics gfx, SubjectDisplayRow row, double x, double y, double[] widths, bool total)
         {
-            double tableX = PDFConstants.Margin;
-            var totalFont = new XFont(PDFConstants.BoldFontFamily, PDFConstants.SubjectsTableFontSize);
-            string[] headers = { "Subject", "Class\nScore\n(50%)", "Exam\nScore\n(60%)", "Total\nScore\n(100%)", "Grade", "Position", "Remarks" };
-            double[] colWidths = {
-                PDFConstants.SubjectsTableSubjectColumnWidth,
-                PDFConstants.SubjectsTableClassScoreColumnWidth,
-                PDFConstants.SubjectsTableExamScoreColumnWidth,
-                PDFConstants.SubjectsTableTotalScoreColumnWidth,
-                PDFConstants.SubjectsTableGradeColumnWidth,
-                PDFConstants.SubjectsTablePositionColumnWidth,
-                PDFConstants.SubjectsTableRemarksColumnWidth
+            string[] values =
+            {
+                row.Subject,
+                row.ClassScore,
+                row.ExamScore,
+                row.TotalScore,
+                row.Grade,
+                row.Position,
+                row.Remark
             };
 
-            decimal totalClassScore = 0;
-            decimal totalExamScore = 0;
-            decimal totalScore = 0;
-
-            foreach (var subject in data.SubjectResults)
-            {
-                totalClassScore += subject.ClassScore;
-                totalExamScore += subject.ExamScore;
-                totalScore += subject.TotalScore;
-            }
-
-            int subjectCount = data.SubjectResults.Count;
-            decimal avgClassScore = subjectCount > 0 ? totalClassScore / subjectCount : 0;
-            decimal avgExamScore = subjectCount > 0 ? totalExamScore / subjectCount : 0;
-            decimal avgTotalScore = subjectCount > 0 ? totalScore / subjectCount : 0;
-
-            var values = new[]
-            {
-                "TOTAL/AVG",
-                FormatScore(avgClassScore, 50),
-                FormatScore(avgExamScore, 60),
-                FormatScore(avgTotalScore, 100),
-                GetGradeForScore(avgTotalScore),
-                "-",
-                ""
-            };
-
-            double cellX = tableX;
+            var font = Font(7.6, total || row.Subject.Length > 0);
+            XColor fill = total ? LightBlue : White;
+            double cellX = x;
             for (int i = 0; i < values.Length; i++)
             {
-                gfx.DrawRectangle(new XSolidBrush(AlternateRowBg), cellX, yStart, colWidths[i], PDFConstants.SubjectsTableRowHeight);
-                gfx.DrawRectangle(new XPen(BorderColor, PDFConstants.BoldBorderWidth), cellX, yStart, colWidths[i], PDFConstants.SubjectsTableRowHeight);
-                gfx.DrawString(values[i], totalFont, new XSolidBrush(TextDark), cellX + PDFConstants.CellTextLeftPadding, yStart + PDFConstants.CellTextTopPaddingLarge);
+                DrawFilledCell(gfx, cellX, y, widths[i], SubjectRowHeight, fill);
+                if (i == 0)
+                    DrawLeftText(gfx, values[i], cellX, y, widths[i], SubjectRowHeight, font);
+                else
+                    CenterTextInCell(gfx, values[i], cellX, y, widths[i], SubjectRowHeight, font);
+                cellX += widths[i];
+            }
+        }
 
-                cellX += colWidths[i];
+        private void DrawGradingSideRow(XGraphics gfx, double x, double y, double width, int rowIndex)
+        {
+            double[] widths = { width * 0.34, width * 0.25, width * 0.41 };
+
+            if (rowIndex == 0)
+            {
+                string[] headers = { "Score", "Grade", "Remarks" };
+                double cellX = x;
+                for (int i = 0; i < headers.Length; i++)
+                {
+                    DrawFilledCell(gfx, cellX, y, widths[i], SubjectRowHeight, LightBlue);
+                    CenterTextInCell(gfx, headers[i], cellX, y, widths[i], SubjectRowHeight, Font(6.2, true));
+                    cellX += widths[i];
+                }
+                return;
             }
 
-            return yStart + PDFConstants.SubjectsTableRowHeight + PDFConstants.SubjectsTableBottomGap;
+            int gradeIndex = rowIndex - 1;
+            if (gradeIndex >= GradeLevels.Length)
+            {
+                DrawCell(gfx, x, y, width, SubjectRowHeight);
+                return;
+            }
+
+            var grade = GradeLevels[gradeIndex];
+            string[] values = { grade.ScoreRange, grade.Grade, grade.Remarks };
+            double nextX = x;
+            for (int i = 0; i < values.Length; i++)
+            {
+                DrawCell(gfx, nextX, y, widths[i], SubjectRowHeight);
+                DrawMultilineCenter(gfx, values[i], nextX, y, widths[i], SubjectRowHeight, Font(5.8), Black);
+                nextX += widths[i];
+            }
         }
 
-        /// <summary>
-        /// Draws the remarks section with behavioral indicators and teacher comments.
-        /// </summary>
-        private double DrawRemarksSection(XGraphics gfx, PdfPage page, ReportCardData data, double yStart)
+        private IEnumerable<SubjectDisplayRow> GetSubjectRows(ReportCardData data)
         {
-            double tableX = PDFConstants.Margin;
-            double tableWidth = PDFConstants.PageWidth - (2 * PDFConstants.Margin);
-
-            var labelFont = new XFont(PDFConstants.BoldFontFamily, PDFConstants.RemarksFontSize);
-            var valueFont = new XFont(PDFConstants.DefaultFontFamily, PDFConstants.RemarksFontSize);
-
-            // Draw section background
-            gfx.DrawRectangle(new XPen(BorderColor, PDFConstants.StandardBorderWidth), tableX, yStart, tableWidth, PDFConstants.RemarksTableHeight);
-
-            double yLine = yStart + PDFConstants.RemarksSectionTopPadding;
-
-            // Behavioral section
-            gfx.DrawString("BEHAVIORAL INDICATORS", labelFont, new XSolidBrush(TextDark), tableX + PDFConstants.CellTextLeftPadding, yLine);
-            yLine += PDFConstants.RemarksLabelSpacing;
-
-            var remarks = data.Remarks;
-            gfx.DrawString("Attitude:", labelFont, new XSolidBrush(TextDark), tableX + PDFConstants.CellTextLeftPadding, yLine);
-            gfx.DrawString(remarks?.Attitude ?? "Not recorded", valueFont, new XSolidBrush(TextDark), tableX + PDFConstants.RemarksAttitudeValueX, yLine);
-
-            gfx.DrawString("Interest:", labelFont, new XSolidBrush(TextDark), tableX + PDFConstants.RemarksInterestLabelX, yLine);
-            gfx.DrawString(remarks?.Interest ?? "Not recorded", valueFont, new XSolidBrush(TextDark), tableX + PDFConstants.RemarksInterestValueX, yLine);
-
-            gfx.DrawString("Conduct:", labelFont, new XSolidBrush(TextDark), tableX + PDFConstants.RemarksConductLabelX, yLine);
-            gfx.DrawString(remarks?.Conduct ?? "Not recorded", valueFont, new XSolidBrush(TextDark), tableX + PDFConstants.RemarksConductValueX, yLine);
-
-            yLine += PDFConstants.RemarksRowSpacing;
-
-            // Teacher remarks
-            gfx.DrawString("Class Teacher's Remarks:", labelFont, new XSolidBrush(TextDark), tableX + PDFConstants.CellTextLeftPadding, yLine);
-            gfx.DrawString(remarks?.ClassTeacherRemarks ?? "Not recorded", valueFont, new XSolidBrush(TextDark), tableX + PDFConstants.RemarksValueX, yLine);
-
-            yLine += PDFConstants.RemarksRowSpacing;
-
-            gfx.DrawString("Head Teacher's Remarks:", labelFont, new XSolidBrush(TextDark), tableX + PDFConstants.CellTextLeftPadding, yLine);
-            gfx.DrawString(remarks?.HeadTeacherRemarks ?? "Not recorded", valueFont, new XSolidBrush(TextDark), tableX + PDFConstants.RemarksValueX, yLine);
-
-            return yStart - (PDFConstants.RemarksTableHeight + PDFConstants.SubjectsTableBottomGap);
+            var source = data?.SubjectResults ?? new List<SubjectResult>();
+            foreach (var subject in source)
+            {
+                yield return new SubjectDisplayRow
+                {
+                    Subject = subject.Subject ?? "",
+                    ClassScore = FormatScore(subject.ClassScore),
+                    ExamScore = FormatScore(subject.ExamScore),
+                    TotalScore = FormatScore(subject.TotalScore),
+                    Grade = string.IsNullOrWhiteSpace(subject.Grade) ? GetGradeForScore(subject.TotalScore) : subject.Grade,
+                    Position = FormatPosition(subject.PositionInClass),
+                    Remark = string.IsNullOrWhiteSpace(subject.Remark) ? GetRemarkForScore(subject.TotalScore) : subject.Remark
+                };
+            }
         }
 
-        /// <summary>
-        /// Draws signature lines for authorized signatories.
-        /// Per specification: School Director (left) | Head Teacher (right)
-        /// </summary>
-        private double DrawSignatureSection(XGraphics gfx, PdfPage page, double yStart)
+        private SubjectDisplayRow BuildTotalRow(IReadOnlyCollection<SubjectDisplayRow> subjects)
         {
-            double tableX = PDFConstants.Margin;
-            double tableWidth = PDFConstants.PageWidth - (2 * PDFConstants.Margin);
-            double colWidth = tableWidth / 2;
+            decimal classTotal = subjects.Sum(s => ParseDecimal(s.ClassScore));
+            decimal examTotal = subjects.Sum(s => ParseDecimal(s.ExamScore));
+            decimal total = subjects.Sum(s => ParseDecimal(s.TotalScore));
+            int gradeTotal = subjects.Sum(s => int.TryParse(s.Grade, out int grade) ? grade : 0);
 
-            var signatureFont = new XFont(PDFConstants.DefaultFontFamily, PDFConstants.SignatureLabelFontSize);
-            var dateFont = new XFont(PDFConstants.DefaultFontFamily, PDFConstants.SignatureDateFontSize);
-
-            // Draw section background
-            gfx.DrawRectangle(new XPen(BorderColor, PDFConstants.StandardBorderWidth), tableX, yStart, tableWidth, PDFConstants.SignatureTableHeight);
-
-            double yLine = yStart + PDFConstants.RemarksSectionTopPadding;
-
-            // Left column: School Director (per specification, not Class Teacher)
-            gfx.DrawLine(new XPen(TextDark, PDFConstants.SignatureLineWidth), tableX + PDFConstants.SignatureSectionPadding, yLine + PDFConstants.SignatureLineHeight, tableX + colWidth - PDFConstants.SignatureSectionPadding, yLine + PDFConstants.SignatureLineHeight);
-            gfx.DrawString("School Director's Signature", signatureFont, new XSolidBrush(TextDark), tableX + PDFConstants.SignatureSectionPadding, yLine + PDFConstants.SignatureLineLabelOffset);
-            gfx.DrawString("Date: __________________", dateFont, new XSolidBrush(TextDark), tableX + PDFConstants.SignatureSectionPadding, yLine + PDFConstants.SignatureDateOffset);
-
-            // Right column: Head Teacher
-            gfx.DrawLine(new XPen(TextDark, PDFConstants.SignatureLineWidth), tableX + colWidth + PDFConstants.SignatureSectionPadding, yLine + PDFConstants.SignatureLineHeight, tableX + tableWidth - PDFConstants.SignatureSectionPadding, yLine + PDFConstants.SignatureLineHeight);
-            gfx.DrawString("Head Teacher's Signature & Stamp", signatureFont, new XSolidBrush(TextDark), tableX + colWidth + PDFConstants.SignatureSectionPadding, yLine + PDFConstants.SignatureLineLabelOffset);
-            gfx.DrawString("Date: __________________", dateFont, new XSolidBrush(TextDark), tableX + colWidth + PDFConstants.SignatureSectionPadding, yLine + PDFConstants.SignatureDateOffset);
-
-            return yStart - (PDFConstants.SignatureTableHeight + PDFConstants.SignatureTableBottomGap);
+            return new SubjectDisplayRow
+            {
+                Subject = "Total",
+                ClassScore = FormatScore(classTotal),
+                ExamScore = FormatScore(examTotal),
+                TotalScore = FormatScore(total),
+                Grade = gradeTotal > 0 ? gradeTotal.ToString() : "",
+                Position = "",
+                Remark = ""
+            };
         }
 
-        /// <summary>
-        /// Helper to draw logo placeholder when logo image is unavailable.
-        /// </summary>
-        private void DrawLogoPlaceholder(XGraphics gfx, double x, double y, double size)
+        private double DrawRemarks(XGraphics gfx, double y, ReportCardData data)
         {
-            gfx.DrawRectangle(new XPen(TextLight, PDFConstants.PlaceholderBorderWidth), x, y, size, size);
-            gfx.DrawString("LOGO", new XFont(PDFConstants.DefaultFontFamily, PDFConstants.LogoPlaceholderFontSize), new XSolidBrush(TextLight),
-                x + PDFConstants.LogoPlaceholderTextOffsetX, y + size / 2 - PDFConstants.LogoPlaceholderTextCenteringOffset);
+            var remarks = data?.Remarks;
+            var rows = new[]
+            {
+                Tuple.Create("Attitude:", remarks?.Attitude ?? ""),
+                Tuple.Create("Interest:", remarks?.Interest ?? ""),
+                Tuple.Create("Conduct:", remarks?.Conduct ?? ""),
+                Tuple.Create("Class Teacher's Remarks:", remarks?.ClassTeacherRemarks ?? ""),
+                Tuple.Create("Head Teacher's Remarks:", remarks?.HeadTeacherRemarks ?? "")
+            };
+
+            double labelW = ReportWidth * 0.34;
+            for (int i = 0; i < rows.Length; i++)
+            {
+                double rowY = y + i * RemarksRowHeight;
+                DrawCell(gfx, ReportX, rowY, labelW, RemarksRowHeight);
+                DrawLeftText(gfx, rows[i].Item1, ReportX, rowY, labelW, RemarksRowHeight, Font(7.8, true));
+                DrawCell(gfx, ReportX + labelW, rowY, ReportWidth - labelW, RemarksRowHeight);
+                DrawLeftText(gfx, rows[i].Item2, ReportX + labelW, rowY, ReportWidth - labelW, RemarksRowHeight, Font(7.8));
+            }
+
+            double promotedY = y + rows.Length * RemarksRowHeight;
+            DrawCell(gfx, ReportX, promotedY, ReportWidth, PromotedRowHeight);
+            CenterTextInCell(gfx, "Promoted to:", ReportX, promotedY, ReportWidth, PromotedRowHeight, Font(8.3, true));
+
+            return promotedY + PromotedRowHeight;
         }
 
-        /// <summary>
-        /// Helper to draw photo placeholder when student photo is unavailable.
-        /// </summary>
-        private void DrawPhotoPlaceholder(XGraphics gfx, double x, double y, double width, double height)
+        private double DrawSignatures(XGraphics gfx, double y)
         {
-            gfx.DrawRectangle(new XPen(TextLight, PDFConstants.PlaceholderBorderWidth), x, y, width, height);
-            gfx.DrawString("PHOTO", new XFont(PDFConstants.DefaultFontFamily, PDFConstants.PhotoPlaceholderFontSize), new XSolidBrush(TextLight),
-                x + PDFConstants.PhotoPlaceholderTextOffsetX, y + height / 2 - PDFConstants.PhotoPlaceholderTextOffsetY);
+            double halfW = ReportWidth / 2;
+            DrawCell(gfx, ReportX, y, halfW, SignatureHeight);
+            DrawCell(gfx, ReportX + halfW, y, halfW, SignatureHeight);
+
+            DrawSignatureStroke(gfx, ReportX + 92, y + 9);
+            DrawSignatureStroke(gfx, ReportX + halfW + 92, y + 9);
+
+            CenterTextInCell(gfx, "School Director's Signature", ReportX, y + SignatureHeight - 16, halfW, 16, Font(8, true));
+            CenterTextInCell(gfx, "Head Teacher's Signature & Stamp", ReportX + halfW, y + SignatureHeight - 16, halfW, 16, Font(8, true));
+
+            return y + SignatureHeight;
         }
 
-        /// <summary>
-        /// Formats a score to one decimal place (e.g., 85.5, 92.0)
-        /// </summary>
-        private string FormatScore(decimal score, int maxScore)
+        private double DrawBottomGradingScale(XGraphics gfx, double y)
         {
-            if (score == 0 && maxScore == 0) return "-";
-            return $"{score:F1}";
+            double labelW = 84;
+            double gridW = ReportWidth - labelW;
+            DrawFilledCell(gfx, ReportX, y, labelW, BottomLegendHeight, Navy);
+            CenterTextInCell(gfx, "Grading System", ReportX, y, labelW, BottomLegendHeight, Font(7, true), Gold);
+
+            double labelColW = 36;
+            double levelW = (gridW - labelColW) / GradeLevels.Length;
+            double rowH = BottomLegendHeight / 3;
+            string[] labels = { "Score", "Grade", "Remarks" };
+
+            for (int r = 0; r < labels.Length; r++)
+            {
+                double rowY = y + r * rowH;
+                DrawFilledCell(gfx, ReportX + labelW, rowY, labelColW, rowH, LightBlue);
+                CenterTextInCell(gfx, labels[r], ReportX + labelW, rowY, labelColW, rowH, Font(5.5, true));
+
+                for (int i = 0; i < GradeLevels.Length; i++)
+                {
+                    string value = r == 0 ? GradeLevels[i].ScoreRange
+                        : r == 1 ? GradeLevels[i].Grade
+                        : GradeLevels[i].Remarks.Replace("\n", " ");
+                    double cellX = ReportX + labelW + labelColW + i * levelW;
+                    DrawCell(gfx, cellX, rowY, levelW, rowH);
+                    CenterTextInCell(gfx, value, cellX, rowY, levelW, rowH, Font(5.2));
+                }
+            }
+
+            return y + BottomLegendHeight;
         }
 
-        /// <summary>
-        /// Formats position with ordinal suffix (1st, 2nd, 3rd, etc.).
-        /// </summary>
+        private void DrawImageOrLogoPlaceholder(XGraphics gfx, byte[] imageBytes, double x, double y, double width, double height)
+        {
+            if (TryDrawImage(gfx, imageBytes, x, y, width, height))
+                return;
+
+            string logoPath = FindResource("school_logo.png") ?? FindResource("school logo.png");
+            if (!string.IsNullOrEmpty(logoPath) && TryDrawImage(gfx, File.ReadAllBytes(logoPath), x, y, width, height))
+                return;
+
+            DrawCell(gfx, x, y, width, height, Gold, 1.2);
+            CenterTextInCell(gfx, "KPS", x, y + 22, width, 18, Font(14, true), Gold);
+            CenterTextInCell(gfx, "AKIM ABENASE", x, y + 42, width, 14, Font(5.5), Gold);
+            CenterTextInCell(gfx, "KNOWLEDGE IS POWER", x, y + height - 16, width, 12, Font(4.8), Gold);
+        }
+
+        private void DrawImageOrPhotoPlaceholder(XGraphics gfx, byte[] imageBytes, double x, double y, double width, double height)
+        {
+            if (TryDrawImage(gfx, imageBytes, x, y, width, height))
+                return;
+
+            DrawCell(gfx, x, y, width, height, XColor.FromArgb(210, 210, 210), 1.0);
+            CenterTextInCell(gfx, "PHOTO", x, y, width, height, Font(7), XColor.FromArgb(120, 120, 120));
+        }
+
+        private bool TryDrawImage(XGraphics gfx, byte[] imageBytes, double x, double y, double width, double height)
+        {
+            if (imageBytes == null || imageBytes.Length == 0)
+                return false;
+
+            try
+            {
+                using (var stream = new MemoryStream(imageBytes))
+                using (var image = XImage.FromStream(stream))
+                {
+                    gfx.DrawImage(image, x, y, width, height);
+                    gfx.DrawRectangle(Border(0.9), x, y, width, height);
+                    return true;
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggerHelper.LogWarning($"Could not draw report image: {ex.Message}");
+                return false;
+            }
+        }
+
+        private string FindResource(string fileName)
+        {
+            string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+            string[] candidates =
+            {
+                Path.Combine(baseDir, "Resources", fileName),
+                Path.Combine(baseDir, "..", "..", "Resources", fileName),
+                Path.Combine(Directory.GetCurrentDirectory(), "Resources", fileName)
+            };
+
+            return candidates.FirstOrDefault(File.Exists);
+        }
+
+        private void DrawSignatureStroke(XGraphics gfx, double x, double y)
+        {
+            var pen = new XPen(Black, 1.0);
+            gfx.DrawBezier(pen, x - 28, y + 24, x - 5, y + 6, x + 6, y + 36, x + 28, y + 16);
+            gfx.DrawBezier(pen, x - 34, y + 30, x - 8, y + 14, x + 8, y + 28, x + 34, y + 20);
+            gfx.DrawLine(pen, x - 18, y + 33, x + 7, y - 2);
+            gfx.DrawLine(pen, x - 5, y + 33, x + 17, y - 5);
+        }
+
+        private void DrawFilledCell(XGraphics gfx, double x, double y, double width, double height, XColor fill, double borderWidth = 0.7)
+        {
+            gfx.DrawRectangle(Brush(fill), x, y, width, height);
+            gfx.DrawRectangle(Border(borderWidth), x, y, width, height);
+        }
+
+        private void DrawCell(XGraphics gfx, double x, double y, double width, double height, XColor? borderColor = null, double borderWidth = 0.7)
+        {
+            gfx.DrawRectangle(new XPen(borderColor ?? Black, borderWidth), x, y, width, height);
+        }
+
+        private void CenterText(XGraphics gfx, string text, double x, double y, double width, XFont font, XColor? color = null)
+        {
+            gfx.DrawString(text ?? "", font, Brush(color ?? Black),
+                new XRect(x, y - font.Size, width, font.Size + 2),
+                new XStringFormat { Alignment = XStringAlignment.Center, LineAlignment = XLineAlignment.Center });
+        }
+
+        private void CenterTextInCell(XGraphics gfx, string text, double x, double y, double width, double height, XFont font, XColor? color = null)
+        {
+            gfx.DrawString(text ?? "", font, Brush(color ?? Black), new XRect(x + 1, y, width - 2, height),
+                new XStringFormat { Alignment = XStringAlignment.Center, LineAlignment = XLineAlignment.Center });
+        }
+
+        private void DrawLeftText(XGraphics gfx, string text, double x, double y, double width, double height, XFont font, XColor? color = null)
+        {
+            gfx.DrawString(text ?? "", font, Brush(color ?? Black), new XRect(x + 3, y, width - 5, height),
+                new XStringFormat { Alignment = XStringAlignment.Near, LineAlignment = XLineAlignment.Center });
+        }
+
+        private void DrawMultilineCenter(XGraphics gfx, string text, double x, double y, double width, double height, XFont font, XColor? color = null)
+        {
+            string[] lines = (text ?? "").Split(new[] { '\n' }, StringSplitOptions.None);
+            double lineHeight = font.Size + 1.5;
+            double startY = y + (height - (lines.Length * lineHeight)) / 2;
+
+            for (int i = 0; i < lines.Length; i++)
+            {
+                gfx.DrawString(lines[i], font, Brush(color ?? Black),
+                    new XRect(x + 1, startY + i * lineHeight, width - 2, lineHeight),
+                    new XStringFormat { Alignment = XStringAlignment.Center, LineAlignment = XLineAlignment.Center });
+            }
+        }
+
+        private decimal GetAverageTotal(ReportCardData data)
+        {
+            if (data?.SubjectResults == null || data.SubjectResults.Count == 0)
+                return 0m;
+            return data.SubjectResults.Average(s => s.TotalScore);
+        }
+
+        private string FormatScore(decimal score)
+        {
+            if (score == 0)
+                return "";
+
+            string value = score.ToString("0.0");
+            return value.EndsWith(".0", StringComparison.Ordinal) ? value.Substring(0, value.Length - 2) : value;
+        }
+
+        private decimal ParseDecimal(string value)
+        {
+            return decimal.TryParse(value, out decimal result) ? result : 0m;
+        }
+
         private string FormatPosition(int position)
         {
-            if (position <= 0) return "-";
+            if (position <= 0)
+                return "";
 
             string suffix = "th";
             if (position % 100 != 11 && position % 10 == 1) suffix = "st";
@@ -917,14 +560,6 @@ namespace kingdom_Preparatory_School_Management_System.Services
             return $"{position}{suffix}";
         }
 
-        /// <summary>
-        /// Determines numeric grade (1-5) based on score per specification.
-        /// Grade 1: Score 80+ (Advanced)
-        /// Grade 2: Score 75-79 (Proficiency)
-        /// Grade 3: Score 70-74 (Approaching Proficiency)
-        /// Grade 4: Score 65-69 (Developing)
-        /// Grade 5: Score <65 (Beginning)
-        /// </summary>
         private string GetGradeForScore(decimal score)
         {
             if (score >= 80) return "1";
@@ -934,11 +569,59 @@ namespace kingdom_Preparatory_School_Management_System.Services
             return "5";
         }
 
-        private class GradeLevel
+        private string GetRemarkForScore(decimal score)
         {
-            public string ScoreRange { get; set; }
+            if (score >= 80) return "Advance";
+            if (score >= 75) return "Proficiency";
+            if (score >= 70) return "Approaching Proficiency";
+            if (score >= 65) return "Developing";
+            return "Beginning";
+        }
+
+        private sealed class InfoRow
+        {
+            public InfoRow(string leftLabel, string leftValue, string rightLabel, string rightValue,
+                string attendancePresent = "", string attendanceTotal = "")
+            {
+                LeftLabel = leftLabel;
+                LeftValue = leftValue;
+                RightLabel = rightLabel;
+                RightValue = rightValue;
+                AttendancePresent = attendancePresent;
+                AttendanceTotal = attendanceTotal;
+            }
+
+            public string LeftLabel { get; }
+            public string LeftValue { get; }
+            public string RightLabel { get; }
+            public string RightValue { get; }
+            public string AttendancePresent { get; }
+            public string AttendanceTotal { get; }
+        }
+
+        private sealed class SubjectDisplayRow
+        {
+            public string Subject { get; set; }
+            public string ClassScore { get; set; }
+            public string ExamScore { get; set; }
+            public string TotalScore { get; set; }
             public string Grade { get; set; }
-            public string Remarks { get; set; }
+            public string Position { get; set; }
+            public string Remark { get; set; }
+        }
+
+        private sealed class GradeLevel
+        {
+            public GradeLevel(string scoreRange, string grade, string remarks)
+            {
+                ScoreRange = scoreRange;
+                Grade = grade;
+                Remarks = remarks;
+            }
+
+            public string ScoreRange { get; }
+            public string Grade { get; }
+            public string Remarks { get; }
         }
     }
 

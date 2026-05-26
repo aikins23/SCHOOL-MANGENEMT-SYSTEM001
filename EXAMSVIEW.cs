@@ -214,7 +214,7 @@ namespace kingdom_Preparatory_School_Management_System
             {
                 if (resultsGrid.SelectedRows.Count == 0)
                 {
-                    UIHelper.ShowWarning("Please select a student first", "Print Report Card");
+                    UIHelper.ShowWarning("Please select a student first", "Generate Report Card");
                     return;
                 }
 
@@ -223,19 +223,29 @@ namespace kingdom_Preparatory_School_Management_System
                 var term = termFilter.SelectedItem?.ToString() ?? "All terms";
                 var year = selectedRow.Cells["YEAR"].Value?.ToString() ?? "2024/2025";
 
-                // Try to find StudentID column, or use NAME if not available
-                var studentId = resultsGrid.Columns.Contains("StudentID")
-                    ? selectedRow.Cells["StudentID"].Value?.ToString() ?? studentName
-                    : studentName;
+                // Retrieve StudentID from the grid (now included in the query)
+                string studentId = "";
+                if (resultsGrid.Columns.Contains("StudentID"))
+                {
+                    studentId = selectedRow.Cells["StudentID"].Value?.ToString() ?? "";
+                }
+
+                if (string.IsNullOrEmpty(studentId))
+                {
+                    UIHelper.ShowError("Student ID could not be identified for this record.", "Generate Report Card");
+                    return;
+                }
 
                 try
                 {
-                    if (term == "All terms")
+                    if (term == "All terms" || string.IsNullOrEmpty(term))
                     {
-                        UIHelper.ShowWarning("Please select a specific term", "Print Report Card");
+                        UIHelper.ShowWarning("Please select a specific term from the filter first.", "Generate Report Card");
                         return;
                     }
 
+                    resultLabel.Text = $"Generating report for {studentName}...";
+                    
                     var remarksRepository = new StudentTermRemarksRepository(AppConfig.ConnectionString);
                     var dataService = new ReportCardDataService(AppConfig.ConnectionString, remarksRepository);
                     var pdfGenerator = new ReportCardPDFGenerator();
@@ -247,12 +257,16 @@ namespace kingdom_Preparatory_School_Management_System
                     {
                         var action = new ReportCardOutputAction { Type = OutputType.Print, PrinterName = selectedPrinter };
                         await manager.GenerateAndOutputAsync(studentId, term, year, action);
-                        UIHelper.ShowSuccess($"Report card printed for {studentName}", "Print Report Card");
+                        UIHelper.ShowSuccess($"Report card generated and sent to printer for {studentName}", "Generate Report Card");
                     }
+                    
+                    resultLabel.Text = "Ready.";
                 }
                 catch (Exception ex)
                 {
-                    UIHelper.ShowError($"Error: {ex.Message}", "Print Report Card");
+                    LoggerHelper.LogError("Report generation failed", ex);
+                    UIHelper.ShowError($"Failed to generate report: {ex.Message}", "Generate Report Card");
+                    resultLabel.Text = "Generation failed.";
                 }
             };
 
@@ -270,12 +284,24 @@ namespace kingdom_Preparatory_School_Management_System
                 ConfigureGridColumns();
                 LoadFilterValues();
                 ApplyFilters();
-                LoggerHelper.LogInfo("Exam results loaded successfully");
+
+                if (resultsTable == null || resultsTable.Rows.Count == 0)
+                {
+                    resultLabel.Text = "No exam records found in database.";
+                    LoggerHelper.LogWarning("Exam results table is empty.");
+                }
+                else
+                {
+                    LoggerHelper.LogInfo($"Loaded {resultsTable.Rows.Count} exam records.");
+                }
             }
             catch (Exception ex)
             {
                 LoggerHelper.LogError("Failed to load exam results in EXAMSVIEW", ex);
                 UIHelper.ShowError("Results could not be loaded: " + ex.Message, "Exam Results");
+                
+                // Ensure filters are still initialized
+                LoadFilterValues();
             }
         }
 

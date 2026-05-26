@@ -16,11 +16,12 @@ namespace kingdom_Preparatory_School_Management_System
 
         private static readonly Color PageBackColor = UiTheme.Page;
         private static readonly Color SurfaceColor = UiTheme.Surface;
-        private static readonly Color PrimaryColor = UiTheme.Navy;
+        private static readonly Color PrimaryColor = Color.FromArgb(17, 24, 39); // Solid Dark Navy/Black
+        private static readonly Color Navy = Color.FromArgb(17, 24, 39);         // Explicit Navy for high contrast
         private static readonly Color AccentColor = UiTheme.GoldSoft;
         private static readonly Color DangerColor = Color.FromArgb(190, 18, 60);
-        private static readonly Color TextColor = UiTheme.Text;
-        private static readonly Color MutedTextColor = UiTheme.Muted;
+        private static readonly Color TextColor = Color.FromArgb(17, 24, 39);    // Solid Dark text
+        private static readonly Color MutedTextColor = Color.FromArgb(75, 85, 99); // Dark Gray for readability
         private static readonly Color BorderColor = UiTheme.Border;
 
         // Age constraints for date of birth
@@ -82,7 +83,7 @@ namespace kingdom_Preparatory_School_Management_System
             root.RowStyles.Add(new RowStyle(SizeType.Absolute, 68));   // header
             root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));   // cards
             root.RowStyles.Add(new RowStyle(SizeType.Absolute, 26));   // status
-            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 50));   // buttons
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 60));   // buttons (increased from 50)
 
             root.Controls.Add(BuildHeader(), 0, 0);
             root.Controls.Add(BuildFormBody(), 0, 1);
@@ -209,19 +210,19 @@ namespace kingdom_Preparatory_School_Management_System
             titleBlock.Controls.Add(new Label
             {
                 Dock = DockStyle.Top,
-                Height = 38,
+                Height = 34, // Slightly reduced to fit better
                 Text = "Employee Registration",
-                ForeColor = TextColor,
-                Font = new Font("Segoe UI Semibold", 22F, FontStyle.Bold),
+                ForeColor = Navy, // Using explicit Navy for title
+                Font = new Font("Segoe UI Semibold", 20F, FontStyle.Bold),
                 TextAlign = ContentAlignment.MiddleLeft
             });
             titleBlock.Controls.Add(new Label
             {
                 Dock = DockStyle.Bottom,
-                Height = 28,
-                Text = "Add staff records, employment details, emergency contacts, and salary",
+                Height = 24,
+                Text = "Manage staff records and contracts",
                 ForeColor = MutedTextColor,
-                Font = new Font("Segoe UI", 10F),
+                Font = new Font("Segoe UI", 9.5F),
                 TextAlign = ContentAlignment.MiddleLeft
             });
 
@@ -230,20 +231,39 @@ namespace kingdom_Preparatory_School_Management_System
                 Dock = DockStyle.Fill,
                 FlowDirection = FlowDirection.RightToLeft,
                 BackColor = PageBackColor,
-                Padding = new Padding(0, 12, 0, 0)
+                Padding = new Padding(0, 8, 12, 0)
             };
-            actions.Controls.Add(CreatePrimaryButton("View Employees", async () =>
+            
+            var btnView = new Button
             {
-                Close();
-                new frmEmpView().Show();
-                await Task.CompletedTask;
-            }));
-            actions.Controls.Add(CreateSecondaryButton("Dashboard", async () =>
+                Text = "View Employees",
+                Width = 150,
+                Height = 40,
+                FlatStyle = FlatStyle.Flat,
+                BackColor = Navy,
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI Semibold", 10F, FontStyle.Bold),
+                Cursor = Cursors.Hand,
+                FlatAppearance = { BorderSize = 0 }
+            };
+            btnView.Click += (s, e) => { Close(); new frmEmpView().Show(); };
+            
+            var btnDash = new Button
             {
-                Close();
-                new frmDashboard().Show();
-                await Task.CompletedTask;
-            }));
+                Text = "Dashboard",
+                Width = 120,
+                Height = 40,
+                FlatStyle = FlatStyle.Flat,
+                BackColor = Color.White,
+                ForeColor = Navy,
+                Font = new Font("Segoe UI Semibold", 10F, FontStyle.Bold),
+                Cursor = Cursors.Hand,
+                FlatAppearance = { BorderSize = 1, BorderColor = BorderColor }
+            };
+            btnDash.Click += (s, e) => { Close(); new frmDashboard().Show(); };
+
+            actions.Controls.Add(btnView);
+            actions.Controls.Add(btnDash);
 
             header.Controls.Add(titleBlock, 0, 0);
             header.Controls.Add(actions, 1, 0);
@@ -562,27 +582,27 @@ namespace kingdom_Preparatory_School_Management_System
                 Dock = DockStyle.Fill,
                 ColumnCount = 2,
                 RowCount = 1,
-                BackColor = PageBackColor
+                BackColor = PageBackColor,
+                Padding = new Padding(0, 8, 0, 4),
+                Margin = Padding.Empty
             };
             wrapper.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); // spacer
-            wrapper.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 560)); // button cluster
+            wrapper.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 548));
 
-            var actions = new TableLayoutPanel
+            var actions = new FlowLayoutPanel
             {
                 Dock = DockStyle.Fill,
-                ColumnCount = 4,
-                RowCount = 1,
-                BackColor = PageBackColor
+                FlowDirection = FlowDirection.LeftToRight,
+                WrapContents = false,
+                BackColor = PageBackColor,
+                Margin = Padding.Empty,
+                Padding = Padding.Empty
             };
-            actions.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
-            actions.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
-            actions.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
-            actions.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
 
-            actions.Controls.Add(CreateSecondaryButton("New", async () => await NewEmployee()), 0, 0);
-            actions.Controls.Add(CreatePrimaryButton("Save", async () => await SaveEmployeeAsync()), 1, 0);
-            actions.Controls.Add(CreateSecondaryButton("Update", async () => await UpdateEmployee()), 2, 0);
-            actions.Controls.Add(CreateDangerButton("Delete", async () => await DeleteEmployee()), 3, 0);
+            actions.Controls.Add(CreateSecondaryButton("New", async () => await NewEmployee()));
+            actions.Controls.Add(CreatePrimaryButton("Save", async () => await SaveEmployeeAsync()));
+            actions.Controls.Add(CreateSecondaryButton("Update", async () => await UpdateEmployee()));
+            actions.Controls.Add(CreateDangerButton("Delete", async () => await DeleteEmployee()));
 
             wrapper.Controls.Add(new Panel { Dock = DockStyle.Fill, BackColor = PageBackColor }, 0, 0);
             wrapper.Controls.Add(actions, 1, 0);
@@ -603,7 +623,7 @@ namespace kingdom_Preparatory_School_Management_System
         {
             var button = CreateButton(text, asyncAction);
             button.BackColor = SurfaceColor;
-            button.ForeColor = TextColor;
+            button.ForeColor = PrimaryColor; // High contrast Navy text on white button
             button.FlatAppearance.BorderColor = BorderColor;
             button.FlatAppearance.MouseOverBackColor = AccentColor;
             return button;
@@ -613,7 +633,7 @@ namespace kingdom_Preparatory_School_Management_System
         {
             var button = CreateButton(text, asyncAction);
             button.BackColor = SurfaceColor;
-            button.ForeColor = DangerColor;
+            button.ForeColor = DangerColor; // Clear Red text for danger actions
             button.FlatAppearance.BorderColor = Color.FromArgb(254, 205, 211);
             button.FlatAppearance.MouseOverBackColor = Color.FromArgb(255, 241, 242);
             return button;
@@ -623,12 +643,15 @@ namespace kingdom_Preparatory_School_Management_System
         {
             var button = new Button
             {
-                Dock = DockStyle.Fill,
-                Margin = new Padding(6, 0, 0, 0),
+                Width = 122,
+                Height = 40,
+                Margin = new Padding(6, 0, 6, 0),
                 Text = text,
                 FlatStyle = FlatStyle.Flat,
                 Font = new Font("Segoe UI Semibold", 9.5F, FontStyle.Bold),
                 Cursor = Cursors.Hand,
+                TextAlign = ContentAlignment.MiddleCenter,
+                UseVisualStyleBackColor = false,
                 FlatAppearance = { BorderSize = 1 }
             };
             button.Click += async (sender, args) => await asyncAction();

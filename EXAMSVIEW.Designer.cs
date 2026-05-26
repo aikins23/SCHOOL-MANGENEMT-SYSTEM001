@@ -34,7 +34,7 @@
             // 
             this.ClientSize = new System.Drawing.Size(282, 253);
             this.Name = "EXAMSVIEW";
-            // this.Load += new System.EventHandler(this.EXAMSVIEW_Load_1); // TODO: Implement event handler
+            this.Load += new System.EventHandler(this.EXAMSVIEW_Load);
             this.ResumeLayout(false);
 
         }

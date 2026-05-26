@@ -107,6 +107,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
                     var query = @"
 WITH RankedExams AS (
     SELECT
+        std_id,
         std_name AS NAME,
         std_class AS CLASS,
         term AS TERMS,
@@ -120,6 +121,7 @@ WITH RankedExams AS (
 ),
 TotalScores AS (
     SELECT
+        std_id,
         NAME,
         CLASS,
         TERMS,
@@ -162,9 +164,10 @@ TotalScores AS (
         MAX(CASE WHEN subject = 'REL. & MORAL EDU.' THEN RANK END) AS RME_POS,
         SUM(gt) AS TOTAL_SCORE
     FROM RankedExams
-    GROUP BY NAME, CLASS, TERMS, YEAR
+    GROUP BY std_id, NAME, CLASS, TERMS, YEAR
 )
 SELECT
+    std_id AS StudentID,
     UPPER(NAME) AS NAME,
     UPPER(CLASS) AS CLASS,
     UPPER(TERMS) AS TERMS,

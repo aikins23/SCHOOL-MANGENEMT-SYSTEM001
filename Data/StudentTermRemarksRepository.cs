@@ -8,7 +8,8 @@ using kingdom_Preparatory_School_Management_System.Services;
 namespace kingdom_Preparatory_School_Management_System.Data
 {
     /// <summary>
-    /// OleDb implementation of StudentTermRemarks repository
+    /// OleDb implementation of StudentTermRemarks repository.
+    /// Uses positional parameters (?) for OLE DB compatibility.
     /// </summary>
     public class StudentTermRemarksRepository : IStudentTermRemarksRepository
     {
@@ -29,13 +30,13 @@ namespace kingdom_Preparatory_School_Management_System.Data
 
                     const string query = @"
                         SELECT * FROM StudentTermRemarks
-                        WHERE StudentID = @StudentID AND Term = @Term AND Year = @Year";
+                        WHERE StudentID = ? AND Term = ? AND [Year] = ?";
 
                     using (var cmd = new OleDbCommand(query, connection))
                     {
-                        cmd.Parameters.AddWithValue("@StudentID", studentId);
-                        cmd.Parameters.AddWithValue("@Term", term);
-                        cmd.Parameters.AddWithValue("@Year", year);
+                        cmd.Parameters.AddWithValue("?", studentId);
+                        cmd.Parameters.AddWithValue("?", term);
+                        cmd.Parameters.AddWithValue("?", year);
 
                         using (var reader = await cmd.ExecuteReaderAsync())
                         {
@@ -43,16 +44,16 @@ namespace kingdom_Preparatory_School_Management_System.Data
                             {
                                 return new StudentTermRemarks
                                 {
-                                    ID = (int)reader["ID"],
+                                    ID = Convert.ToInt32(reader["ID"]),
                                     StudentID = reader["StudentID"].ToString(),
                                     Term = reader["Term"].ToString(),
                                     Year = reader["Year"].ToString(),
-                                    ClassTeacherRemarks = reader["ClassTeacherRemarks"].ToString(),
-                                    HeadTeacherRemarks = reader["HeadTeacherRemarks"].ToString(),
-                                    Attitude = reader["Attitude"].ToString(),
-                                    Interest = reader["Interest"].ToString(),
-                                    Conduct = reader["Conduct"].ToString(),
-                                    CreatedDate = (DateTime)reader["CreatedDate"],
+                                    ClassTeacherRemarks = reader["ClassTeacherRemarks"]?.ToString() ?? "",
+                                    HeadTeacherRemarks = reader["HeadTeacherRemarks"]?.ToString() ?? "",
+                                    Attitude = reader["Attitude"]?.ToString() ?? "",
+                                    Interest = reader["Interest"]?.ToString() ?? "",
+                                    Conduct = reader["Conduct"]?.ToString() ?? "",
+                                    CreatedDate = reader["CreatedDate"] != DBNull.Value ? (DateTime)reader["CreatedDate"] : DateTime.Now,
                                     ModifiedDate = reader["ModifiedDate"] != DBNull.Value ? (DateTime?)reader["ModifiedDate"] : null
                                 };
                             }
@@ -79,20 +80,20 @@ namespace kingdom_Preparatory_School_Management_System.Data
 
                     const string query = @"
                         INSERT INTO StudentTermRemarks
-                        (StudentID, Term, Year, ClassTeacherRemarks, HeadTeacherRemarks, Attitude, Interest, Conduct, CreatedDate)
-                        VALUES (@StudentID, @Term, @Year, @ClassTeacherRemarks, @HeadTeacherRemarks, @Attitude, @Interest, @Conduct, @CreatedDate)";
+                        (StudentID, Term, [Year], ClassTeacherRemarks, HeadTeacherRemarks, Attitude, Interest, Conduct, CreatedDate)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
                     using (var cmd = new OleDbCommand(query, connection))
                     {
-                        cmd.Parameters.AddWithValue("@StudentID", remarks.StudentID);
-                        cmd.Parameters.AddWithValue("@Term", remarks.Term);
-                        cmd.Parameters.AddWithValue("@Year", remarks.Year);
-                        cmd.Parameters.AddWithValue("@ClassTeacherRemarks", remarks.ClassTeacherRemarks ?? "");
-                        cmd.Parameters.AddWithValue("@HeadTeacherRemarks", remarks.HeadTeacherRemarks ?? "");
-                        cmd.Parameters.AddWithValue("@Attitude", remarks.Attitude ?? "");
-                        cmd.Parameters.AddWithValue("@Interest", remarks.Interest ?? "");
-                        cmd.Parameters.AddWithValue("@Conduct", remarks.Conduct ?? "");
-                        cmd.Parameters.AddWithValue("@CreatedDate", DateTime.Now);
+                        cmd.Parameters.AddWithValue("?", remarks.StudentID);
+                        cmd.Parameters.AddWithValue("?", remarks.Term);
+                        cmd.Parameters.AddWithValue("?", remarks.Year);
+                        cmd.Parameters.AddWithValue("?", remarks.ClassTeacherRemarks ?? "");
+                        cmd.Parameters.AddWithValue("?", remarks.HeadTeacherRemarks ?? "");
+                        cmd.Parameters.AddWithValue("?", remarks.Attitude ?? "");
+                        cmd.Parameters.AddWithValue("?", remarks.Interest ?? "");
+                        cmd.Parameters.AddWithValue("?", remarks.Conduct ?? "");
+                        cmd.Parameters.AddWithValue("?", DateTime.Now);
 
                         return await cmd.ExecuteNonQueryAsync() > 0;
                     }
@@ -115,25 +116,28 @@ namespace kingdom_Preparatory_School_Management_System.Data
 
                     const string query = @"
                         UPDATE StudentTermRemarks
-                        SET ClassTeacherRemarks = @ClassTeacherRemarks,
-                            HeadTeacherRemarks = @HeadTeacherRemarks,
-                            Attitude = @Attitude,
-                            Interest = @Interest,
-                            Conduct = @Conduct,
-                            ModifiedDate = @ModifiedDate
-                        WHERE StudentID = @StudentID AND Term = @Term AND Year = @Year";
+                        SET ClassTeacherRemarks = ?,
+                            HeadTeacherRemarks = ?,
+                            Attitude = ?,
+                            Interest = ?,
+                            Conduct = ?,
+                            ModifiedDate = ?
+                        WHERE StudentID = ? AND Term = ? AND [Year] = ?";
 
                     using (var cmd = new OleDbCommand(query, connection))
                     {
-                        cmd.Parameters.AddWithValue("@ClassTeacherRemarks", remarks.ClassTeacherRemarks ?? "");
-                        cmd.Parameters.AddWithValue("@HeadTeacherRemarks", remarks.HeadTeacherRemarks ?? "");
-                        cmd.Parameters.AddWithValue("@Attitude", remarks.Attitude ?? "");
-                        cmd.Parameters.AddWithValue("@Interest", remarks.Interest ?? "");
-                        cmd.Parameters.AddWithValue("@Conduct", remarks.Conduct ?? "");
-                        cmd.Parameters.AddWithValue("@ModifiedDate", DateTime.Now);
-                        cmd.Parameters.AddWithValue("@StudentID", remarks.StudentID);
-                        cmd.Parameters.AddWithValue("@Term", remarks.Term);
-                        cmd.Parameters.AddWithValue("@Year", remarks.Year);
+                        // Set columns
+                        cmd.Parameters.AddWithValue("?", remarks.ClassTeacherRemarks ?? "");
+                        cmd.Parameters.AddWithValue("?", remarks.HeadTeacherRemarks ?? "");
+                        cmd.Parameters.AddWithValue("?", remarks.Attitude ?? "");
+                        cmd.Parameters.AddWithValue("?", remarks.Interest ?? "");
+                        cmd.Parameters.AddWithValue("?", remarks.Conduct ?? "");
+                        cmd.Parameters.AddWithValue("?", DateTime.Now);
+                        
+                        // Where clause
+                        cmd.Parameters.AddWithValue("?", remarks.StudentID);
+                        cmd.Parameters.AddWithValue("?", remarks.Term);
+                        cmd.Parameters.AddWithValue("?", remarks.Year);
 
                         return await cmd.ExecuteNonQueryAsync() > 0;
                     }
@@ -154,13 +158,13 @@ namespace kingdom_Preparatory_School_Management_System.Data
                 {
                     await connection.OpenAsync();
 
-                    const string query = "DELETE FROM StudentTermRemarks WHERE StudentID = @StudentID AND Term = @Term AND Year = @Year";
+                    const string query = "DELETE FROM StudentTermRemarks WHERE StudentID = ? AND Term = ? AND [Year] = ?";
 
                     using (var cmd = new OleDbCommand(query, connection))
                     {
-                        cmd.Parameters.AddWithValue("@StudentID", studentId);
-                        cmd.Parameters.AddWithValue("@Term", term);
-                        cmd.Parameters.AddWithValue("@Year", year);
+                        cmd.Parameters.AddWithValue("?", studentId);
+                        cmd.Parameters.AddWithValue("?", term);
+                        cmd.Parameters.AddWithValue("?", year);
 
                         return await cmd.ExecuteNonQueryAsync() > 0;
                     }

@@ -2,6 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
+using kingdom_Preparatory_School_Management_System.Common;
+using kingdom_Preparatory_School_Management_System.Models;
+using kingdom_Preparatory_School_Management_System.Services;
 
 namespace kingdom_Preparatory_School_Management_System
 {
@@ -174,9 +177,65 @@ namespace kingdom_Preparatory_School_Management_System
             subjectsGrid.Rows.Add(subject, Value(key), Value(key + "_GRADE"), FormatRank(Value(key + "_POS")), Value(key + "_REMARK"));
         }
 
-        private void GeneratePdf()
+        private async void GeneratePdf()
         {
-            Services.ReportCardPdfService.Export(rowData);
+            try
+            {
+                string studentId = Value("StudentID");
+                string studentName = Value("NAME");
+                string term = Value("TERMS");
+                string year = Value("YEAR");
+
+                if (string.IsNullOrEmpty(studentId))
+                {
+                    UIHelper.ShowError("Student ID is missing. Cannot generate full report card.", "Generate PDF");
+                    return;
+                }
+
+                if (string.IsNullOrEmpty(term))
+                {
+                    UIHelper.ShowWarning("Please ensure a term is selected.", "Generate PDF");
+                    return;
+                }
+
+                // Show Save Dialog
+                using (var sfd = new SaveFileDialog())
+                {
+                    sfd.Filter = "PDF Files (*.pdf)|*.pdf";
+                    sfd.FileName = $"ReportCard_{studentName.Replace(" ", "_")}_{term}_{year.Replace("/", "-")}.pdf";
+                    sfd.Title = "Save Report Card PDF";
+
+                    if (sfd.ShowDialog() == DialogResult.OK)
+                    {
+                        var remarksRepository = new Data.StudentTermRemarksRepository(AppConfig.ConnectionString);
+                        var dataService = new Services.ReportCardDataService(AppConfig.ConnectionString, remarksRepository);
+                        var pdfGenerator = new Services.ReportCardPDFGenerator();
+                        var printer = new Services.ReportCardPrinter();
+                        var manager = new Services.ReportCardManager(dataService, pdfGenerator, printer);
+
+                        var action = new ReportCardOutputAction 
+                        { 
+                            Type = OutputType.Save, 
+                            SavePath = System.IO.Path.GetDirectoryName(sfd.FileName) 
+                        };
+
+                        // Note: The manager uses a fixed naming convention in GenerateAndOutputAsync for saving, 
+                        // so we'll use a direct byte generation here for custom path or let the manager handle it.
+                        // For consistency with existing manager logic:
+                        await manager.GenerateAndOutputAsync(studentId, term, year, action);
+                        
+                        UIHelper.ShowSuccess($"Report card saved successfully to:\n{sfd.FileName}", "Generate PDF");
+                        
+                        // Open the file
+                        try { System.Diagnostics.Process.Start(sfd.FileName); } catch { }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggerHelper.LogError("PDF Generation from preview failed", ex);
+                UIHelper.ShowError("Failed to generate PDF: " + ex.Message, "Generate PDF");
+            }
         }
 
         private string Value(string key)

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Data.OleDb;
 using System.Linq;
 using System.Threading.Tasks;
 using kingdom_Preparatory_School_Management_System.Common;
@@ -10,7 +11,8 @@ using kingdom_Preparatory_School_Management_System.Models;
 namespace kingdom_Preparatory_School_Management_System.Services
 {
     /// <summary>
-    /// Service for retrieving and aggregating all data needed for report card generation
+    /// Service for retrieving and aggregating all data needed for report card generation.
+    /// Updated to handle DBNull safely and ensure correct data types for OLE DB parameters.
     /// </summary>
     public class ReportCardDataService
     {
@@ -23,9 +25,6 @@ namespace kingdom_Preparatory_School_Management_System.Services
             _remarksRepository = remarksRepository;
         }
 
-        /// <summary>
-        /// Retrieves complete report card data for a single student
-        /// </summary>
         public async Task<ReportCardData> GetStudentReportCardDataAsync(string studentId, string term, string year)
         {
             try
@@ -33,16 +32,16 @@ namespace kingdom_Preparatory_School_Management_System.Services
                 // 1. Get student info
                 var student = await GetStudentAsync(studentId);
                 if (student == null)
-                    throw new InvalidOperationException($"Student {studentId} not found");
+                    throw new InvalidOperationException($"Student with ID {studentId} was not found in the 'Students' table.");
 
-                // 2. Get all subject results for this student in this term/year
+                // 2. Get all subject results
                 var examResults = await GetExamResultsAsync(studentId, term, year);
 
-                // 3. Calculate subject-level rankings (rank per subject)
+                // 3. Calculate subject-level rankings
                 var subjectRankings = await CalculateSubjectRankingsAsync(
                     student.ClassID, examResults, term, year);
 
-                // 4. Calculate overall ranking (rank by sum of all subjects)
+                // 4. Calculate overall ranking
                 var overallRanking = await CalculateOverallRankingAsync(
                     student.ClassID, studentId, term, year);
 
@@ -53,7 +52,6 @@ namespace kingdom_Preparatory_School_Management_System.Services
                 var remarks = await _remarksRepository.GetAsync(studentId, term, year)
                     ?? new StudentTermRemarks { StudentID = studentId, Term = term, Year = year };
 
-                // 7. Aggregate into ReportCardData DTO
                 return new ReportCardData
                 {
                     StudentID = student.StudentID,
@@ -75,20 +73,26 @@ namespace kingdom_Preparatory_School_Management_System.Services
             }
             catch (Exception ex)
             {
-                throw new ServiceException($"Error retrieving report card data for student {studentId}", ex);
+                LoggerHelper.LogError($"Report card data aggregation failed for student {studentId}", ex);
+                throw; // Rethrow to let manager handle it
             }
         }
 
         private async Task<Student> GetStudentAsync(string studentId)
         {
-            using (var connection = new System.Data.OleDb.OleDbConnection(_connectionString))
+            using (var connection = new OleDbConnection(_connectionString))
             {
                 await connection.OpenAsync();
-                const string query = "SELECT * FROM Student WHERE StudentID = @StudentID";
+                const string query = "SELECT * FROM Students WHERE StudentID = ?";
 
-                using (var cmd = new System.Data.OleDb.OleDbCommand(query, connection))
+                using (var cmd = new OleDbCommand(query, connection))
                 {
-                    cmd.Parameters.AddWithValue("@StudentID", studentId);
+                    // Ensure studentId is passed as the correct type (int) if the database expects it
+                    if (int.TryParse(studentId, out int idInt))
+                        cmd.Parameters.AddWithValue("?", idInt);
+                    else
+                        cmd.Parameters.AddWithValue("?", studentId);
+
                     using (var reader = await cmd.ExecuteReaderAsync())
                     {
                         if (reader.Read())
@@ -96,12 +100,14 @@ namespace kingdom_Preparatory_School_Management_System.Services
                             return new Student
                             {
                                 StudentID = reader["StudentID"].ToString(),
-                                FirstName = reader["FirstName"].ToString(),
-                                LastName = reader["LastName"].ToString(),
-                                ClassID = reader["ClassID"].ToString(),
-                                Gender = reader["Gender"].ToString(),
-                                ProfilePhoto = reader["ProfilePhoto"] as byte[],
-                                AdmissionDate = DateTime.Parse(reader["AdmissionDate"].ToString())
+                                FirstName = reader["FirstName"]?.ToString() ?? "",
+                                LastName = reader["LastName"]?.ToString() ?? "",
+                                ClassID = reader["ClassID"]?.ToString() ?? "",
+                                Gender = reader["Gender"]?.ToString() ?? "",
+                                ProfilePhoto = reader["Std_pic"] as byte[],
+                                AdmissionDate = reader["admission_date"] != DBNull.Value 
+                                    ? (DateTime)reader["admission_date"] 
+                                    : DateTime.Today
                             };
                         }
                     }
@@ -114,18 +120,20 @@ namespace kingdom_Preparatory_School_Management_System.Services
         {
             var results = new List<ExamResult>();
 
-            using (var connection = new System.Data.OleDb.OleDbConnection(_connectionString))
+            using (var connection = new OleDbConnection(_connectionString))
             {
                 await connection.OpenAsync();
-                const string query = @"
-                    SELECT * FROM ExamResult
-                    WHERE StudentId = @StudentId AND Term = @Term AND Year = @Year";
+                const string query = "SELECT * FROM examss WHERE std_id = ? AND term = ? AND [year] = ?";
 
-                using (var cmd = new System.Data.OleDb.OleDbCommand(query, connection))
+                using (var cmd = new OleDbCommand(query, connection))
                 {
-                    cmd.Parameters.AddWithValue("@StudentId", studentId);
-                    cmd.Parameters.AddWithValue("@Term", term);
-                    cmd.Parameters.AddWithValue("@Year", year);
+                    if (int.TryParse(studentId, out int idInt))
+                        cmd.Parameters.AddWithValue("?", idInt);
+                    else
+                        cmd.Parameters.AddWithValue("?", studentId);
+
+                    cmd.Parameters.AddWithValue("?", term ?? "");
+                    cmd.Parameters.AddWithValue("?", year ?? "");
 
                     using (var reader = await cmd.ExecuteReaderAsync())
                     {
@@ -133,17 +141,17 @@ namespace kingdom_Preparatory_School_Management_System.Services
                         {
                             results.Add(new ExamResult
                             {
-                                StudentId = reader["StudentId"].ToString(),
-                                Subject = reader["Subject"].ToString(),
-                                Term = reader["Term"].ToString(),
-                                Year = reader["Year"].ToString(),
-                                Category1 = decimal.Parse(reader["Category1"].ToString() ?? "0"),
-                                Category2 = decimal.Parse(reader["Category2"].ToString() ?? "0"),
-                                Category3 = decimal.Parse(reader["Category3"].ToString() ?? "0"),
-                                ExamScore = decimal.Parse(reader["ExamScore"].ToString() ?? "0"),
-                                TotalScore = decimal.Parse(reader["TotalScore"].ToString() ?? "0"),
-                                Grade = reader["Grade"].ToString(),
-                                Remark = reader["Remark"].ToString()
+                                StudentId = reader["std_id"].ToString(),
+                                Subject = reader["subject"]?.ToString() ?? "",
+                                Term = reader["term"]?.ToString() ?? "",
+                                Year = reader["year"]?.ToString() ?? "",
+                                Category1 = SafeDecimal(reader["cat1"]),
+                                Category2 = SafeDecimal(reader["cat2"]),
+                                Category3 = SafeDecimal(reader["cat3"]),
+                                ExamScore = SafeDecimal(reader["exam_score"]),
+                                TotalScore = SafeDecimal(reader["gt"]),
+                                Grade = reader["grade"]?.ToString() ?? "",
+                                Remark = reader["remark"]?.ToString() ?? ""
                             });
                         }
                     }
@@ -160,11 +168,9 @@ namespace kingdom_Preparatory_School_Management_System.Services
 
             foreach (var exam in studentResults)
             {
-                // Get all students' scores for this subject/class/term/year
                 var allClassResults = await GetSubjectClassResultsAsync(
                     exam.Subject, classId, term, year);
 
-                // Rank: count how many students scored higher (higher total = better rank)
                 var position = allClassResults.Count(x => x.TotalScore > exam.TotalScore) + 1;
 
                 results.Add(new SubjectResult
@@ -187,21 +193,17 @@ namespace kingdom_Preparatory_School_Management_System.Services
         {
             var results = new List<ExamResult>();
 
-            using (var connection = new System.Data.OleDb.OleDbConnection(_connectionString))
+            using (var connection = new OleDbConnection(_connectionString))
             {
                 await connection.OpenAsync();
-                const string query = @"
-                    SELECT er.* FROM ExamResult er
-                    JOIN Student s ON er.StudentId = s.StudentID
-                    WHERE er.Subject = @Subject AND s.ClassID = @ClassID
-                    AND er.Term = @Term AND er.Year = @Year";
+                const string query = "SELECT gt FROM examss WHERE subject = ? AND std_class = ? AND term = ? AND [year] = ?";
 
-                using (var cmd = new System.Data.OleDb.OleDbCommand(query, connection))
+                using (var cmd = new OleDbCommand(query, connection))
                 {
-                    cmd.Parameters.AddWithValue("@Subject", subject);
-                    cmd.Parameters.AddWithValue("@ClassID", classId);
-                    cmd.Parameters.AddWithValue("@Term", term);
-                    cmd.Parameters.AddWithValue("@Year", year);
+                    cmd.Parameters.AddWithValue("?", subject ?? "");
+                    cmd.Parameters.AddWithValue("?", classId ?? "");
+                    cmd.Parameters.AddWithValue("?", term ?? "");
+                    cmd.Parameters.AddWithValue("?", year ?? "");
 
                     using (var reader = await cmd.ExecuteReaderAsync())
                     {
@@ -209,8 +211,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
                         {
                             results.Add(new ExamResult
                             {
-                                StudentId = reader["StudentId"].ToString(),
-                                TotalScore = decimal.Parse(reader["TotalScore"].ToString() ?? "0")
+                                TotalScore = SafeDecimal(reader["gt"])
                             });
                         }
                     }
@@ -225,83 +226,87 @@ namespace kingdom_Preparatory_School_Management_System.Services
         {
             var allClassAggregates = new List<(string StudentId, decimal AggregateScore)>();
 
-            using (var connection = new System.Data.OleDb.OleDbConnection(_connectionString))
+            using (var connection = new OleDbConnection(_connectionString))
             {
                 await connection.OpenAsync();
-                const string query = @"
-                    SELECT er.StudentId, SUM(er.TotalScore) as AggregateScore
-                    FROM ExamResult er
-                    JOIN Student s ON er.StudentId = s.StudentID
-                    WHERE s.ClassID = @ClassID AND er.Term = @Term AND er.Year = @Year
-                    GROUP BY er.StudentId";
+                const string query = "SELECT std_id, SUM(gt) as AggregateScore FROM examss WHERE std_class = ? AND term = ? AND [year] = ? GROUP BY std_id";
 
-                using (var cmd = new System.Data.OleDb.OleDbCommand(query, connection))
+                using (var cmd = new OleDbCommand(query, connection))
                 {
-                    cmd.Parameters.AddWithValue("@ClassID", classId);
-                    cmd.Parameters.AddWithValue("@Term", term);
-                    cmd.Parameters.AddWithValue("@Year", year);
+                    cmd.Parameters.AddWithValue("?", classId ?? "");
+                    cmd.Parameters.AddWithValue("?", term ?? "");
+                    cmd.Parameters.AddWithValue("?", year ?? "");
 
                     using (var reader = await cmd.ExecuteReaderAsync())
                     {
                         while (reader.Read())
                         {
                             allClassAggregates.Add((
-                                reader["StudentId"].ToString(),
-                                decimal.Parse(reader["AggregateScore"].ToString() ?? "0")
+                                reader["std_id"].ToString(),
+                                SafeDecimal(reader["AggregateScore"])
                             ));
                         }
                     }
                 }
             }
 
-            var studentAggregate = allClassAggregates.FirstOrDefault(x => x.StudentId == studentId);
-            var position = allClassAggregates.Count(x => x.AggregateScore > studentAggregate.AggregateScore) + 1;
+            if (allClassAggregates.Count == 0) return (0, 0);
 
+            var studentAggregate = allClassAggregates.FirstOrDefault(x => x.StudentId == studentId);
+            // If student has no scores at all for the term, they won't be in the aggregate list
+            if (studentAggregate.StudentId == null) return (allClassAggregates.Count + 1, allClassAggregates.Count + 1);
+
+            var position = allClassAggregates.Count(x => x.AggregateScore > studentAggregate.AggregateScore) + 1;
             return (position, allClassAggregates.Count);
         }
 
         private async Task<(int PresentDays, int TotalDays)> GetAttendanceSummaryAsync(
             string studentId, string term, string year)
         {
-            using (var connection = new System.Data.OleDb.OleDbConnection(_connectionString))
+            try
             {
-                await connection.OpenAsync();
-
-                // Count present days
-                const string presentQuery = @"
-                    SELECT COUNT(*) FROM Attendance
-                    WHERE StudentID = @StudentID AND Status = 'Present'
-                    AND YEAR(AttendanceDate) = @Year AND Term = @Term";
-
-                int presentDays = 0;
-                using (var cmd = new System.Data.OleDb.OleDbCommand(presentQuery, connection))
+                using (var connection = new OleDbConnection(_connectionString))
                 {
-                    cmd.Parameters.AddWithValue("@StudentID", studentId);
-                    cmd.Parameters.AddWithValue("@Year", year);
-                    cmd.Parameters.AddWithValue("@Term", term);
-                    presentDays = (int)await cmd.ExecuteScalarAsync();
+                    await connection.OpenAsync();
+
+                    int yearNum = DateTime.Today.Year;
+                    if (!string.IsNullOrEmpty(year) && int.TryParse(year.Split('/')[0], out var y)) yearNum = y;
+
+                    const string presentQuery = "SELECT COUNT(*) FROM Attendance WHERE ReferenceID = ? AND ReferenceType = 'STUDENT' AND [Status] = 'PRESENT' AND YEAR([Date]) = ?";
+                    int presentDays = 0;
+                    using (var cmd = new OleDbCommand(presentQuery, connection))
+                    {
+                        if (int.TryParse(studentId, out int idInt))
+                            cmd.Parameters.AddWithValue("?", idInt);
+                        else
+                            cmd.Parameters.AddWithValue("?", studentId);
+                        
+                        cmd.Parameters.AddWithValue("?", yearNum);
+                        presentDays = Convert.ToInt32(await cmd.ExecuteScalarAsync());
+                    }
+
+                    const string totalQuery = "SELECT COUNT(DISTINCT [Date]) FROM Attendance WHERE YEAR([Date]) = ?";
+                    int totalDays = 0;
+                    using (var cmd = new OleDbCommand(totalQuery, connection))
+                    {
+                        cmd.Parameters.AddWithValue("?", yearNum);
+                        totalDays = Convert.ToInt32(await cmd.ExecuteScalarAsync());
+                    }
+
+                    return (presentDays, totalDays == 0 ? 1 : totalDays);
                 }
-
-                // Count total school days
-                const string totalQuery = @"
-                    SELECT COUNT(DISTINCT AttendanceDate) FROM Attendance
-                    WHERE YEAR(AttendanceDate) = @Year AND Term = @Term";
-
-                int totalDays = 0;
-                using (var cmd = new System.Data.OleDb.OleDbCommand(totalQuery, connection))
-                {
-                    cmd.Parameters.AddWithValue("@Year", year);
-                    cmd.Parameters.AddWithValue("@Term", term);
-                    totalDays = (int)await cmd.ExecuteScalarAsync();
-                }
-
-                return (presentDays, totalDays == 0 ? 1 : totalDays);
+            }
+            catch (Exception ex)
+            {
+                LoggerHelper.LogError($"Attendance summary failed for student {studentId}", ex);
+                return (0, 1); // Return safe default
             }
         }
-    }
 
-    public class ServiceException : Exception
-    {
-        public ServiceException(string message, Exception innerException) : base(message, innerException) { }
+        private decimal SafeDecimal(object value)
+        {
+            if (value == null || value == DBNull.Value) return 0m;
+            return Convert.ToDecimal(value);
+        }
     }
 }

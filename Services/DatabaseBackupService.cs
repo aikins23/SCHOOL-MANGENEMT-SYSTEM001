@@ -123,7 +123,11 @@ namespace kingdom_Preparatory_School_Management_System.Services
                                 await cmd.ExecuteNonQueryAsync();
                             }
                         }
-                        catch { }
+                        catch (Exception cleanupEx)
+                        {
+                            System.Diagnostics.Debug.WriteLine("Failed to restore MULTI_USER mode: " + cleanupEx.Message);
+                            LoggerHelper.LogError("Failed to restore MULTI_USER mode after restore attempt", cleanupEx);
+                        }
                     }
                 }
 

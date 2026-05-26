@@ -225,7 +225,10 @@ namespace kingdom_Preparatory_School_Management_System.Data
                     }
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Services.LoggerHelper.LogError("Error getting unique classes from Students table", ex);
+            }
             return classes;
         }
     }

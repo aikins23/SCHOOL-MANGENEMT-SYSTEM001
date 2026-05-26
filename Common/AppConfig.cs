@@ -163,7 +163,10 @@ namespace kingdom_Preparatory_School_Management_System.Common
                         Properties.Settings.Default.LeaveDaysPerTerm = value;
                         Properties.Settings.Default.Save();
                     }
-                    catch { }
+                    catch (Exception ex)
+                    {
+                        Services.LoggerHelper.LogError("Failed to save LeaveDaysPerTerm setting", ex);
+                    }
                 }
             }
 

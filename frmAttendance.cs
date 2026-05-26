@@ -239,7 +239,10 @@ namespace kingdom_Preparatory_School_Management_System
                         comboClass.Items.Add(cls);
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Services.LoggerHelper.LogError("Failed to load classes in frmAttendance", ex);
+            }
         }
 
         private async System.Threading.Tasks.Task LoadTargetList()

@@ -18,13 +18,15 @@ namespace kingdom_Preparatory_School_Management_System
     {
         private Label statusLabel;
 
-        private static readonly Color PageBackColor = Color.FromArgb(246, 248, 251);
-        private static readonly Color SurfaceColor = Color.White;
-        private static readonly Color PrimaryColor = Color.FromArgb(31, 99, 198);
-        private static readonly Color SidebarColor = Color.FromArgb(17, 35, 58);
-        private static readonly Color TextColor = Color.FromArgb(25, 36, 49);
-        private static readonly Color MutedTextColor = Color.FromArgb(93, 108, 123);
-        private static readonly Color BorderColor = Color.FromArgb(219, 226, 236);
+        private static readonly Color PageBackColor = Color.FromArgb(248, 246, 239);
+        private static readonly Color SurfaceColor = Color.FromArgb(255, 253, 247);
+        private static readonly Color PrimaryColor = Color.FromArgb(11, 31, 73);
+        private static readonly Color SidebarColor = Color.FromArgb(5, 18, 48);
+        private static readonly Color GoldColor = Color.FromArgb(197, 158, 57);
+        private static readonly Color GoldSoft = Color.FromArgb(235, 219, 167);
+        private static readonly Color TextColor = Color.FromArgb(28, 36, 52);
+        private static readonly Color MutedTextColor = Color.FromArgb(105, 113, 130);
+        private static readonly Color BorderColor = Color.FromArgb(215, 207, 185);
 
         public frmlogin()
         {
@@ -42,22 +44,24 @@ namespace kingdom_Preparatory_School_Management_System
             SuspendLayout();
 
             Controls.Clear();
-            Text = "Login";
+            Text = "Kingdom Preparatory School - Login";
             BackColor = PageBackColor;
             Font = new Font("Segoe UI", 9.5F, FontStyle.Regular);
             StartPosition = FormStartPosition.CenterScreen;
-            FormBorderStyle = FormBorderStyle.FixedSingle;
+            FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox = false;
-            ClientSize = new Size(920, 560);
+            MinimizeBox = true;
+            ClientSize = new Size(940, 580);
 
             var root = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
                 ColumnCount = 2,
-                BackColor = PageBackColor
+                BackColor = PageBackColor,
+                Padding = new Padding(0)
             };
-            root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 44));
-            root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 56));
+            root.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 330));
+            root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
 
             root.Controls.Add(BuildBrandPanel(), 0, 0);
             root.Controls.Add(BuildLoginPanel(), 1, 0);
@@ -72,39 +76,90 @@ namespace kingdom_Preparatory_School_Management_System
             {
                 Dock = DockStyle.Fill,
                 BackColor = SidebarColor,
-                Padding = new Padding(34)
+                Padding = new Padding(38, 36, 38, 32)
             };
+
+            pictureBox1.Dock = DockStyle.Top;
+            pictureBox1.Height = 150;
+            pictureBox1.SizeMode = PictureBoxSizeMode.Zoom;
+            pictureBox1.BackColor = Color.Transparent;
+            
+            try
+            {
+                string logoPath = System.IO.Path.Combine(Application.StartupPath, "Resources", "school_logo.png");
+                if (System.IO.File.Exists(logoPath))
+                {
+                    pictureBox1.Image = Image.FromFile(logoPath);
+                }
+                else
+                {
+                    // Fallback to searching for the file in the project structure if not in bin
+                    string projectLogoPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "Resources", "school_logo.png");
+                    if (System.IO.File.Exists(projectLogoPath))
+                    {
+                        pictureBox1.Image = Image.FromFile(projectLogoPath);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("Failed to load login logo: " + ex.Message);
+            }
+
+            panel.Controls.Add(pictureBox1);
 
             panel.Controls.Add(new Label
             {
                 Dock = DockStyle.Bottom,
-                Height = 58,
-                Text = "Neat Academy",
-                ForeColor = Color.FromArgb(191, 219, 254),
-                Font = new Font("Segoe UI Semibold", 13F, FontStyle.Bold),
+                Height = 44,
+                Text = "Secure staff access",
+                ForeColor = Color.FromArgb(154, 168, 205),
+                Font = new Font("Segoe UI", 8.5F),
                 TextAlign = ContentAlignment.BottomLeft
             });
+
+            var rule = new Panel
+            {
+                Dock = DockStyle.Top,
+                Height = 2,
+                BackColor = GoldColor,
+                Margin = new Padding(0, 8, 0, 16)
+            };
 
             var title = new Label
             {
                 Dock = DockStyle.Top,
-                Height = 140,
-                Text = "School Management System",
+                Height = 96,
+                Text = "Kingdom Preparatory School",
                 ForeColor = Color.White,
-                Font = new Font("Segoe UI Semibold", 26F, FontStyle.Bold),
+                Font = new Font("Georgia", 22F, FontStyle.Bold),
                 TextAlign = ContentAlignment.BottomLeft
             };
-            panel.Controls.Add(title);
 
-            panel.Controls.Add(new Label
+            var subtitle = new Label
+            {
+                Dock = DockStyle.Top,
+                Height = 66,
+                Text = "School Management System",
+                ForeColor = GoldSoft,
+                Font = new Font("Segoe UI Semibold", 12F, FontStyle.Bold),
+                TextAlign = ContentAlignment.TopLeft
+            };
+
+            var copy = new Label
             {
                 Dock = DockStyle.Top,
                 Height = 86,
-                Text = "Secure access for admissions, employees, fees, exams, and leave workflows.",
-                ForeColor = Color.FromArgb(203, 213, 225),
-                Font = new Font("Segoe UI", 10.5F),
+                Text = "Sign in to manage admissions, staff records, fees, attendance, exams, and reports.",
+                ForeColor = Color.FromArgb(211, 218, 235),
+                Font = new Font("Segoe UI", 10F),
                 TextAlign = ContentAlignment.TopLeft
-            });
+            };
+
+            panel.Controls.Add(copy);
+            panel.Controls.Add(subtitle);
+            panel.Controls.Add(rule);
+            panel.Controls.Add(title);
 
             return panel;
         }
@@ -115,7 +170,7 @@ namespace kingdom_Preparatory_School_Management_System
             {
                 Dock = DockStyle.Fill,
                 BackColor = PageBackColor,
-                Padding = new Padding(62, 60, 62, 60)
+                Padding = new Padding(72, 64, 72, 64)
             };
 
             var card = new TableLayoutPanel
@@ -124,36 +179,36 @@ namespace kingdom_Preparatory_School_Management_System
                 RowCount = 8,
                 ColumnCount = 1,
                 BackColor = SurfaceColor,
-                Padding = new Padding(34)
+                Padding = new Padding(40, 36, 40, 30)
             };
-            card.RowStyles.Add(new RowStyle(SizeType.Absolute, 48));
-            card.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));
-            card.RowStyles.Add(new RowStyle(SizeType.Absolute, 72));
-            card.RowStyles.Add(new RowStyle(SizeType.Absolute, 72));
+            card.RowStyles.Add(new RowStyle(SizeType.Absolute, 46));
+            card.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
+            card.RowStyles.Add(new RowStyle(SizeType.Absolute, 78));
+            card.RowStyles.Add(new RowStyle(SizeType.Absolute, 78));
             card.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
-            card.RowStyles.Add(new RowStyle(SizeType.Absolute, 48));
+            card.RowStyles.Add(new RowStyle(SizeType.Absolute, 50));
             card.RowStyles.Add(new RowStyle(SizeType.Absolute, 44));
             card.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
             card.Controls.Add(new Label
             {
                 Dock = DockStyle.Fill,
-                Text = "Sign in",
+                Text = "Welcome Back",
                 ForeColor = TextColor,
-                Font = new Font("Segoe UI Semibold", 22F, FontStyle.Bold),
+                Font = new Font("Georgia", 23F, FontStyle.Bold),
                 TextAlign = ContentAlignment.MiddleLeft
             }, 0, 0);
             card.Controls.Add(new Label
             {
                 Dock = DockStyle.Fill,
-                Text = "Use your registered account to continue.",
+                Text = "Enter your account credentials to continue.",
                 ForeColor = MutedTextColor,
                 Font = new Font("Segoe UI", 10F),
                 TextAlign = ContentAlignment.MiddleLeft
             }, 0, 1);
 
-            TXTUser.PlaceholderText = "";
-            TXTPass.PlaceholderText = "";
+            StyleLoginTextBox(TXTUser, "Username");
+            StyleLoginTextBox(TXTPass, "Password");
             TXTPass.PasswordChar = '*';
             card.Controls.Add(CreateField("Username", TXTUser), 0, 2);
             card.Controls.Add(CreateField("Password", TXTPass), 0, 3);
@@ -162,19 +217,25 @@ namespace kingdom_Preparatory_School_Management_System
             Check.Dock = DockStyle.Fill;
             Check.ForeColor = MutedTextColor;
             Check.Font = new Font("Segoe UI", 9.5F);
+            Check.FlatStyle = FlatStyle.Flat;
             card.Controls.Add(Check, 0, 4);
 
             BTN_Login.Text = "Sign in";
             BTN_Login.Dock = DockStyle.Fill;
             BTN_Login.BaseColor = PrimaryColor;
             BTN_Login.ForeColor = Color.White;
+            BTN_Login.Font = new Font("Segoe UI Semibold", 10.5F, FontStyle.Bold);
+            BTN_Login.OnHoverBaseColor = Color.FromArgb(19, 45, 95);
+            BTN_Login.OnHoverForeColor = Color.White;
+            BTN_Login.Radius = 6;
             card.Controls.Add(BTN_Login, 0, 5);
 
             lab_Register.Text = "Create a new account";
             lab_Register.Dock = DockStyle.Fill;
-            lab_Register.ForeColor = PrimaryColor;
+            lab_Register.ForeColor = GoldColor;
             lab_Register.Font = new Font("Segoe UI Semibold", 9.5F, FontStyle.Bold);
             lab_Register.TextAlign = ContentAlignment.MiddleCenter;
+            lab_Register.Cursor = Cursors.Hand;
             card.Controls.Add(lab_Register, 0, 6);
 
             statusLabel = new Label
@@ -210,8 +271,21 @@ namespace kingdom_Preparatory_School_Management_System
                 TextAlign = ContentAlignment.MiddleLeft
             });
             input.Dock = DockStyle.Bottom;
-            input.Height = 34;
+            input.Height = 40;
             return panel;
+        }
+
+        private void StyleLoginTextBox(Guna.UI2.WinForms.Guna2TextBox textBox, string placeholder)
+        {
+            textBox.PlaceholderText = placeholder;
+            textBox.Font = new Font("Segoe UI", 10F);
+            textBox.ForeColor = TextColor;
+            textBox.FillColor = Color.White;
+            textBox.BorderColor = BorderColor;
+            textBox.BorderRadius = 6;
+            textBox.BorderThickness = 1;
+            textBox.FocusedState.BorderColor = GoldColor;
+            textBox.HoverState.BorderColor = GoldColor;
         }
         private void frmlogin_Load(object sender, EventArgs e)
         {

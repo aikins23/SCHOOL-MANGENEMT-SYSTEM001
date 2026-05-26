@@ -1,353 +1,368 @@
 using System;
 using System.Drawing;
 using System.Drawing.Drawing2D;
+using System.Drawing.Imaging;
 using System.Drawing.Text;
+using System.IO;
+using System.Reflection;
 using System.Windows.Forms;
 
 namespace kingdom_Preparatory_School_Management_System
 {
     /// <summary>
-    /// Classic-professional splash screen.
-    /// Layout: dark top band | gradient content | dark bottom band.
-    /// Sequence: fade-in → progress animation (4 s) → fade-out → frmlogin.
+    /// Modern, classic, and professional splash screen.
+    /// Sequence: fade in, animate loading state, fade out, then open login.
     /// </summary>
     public partial class load : Form
     {
-        // ── Palette (classic academic) ─────────────────────────────────────────
-        private static readonly Color BandDark    = Color.FromArgb(6,   11,  46);   // header/footer band
-        private static readonly Color BgDeep      = Color.FromArgb(11,  20,  70);   // gradient top
-        private static readonly Color BgMid       = Color.FromArgb(19,  32,  90);   // gradient bottom
-        private static readonly Color AntiqueGold = Color.FromArgb(212, 175,  55);  // main gold
-        private static readonly Color GoldDim     = Color.FromArgb(148, 118,  30);  // muted gold (rules, track)
-        private static readonly Color GoldFill    = Color.FromArgb(225, 190,  65);  // progress fill
-        private static readonly Color Cream       = Color.FromArgb(255, 252, 235);  // warm white
-        private static readonly Color CreamMuted  = Color.FromArgb(175, 170, 148);  // muted cream
-        private static readonly Color BandText    = Color.FromArgb(110, 118, 168);  // text inside bands
-        private static readonly Color SepLine     = Color.FromArgb( 42,  50, 108);  // thin separator
+        private static readonly Color Navy = Color.FromArgb(11, 31, 73);
+        private static readonly Color NavyDark = Color.FromArgb(5, 18, 48);
+        private static readonly Color NavySoft = Color.FromArgb(25, 52, 103);
+        private static readonly Color Gold = Color.FromArgb(197, 158, 57);
+        private static readonly Color GoldSoft = Color.FromArgb(235, 219, 167);
+        private static readonly Color Ivory = Color.FromArgb(248, 246, 239);
+        private static readonly Color Paper = Color.FromArgb(255, 253, 247);
+        private static readonly Color Ink = Color.FromArgb(28, 36, 52);
+        private static readonly Color MutedInk = Color.FromArgb(105, 113, 130);
+        private static readonly Color Border = Color.FromArgb(215, 207, 185);
 
-        // ── Layout constants ──────────────────────────────────────────────────
-        private const int FormW     = 720;
-        private const int FormH     = 450;
-        private const int BandH     = 52;          // top and bottom band height
+        private const int FormW = 760;
+        private const int FormH = 460;
+        private const int BrandW = 270;
+        private const int CornerRadius = 12;
 
-        // ── Animation ─────────────────────────────────────────────────────────
-        private const int    FadeInterval     = 20;
-        private const double FadeStep         = 0.07;
-        private const int    ProgressInterval = 50;
-        private const int    TotalTicks       = 80;   // 4 s
+        private const int FadeInterval = 18;
+        private const double FadeStep = 0.08;
+        private const int ProgressInterval = 45;
+        private const int TotalTicks = 86;
 
         private static readonly string[] StatusMessages =
         {
-            "Initializing system...",
-            "Loading modules...",
-            "Preparing workspace...",
-            "Almost ready...",
-            "Welcome to Kingdom Preparatory!"
+            "Starting application services",
+            "Checking school records",
+            "Loading academic modules",
+            "Preparing secure workspace",
+            "Opening sign in"
         };
 
-        // ── Live UI refs ──────────────────────────────────────────────────────
+        private Panel _progressTrack;
         private Panel _progressFill;
         private Label _statusLabel;
+        private Label _percentLabel;
         private Timer _progressTimer;
 
-        // ─────────────────────────────────────────────────────────────────────
         public load()
         {
             InitializeComponent();
             BuildSplashScreen();
-            this.Load += OnSplashLoad;
+            Load += OnSplashLoad;
         }
 
-        // ─────────────────────────────────────────────────────────────────────
-        //  Screen builder
-        // ─────────────────────────────────────────────────────────────────────
         private void BuildSplashScreen()
         {
             SuspendLayout();
 
-            BackColor       = BandDark;
             FormBorderStyle = FormBorderStyle.None;
-            ClientSize      = new Size(FormW, FormH);
-            StartPosition   = FormStartPosition.CenterScreen;
-            Opacity         = 0;
-            SetStyle(ControlStyles.AllPaintingInWmPaint |
-                     ControlStyles.OptimizedDoubleBuffer, true);
+            ClientSize = new Size(FormW, FormH);
+            StartPosition = FormStartPosition.CenterScreen;
+            BackColor = Ivory;
+            Opacity = 0;
+            DoubleBuffered = true;
+            Region = new Region(RoundedRect(new Rectangle(0, 0, FormW, FormH), CornerRadius));
+
+            SetStyle(
+                ControlStyles.AllPaintingInWmPaint |
+                ControlStyles.UserPaint |
+                ControlStyles.OptimizedDoubleBuffer,
+                true);
 
             Controls.Clear();
 
-            // ── Heraldic crest (88 × 90) ─────────────────────────────────────
-            const int logoW = 96, logoH = 96;
-            pictureBoxLogo.Bounds    = new Rectangle((FormW - logoW) / 2, BandH + 10, logoW, logoH);
-            pictureBoxLogo.SizeMode  = PictureBoxSizeMode.Zoom;
-            pictureBoxLogo.BackColor = Color.Transparent;
-            pictureBoxLogo.Paint    += PaintCrestFallback;
-
-            // Try loading real school logo; fallback shield is drawn when Image is null
-            try
-            {
-                string logoPath = System.IO.Path.Combine(
-                    System.IO.Path.GetDirectoryName(
-                        System.Reflection.Assembly.GetExecutingAssembly().Location),
-                    "Resources", "school_logo.png");
-                if (System.IO.File.Exists(logoPath))
-                    pictureBoxLogo.Image = Image.FromFile(logoPath);
-            }
-            catch { /* PaintCrestFallback will draw the KPS shield instead */ }
-
-            Controls.Add(pictureBoxLogo);
-
-            // ── School name  (Georgia — classic serif) ────────────────────────
-            Controls.Add(Lbl(
-                "KINGDOM PREPARATORY SCHOOL",
-                new Font("Georgia", 21F, FontStyle.Bold),
-                Cream,
-                new Rectangle(30, BandH + 114, FormW - 60, 46),
-                ContentAlignment.MiddleCenter));
-
-            // ── Gold double rule (title / subtitle divider) ───────────────────
-            int ruleX = (FormW - 300) / 2;
-            Controls.Add(new Panel { Bounds = new Rectangle(ruleX, BandH + 163, 300, 1), BackColor = AntiqueGold });
-            Controls.Add(new Panel { Bounds = new Rectangle(ruleX, BandH + 167, 300, 1), BackColor = AntiqueGold });
-
-            // ── Subtitle ──────────────────────────────────────────────────────
-            Controls.Add(Lbl(
-                "School Management System",
-                new Font("Segoe UI", 11F, FontStyle.Regular),
-                AntiqueGold,
-                new Rectangle(30, BandH + 174, FormW - 60, 28),
-                ContentAlignment.MiddleCenter));
-
-            // ── Tagline (italic, muted) ───────────────────────────────────────
-            Controls.Add(Lbl(
-                "“ KNOWLEDGE  IS  POWER ”",
-                new Font("Segoe UI", 9F, FontStyle.Italic),
-                CreamMuted,
-                new Rectangle(30, BandH + 208, FormW - 60, 22),
-                ContentAlignment.MiddleCenter));
-
-            // ── Thin separator ────────────────────────────────────────────────
-            Controls.Add(new Panel
-            {
-                Bounds    = new Rectangle((FormW - 420) / 2, BandH + 242, 420, 1),
-                BackColor = SepLine
-            });
-
-            // ── Status text ───────────────────────────────────────────────────
-            _statusLabel = Lbl(
-                StatusMessages[0],
-                new Font("Segoe UI", 8.5F, FontStyle.Regular),
-                CreamMuted,
-                new Rectangle(30, BandH + 252, FormW - 60, 20),
-                ContentAlignment.MiddleCenter);
-            Controls.Add(_statusLabel);
-
-            // ── Progress bar (8 px tall, antique gold track) ─────────────────
-            const int trackW = 560;
-            int trackX = (FormW - trackW) / 2;
-            var track = new Panel
-            {
-                Bounds    = new Rectangle(trackX, BandH + 278, trackW, 8),
-                BackColor = GoldDim
-            };
-            _progressFill = new Panel
-            {
-                Bounds    = new Rectangle(0, 0, 0, 8),
-                BackColor = GoldFill
-            };
-            track.Controls.Add(_progressFill);
-            Controls.Add(track);
-
-            // ── Decorative bracket tips on the progress bar ───────────────────
-            // Left cap
-            Controls.Add(new Panel { Bounds = new Rectangle(trackX - 2, BandH + 276, 2, 12), BackColor = AntiqueGold });
-            // Right cap
-            Controls.Add(new Panel { Bounds = new Rectangle(trackX + trackW, BandH + 276, 2, 12), BackColor = AntiqueGold });
+            BuildBrandPanel();
+            BuildContentPanel();
 
             ResumeLayout(false);
         }
 
-        // ─────────────────────────────────────────────────────────────────────
-        //  Background: gradient + dark bands + in-band text
-        // ─────────────────────────────────────────────────────────────────────
+        private void BuildBrandPanel()
+        {
+            pictureBoxLogo.Bounds = new Rectangle(71, 80, 128, 128);
+            pictureBoxLogo.SizeMode = PictureBoxSizeMode.Zoom;
+            pictureBoxLogo.BackColor = Color.Transparent;
+            pictureBoxLogo.Image = LoadLogoImage();
+            pictureBoxLogo.Paint += PaintLogoFallback;
+            Controls.Add(pictureBoxLogo);
+
+            Controls.Add(CreateLabel(
+                "KINGDOM PREP.",
+                new Font("Georgia", 14F, FontStyle.Bold),
+                Color.White,
+                new Rectangle(32, 222, BrandW - 64, 28),
+                ContentAlignment.MiddleCenter));
+
+            Controls.Add(CreateLabel(
+                "AKIM ODA - ABENASE",
+                new Font("Segoe UI Semibold", 8.5F, FontStyle.Bold),
+                GoldSoft,
+                new Rectangle(32, 252, BrandW - 64, 22),
+                ContentAlignment.MiddleCenter));
+
+            Controls.Add(CreateLabel(
+                "Knowledge is Power",
+                new Font("Georgia", 10F, FontStyle.Italic),
+                Color.FromArgb(225, 231, 245),
+                new Rectangle(32, 298, BrandW - 64, 28),
+                ContentAlignment.MiddleCenter));
+
+            Controls.Add(CreateLabel(
+                "Version 1.0.0",
+                new Font("Segoe UI", 8F, FontStyle.Regular),
+                Color.FromArgb(155, 169, 205),
+                new Rectangle(32, FormH - 58, BrandW - 64, 20),
+                ContentAlignment.MiddleCenter));
+        }
+
+        private void BuildContentPanel()
+        {
+            int contentX = BrandW + 48;
+            int contentW = FormW - contentX - 54;
+
+            Controls.Add(CreateLabel(
+                "SCHOOL MANAGEMENT SYSTEM",
+                new Font("Segoe UI Semibold", 8.5F, FontStyle.Bold),
+                Gold,
+                new Rectangle(contentX, 74, contentW, 20),
+                ContentAlignment.MiddleLeft));
+
+            Controls.Add(CreateLabel(
+                "Kingdom Preparatory School",
+                new Font("Georgia", 25F, FontStyle.Bold),
+                Ink,
+                new Rectangle(contentX, 100, contentW, 48),
+                ContentAlignment.MiddleLeft));
+
+            Controls.Add(CreateLabel(
+                "A clean workspace for admissions, academics, finance, attendance, staff, and reports.",
+                new Font("Segoe UI", 10.5F, FontStyle.Regular),
+                MutedInk,
+                new Rectangle(contentX + 1, 153, contentW - 18, 54),
+                ContentAlignment.TopLeft));
+
+            Controls.Add(new Panel
+            {
+                Bounds = new Rectangle(contentX, 220, contentW, 1),
+                BackColor = Border
+            });
+
+            Controls.Add(CreateLabel(
+                "PREPARING YOUR SESSION",
+                new Font("Segoe UI Semibold", 8F, FontStyle.Bold),
+                Color.FromArgb(81, 89, 108),
+                new Rectangle(contentX, 244, contentW, 20),
+                ContentAlignment.MiddleLeft));
+
+            _statusLabel = CreateLabel(
+                StatusMessages[0],
+                new Font("Segoe UI", 9.5F, FontStyle.Regular),
+                MutedInk,
+                new Rectangle(contentX, 270, contentW - 62, 24),
+                ContentAlignment.MiddleLeft);
+            Controls.Add(_statusLabel);
+
+            _percentLabel = CreateLabel(
+                "0%",
+                new Font("Segoe UI Semibold", 9F, FontStyle.Bold),
+                Ink,
+                new Rectangle(contentX + contentW - 58, 270, 58, 24),
+                ContentAlignment.MiddleRight);
+            Controls.Add(_percentLabel);
+
+            _progressTrack = new Panel
+            {
+                Bounds = new Rectangle(contentX, 306, contentW, 7),
+                BackColor = Color.FromArgb(225, 220, 207)
+            };
+            _progressFill = new Panel
+            {
+                Bounds = new Rectangle(0, 0, 0, 7),
+                BackColor = Gold
+            };
+            _progressTrack.Controls.Add(_progressFill);
+            Controls.Add(_progressTrack);
+
+            Controls.Add(CreateLabel(
+                "Developed for reliable daily school administration",
+                new Font("Segoe UI", 8.5F, FontStyle.Regular),
+                Color.FromArgb(128, 135, 151),
+                new Rectangle(contentX, FormH - 72, contentW, 22),
+                ContentAlignment.MiddleLeft));
+        }
+
         protected override void OnPaintBackground(PaintEventArgs e)
         {
-            var g  = e.Graphics;
-            g.SmoothingMode     = SmoothingMode.AntiAlias;
-            g.TextRenderingHint = TextRenderingHint.AntiAlias;
+            var g = e.Graphics;
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            g.TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
 
-            // Top dark band
-            using (var b = new SolidBrush(BandDark))
-                g.FillRectangle(b, 0, 0, FormW, BandH);
+            using (var paper = new SolidBrush(Paper))
+                g.FillRectangle(paper, 0, 0, FormW, FormH);
 
-            // Content gradient
-            using (var b = new LinearGradientBrush(
-                new Rectangle(0, BandH, FormW, FormH - BandH * 2),
-                BgDeep, BgMid, LinearGradientMode.Vertical))
-                g.FillRectangle(b, 0, BandH, FormW, FormH - BandH * 2);
-
-            // Bottom dark band
-            using (var b = new SolidBrush(BandDark))
-                g.FillRectangle(b, 0, FormH - BandH, FormW, BandH);
-
-            // Gold separator lines (band edges)
-            using (var p = new Pen(GoldDim, 1f))
+            using (var brand = new LinearGradientBrush(
+                new Rectangle(0, 0, BrandW, FormH),
+                Navy,
+                NavyDark,
+                LinearGradientMode.Vertical))
             {
-                g.DrawLine(p, 50, BandH,          FormW - 50, BandH);
-                g.DrawLine(p, 50, FormH - BandH,  FormW - 50, FormH - BandH);
+                g.FillRectangle(brand, 0, 0, BrandW, FormH);
             }
 
-            // ── Top band text: form title ─────────────────────────────────────
-            using (var f  = new Font("Segoe UI", 7.5F, FontStyle.Regular))
-            using (var br = new SolidBrush(BandText))
+            using (var accent = new SolidBrush(NavySoft))
+                g.FillRectangle(accent, BrandW - 8, 0, 8, FormH);
+
+            using (var gold = new SolidBrush(Gold))
+                g.FillRectangle(gold, BrandW - 2, 0, 2, FormH);
+
+            DrawBrandOrnaments(g);
+
+            using (var pen = new Pen(Color.FromArgb(175, 166, 145), 1f))
+                g.DrawPath(pen, RoundedRect(new Rectangle(0, 0, FormW - 1, FormH - 1), CornerRadius));
+        }
+
+        private void DrawBrandOrnaments(Graphics g)
+        {
+            using (var pen = new Pen(Color.FromArgb(58, 84, 139), 1f))
             {
-                var sf = new StringFormat
-                {
-                    Alignment     = StringAlignment.Center,
-                    LineAlignment = StringAlignment.Center
-                };
-                g.DrawString(
-                    "SCHOOL MANAGEMENT SYSTEM  ·  v1.0.0",
-                    f, br, new RectangleF(0, 0, FormW, BandH), sf);
+                g.DrawLine(pen, 42, 54, BrandW - 42, 54);
+                g.DrawLine(pen, 42, FormH - 92, BrandW - 42, FormH - 92);
             }
 
-            // ── Bottom band: two footer lines ─────────────────────────────────
-            using (var sf = new StringFormat
+            using (var goldPen = new Pen(Color.FromArgb(150, Gold), 1f))
             {
-                Alignment     = StringAlignment.Center,
-                LineAlignment = StringAlignment.Center
-            })
-            {
-                int bandTop = FormH - BandH;
-
-                using (var f  = new Font("Segoe UI", 8F, FontStyle.Regular))
-                using (var br = new SolidBrush(Color.FromArgb(125, 132, 180)))
-                    g.DrawString(
-                        "© 2024 Kingdom Preparatory School  ·  All Rights Reserved",
-                        f, br, new RectangleF(0, bandTop, FormW, BandH * 0.52f), sf);
-
-                using (var f  = new Font("Segoe UI", 8F, FontStyle.Regular))
-                using (var br = new SolidBrush(Color.FromArgb(95, 102, 150)))
-                    g.DrawString(
-                        "DEVELOPED BY: DARKTEK IMPLECTION",
-                        f, br, new RectangleF(0, bandTop + BandH * 0.50f, FormW, BandH * 0.50f), sf);
+                g.DrawEllipse(goldPen, 52, 61, 166, 166);
+                g.DrawEllipse(goldPen, 63, 72, 144, 144);
             }
         }
 
-        // ─────────────────────────────────────────────────────────────────────
-        //  Heraldic shield crest (fallback when no logo image is assigned)
-        // ─────────────────────────────────────────────────────────────────────
-        private void PaintCrestFallback(object sender, PaintEventArgs e)
+        private void PaintLogoFallback(object sender, PaintEventArgs e)
         {
-            if (pictureBoxLogo.Image != null) return;
+            if (pictureBoxLogo.Image != null)
+                return;
 
             var g = e.Graphics;
-            g.SmoothingMode     = SmoothingMode.AntiAlias;
-            g.TextRenderingHint = TextRenderingHint.AntiAlias;
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            g.TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
 
-            int w = pictureBoxLogo.Width;
-            int h = pictureBoxLogo.Height;
-            const int pad = 5;
-            var outer = new Rectangle(pad, pad, w - pad * 2, h - pad * 2);
-            var inner = new Rectangle(pad + 6, pad + 6, w - (pad + 6) * 2, h - (pad + 6) * 2);
+            Rectangle bounds = new Rectangle(5, 5, pictureBoxLogo.Width - 10, pictureBoxLogo.Height - 10);
+            using (var fill = new SolidBrush(Ivory))
+                g.FillEllipse(fill, bounds);
+            using (var pen = new Pen(Gold, 3f))
+                g.DrawEllipse(pen, bounds);
 
-            // ── Shield fill ───────────────────────────────────────────────────
-            using (var path = ShieldPath(outer))
-            using (var fill = new LinearGradientBrush(outer,
-                Color.FromArgb(22, 36, 100), Color.FromArgb(12, 20, 72),
-                LinearGradientMode.Vertical))
-                g.FillPath(fill, path);
-
-            // ── Outer gold border ─────────────────────────────────────────────
-            using (var path = ShieldPath(outer))
-            using (var pen  = new Pen(AntiqueGold, 2.2f))
-                g.DrawPath(pen, path);
-
-            // ── Inner thin gold border ────────────────────────────────────────
-            using (var path = ShieldPath(inner))
-            using (var pen  = new Pen(Color.FromArgb(140, 212, 175, 55), 1f))
-                g.DrawPath(pen, path);
-
-            // ── "KPS" in classic serif ────────────────────────────────────────
-            using (var font  = new Font("Georgia", 15F, FontStyle.Bold))
-            using (var brush = new SolidBrush(AntiqueGold))
+            using (var font = new Font("Georgia", 22F, FontStyle.Bold))
+            using (var brush = new SolidBrush(Navy))
+            using (var format = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center })
             {
-                var sf = new StringFormat
-                {
-                    Alignment     = StringAlignment.Center,
-                    LineAlignment = StringAlignment.Center
-                };
-                // Centre text in the upper 68 % of the shield (avoids the pointed tip)
-                g.DrawString("KPS", font, brush,
-                    new RectangleF(pad, pad, w - pad * 2, (h - pad * 2) * 0.68f), sf);
+                g.DrawString("KPS", font, brush, bounds, format);
             }
         }
 
-        /// <summary>Classic 5-point heraldic shield from a bounding rectangle.</summary>
-        private static GraphicsPath ShieldPath(Rectangle r)
+        private Image LoadLogoImage()
         {
-            float cx = r.X + r.Width / 2f;
-            var pts = new PointF[]
+            string baseDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+            string[] candidates =
             {
-                new PointF(r.X,     r.Y),                            // top-left
-                new PointF(r.Right, r.Y),                            // top-right
-                new PointF(r.Right, r.Y + r.Height * 0.62f),        // right shoulder
-                new PointF(cx,      r.Bottom),                       // bottom point
-                new PointF(r.X,     r.Y + r.Height * 0.62f),        // left shoulder
+                Path.Combine(baseDir ?? "", "Resources", "school_logo.png"),
+                Path.Combine(baseDir ?? "", "..", "..", "Resources", "school_logo.png"),
+                Path.Combine(Directory.GetCurrentDirectory(), "Resources", "school_logo.png")
             };
-            var p = new GraphicsPath();
-            p.AddPolygon(pts);
-            return p;
+
+            foreach (string candidate in candidates)
+            {
+                try
+                {
+                    if (!File.Exists(candidate))
+                        continue;
+
+                    using (var source = Image.FromFile(candidate))
+                    {
+                        return new Bitmap(source);
+                    }
+                }
+                catch
+                {
+                    // Fallback drawing will render the logo mark.
+                }
+            }
+
+            return null;
         }
 
-        // ─────────────────────────────────────────────────────────────────────
-        //  Helper
-        // ─────────────────────────────────────────────────────────────────────
-        private static Label Lbl(string text, Font font, Color fore,
-                                 Rectangle bounds, ContentAlignment align) =>
-            new Label
+        private static Label CreateLabel(string text, Font font, Color fore, Rectangle bounds, ContentAlignment align)
+        {
+            return new Label
             {
-                Text        = text,
-                Font        = font,
-                ForeColor   = fore,
-                Bounds      = bounds,
-                TextAlign   = align,
-                BackColor   = Color.Transparent,
-                AutoSize    = false,
+                Text = text,
+                Font = font,
+                ForeColor = fore,
+                Bounds = bounds,
+                TextAlign = align,
+                BackColor = Color.Transparent,
+                AutoSize = false,
                 UseMnemonic = false
             };
+        }
 
-        // ─────────────────────────────────────────────────────────────────────
-        //  Life-cycle
-        // ─────────────────────────────────────────────────────────────────────
-        private void OnSplashLoad(object sender, EventArgs e) =>
+        private static GraphicsPath RoundedRect(Rectangle bounds, int radius)
+        {
+            int diameter = radius * 2;
+            var path = new GraphicsPath();
+            path.AddArc(bounds.X, bounds.Y, diameter, diameter, 180, 90);
+            path.AddArc(bounds.Right - diameter, bounds.Y, diameter, diameter, 270, 90);
+            path.AddArc(bounds.Right - diameter, bounds.Bottom - diameter, diameter, diameter, 0, 90);
+            path.AddArc(bounds.X, bounds.Bottom - diameter, diameter, diameter, 90, 90);
+            path.CloseFigure();
+            return path;
+        }
+
+        private void OnSplashLoad(object sender, EventArgs e)
+        {
             FadeIn(StartProgressAnimation);
+        }
 
         private void FadeIn(Action onComplete)
         {
             double opacity = 0;
-            var t = new Timer { Interval = FadeInterval };
-            t.Tick += (s, _) =>
+            var timer = new Timer { Interval = FadeInterval };
+            timer.Tick += (s, args) =>
             {
-                opacity  = Math.Min(opacity + FadeStep, 1.0);
-                Opacity  = opacity;
-                if (opacity >= 1.0) { t.Stop(); t.Dispose(); onComplete?.Invoke(); }
+                opacity = Math.Min(opacity + FadeStep, 1.0);
+                Opacity = opacity;
+
+                if (opacity >= 1.0)
+                {
+                    timer.Stop();
+                    timer.Dispose();
+                    onComplete?.Invoke();
+                }
             };
-            t.Start();
+            timer.Start();
         }
 
         private void StartProgressAnimation()
         {
             int tick = 0;
             _progressTimer = new Timer { Interval = ProgressInterval };
-            _progressTimer.Tick += (s, _) =>
+            _progressTimer.Tick += (s, args) =>
             {
                 tick++;
-                double pct = Math.Min((double)tick / TotalTicks, 1.0);
+                double percent = Math.Min((double)tick / TotalTicks, 1.0);
+                int percentValue = (int)Math.Round(percent * 100);
 
-                _progressFill.Width = (int)(_progressFill.Parent.Width * pct);
+                _progressFill.Width = (int)(_progressTrack.Width * percent);
+                _percentLabel.Text = percentValue + "%";
 
-                int msgIdx = Math.Min((int)(pct * StatusMessages.Length), StatusMessages.Length - 1);
-                _statusLabel.Text  = StatusMessages[msgIdx];
+                int messageIndex = Math.Min((int)(percent * StatusMessages.Length), StatusMessages.Length - 1);
+                _statusLabel.Text = StatusMessages[messageIndex];
 
                 if (tick >= TotalTicks)
                 {
@@ -362,16 +377,26 @@ namespace kingdom_Preparatory_School_Management_System
         private void FadeOut(Action onComplete)
         {
             double opacity = 1.0;
-            var t = new Timer { Interval = FadeInterval };
-            t.Tick += (s, _) =>
+            var timer = new Timer { Interval = FadeInterval };
+            timer.Tick += (s, args) =>
             {
-                opacity  = Math.Max(opacity - FadeStep, 0.0);
-                Opacity  = opacity;
-                if (opacity <= 0) { t.Stop(); t.Dispose(); onComplete?.Invoke(); }
+                opacity = Math.Max(opacity - FadeStep, 0.0);
+                Opacity = opacity;
+
+                if (opacity <= 0)
+                {
+                    timer.Stop();
+                    timer.Dispose();
+                    onComplete?.Invoke();
+                }
             };
-            t.Start();
+            timer.Start();
         }
 
-        private void LaunchLogin() { new frmlogin().Show(); Close(); }
+        private void LaunchLogin()
+        {
+            new frmlogin().Show();
+            Close();
+        }
     }
 }

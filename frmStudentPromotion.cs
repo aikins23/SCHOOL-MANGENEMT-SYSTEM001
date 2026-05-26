@@ -131,7 +131,10 @@ namespace kingdom_Preparatory_School_Management_System
                 }
                 comboTargetClass.Items.Add("GRADUATED");
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Services.LoggerHelper.LogError("Failed to load classes in frmStudentPromotion", ex);
+            }
         }
 
         private async System.Threading.Tasks.Task LoadStudentList()
