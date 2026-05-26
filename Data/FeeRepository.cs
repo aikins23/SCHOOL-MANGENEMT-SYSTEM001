@@ -2,6 +2,7 @@ using System;
 using System.Data;
 using System.Data.OleDb;
 using System.Threading.Tasks;
+using kingdom_Preparatory_School_Management_System.Services;
 
 namespace kingdom_Preparatory_School_Management_System.Data
 {
@@ -35,6 +36,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
             }
             catch (Exception ex)
             {
+                Services.LoggerHelper.LogError($"Error adding initial fee record for student {studentId}", ex);
                 throw new DataException("Error adding initial fee record", ex);
             }
         }
@@ -46,12 +48,12 @@ namespace kingdom_Preparatory_School_Management_System.Data
                 using (var connection = new OleDbConnection(_connectionString))
                 {
                     await connection.OpenAsync();
-                    var query = "INSERT INTO payment_record (StudentID, classID, FeeName, Balance, student_name, Amount_paid, [Date]) VALUES (?, ?, ?, ?, ?, ?, ?)";
+                    // payment_record has no FeeName column — omit it from INSERT.
+                    var query = "INSERT INTO payment_record (StudentID, classID, Balance, student_name, Amount_paid, [Date]) VALUES (?, ?, ?, ?, ?, ?)";
                     using (var command = new OleDbCommand(query, connection))
                     {
                         command.Parameters.AddWithValue("?", studentId);
                         command.Parameters.AddWithValue("?", classId);
-                        command.Parameters.AddWithValue("?", "SCHOOLFEES");
                         command.Parameters.AddWithValue("?", balance);
                         command.Parameters.AddWithValue("?", studentName);
                         command.Parameters.AddWithValue("?", 0m);
@@ -63,6 +65,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
             }
             catch (Exception ex)
             {
+                Services.LoggerHelper.LogError($"Error adding initial payment record for student {studentId}", ex);
                 throw new DataException("Error adding initial payment record", ex);
             }
         }
@@ -88,6 +91,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
             }
             catch (Exception ex)
             {
+                Services.LoggerHelper.LogError($"Error updating fee record for student {studentId}", ex);
                 throw new DataException("Error updating fee record", ex);
             }
         }
@@ -99,11 +103,11 @@ namespace kingdom_Preparatory_School_Management_System.Data
                 using (var connection = new OleDbConnection(_connectionString))
                 {
                     await connection.OpenAsync();
-                    var query = "UPDATE payment_record SET classID = ?, FeeName = ?, Balance = ?, student_name = ? WHERE StudentID = ?";
+                    // payment_record has no FeeName column — omit it from UPDATE.
+                    var query = "UPDATE payment_record SET classID = ?, Balance = ?, student_name = ? WHERE StudentID = ?";
                     using (var command = new OleDbCommand(query, connection))
                     {
                         command.Parameters.AddWithValue("?", classId);
-                        command.Parameters.AddWithValue("?", "SCHOOLFEES");
                         command.Parameters.AddWithValue("?", balance);
                         command.Parameters.AddWithValue("?", studentName);
                         command.Parameters.AddWithValue("?", studentId);
@@ -114,6 +118,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
             }
             catch (Exception ex)
             {
+                Services.LoggerHelper.LogError($"Error updating payment record for student {studentId}", ex);
                 throw new DataException("Error updating payment record", ex);
             }
         }
@@ -139,6 +144,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
             }
             catch (Exception ex)
             {
+                Services.LoggerHelper.LogError($"Error retrieving latest balance for student {studentId}", ex);
                 throw new DataException("Error retrieving latest balance", ex);
             }
             return null;
@@ -166,6 +172,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
             }
             catch (Exception ex)
             {
+                Services.LoggerHelper.LogError($"Error retrieving default balance for student {studentId}", ex);
                 throw new DataException("Error retrieving default balance", ex);
             }
             return null;
@@ -178,12 +185,12 @@ namespace kingdom_Preparatory_School_Management_System.Data
                 using (var connection = new OleDbConnection(_connectionString))
                 {
                     await connection.OpenAsync();
-                    var query = "INSERT INTO payment_record (StudentID, classID, FeeName, Balance, student_name, Amount_paid, [Date], tm, payment_mode, Bursor_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                    // payment_record has no FeeName column — omit it from INSERT.
+                    var query = "INSERT INTO payment_record (StudentID, classID, Balance, student_name, Amount_paid, [Date], tm, payment_mode, Bursor_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
                     using (var command = new OleDbCommand(query, connection))
                     {
                         command.Parameters.AddWithValue("?", studentId);
                         command.Parameters.AddWithValue("?", classId);
-                        command.Parameters.AddWithValue("?", "School Fees");
                         command.Parameters.AddWithValue("?", newBalance);
                         command.Parameters.AddWithValue("?", studentName);
                         command.Parameters.AddWithValue("?", amountPaid);
@@ -192,13 +199,49 @@ namespace kingdom_Preparatory_School_Management_System.Data
                         command.Parameters.AddWithValue("?", paymentMode);
                         command.Parameters.AddWithValue("?", bursarName);
                         var result = await command.ExecuteNonQueryAsync();
+
+                        if (result > 0)
+                        {
+                            var guardianEmail = await GetStudentGuardianEmailAsync(studentId);
+                            if (!string.IsNullOrWhiteSpace(guardianEmail))
+                            {
+                                await NotificationService.SendPaymentReceivedAsync(
+                                    studentName, guardianEmail, amountPaid, newBalance, date, classId
+                                );
+                            }
+                        }
+
                         return result > 0;
                     }
                 }
             }
             catch (Exception ex)
             {
+                Services.LoggerHelper.LogError($"Error adding payment record for student {studentId}", ex);
                 throw new DataException("Error adding payment record", ex);
+            }
+        }
+
+        private async Task<string> GetStudentGuardianEmailAsync(string studentId)
+        {
+            try
+            {
+                using (var connection = new OleDbConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+                    // Actual column name in Students table is GuidianceEmail (legacy typo)
+                    var query = "SELECT GuidianceEmail FROM Students WHERE StudentID = ?";
+                    using (var command = new OleDbCommand(query, connection))
+                    {
+                        command.Parameters.AddWithValue("?", studentId);
+                        var result = await command.ExecuteScalarAsync();
+                        return result?.ToString() ?? "";
+                    }
+                }
+            }
+            catch
+            {
+                return "";
             }
         }
 
@@ -232,6 +275,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
             }
             catch (Exception ex)
             {
+                Services.LoggerHelper.LogError("Error retrieving payment history", ex);
                 throw new DataException("Error retrieving payment history", ex);
             }
             return table;
@@ -270,6 +314,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
             }
             catch (Exception ex)
             {
+                Services.LoggerHelper.LogError("Error retrieving outstanding balances", ex);
                 throw new DataException("Error retrieving outstanding balances", ex);
             }
             return table;
@@ -293,6 +338,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
             }
             catch (Exception ex)
             {
+                Services.LoggerHelper.LogError("Error retrieving fees table", ex);
                 throw new DataException("Error retrieving fees table", ex);
             }
             return table;

@@ -270,9 +270,11 @@ namespace kingdom_Preparatory_School_Management_System
                 ConfigureGridColumns();
                 LoadFilterValues();
                 ApplyFilters();
+                LoggerHelper.LogInfo("Exam results loaded successfully");
             }
             catch (Exception ex)
             {
+                LoggerHelper.LogError("Failed to load exam results in EXAMSVIEW", ex);
                 UIHelper.ShowError("Results could not be loaded: " + ex.Message, "Exam Results");
             }
         }

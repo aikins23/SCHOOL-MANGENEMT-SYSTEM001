@@ -55,7 +55,10 @@ namespace kingdom_Preparatory_School_Management_System.Data
                     }
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Services.LoggerHelper.LogError("Failed to ensure classes table exists", ex);
+            }
         }
 
         public async Task<DataTable> GetAllClassesTableAsync()
@@ -76,6 +79,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
             }
             catch (Exception ex)
             {
+                Services.LoggerHelper.LogError("Error retrieving classes table", ex);
                 throw new DataException("Error retrieving classes table", ex);
             }
             return table;
@@ -119,6 +123,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
             }
             catch (Exception ex)
             {
+                Services.LoggerHelper.LogError($"Error saving class configuration for {config?.ClassName}", ex);
                 throw new DataException("Error saving class configuration", ex);
             }
         }
@@ -141,6 +146,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
             }
             catch (Exception ex)
             {
+                Services.LoggerHelper.LogError($"Error deleting class configuration for {className}", ex);
                 throw new DataException("Error deleting class configuration", ex);
             }
         }
@@ -171,7 +177,10 @@ namespace kingdom_Preparatory_School_Management_System.Data
                     }
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Services.LoggerHelper.LogError($"Error retrieving class by name: {className}", ex);
+            }
             return null;
         }
     }

@@ -16,7 +16,7 @@ namespace kingdom_Preparatory_School_Management_System
         public Form1()
         {
             InitializeComponent();
-            
+
             // Initialize modern architecture
             var studentRepo = new StudentRepository(AppConfig.ConnectionString);
             var feeRepo = new FeeRepository(AppConfig.ConnectionString);
@@ -24,6 +24,23 @@ namespace kingdom_Preparatory_School_Management_System
 
             UiTheme.Apply(this);
             UiTheme.StyleDataGrid(data);
+            AddEmailSettingsMenu();
+        }
+
+        private void AddEmailSettingsMenu()
+        {
+            ToolStripMenuItem settingsMenu = new ToolStripMenuItem("⚙️ Settings");
+            ToolStripMenuItem emailSettingsItem = new ToolStripMenuItem("✉️ Email Settings...",
+                null,
+                (s, e) => new frmEmailSettings().ShowDialog()
+            );
+            ToolStripMenuItem leaveBalanceItem = new ToolStripMenuItem("📊 Leave Balance Report...",
+                null,
+                (s, e) => new frmLeaveBalanceReport().ShowDialog()
+            );
+            settingsMenu.DropDownItems.Add(emailSettingsItem);
+            settingsMenu.DropDownItems.Add(leaveBalanceItem);
+            menuStrip1.Items.Add(settingsMenu);
         }
 
         private async void Form1_Load(object sender, EventArgs e)

@@ -34,7 +34,11 @@ namespace kingdom_Preparatory_School_Management_System.Data
                     }
                 }
             }
-            catch { return false; }
+            catch (Exception ex)
+            {
+                Services.LoggerHelper.LogError($"Error checking if result exists for Student: {studentId}, Subject: {subject}", ex);
+                return false;
+            }
         }
 
         public async Task<bool> AddResultAsync(Models.ExamResult result)
@@ -59,6 +63,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
             }
             catch (Exception ex)
             {
+                Services.LoggerHelper.LogError($"Error adding exam result for {result?.StudentName}", ex);
                 throw new DataException("Error adding exam result", ex);
             }
         }
@@ -85,6 +90,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
             }
             catch (Exception ex)
             {
+                Services.LoggerHelper.LogError($"Error updating exam result for {result?.StudentName}", ex);
                 throw new DataException("Error updating exam result", ex);
             }
         }
@@ -211,6 +217,7 @@ FROM TotalScores";
             }
             catch (Exception ex)
             {
+                Services.LoggerHelper.LogError("Error generating results report table", ex);
                 throw new DataException("Error generating results report table", ex);
             }
             return table;
@@ -237,7 +244,10 @@ FROM TotalScores";
                     }
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Services.LoggerHelper.LogError($"Error retrieving student results for ID: {studentId}, Term: {term}", ex);
+            }
             return table;
         }
 

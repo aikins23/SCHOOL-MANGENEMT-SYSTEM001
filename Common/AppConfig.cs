@@ -43,6 +43,158 @@ namespace kingdom_Preparatory_School_Management_System.Common
         public const int MinStudentAge = 2;
         public const int MaxStudentAge = 25;
 
+        // Email/SMTP Settings
+        public static class Email
+        {
+            public static string SmtpServer
+            {
+                get
+                {
+                    try
+                    {
+                        return Properties.Settings.Default.SmtpServer ?? "smtp.gmail.com";
+                    }
+                    catch
+                    {
+                        return "smtp.gmail.com";
+                    }
+                }
+            }
+
+            public static int SmtpPort
+            {
+                get
+                {
+                    try
+                    {
+                        int port = Properties.Settings.Default.SmtpPort;
+                        return port > 0 ? port : 587;
+                    }
+                    catch
+                    {
+                        return 587;
+                    }
+                }
+            }
+
+            public static string SmtpUsername
+            {
+                get
+                {
+                    try
+                    {
+                        return Properties.Settings.Default.SmtpUsername ?? "";
+                    }
+                    catch
+                    {
+                        return "";
+                    }
+                }
+            }
+
+            public static string SmtpPassword
+            {
+                get
+                {
+                    try
+                    {
+                        return Properties.Settings.Default.SmtpPassword ?? "";
+                    }
+                    catch
+                    {
+                        return "";
+                    }
+                }
+            }
+
+            public static string FromEmail
+            {
+                get
+                {
+                    try
+                    {
+                        return Properties.Settings.Default.FromEmail ?? "noreply@kingdomprep.edu.gh";
+                    }
+                    catch
+                    {
+                        return "noreply@kingdomprep.edu.gh";
+                    }
+                }
+            }
+
+            public static string FromName => "Kingdom Preparatory School";
+
+            public static bool UseSSL
+            {
+                get
+                {
+                    try
+                    {
+                        return Properties.Settings.Default.UseSSL;
+                    }
+                    catch
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            public static bool IsConfigured => !string.IsNullOrWhiteSpace(SmtpUsername) && !string.IsNullOrWhiteSpace(SmtpPassword);
+        }
+
+        // Leave Management
+        public static class Leave
+        {
+            public static int DaysPerTerm
+            {
+                get
+                {
+                    try
+                    {
+                        int v = Properties.Settings.Default.LeaveDaysPerTerm;
+                        return v > 0 ? v : 7;
+                    }
+                    catch { return 7; }
+                }
+                set
+                {
+                    try
+                    {
+                        Properties.Settings.Default.LeaveDaysPerTerm = value;
+                        Properties.Settings.Default.Save();
+                    }
+                    catch { }
+                }
+            }
+
+            /// <summary>
+            /// Resolves the school term containing the given date.
+            /// Ghana school calendar: T1 = Sep-Dec, T2 = Jan-Apr, T3 = May-Aug.
+            /// </summary>
+            public static (string TermName, DateTime Start, DateTime End) GetTerm(DateTime forDate)
+            {
+                int year = forDate.Year;
+                int m = forDate.Month;
+
+                if (m >= 9)
+                    return ($"Term 1 {year}/{year + 1}",
+                            new DateTime(year, 9, 1),
+                            new DateTime(year, 12, 31));
+
+                if (m <= 4)
+                    return ($"Term 2 {year - 1}/{year}",
+                            new DateTime(year, 1, 1),
+                            new DateTime(year, 4, 30));
+
+                return ($"Term 3 {year - 1}/{year}",
+                        new DateTime(year, 5, 1),
+                        new DateTime(year, 8, 31));
+            }
+
+            public static (string TermName, DateTime Start, DateTime End) CurrentTerm =>
+                GetTerm(DateTime.Today);
+        }
+
         // UI Colors
         public static class Colors
         {

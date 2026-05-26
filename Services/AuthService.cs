@@ -49,7 +49,11 @@ namespace kingdom_Preparatory_School_Management_System.Services
                 byte[] actualHash = DeriveHash(password, salt, iterations, expectedHash.Length);
                 return FixedTimeEquals(actualHash, expectedHash);
             }
-            catch { return false; }
+            catch (Exception ex)
+            {
+                LoggerHelper.LogError("Password verification failed due to format error", ex);
+                return false;
+            }
         }
 
         public static bool IsHashedPassword(string storedPassword)
@@ -118,7 +122,11 @@ namespace kingdom_Preparatory_School_Management_System.Services
                     }
                 }
             }
-            catch (Exception ex) { return (false, "Authentication error: " + ex.Message); }
+            catch (Exception ex) 
+            {
+                LoggerHelper.LogError($"Login failed for user {username}", ex);
+                return (false, "Authentication error: " + ex.Message); 
+            }
         }
 
         public static void Logout() { CurrentUser = new UserSession { Role = UserRole.Unknown }; }
@@ -168,7 +176,11 @@ namespace kingdom_Preparatory_School_Management_System.Services
                     }
                 }
             }
-            catch (Exception ex) { return (false, "Registration error: " + ex.Message); }
+            catch (Exception ex) 
+            {
+                LoggerHelper.LogError($"Registration failed for user {username}", ex);
+                return (false, "Registration error: " + ex.Message); 
+            }
         }
 
         private static async System.Threading.Tasks.Task TryUpgradePasswordHashAsync(OleDbConnection connection, string username, string password)
@@ -185,7 +197,10 @@ namespace kingdom_Preparatory_School_Management_System.Services
                     await command.ExecuteNonQueryAsync();
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                LoggerHelper.LogError($"Failed to upgrade password hash for user {username}", ex);
+            }
         }
 
         public static async System.Threading.Tasks.Task EnsureDatabaseSetupAsync()
@@ -236,7 +251,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine("Database setup error: " + ex.Message);
+                LoggerHelper.LogError("Auth database setup error", ex);
             }
         }
 
@@ -267,7 +282,10 @@ namespace kingdom_Preparatory_School_Management_System.Services
                 if (!hasConPassword) Execute(connection, $"ALTER TABLE Users ADD COLUMN Con_Password {textType}");
                 if (!hasUserType) Execute(connection, "ALTER TABLE Users ADD COLUMN User_Type VARCHAR(50)");
             }
-            catch { }
+            catch (Exception ex)
+            {
+                LoggerHelper.LogError("Error ensuring password columns in Users table", ex);
+            }
         }
 
         private static void Execute(OleDbConnection con, string sql) { using (var cmd = new OleDbCommand(sql, con)) cmd.ExecuteNonQuery(); }

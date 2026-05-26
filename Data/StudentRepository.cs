@@ -9,6 +9,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
 {
     /// <summary>
     /// OleDb implementation of Student Repository - Updated for OLE DB compatibility and correct schema
+    /// Matches database typos: Allegies, EmergencyConatct, GuidanceName, GuidianceEmail, Guidiance_Location
     /// </summary>
     public class StudentRepository : IStudentRepository
     {
@@ -126,7 +127,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
                     var query = $@"
                         INSERT INTO {STUDENTS_TABLE} 
                         (FirstName, LastName, DOB, Gender, Email, ClassID, HomeTown, 
-                         Residence, Allergies, EmergencyContact, GuardianName, GuardianEmail, Guardian_Location, 
+                         Residence, Allegies, EmergencyConatct, GuidanceName, GuidianceEmail, Guidiance_Location, 
                          admission_date, Std_pic) 
                         VALUES 
                         (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
@@ -174,9 +175,9 @@ namespace kingdom_Preparatory_School_Management_System.Data
                         UPDATE {STUDENTS_TABLE} 
                         SET FirstName = ?, LastName = ?, DOB = ?, 
                             Gender = ?, ClassID = ?, Email = ?, HomeTown = ?, 
-                            Residence = ?, Allergies = ?, EmergencyContact = ?, 
-                            GuardianName = ?, GuardianEmail = ?, 
-                            Guardian_Location = ?, admission_date = ?, 
+                            Residence = ?, Allegies = ?, EmergencyConatct = ?, 
+                            GuidanceName = ?, GuidianceEmail = ?, 
+                            Guidiance_Location = ?, admission_date = ?, 
                             Std_pic = ? 
                         WHERE StudentID = ?";
 
@@ -272,8 +273,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
                 using (var connection = new OleDbConnection(_connectionString))
                 {
                     await connection.OpenAsync();
-                    // Note: Standard OLE DB for Access/SQL might not support CONCAT or complex formatting easily
-                    // This query is optimized for the project's SQL Server context through OLE DB
+                    // Note: SQL Server OLE DB optimized query
                     var query = $@"
                         SELECT 
                             StudentID AS [ID],
@@ -286,11 +286,11 @@ namespace kingdom_Preparatory_School_Management_System.Data
                             ClassID AS [CLASS ID],
                             HomeTown AS [HOME TOWN],
                             Residence AS [RESIDENCE],
-                            Allergies AS [ALLERGIES],
-                            EmergencyContact AS [EMERGENCY CONTACT],
-                            GuardianName AS [GUARDIAN NAME],
-                            GuardianEmail AS [GUARDIAN EMAIL],
-                            Guardian_Location AS [GUARDIAN LOCATION],
+                            Allegies AS [ALLERGIES],
+                            EmergencyConatct AS [EMERGENCY CONTACT],
+                            GuidanceName AS [GUARDIAN NAME],
+                            GuidianceEmail AS [GUARDIAN EMAIL],
+                            Guidiance_Location AS [GUARDIAN LOCATION],
                             admission_date AS [ADMISSION DATE],
                             Std_pic AS [STUDENT PIC]
                         FROM {STUDENTS_TABLE}
@@ -365,7 +365,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
 
                         var insertQuery = @"
                             INSERT INTO Rolled_Out_Students
-                            (StudentID, FirstName, LastName, DOB, Gender, Email, ClassID, HomeTown, Residence, Allergies, EmergencyContact, GuardianName, GuardianEmail, Guardian_Location, admission_date, [date], Std_pic)
+                            (StudentID, FirstName, LastName, DOB, Gender, Email, ClassID, HomeTown, Residence, Allegies, EmergencyConatct, GuidanceName, GuidianceEmail, Guidiance_Location, admission_date, [date], Std_pic)
                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
                         
                         using (var insCmd = new OleDbCommand(insertQuery, connection, transaction))
@@ -428,11 +428,11 @@ namespace kingdom_Preparatory_School_Management_System.Data
                             ClassID AS [CLASS ID],
                             HomeTown AS [HOME TOWN],
                             Residence AS [RESIDENCE],
-                            Allergies AS [ALLERGIES],
-                            EmergencyContact AS [EMERGENCY CONTACT],
-                            GuardianName AS [GUIDANCE NAME],
-                            GuardianEmail AS [GUIDANCE EMAIL],
-                            Guardian_Location AS [GUIDANCE LOCATION],
+                            Allegies AS [ALLERGIES],
+                            EmergencyConatct AS [EMERGENCY CONTACT],
+                            GuidanceName AS [GUIDANCE NAME],
+                            GuidianceEmail AS [GUIDANCE EMAIL],
+                            Guidiance_Location AS [GUIDANCE LOCATION],
                             admission_date AS [ADMISSION DATE],
                             Std_pic AS [STUDENT PIC]
                         FROM Rolled_Out_Students
@@ -465,12 +465,12 @@ namespace kingdom_Preparatory_School_Management_System.Data
                 Email = reader["Email"].ToString(),
                 HomeTown = reader["HomeTown"].ToString(),
                 Residence = reader["Residence"].ToString(),
-                Allergies = reader["Allergies"].ToString(),
+                Allergies = reader["Allegies"].ToString(),
                 ProfilePhoto = reader["Std_pic"] != DBNull.Value ? (byte[])reader["Std_pic"] : null,
-                GuardianName = reader["GuardianName"].ToString(),
-                GuardianEmail = reader["GuardianEmail"].ToString(),
-                GuardianLocation = reader["Guardian_Location"].ToString(),
-                EmergencyContact = reader["EmergencyContact"].ToString(),
+                GuardianName = reader["GuidanceName"].ToString(),
+                GuardianEmail = reader["GuidianceEmail"].ToString(),
+                GuardianLocation = reader["Guidiance_Location"].ToString(),
+                EmergencyContact = reader["EmergencyConatct"].ToString(),
                 AdmissionDate = (DateTime)reader["admission_date"]
             };
         }

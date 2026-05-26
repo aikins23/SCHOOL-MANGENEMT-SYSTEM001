@@ -50,7 +50,10 @@ namespace kingdom_Preparatory_School_Management_System.Data
                     }
                 }
             }
-            catch { /* Best effort schema management */ }
+            catch (Exception ex)
+            {
+                Services.LoggerHelper.LogError("Failed to ensure attendance table exists", ex);
+            }
         }
 
         public async Task<DataTable> GetTargetListAsync(string type, string classId, DateTime date)
@@ -99,6 +102,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
             }
             catch (Exception ex)
             {
+                Services.LoggerHelper.LogError("Error loading attendance target list", ex);
                 throw new DataException("Error loading attendance target list", ex);
             }
             return table;

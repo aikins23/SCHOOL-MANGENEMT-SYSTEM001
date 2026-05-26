@@ -59,7 +59,11 @@ namespace kingdom_Preparatory_School_Management_System.Data
                     }
                 }
             }
-            catch { return "No data"; }
+            catch (Exception ex)
+            {
+                Services.LoggerHelper.LogError("Error getting top class by enrollment", ex);
+                return "No data";
+            }
         }
 
         public async Task<DataTable> GetRecentPaymentsAsync(int count)
@@ -122,7 +126,10 @@ namespace kingdom_Preparatory_School_Management_System.Data
                     }
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Services.LoggerHelper.LogError($"Error getting monthly fee collection trend for {year}", ex);
+            }
             return table;
         }
 
@@ -140,7 +147,11 @@ namespace kingdom_Preparatory_School_Management_System.Data
                     }
                 }
             }
-            catch { return 0; }
+            catch (Exception ex)
+            {
+                Services.LoggerHelper.LogError($"Error executing scalar int query: {query}", ex);
+                return 0;
+            }
         }
 
         private async Task<decimal> ExecuteScalarDecimalAsync(string query)
@@ -157,7 +168,11 @@ namespace kingdom_Preparatory_School_Management_System.Data
                     }
                 }
             }
-            catch { return 0m; }
+            catch (Exception ex)
+            {
+                Services.LoggerHelper.LogError($"Error executing scalar decimal query: {query}", ex);
+                return 0m;
+            }
         }
 
         private async Task<DataTable> FetchTableAsync(string query)
@@ -175,7 +190,10 @@ namespace kingdom_Preparatory_School_Management_System.Data
                     }
                 }
             }
-            catch { /* Ignore or log */ }
+            catch (Exception ex)
+            {
+                Services.LoggerHelper.LogError($"Error fetching table with query: {query}", ex);
+            }
             return table;
         }
     }

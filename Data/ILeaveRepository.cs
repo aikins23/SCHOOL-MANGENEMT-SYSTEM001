@@ -13,5 +13,8 @@ namespace kingdom_Preparatory_School_Management_System.Data
         Task<DataTable> GetAllLeaveRequestsTableAsync();
         Task<DataTable> GetLeaveRequestsByStatusAsync(string status);
         Task<IEnumerable<Models.LeaveRequest>> GetEmployeeLeaveHistoryAsync(string employeeId);
+        Task<int> GetApprovedDaysInRangeAsync(string employeeId, System.DateTime termStart, System.DateTime termEnd);
+        Task<bool> HasApprovedOverlapAsync(string employeeId, System.DateTime startDate, System.DateTime endDate);
+        Task<DataTable> GetLeaveBalanceTableAsync(System.DateTime termStart, System.DateTime termEnd, int entitlement);
     }
 }

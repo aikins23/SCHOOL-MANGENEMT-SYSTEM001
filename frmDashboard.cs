@@ -389,6 +389,13 @@ public frmDashboard()
             metricGrid.Controls.Add(CreateMetricCard("Fees Collected",  feesCollectedLabel, "Total recorded payments", AccentGold,  "REVENUE"),   2, 0);
             metricGrid.Controls.Add(CreateMetricCard("Outstanding Fees",feesBalanceLabel,   "Positive fee balances",   AccentRed,   "BALANCE"),   3, 0);
 
+            // Currency strings are long ("GHS 15,746.00") — shrink the font and enable
+            // ellipsis so they fit the card width without being clipped to "GH".
+            feesCollectedLabel.Font = new Font("Segoe UI Semibold", 15F, FontStyle.Bold);
+            feesCollectedLabel.AutoEllipsis = true;
+            feesBalanceLabel.Font = new Font("Segoe UI Semibold", 15F, FontStyle.Bold);
+            feesBalanceLabel.AutoEllipsis = true;
+
             var analyticsGrid = BuildAnalyticsGrid();
             var actionPanel = BuildQuickActionsPanel();
 

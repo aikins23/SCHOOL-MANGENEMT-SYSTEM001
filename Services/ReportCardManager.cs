@@ -69,6 +69,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
             }
             catch (Exception ex)
             {
+                LoggerHelper.LogError($"Failed to generate report card for student {studentId}", ex);
                 throw new ReportCardGenerationException(
                     $"Failed to generate report card for student {studentId}", ex);
             }
@@ -110,8 +111,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
                 catch (Exception ex)
                 {
                     // Log error but continue processing other students
-                    System.Diagnostics.Debug.WriteLine(
-                        $"Error generating report card for {studentId}: {ex.Message}");
+                    LoggerHelper.LogError($"Error generating batch report card for {studentId}", ex);
                 }
             }
         }

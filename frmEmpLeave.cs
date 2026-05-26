@@ -445,6 +445,20 @@ namespace kingdom_Preparatory_School_Management_System
                     return;
                 }
 
+                // Balance warning: requested days vs remaining balance for current term
+                int requestedDays = (dtpenddate.Value.Date - dtpdatestart.Value.Date).Days + 1;
+                var preBalance = await _leaveService.GetLeaveBalanceAsync(txtEmployeeId.Text.Trim());
+                if (requestedDays > preBalance.Remaining)
+                {
+                    var proceed = MessageBox.Show(
+                        $"This request is for {requestedDays} day(s), but only {preBalance.Remaining} day(s) " +
+                        $"remain in {preBalance.TermName}.\n\nSubmit anyway?",
+                        "Insufficient Leave Balance",
+                        MessageBoxButtons.YesNo,
+                        MessageBoxIcon.Warning);
+                    if (proceed != DialogResult.Yes) return;
+                }
+
                 // 2. Confirmation
                 if (!ConfirmationHelper.ConfirmSave(
                     $"Submit leave application for {txtName.Text.Trim()} ({GetSelectedReason()}, " +
@@ -519,7 +533,11 @@ namespace kingdom_Preparatory_School_Management_System
                     txtName.Text = employee.FullName;
                     txtdepartment.Text = employee.Department;
                     txtposition.Text = employee.Position;
-                    statusLabel.Text = "Employee loaded.";
+
+                    var balance = await _leaveService.GetLeaveBalanceAsync(employeeId, employee.FullName);
+                    statusLabel.Text =
+                        $"Employee loaded. {balance.TermName}: {balance.Remaining} of {balance.Entitlement} days remaining " +
+                        $"(used {balance.DaysUsed}).";
                 }
                 else
                 {

@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Threading.Tasks;
+using kingdom_Preparatory_School_Management_System.Common;
 using kingdom_Preparatory_School_Management_System.Data;
+using kingdom_Preparatory_School_Management_System.Models;
 
 namespace kingdom_Preparatory_School_Management_System.Services
 {
@@ -24,16 +26,50 @@ namespace kingdom_Preparatory_School_Management_System.Services
                     return (false, "End date cannot be before start date.");
                 }
 
+                // Conflict detection: reject if the requested range overlaps an already-approved leave
+                bool overlap = await _repository.HasApprovedOverlapAsync(
+                    request.EmployeeID, request.StartDate.Date, request.EndDate.Date);
+                if (overlap)
+                {
+                    return (false, "This date range overlaps with an existing approved leave for this employee.");
+                }
+
                 request.Status = "PENDING";
                 bool success = await _repository.AddLeaveRequestAsync(request);
-                return success 
-                    ? (true, "Leave application submitted successfully.") 
+                return success
+                    ? (true, "Leave application submitted successfully.")
                     : (false, "Failed to submit leave application.");
             }
             catch (Exception ex)
             {
                 return (false, "Error applying for leave: " + ex.Message);
             }
+        }
+
+        public async Task<LeaveBalance> GetLeaveBalanceAsync(string employeeId, string employeeName = null)
+        {
+            var term = AppConfig.Leave.CurrentTerm;
+            int entitlement = AppConfig.Leave.DaysPerTerm;
+            int used = string.IsNullOrWhiteSpace(employeeId)
+                ? 0
+                : await _repository.GetApprovedDaysInRangeAsync(employeeId, term.Start, term.End);
+
+            return new LeaveBalance
+            {
+                EmployeeID = employeeId,
+                EmployeeName = employeeName,
+                TermName = term.TermName,
+                TermStart = term.Start,
+                TermEnd = term.End,
+                Entitlement = entitlement,
+                DaysUsed = used
+            };
+        }
+
+        public async Task<DataTable> GetLeaveBalanceReportAsync()
+        {
+            var term = AppConfig.Leave.CurrentTerm;
+            return await _repository.GetLeaveBalanceTableAsync(term.Start, term.End, AppConfig.Leave.DaysPerTerm);
         }
 
         public async Task<(bool Success, string Message)> UpdateLeaveStatusAsync(Models.LeaveRequest request, string newStatus)

@@ -58,6 +58,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
             }
             catch (Exception ex)
             {
+                LoggerHelper.LogError($"Error adding student {student?.FullName}", ex);
                 return (false, $"Error adding student: {ex.Message}");
             }
         }
@@ -96,6 +97,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
             }
             catch (Exception ex)
             {
+                LoggerHelper.LogError($"Error updating student {student?.StudentID}", ex);
                 return (false, $"Error updating student: {ex.Message}");
             }
         }
@@ -119,6 +121,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
             }
             catch (Exception ex)
             {
+                LoggerHelper.LogError($"Error deleting student {studentId}", ex);
                 return (false, $"Error deleting student: {ex.Message}");
             }
         }
@@ -185,6 +188,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
             }
             catch (Exception ex)
             {
+                LoggerHelper.LogError("Error promoting students", ex);
                 return (false, "Error during promotion: " + ex.Message);
             }
         }
@@ -201,6 +205,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
             }
             catch (Exception ex)
             {
+                LoggerHelper.LogError($"Error rolling out student {studentId}", ex);
                 return (false, "Error during roll out: " + ex.Message);
             }
         }

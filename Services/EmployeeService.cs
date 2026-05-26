@@ -37,6 +37,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
             }
             catch (Exception ex)
             {
+                LoggerHelper.LogError($"Error adding employee {employee?.FullName}", ex);
                 return (false, $"Error adding employee: {ex.Message}");
             }
         }
@@ -64,6 +65,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
             }
             catch (Exception ex)
             {
+                LoggerHelper.LogError($"Error updating employee {employee?.EmployeeID}", ex);
                 return (false, $"Error updating employee: {ex.Message}");
             }
         }
@@ -84,6 +86,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
             }
             catch (Exception ex)
             {
+                LoggerHelper.LogError($"Error deleting employee {employeeId}", ex);
                 return (false, $"Error deleting employee: {ex.Message}");
             }
         }
@@ -115,6 +118,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
             }
             catch (Exception ex)
             {
+                LoggerHelper.LogError($"Error terminating employee {employeeId}", ex);
                 return (false, "Error during termination: " + ex.Message);
             }
         }

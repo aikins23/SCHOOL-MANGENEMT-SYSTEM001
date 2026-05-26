@@ -32,5 +32,89 @@ namespace kingdom_Preparatory_School_Management_System.Properties {
                 return ((string)(this["ConnectionString"]));
             }
         }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("smtp.gmail.com")]
+        public string SmtpServer {
+            get {
+                return ((string)(this["SmtpServer"]));
+            }
+            set {
+                this["SmtpServer"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("587")]
+        public int SmtpPort {
+            get {
+                return ((int)(this["SmtpPort"]));
+            }
+            set {
+                this["SmtpPort"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string SmtpUsername {
+            get {
+                return ((string)(this["SmtpUsername"]));
+            }
+            set {
+                this["SmtpUsername"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string SmtpPassword {
+            get {
+                return ((string)(this["SmtpPassword"]));
+            }
+            set {
+                this["SmtpPassword"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("noreply@kingdomprep.edu.gh")]
+        public string FromEmail {
+            get {
+                return ((string)(this["FromEmail"]));
+            }
+            set {
+                this["FromEmail"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool UseSSL {
+            get {
+                return ((bool)(this["UseSSL"]));
+            }
+            set {
+                this["UseSSL"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("7")]
+        public int LeaveDaysPerTerm {
+            get {
+                return ((int)(this["LeaveDaysPerTerm"]));
+            }
+            set {
+                this["LeaveDaysPerTerm"] = value;
+            }
+        }
     }
 }
