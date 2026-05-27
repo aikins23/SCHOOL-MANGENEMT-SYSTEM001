@@ -46,7 +46,16 @@ namespace kingdom_Preparatory_School_Management_System
             adminstratorsToolStripMenuItem.Click    += adminstratorsToolStripMenuItem_Click;
             makePaymentToolStripMenuItem.Click      += makePaymentToolStripMenuItem_Click;
             aboutToolStripMenuItem.Click            += aboutToolStripMenuItem_Click;
+
+            // The designer never wired the Load event — without this the grid stays empty.
+            this.Load += frmStdView_Load;
         }
+
+        // ── Win32 placeholder helper (TextBox.PlaceholderText is not on .NET Framework) ──
+        [System.Runtime.InteropServices.DllImport("user32.dll", CharSet = System.Runtime.InteropServices.CharSet.Auto)]
+        private static extern int SendMessage(IntPtr hWnd, int msg, int wParam,
+            [System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPWStr)] string lParam);
+        private const int EM_SETCUEBANNER = 0x1501;
 
         private void BuildModernStudentView()
         {
@@ -158,6 +167,8 @@ namespace kingdom_Preparatory_School_Management_System
                 BorderStyle = BorderStyle.FixedSingle
             };
             searchBox.TextChanged += (sender, args) => ApplyFilters();
+            searchBox.HandleCreated += (s, e) =>
+                SendMessage(searchBox.Handle, EM_SETCUEBANNER, 1, "Search by ID, first name, or last name…");
 
             classFilter = new ComboBox
             {
@@ -269,62 +280,98 @@ namespace kingdom_Preparatory_School_Management_System
             classFilter.SelectedIndex = 0;
         }
 
-        private async System.Threading.Tasks.Task LoadStudents(string filterId = null, string filterClass = null)
+        private async System.Threading.Tasks.Task LoadStudents()
         {
             try
             {
-                resultLabel.Text = "Loading students...";
-                DataTable table = await _studentService.GetStudentsTableAsync(filterId, filterClass);
-                
+                resultLabel.Text = "Loading students…";
+                DataTable table = await _studentService.GetStudentsTableAsync(null, null);
+
                 studentsGrid.DataSource = table;
-                resultLabel.Text = table.Rows.Count + " student record(s)";
-
-                if (studentsGrid.Columns["STUDENT PIC"] is DataGridViewImageColumn imageCol)
-                {
-                    imageCol.ImageLayout = DataGridViewImageCellLayout.Zoom;
-                }
-
-                if (studentsGrid.Columns["ID"] != null)
-                {
-                    studentsGrid.Columns["ID"].FillWeight = 45;
-                }
+                ConfigureGridColumns();
+                ApplyFilters();
             }
             catch (Exception ex)
             {
                 UIHelper.ShowError("An error occurred while loading students: " + ex.Message, "Students");
+                resultLabel.Text = "Load failed";
             }
         }
 
-        private async void ApplyFilters()
+        private void ConfigureGridColumns()
         {
-            if (studentsGrid == null || classFilter == null || searchBox == null || classFilter.Items.Count == 0)
+            if (studentsGrid.Columns.Count == 0) return;
+
+            // Hide noisy columns and the raw numeric ID (kept in the DataTable for lookups)
+            string[] toHide = { "ID", "EMAIL", "ALLERGIES", "EMERGENCY CONTACT",
+                                "GUARDIAN EMAIL", "GUARDIAN LOCATION", "STUDENT PIC" };
+            foreach (var name in toHide)
             {
-                return;
+                if (studentsGrid.Columns.Contains(name))
+                    studentsGrid.Columns[name].Visible = false;
             }
 
-            string filterId = null;
-            string filterClass = null;
+            // Move STUDENT ID to the front so it's the first visible column
+            if (studentsGrid.Columns.Contains("STUDENT ID"))
+                studentsGrid.Columns["STUDENT ID"].DisplayIndex = 0;
 
-            if (!string.IsNullOrWhiteSpace(searchBox.Text))
+            // Fill columns to use the full grid width
+            studentsGrid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+
+            // Tweak relative widths so essentials get room
+            void Weight(string col, int w)
             {
-                if (int.TryParse(searchBox.Text.Trim(), out _))
-                {
-                    filterId = searchBox.Text.Trim();
-                }
+                if (studentsGrid.Columns.Contains(col)) studentsGrid.Columns[col].FillWeight = w;
+            }
+            Weight("STUDENT ID", 80);
+            Weight("FIRST NAME", 110);
+            Weight("LAST NAME", 110);
+            Weight("CLASS ID", 90);
+            Weight("GENDER", 70);
+            Weight("DATE OF BIRTH", 110);
+            Weight("HOME TOWN", 100);
+            Weight("RESIDENCE", 110);
+            Weight("GUARDIAN NAME", 130);
+            Weight("ADMISSION DATE", 110);
+        }
+
+        private void ApplyFilters()
+        {
+            if (studentsGrid == null || classFilter == null || searchBox == null) return;
+            if (!(studentsGrid.DataSource is DataTable table)) return;
+
+            var clauses = new System.Collections.Generic.List<string>();
+
+            string search = searchBox.Text?.Trim() ?? "";
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                string esc = search.Replace("'", "''");
+                // Match: numeric ID, prefixed Student ID (KPS####), or partial name
+                if (int.TryParse(search, out _))
+                    clauses.Add($"([ID] = {esc} OR [STUDENT ID] LIKE '%{esc}%' OR [FIRST NAME] LIKE '%{esc}%' OR [LAST NAME] LIKE '%{esc}%')");
                 else
-                {
-                    studentsGrid.DataSource = null;
-                    resultLabel.Text = "Enter a numeric student ID";
-                    return;
-                }
+                    clauses.Add($"([STUDENT ID] LIKE '%{esc}%' OR [FIRST NAME] LIKE '%{esc}%' OR [LAST NAME] LIKE '%{esc}%')");
             }
 
             if (classFilter.SelectedIndex > 0)
             {
-                filterClass = classFilter.Text;
+                string cls = classFilter.Text.Replace("'", "''");
+                clauses.Add($"[CLASS ID] = '{cls}'");
             }
 
-            await LoadStudents(filterId, filterClass);
+            try
+            {
+                table.DefaultView.RowFilter = string.Join(" AND ", clauses);
+            }
+            catch
+            {
+                table.DefaultView.RowFilter = string.Empty;
+            }
+
+            int count = table.DefaultView.Count;
+            resultLabel.Text = count == 0
+                ? "No students match the current filters"
+                : $"{count} student record(s)";
         }
 
         private void ClearFilters()
