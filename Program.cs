@@ -56,7 +56,7 @@ namespace kingdom_Preparatory_School_Management_System
             {
                 // Non-fatal — if sqllocaldb is not on PATH the login attempt will
                 // surface the real error message to the user.
-                Common.LoggerHelper.LogWarning($"EnsureLocalDbRunning: {ex.Message}");
+                Services.LoggerHelper.LogWarning($"EnsureLocalDbRunning: {ex.Message}");
             }
         }
     }
