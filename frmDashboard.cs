@@ -336,21 +336,27 @@ public frmDashboard()
                 Margin = Padding.Empty
             };
 
+            // Total fixed row heights: 82 + 200 + 540 + 170 = 992 px
+            // Plus Padding top+bottom 28+28 = 56 px  →  content height = 1048 px
+            const int ContentHeight = 1048;
+
             var content = new TableLayoutPanel
             {
-                Dock = DockStyle.Fill,
-                BackColor = PageBackColor,
-                Padding = new Padding(28),
+                // No Dock — let it keep its own size so scrollHost's AutoScroll works.
+                BackColor  = PageBackColor,
+                Padding    = new Padding(28),
                 ColumnCount = 1,
-                RowCount = 4,
-                // MinimumSize triggers scrollbars on scrollHost when the parent
-                // shrinks below the room this dashboard needs.
-                MinimumSize = new Size(1180, 920)
+                RowCount    = 4,
+                Height      = ContentHeight
             };
             content.RowStyles.Add(new RowStyle(SizeType.Absolute, 82));
             content.RowStyles.Add(new RowStyle(SizeType.Absolute, 200));
             content.RowStyles.Add(new RowStyle(SizeType.Absolute, 540));
             content.RowStyles.Add(new RowStyle(SizeType.Absolute, 170));
+
+            // Width always fills the visible area; scrollbar appears vertically only.
+            scrollHost.SizeChanged += (s, e) =>
+                content.Width = scrollHost.ClientSize.Width;
 
             var header = new TableLayoutPanel
             {
