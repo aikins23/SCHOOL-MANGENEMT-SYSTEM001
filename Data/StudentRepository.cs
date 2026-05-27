@@ -277,7 +277,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
                     var query = $@"
                         SELECT 
                             StudentID AS [ID],
-                            'KPS' + RIGHT('000' + CAST(StudentID AS VARCHAR), 3) AS [UNIQUE ID],
+                            'KPS' + CAST(StudentID AS VARCHAR) AS [STUDENT ID],
                             FirstName AS [FIRST NAME],
                             LastName AS [LAST NAME],
                             DOB AS [DATE OF BIRTH],
@@ -419,7 +419,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
                     var query = @"
                         SELECT 
                             StudentID AS [ID],
-                            'KPS' + RIGHT('000' + CAST(StudentID AS VARCHAR), 3) AS [UNIQUE ID],
+                            'KPS' + CAST(StudentID AS VARCHAR) AS [STUDENT ID],
                             FirstName AS [FIRST NAME],
                             LastName AS [LAST NAME],
                             DOB AS [DATE OF BIRTH],
