@@ -45,6 +45,7 @@ namespace kingdom_Preparatory_School_Management_System
             _studentService = new StudentService(studentRepository, feeRepository);
 
             BuildModernAdmissionView();
+            NavigationSidebar.AddTo(this);
             EnableFormDragging();
 
             // Wire events commented-out in designer
