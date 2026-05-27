@@ -85,7 +85,36 @@ namespace kingdom_Preparatory_School_Management_System.Data
 
         public async Task<DataTable> GetClassEnrollmentSummaryAsync()
         {
-            var query = "SELECT ClassID AS [Class], COUNT(*) AS [Students] FROM Students GROUP BY ClassID ORDER BY ClassID";
+            // Drives the grid off ClassAssignments so every configured class
+            // appears — even classes that currently have zero students.
+            // COUNT(s.StudentID) gives 0 for empty classes (COUNT(*) would give 1).
+            var query = @"
+                SELECT
+                    ca.ClassName              AS [Class],
+                    COUNT(s.StudentID)        AS [Enrollment],
+                    ISNULL(e.fullName, '—')   AS [Class Teacher]
+                FROM ClassAssignments ca
+                LEFT JOIN Students s ON s.ClassID = ca.ClassName
+                LEFT JOIN Employee e ON e.employmentID = ca.ClassTeacherID
+                GROUP BY ca.ClassName, e.fullName
+                ORDER BY
+                    CASE ca.ClassName
+                        WHEN 'CRECHE'         THEN 1
+                        WHEN 'NURSERY 1'      THEN 2
+                        WHEN 'NURSERY 2'      THEN 3
+                        WHEN 'KINDERGARTEN 1' THEN 4
+                        WHEN 'KINDERGARTEN 2' THEN 5
+                        WHEN 'BASIC 1'        THEN 6
+                        WHEN 'BASIC 2'        THEN 7
+                        WHEN 'BASIC 3'        THEN 8
+                        WHEN 'BASIC 4'        THEN 9
+                        WHEN 'BASIC 5'        THEN 10
+                        WHEN 'BASIC 6'        THEN 11
+                        WHEN 'BASIC 7'        THEN 12
+                        WHEN 'BASIC 8'        THEN 13
+                        WHEN 'BASIC 9'        THEN 14
+                        ELSE 99
+                    END";
             return await FetchTableAsync(query);
         }
 
