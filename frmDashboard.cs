@@ -139,7 +139,7 @@ public frmDashboard()
             Font = new Font("Segoe UI", 9.5F, FontStyle.Regular);
             StartPosition = FormStartPosition.CenterScreen;
             MinimumSize = new Size(1280, 760);
-            Size = new Size(1360, 820);
+            Size = new Size(1520, 940);
 
             var root = new TableLayoutPanel
             {
@@ -215,16 +215,30 @@ public frmDashboard()
             // ── Gold brand divider ────────────────────────────────────────────
             var topDivider = new Panel { Dock = DockStyle.Top, Height = 1, BackColor = Color.FromArgb(36, 48, 88) };
 
-            // ── Nav section ───────────────────────────────────────────────────
+            // ── Nav section (scrollable) ──────────────────────────────────────
+            // navScroll fills the space between the top brand block and the
+            // bottom footer, and shows a scrollbar whenever there are more
+            // menu items than the sidebar height can display at once.
+            var navScroll = new Panel
+            {
+                Dock       = DockStyle.Fill,
+                AutoScroll = true,
+                BackColor  = SidebarBackColor
+            };
+
             var nav = new FlowLayoutPanel
             {
-                Dock          = DockStyle.Top,
                 FlowDirection = FlowDirection.TopDown,
                 WrapContents  = false,
-                Height        = 490,
+                AutoSize      = true,
+                AutoSizeMode  = AutoSizeMode.GrowAndShrink,
                 Padding       = new Padding(16, 12, 16, 0),
                 BackColor     = SidebarBackColor
             };
+
+            // Keep nav as wide as navScroll's client area (which shrinks by the
+            // scrollbar width when the scrollbar is visible).
+            navScroll.SizeChanged += (s, e) => nav.Width = navScroll.ClientSize.Width;
 
             nav.Controls.Add(CreateNavButton("Dashboard",      null,                                       true));
             nav.Controls.Add(CreateNavButton("Add Student",    () => OpenForm(new frmAddStd(), true)));
@@ -243,6 +257,8 @@ public frmDashboard()
                 nav.Controls.Add(CreateNavButton("Database Backup", RunBackup));
                 nav.Controls.Add(CreateNavButton("System Logs",     ViewLogs));
             }
+
+            navScroll.Controls.Add(nav);
 
             // ── User info footer ──────────────────────────────────────────────
             var exitBtn = CreateNavButton("Exit", Application.Exit);
@@ -300,7 +316,7 @@ public frmDashboard()
             sidebar.Controls.Add(exitBtn);
             sidebar.Controls.Add(bottomDivider);
             sidebar.Controls.Add(userFooter);
-            sidebar.Controls.Add(nav);
+            sidebar.Controls.Add(navScroll);
             sidebar.Controls.Add(topDivider);
             sidebar.Controls.Add(brand);
 
@@ -309,18 +325,32 @@ public frmDashboard()
 
         private Control BuildContent()
         {
+            // Outer scroll host — kicks in when the window is smaller than
+            // the dashboard's preferred working area.
+            var scrollHost = new Panel
+            {
+                Dock = DockStyle.Fill,
+                BackColor = PageBackColor,
+                AutoScroll = true,
+                Padding = Padding.Empty,
+                Margin = Padding.Empty
+            };
+
             var content = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
                 BackColor = PageBackColor,
                 Padding = new Padding(28),
                 ColumnCount = 1,
-                RowCount = 4
+                RowCount = 4,
+                // MinimumSize triggers scrollbars on scrollHost when the parent
+                // shrinks below the room this dashboard needs.
+                MinimumSize = new Size(1180, 920)
             };
             content.RowStyles.Add(new RowStyle(SizeType.Absolute, 82));
-            content.RowStyles.Add(new RowStyle(SizeType.Absolute, 180));
-            content.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-            content.RowStyles.Add(new RowStyle(SizeType.Absolute, 166));
+            content.RowStyles.Add(new RowStyle(SizeType.Absolute, 200));
+            content.RowStyles.Add(new RowStyle(SizeType.Absolute, 540));
+            content.RowStyles.Add(new RowStyle(SizeType.Absolute, 170));
 
             var header = new TableLayoutPanel
             {
@@ -404,7 +434,8 @@ public frmDashboard()
             content.Controls.Add(analyticsGrid, 0, 2);
             content.Controls.Add(actionPanel, 0, 3);
 
-            return content;
+            scrollHost.Controls.Add(content);
+            return scrollHost;
         }
 
         private Control BuildAnalyticsGrid()
@@ -426,6 +457,9 @@ public frmDashboard()
             recentPaymentsGrid.ScrollBars = ScrollBars.Both;
             classSummaryGrid.ScrollBars = ScrollBars.Vertical;
             leaveSummaryGrid.ScrollBars = ScrollBars.Vertical;
+
+            // Class Enrollment grid stretches its columns to fill the section width.
+            classSummaryGrid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
 
             var paymentsPanel = CreateSectionPanel("Recent Payments");
             paymentsPanel.Margin = new Padding(0, 0, 14, 0);
@@ -543,7 +577,7 @@ public frmDashboard()
         {
             var button = new Button
             {
-                Width  = 208,
+                Width  = 185,   // fits within 225px sidebar minus 16px padding each side, with scrollbar room
                 Height = 44,
                 Margin = new Padding(0, 0, 0, 4),
                 Text   = text,
