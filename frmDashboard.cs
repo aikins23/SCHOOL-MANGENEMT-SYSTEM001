@@ -764,16 +764,10 @@ public frmDashboard()
                 BackColor = AccentGold
             };
 
-            section.Resize += (s, e) =>
-            {
-                titleLabel.Width = section.ClientSize.Width;
-                accent.Width     = section.ClientSize.Width;
-            };
-            section.Layout += (s, e) =>
-            {
-                titleLabel.Width = section.ClientSize.Width;
-                accent.Width     = section.ClientSize.Width;
-            };
+            // titleLabel and accent both have Anchor = Left|Right so WinForms
+            // automatically stretches them when section resizes — no extra handlers needed.
+            // (A Layout handler that sets child widths causes infinite recursion because
+            // changing a child's size fires Layout on the parent again.)
 
             section.Controls.Add(accent);
             section.Controls.Add(titleLabel);
