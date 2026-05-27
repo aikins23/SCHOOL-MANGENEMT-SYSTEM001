@@ -195,7 +195,7 @@ namespace kingdom_Preparatory_School_Management_System
             chartEnrollment.Series.Clear();
             var series = new Series("Students") { ChartType = SeriesChartType.Column, Color = PrimaryColor, IsValueShownAsLabel = true, Font = new Font("Segoe UI", 8F) };
             if (dt == null || dt.Rows.Count == 0) series.Points.AddXY("No data", 0);
-            else foreach (DataRow row in dt.Rows) series.Points.AddXY(row["Class"].ToString(), Convert.ToInt32(row["Students"]));
+            else foreach (DataRow row in dt.Rows) series.Points.AddXY(row["Class"].ToString(), Convert.ToInt32(row["Enrollment"]));
             chartEnrollment.Series.Add(series);
             chartEnrollment.ChartAreas[0].AxisX.Interval = 1;
         }
