@@ -317,35 +317,11 @@ namespace kingdom_Preparatory_School_Management_System
         }
 
         /// <summary>
-        /// Ensures the (localdb)\KPS LocalDB instance is running before we attempt any
-        /// database connection.  LocalDB stops automatically after ~5 minutes of idle;
-        /// this call is instant when the instance is already running.
+        /// Re-wakes KPS in case it auto-stopped while the user was sitting on the
+        /// login screen.  The actual implementation lives in Program.EnsureLocalDbRunning
+        /// so startup and login both go through the same path.
         /// </summary>
-        private static void EnsureLocalDbRunning()
-        {
-            try
-            {
-                var psi = new System.Diagnostics.ProcessStartInfo
-                {
-                    FileName = "sqllocaldb",
-                    Arguments = "start KPS",
-                    UseShellExecute = false,
-                    CreateNoWindow = true,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true
-                };
-                using (var proc = System.Diagnostics.Process.Start(psi))
-                {
-                    proc.WaitForExit(8000); // 8 s max; start usually takes <1 s
-                }
-            }
-            catch (Exception ex)
-            {
-                // Non-fatal: if sqllocaldb.exe is not on PATH the connection attempt
-                // will surface the real error message to the user.
-                LoggerHelper.LogWarning($"EnsureLocalDbRunning: {ex.Message}");
-            }
-        }
+        private static void EnsureLocalDbRunning() => Program.EnsureLocalDbRunning();
 
         private async void LoginUser()
         {
