@@ -102,18 +102,6 @@ namespace kingdom_Preparatory_School_Management_System
 
         private Control BuildHeader()
         {
-            var header = new TableLayoutPanel
-            {
-                Dock = DockStyle.Fill,
-                ColumnCount = 2,
-                BackColor = PageBackColor
-            };
-            // Give the actions column 40 % so buttons have comfortable room even at
-            // minimum form width (1120 px - 225 px sidebar - 52 px root-padding = 843 px
-            // content; 40 % = 337 px — enough for both buttons with a 12 px right gap).
-            header.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 60));
-            header.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 40));
-
             var titleBlock = new Panel { Dock = DockStyle.Fill, BackColor = PageBackColor };
             titleBlock.Controls.Add(new Label
             {
@@ -133,27 +121,7 @@ namespace kingdom_Preparatory_School_Management_System
                 Font = new Font("Segoe UI", 10F),
                 TextAlign = ContentAlignment.MiddleLeft
             });
-
-            // TableLayoutPanel keeps buttons on ONE row regardless of form width.
-            // Right padding (12 px) ensures buttons never touch the form's right border.
-            var actions = new TableLayoutPanel
-            {
-                Dock = DockStyle.Fill,
-                ColumnCount = 3,
-                BackColor = PageBackColor,
-                Padding = new Padding(0, 18, 12, 0)
-            };
-            actions.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); // spacer
-            actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 100)); // Leave View
-            actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 114)); // Submit Leave (primary)
-
-            actions.Controls.Add(new Panel { BackColor = PageBackColor }, 0, 0);
-            actions.Controls.Add(MakeHeaderBtn("Leave View",   () => FormManager.ShowForm<EmpleaveView>(this), false), 1, 0);
-            actions.Controls.Add(MakeHeaderBtn("Submit Leave", SubmitLeave, true), 2, 0);
-
-            header.Controls.Add(titleBlock, 0, 0);
-            header.Controls.Add(actions, 1, 0);
-            return header;
+            return titleBlock;
         }
 
         private Control BuildBody()
@@ -349,28 +317,6 @@ namespace kingdom_Preparatory_School_Management_System
             return wrapper;
         }
 
-        /// <summary>
-        /// Header-row button that fills its TableLayoutPanel cell (Dock.Fill, no fixed Width).
-        /// </summary>
-        private Button MakeHeaderBtn(string text, Action action, bool primary)
-        {
-            var btn = new Button
-            {
-                Dock      = DockStyle.Fill,
-                Margin    = new Padding(8, 0, 0, 0),
-                Text      = text,
-                FlatStyle = FlatStyle.Flat,
-                Font      = new Font("Segoe UI Semibold", 9.25F, FontStyle.Bold),
-                Cursor    = Cursors.Hand,
-                BackColor = primary ? PrimaryColor : SurfaceColor,
-                ForeColor = primary ? Color.White : TextColor
-            };
-            btn.FlatAppearance.BorderColor       = primary ? PrimaryColor : BorderColor;
-            btn.FlatAppearance.MouseOverBackColor = primary ? UiTheme.NavyHover : UiTheme.GoldSoft;
-            btn.Click += (s, e) => action();
-            return btn;
-        }
-
         private Panel CreateSurfacePanel(Padding padding, Padding margin)
         {
             return new Panel
@@ -426,15 +372,17 @@ namespace kingdom_Preparatory_School_Management_System
             var actions = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
-                ColumnCount = 3,
+                ColumnCount = 4,
                 BackColor = PageBackColor
             };
             actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 148)); // Submit Leave (primary)
             actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 112)); // Clear
+            actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 124)); // Leave View
             actions.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));  // fill
 
             actions.Controls.Add(CreatePrimaryButton("Submit Leave", SubmitLeave), 0, 0);
             actions.Controls.Add(CreateSecondaryButton("Clear", ClearForm), 1, 0);
+            actions.Controls.Add(CreateSecondaryButton("Leave View", () => FormManager.ShowForm<EmpleaveView>(this)), 2, 0);
             return actions;
         }
 

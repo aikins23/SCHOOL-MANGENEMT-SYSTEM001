@@ -13,6 +13,12 @@ namespace kingdom_Preparatory_School_Management_System
     {
         private readonly StudentService _studentService;
         private Label statusLabel;
+        private Panel pageHost;
+        private Panel _stepPanel;          // custom-drawn step-dot indicator
+        private Button previousPageButton;
+        private Button nextPageButton;
+        private Control[] formPages;
+        private int currentPageIndex;
 
         private static readonly Color PageBackColor = UiTheme.Page;
         private static readonly Color SurfaceColor = UiTheme.Surface;
@@ -167,15 +173,6 @@ namespace kingdom_Preparatory_School_Management_System
 
         private Control BuildHeader()
         {
-            var header = new TableLayoutPanel
-            {
-                Dock = DockStyle.Fill,
-                ColumnCount = 2,
-                BackColor = PageBackColor
-            };
-            header.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 66));
-            header.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 34));
-
             var titleBlock = new Panel { Dock = DockStyle.Fill, BackColor = PageBackColor };
             titleBlock.Controls.Add(new Label
             {
@@ -195,62 +192,33 @@ namespace kingdom_Preparatory_School_Management_System
                 Font = new Font("Segoe UI", 10F),
                 TextAlign = ContentAlignment.MiddleLeft
             });
-
-            var actions = new FlowLayoutPanel
-            {
-                Dock = DockStyle.Fill,
-                FlowDirection = FlowDirection.RightToLeft,
-                BackColor = PageBackColor,
-                Padding = new Padding(0, 12, 0, 0)
-            };
-            actions.Controls.Add(CreatePrimaryButton("View Students", () =>
-            {
-                Close();
-                new frmStdView().Show();
-            }));
-            actions.Controls.Add(CreateSecondaryButton("Dashboard", () =>
-            {
-                Close();
-                new frmDashboard().Show();
-            }));
-
-            header.Controls.Add(titleBlock, 0, 0);
-            header.Controls.Add(actions, 1, 0);
-            return header;
+            return titleBlock;
         }
 
         private Control BuildFormBody()
         {
-            var body = new TableLayoutPanel
+            pageHost = new Panel
             {
                 Dock = DockStyle.Fill,
-                ColumnCount = 2,
-                BackColor = PageBackColor
-            };
-            body.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 72));
-            body.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 28));
-
-            var detailsStack = new TableLayoutPanel
-            {
-                Dock = DockStyle.Fill,
-                RowCount = 2,
-                ColumnCount = 1,
                 BackColor = PageBackColor,
-                Margin = new Padding(0, 0, 14, 0)
+                Margin = Padding.Empty
             };
-            detailsStack.RowStyles.Add(new RowStyle(SizeType.Percent, 60));
-            detailsStack.RowStyles.Add(new RowStyle(SizeType.Percent, 40));
-            detailsStack.Controls.Add(BuildPersonalPanel(), 0, 0);
-            detailsStack.Controls.Add(BuildGuardianPanel(), 0, 1);
 
-            body.Controls.Add(detailsStack, 0, 0);
-            body.Controls.Add(BuildPhotoPanel(), 1, 0);
-            return body;
+            formPages = new[]
+            {
+                BuildPersonalPanel(),
+                BuildGuardianPanel(),
+                BuildPhotoPanel()
+            };
+            currentPageIndex = 0;
+            ShowStudentPage(currentPageIndex);
+
+            return pageHost;
         }
 
         private Control BuildPersonalPanel()
         {
-            var panel = CreateSurfacePanel(new Padding(24, 20, 24, 22), new Padding(0, 0, 0, 14));
+            var panel = CreateSurfacePanel(new Padding(24, 20, 24, 22), Padding.Empty);
             var layout = CreateSectionLayout("Learner Details", 6, 2);
 
             layout.Controls.Add(CreateField("Student ID", txtStdID), 0, 1);
@@ -445,23 +413,197 @@ namespace kingdom_Preparatory_School_Management_System
 
         private Control BuildActions()
         {
+            // Outer wrapper: [navigator | spacer | CRUD buttons]
+            var wrapper = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 3,
+                RowCount = 1,
+                BackColor = PageBackColor,
+                Padding = new Padding(0, 6, 0, 4)
+            };
+            wrapper.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 284)); // navigator
+            wrapper.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));  // spacer
+            wrapper.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 500)); // CRUD
+
+            // ── Step navigator: [← Back] [step dots] [Next →] ────────────────
+            var nav = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 3,
+                BackColor = PageBackColor,
+                Padding = Padding.Empty,
+                Margin = Padding.Empty
+            };
+            nav.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 88));  // ← Back
+            nav.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));  // step dots
+            nav.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 88));  // Next →
+
+            previousPageButton = MakeNavBtn("← Back", () => MoveStudentPage(-1), false);
+            nextPageButton      = MakeNavBtn("Next →",  () => MoveStudentPage(1),  true);
+
+            _stepPanel = new Panel { Dock = DockStyle.Fill, BackColor = PageBackColor };
+            _stepPanel.Paint += (s, e) => PaintStepDots(e.Graphics, _stepPanel.ClientRectangle, formPages.Length);
+
+            nav.Controls.Add(previousPageButton, 0, 0);
+            nav.Controls.Add(_stepPanel,          1, 0);
+            nav.Controls.Add(nextPageButton,      2, 0);
+
+            // ── CRUD buttons ──────────────────────────────────────────────────
             var actions = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
-                ColumnCount = 5,
-                BackColor = PageBackColor
+                ColumnCount = 4,
+                BackColor = PageBackColor,
+                Margin = Padding.Empty,
+                Padding = Padding.Empty
             };
-            actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 120));
-            actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 120));
-            actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 120));
-            actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 130));
-            actions.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 116));
+            actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 116));
+            actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 116));
+            actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 128));
+            actions.Controls.Add(CreateSecondaryButton("New",      async () => await NewStudent()),       0, 0);
+            actions.Controls.Add(CreatePrimaryButton( "Save",      async () => await SaveStudent()),      1, 0);
+            actions.Controls.Add(CreateSecondaryButton("Update",   async () => await UpdateStudent()),    2, 0);
+            actions.Controls.Add(CreateDangerButton(  "Roll Out",  async () => await RollOutStudent()),   3, 0);
 
-            actions.Controls.Add(CreateSecondaryButton("New", async () => await NewStudent()), 0, 0);
-            actions.Controls.Add(CreatePrimaryButton("Save", async () => await SaveStudent()), 1, 0);
-            actions.Controls.Add(CreateSecondaryButton("Update", async () => await UpdateStudent()), 2, 0);
-            actions.Controls.Add(CreateDangerButton("Roll Out", async () => await RollOutStudent()), 3, 0);
-            return actions;
+            wrapper.Controls.Add(nav,     0, 0);
+            wrapper.Controls.Add(new Panel { Dock = DockStyle.Fill, BackColor = PageBackColor }, 1, 0);
+            wrapper.Controls.Add(actions, 2, 0);
+            ShowStudentPage(currentPageIndex);
+            return wrapper;
+        }
+
+        /// <summary>Flat-styled navigation button that fills its TableLayoutPanel cell.</summary>
+        private Button MakeNavBtn(string text, Action action, bool primary)
+        {
+            var btn = new Button
+            {
+                Dock      = DockStyle.Fill,
+                Margin    = new Padding(primary ? 6 : 0, 0, primary ? 0 : 6, 0),
+                Text      = text,
+                FlatStyle = FlatStyle.Flat,
+                Font      = new Font("Segoe UI Semibold", 9F, FontStyle.Bold),
+                Cursor    = Cursors.Hand,
+                BackColor = primary ? PrimaryColor : SurfaceColor,
+                ForeColor = primary ? Color.White : TextColor
+            };
+            btn.FlatAppearance.BorderColor       = primary ? PrimaryColor : BorderColor;
+            btn.FlatAppearance.MouseOverBackColor = primary ? UiTheme.NavyHover : UiTheme.GoldSoft;
+            btn.Click += (s, e) => action();
+            return btn;
+        }
+
+        /// <summary>
+        /// Paints compact numbered step dots with connecting lines.
+        /// Completed steps: Navy fill. Active step: Navy + Gold ring.
+        /// Upcoming steps: light border fill.
+        /// </summary>
+        private void PaintStepDots(Graphics g, Rectangle bounds, int pageCount)
+        {
+            g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+            const int dotD   = 12;  // dot diameter
+            const int connW  = 22;  // connector width between dot edges
+            int totalW = pageCount * dotD + (pageCount - 1) * connW;
+            int startX = (bounds.Width  - totalW) / 2;
+            int cy     = bounds.Height / 2;
+
+            for (int i = 0; i < pageCount; i++)
+            {
+                int dx = startX + i * (dotD + connW);
+
+                // Connector to the next dot
+                if (i < pageCount - 1)
+                {
+                    bool done = i < currentPageIndex;
+                    using (var pen = new Pen(done ? UiTheme.Navy : UiTheme.Border, 2))
+                        g.DrawLine(pen, dx + dotD, cy, dx + dotD + connW, cy);
+                }
+
+                var rect = new Rectangle(dx, cy - dotD / 2, dotD, dotD);
+
+                if (i < currentPageIndex)
+                {
+                    // ● Completed — solid Navy
+                    using (var br = new SolidBrush(UiTheme.Navy))
+                        g.FillEllipse(br, rect);
+                    // White checkmark text
+                    using (var f  = new Font("Segoe UI", 7F, FontStyle.Bold))
+                    using (var br = new SolidBrush(Color.White))
+                    {
+                        var sf = new System.Drawing.StringFormat
+                        { Alignment = System.Drawing.StringAlignment.Center, LineAlignment = System.Drawing.StringAlignment.Center };
+                        g.DrawString("✓", f, br, rect, sf);
+                    }
+                }
+                else if (i == currentPageIndex)
+                {
+                    // ◉ Active — Navy fill + Gold ring
+                    using (var br = new SolidBrush(UiTheme.Navy))
+                        g.FillEllipse(br, rect);
+                    using (var pen = new Pen(UiTheme.Gold, 2.5f))
+                        g.DrawEllipse(pen, rect.X - 2, rect.Y - 2, rect.Width + 4, rect.Height + 4);
+                    // White step number
+                    using (var f  = new Font("Segoe UI Semibold", 7F, FontStyle.Bold))
+                    using (var br = new SolidBrush(Color.White))
+                    {
+                        var sf = new System.Drawing.StringFormat
+                        { Alignment = System.Drawing.StringAlignment.Center, LineAlignment = System.Drawing.StringAlignment.Center };
+                        g.DrawString((i + 1).ToString(), f, br, rect, sf);
+                    }
+                }
+                else
+                {
+                    // ○ Upcoming — light-gray fill + border
+                    using (var br = new SolidBrush(Color.FromArgb(226, 230, 238)))
+                        g.FillEllipse(br, rect);
+                    using (var pen = new Pen(UiTheme.Border, 1.5f))
+                        g.DrawEllipse(pen, rect);
+                    // Muted step number
+                    using (var f  = new Font("Segoe UI Semibold", 7F, FontStyle.Bold))
+                    using (var br = new SolidBrush(MutedTextColor))
+                    {
+                        var sf = new System.Drawing.StringFormat
+                        { Alignment = System.Drawing.StringAlignment.Center, LineAlignment = System.Drawing.StringAlignment.Center };
+                        g.DrawString((i + 1).ToString(), f, br, rect, sf);
+                    }
+                }
+            }
+        }
+
+        private void MoveStudentPage(int direction)
+        {
+            ShowStudentPage(currentPageIndex + direction);
+        }
+
+        private void ShowStudentPage(int pageIndex)
+        {
+            if (pageHost == null || formPages == null || formPages.Length == 0) return;
+
+            currentPageIndex = Math.Max(0, Math.Min(pageIndex, formPages.Length - 1));
+            pageHost.Controls.Clear();
+
+            var page = formPages[currentPageIndex];
+            page.Dock = DockStyle.Fill;
+            pageHost.Controls.Add(page);
+
+            bool isFirst = currentPageIndex == 0;
+            bool isLast  = currentPageIndex == formPages.Length - 1;
+
+            if (previousPageButton != null)
+            {
+                previousPageButton.Enabled   = !isFirst;
+                previousPageButton.ForeColor = !isFirst ? TextColor : MutedTextColor;
+                previousPageButton.FlatAppearance.BorderColor = !isFirst ? BorderColor : Color.FromArgb(235, 237, 242);
+            }
+            if (nextPageButton != null)
+            {
+                nextPageButton.Enabled   = !isLast;
+                nextPageButton.BackColor = !isLast ? PrimaryColor : Color.FromArgb(160, 174, 192);
+                nextPageButton.Text      = isLast ? "Done ✓" : "Next →";
+            }
+
+            _stepPanel?.Invalidate();
         }
 
         private Button CreatePrimaryButton(string text, Action action)
