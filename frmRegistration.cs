@@ -30,6 +30,7 @@ namespace kingdom_Preparatory_School_Management_System
         public frmRegistration()
         {
             InitializeComponent();
+            if (!AuthService.RequireAccess("frmRegistration", this)) return;
             BuildModernRegistrationView();
 
             // Wire events commented-out in designer
@@ -165,10 +166,13 @@ namespace kingdom_Preparatory_School_Management_System
             Cmb_userTY.Dock = DockStyle.Bottom;
             Cmb_userTY.Height = 32;
             Cmb_userTY.DropDownStyle = ComboBoxStyle.DropDownList;
-            if (Cmb_userTY.Items.Count > 0 && Cmb_userTY.SelectedIndex < 0)
-            {
-                Cmb_userTY.SelectedIndex = 0;
-            }
+            // Replace the designer's outdated items ("Admin", "Normal User") with
+            // the full role list parsed by AuthService.ParseRole.
+            Cmb_userTY.Items.Clear();
+            Cmb_userTY.Items.AddRange(new object[] {
+                "Director", "Administrator", "Headmaster", "Teacher", "Accountant", "Parent"
+            });
+            if (Cmb_userTY.SelectedIndex < 0) Cmb_userTY.SelectedIndex = 0;
 
             card.Controls.Add(CreateField("Username", TXTUsers), 0, 2);
             card.Controls.Add(CreateField("Password", TXTPass), 0, 3);
@@ -271,6 +275,137 @@ namespace kingdom_Preparatory_School_Management_System
 
         }
 
+        private static bool IsStaffRole(string userType)
+        {
+            if (string.IsNullOrEmpty(userType)) return false;
+            switch (userType.Trim().ToUpperInvariant())
+            {
+                case "ADMIN":
+                case "ADMINISTRATOR":
+                case "HEADMASTER":
+                case "TEACHER":
+                case "ACCOUNTANT":
+                    return true;
+                default:
+                    return false; // Director and Parent are not Employee-linked
+            }
+        }
+
+        /// <summary>
+        /// Pops a small modal dialog letting the admin pick an Employee from the
+        /// existing Employee table. Returns the EmploymentID, or null if the
+        /// dialog was cancelled / skipped.
+        /// </summary>
+        private async System.Threading.Tasks.Task<int?> PromptForEmployeeAsync(bool required)
+        {
+            DataTable employees;
+            try
+            {
+                employees = await LoadEmployeesAsync();
+            }
+            catch (Exception ex)
+            {
+                UIHelper.ShowError("Could not load employees: " + ex.Message, "Employee Link");
+                return null;
+            }
+
+            if (employees == null || employees.Rows.Count == 0)
+            {
+                UIHelper.ShowWarning(
+                    "No employee records found. Add the employee first, then create the user account.",
+                    "Employee Link");
+                return null;
+            }
+
+            using (var dlg = new Form())
+            {
+                dlg.Text = required ? "Link Account to Employee (required)" : "Link Account to Employee (optional)";
+                dlg.StartPosition = FormStartPosition.CenterParent;
+                dlg.FormBorderStyle = FormBorderStyle.FixedDialog;
+                dlg.MaximizeBox = false;
+                dlg.MinimizeBox = false;
+                dlg.ClientSize = new Size(420, 170);
+                dlg.Padding = new Padding(16);
+                dlg.Font = new Font("Segoe UI", 9.5F);
+
+                var prompt = new Label
+                {
+                    Dock = DockStyle.Top,
+                    Height = 48,
+                    Text = required
+                        ? "This account must be linked to an employee. Pick one:"
+                        : "Optional — link this account to an employee record.",
+                    TextAlign = ContentAlignment.MiddleLeft
+                };
+
+                var combo = new ComboBox
+                {
+                    Dock = DockStyle.Top,
+                    DropDownStyle = ComboBoxStyle.DropDownList,
+                    Height = 30
+                };
+                foreach (DataRow row in employees.Rows)
+                {
+                    combo.Items.Add(new EmployeeItem
+                    {
+                        EmploymentID = Convert.ToInt32(row["employmentID"]),
+                        Display = $"{row["employmentID"]} — {row["fullName"]} ({row["department"]})"
+                    });
+                }
+                if (combo.Items.Count > 0) combo.SelectedIndex = 0;
+
+                var buttonsRow = new FlowLayoutPanel
+                {
+                    Dock = DockStyle.Bottom,
+                    Height = 48,
+                    FlowDirection = FlowDirection.RightToLeft,
+                    Padding = new Padding(0, 8, 0, 0)
+                };
+
+                var btnOk = new Button { Text = "Link", Width = 100, Height = 32 };
+                var btnCancel = new Button { Text = required ? "Cancel" : "Skip", Width = 100, Height = 32 };
+                btnOk.Click += (s, e) => { dlg.DialogResult = DialogResult.OK; dlg.Close(); };
+                btnCancel.Click += (s, e) => { dlg.DialogResult = DialogResult.Cancel; dlg.Close(); };
+                buttonsRow.Controls.Add(btnOk);
+                buttonsRow.Controls.Add(btnCancel);
+
+                dlg.Controls.Add(buttonsRow);
+                dlg.Controls.Add(combo);
+                dlg.Controls.Add(prompt);
+                dlg.AcceptButton = btnOk;
+                dlg.CancelButton = btnCancel;
+
+                var result = dlg.ShowDialog(this);
+                if (result == DialogResult.OK && combo.SelectedItem is EmployeeItem picked)
+                {
+                    return picked.EmploymentID;
+                }
+                return null;
+            }
+        }
+
+        private async System.Threading.Tasks.Task<DataTable> LoadEmployeesAsync()
+        {
+            var dt = new DataTable();
+            using (var conn = new OleDbConnection(AppConfig.ConnectionString))
+            {
+                await conn.OpenAsync();
+                using (var cmd = new OleDbCommand("SELECT employmentID, fullName, department FROM Employee ORDER BY fullName", conn))
+                using (var adapter = new OleDbDataAdapter(cmd))
+                {
+                    adapter.Fill(dt);
+                }
+            }
+            return dt;
+        }
+
+        private class EmployeeItem
+        {
+            public int EmploymentID { get; set; }
+            public string Display { get; set; }
+            public override string ToString() => Display;
+        }
+
         private async void RegisterUser()
         {
             try
@@ -297,9 +432,23 @@ namespace kingdom_Preparatory_School_Management_System
                 string confirmPassword = TXTCON_Pass.Text;
                 string userType = Cmb_userTY.Text.Trim();
 
+                // Staff roles can be linked to an Employee record. Teacher is REQUIRED
+                // to be linked — drives "own class only" filtering.
+                int? employmentId = null;
+                if (IsStaffRole(userType))
+                {
+                    bool teacherRoleRequiresLink = userType.Equals("Teacher", StringComparison.OrdinalIgnoreCase);
+                    employmentId = await PromptForEmployeeAsync(teacherRoleRequiresLink);
+                    if (teacherRoleRequiresLink && !employmentId.HasValue)
+                    {
+                        if (statusLabel != null) statusLabel.Text = "Teacher account requires an employee link.";
+                        return;
+                    }
+                }
+
                 if (statusLabel != null) statusLabel.Text = "Creating account...";
 
-                var (success, message) = await AuthService.RegisterAsync(username, password, confirmPassword, userType);
+                var (success, message) = await AuthService.RegisterAsync(username, password, confirmPassword, userType, employmentId);
 
                 if (success)
                 {

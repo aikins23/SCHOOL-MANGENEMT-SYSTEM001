@@ -4,6 +4,7 @@ using System.Drawing;
 using System.Windows.Forms;
 using kingdom_Preparatory_School_Management_System.Common;
 using kingdom_Preparatory_School_Management_System.Data;
+using kingdom_Preparatory_School_Management_System.Services;
 
 namespace kingdom_Preparatory_School_Management_System
 {
@@ -26,7 +27,8 @@ namespace kingdom_Preparatory_School_Management_System
         public frmFess()
         {
             InitializeComponent();
-            
+            if (!AuthService.RequireAccess("frmFess", this)) return;
+
             // Initialize modern architecture
             _feeRepository = new FeeRepository(AppConfig.ConnectionString);
 
@@ -36,6 +38,7 @@ namespace kingdom_Preparatory_School_Management_System
             // Wire events commented-out in designer
             gunaPictureBox1.Click += gunaPictureBox1_Click;
             btnEdit.Click         += btnEdit_Click;
+            Load                  += frmFess_Load;
         }
         private void BuildModernFeesView()
         {

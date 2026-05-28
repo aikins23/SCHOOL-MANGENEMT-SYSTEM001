@@ -38,6 +38,7 @@ namespace kingdom_Preparatory_School_Management_System
         public frmBackupManager()
         {
             InitializeComponent();
+            if (!AuthService.RequireAccess("frmBackupManager", this)) return;
             ApplyTheme();
             RefreshBackupList();
             UpdateLastBackupLabel();

@@ -37,7 +37,8 @@ namespace kingdom_Preparatory_School_Management_System
         public frmLeaveApproval()
         {
             InitializeComponent();
-            
+            if (!AuthService.RequireAccess("frmLeaveApproval", this)) return;
+
             // Initialize modern architecture
             var repository = new LeaveRepository(AppConfig.ConnectionString);
             _leaveService = new LeaveService(repository);
@@ -46,6 +47,7 @@ namespace kingdom_Preparatory_School_Management_System
 
             // Wire events commented-out in designer
             gunaPictureBox1.Click += gunaPictureBox1_Click;
+            Load                  += frmLeaveApproval_Load;
         }
 
         private void BuildModernApprovalView()

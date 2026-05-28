@@ -31,14 +31,16 @@ namespace kingdom_Preparatory_School_Management_System
         public frmStdDetails(DataTable data)
         {
             InitializeComponent();
+            if (!AuthService.RequireAccess("frmStdDetails", this)) return;
             this.data = data;
-            
+
             // Initialize modern architecture
             var studentRepo = new StudentRepository(AppConfig.ConnectionString);
             var feeRepo = new FeeRepository(AppConfig.ConnectionString);
             _studentService = new StudentService(studentRepo, feeRepo);
 
             BuildModernStudentDetailsView();
+            Load += frmStdDetails_Load;
 
             // Wire events commented-out in designer
             upload.Click            += upload_Click;

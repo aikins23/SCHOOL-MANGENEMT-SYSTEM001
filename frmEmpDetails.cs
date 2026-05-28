@@ -29,6 +29,7 @@ namespace kingdom_Preparatory_School_Management_System
         public frmEmpDetails(DataTable data)
         {
             InitializeComponent();
+            if (!AuthService.RequireAccess("frmEmpDetails", this)) return;
             this.data = data;
             
             // Initialize modern architecture
@@ -36,6 +37,7 @@ namespace kingdom_Preparatory_School_Management_System
             _employeeService = new EmployeeService(repository);
 
             BuildModernDetailsView();
+            Load += frmEmpDetails_Load;
         }
 
         private void BuildModernDetailsView()

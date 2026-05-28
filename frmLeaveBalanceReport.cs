@@ -24,6 +24,7 @@ namespace kingdom_Preparatory_School_Management_System
 
         public frmLeaveBalanceReport()
         {
+            if (!AuthService.RequireAccess("frmLeaveBalanceReport", this)) return;
             var repo = new LeaveRepository(AppConfig.ConnectionString);
             _leaveService = new LeaveService(repo);
             BuildUI();

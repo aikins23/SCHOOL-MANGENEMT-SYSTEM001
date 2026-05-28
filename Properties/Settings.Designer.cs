@@ -26,7 +26,7 @@ namespace kingdom_Preparatory_School_Management_System.Properties {
         [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.SpecialSettingAttribute(global::System.Configuration.SpecialSetting.ConnectionString)]
-        [global::System.Configuration.DefaultSettingValueAttribute("Provider=MSOLEDBSQL;Data Source=(localdb)\\KPS;Integrated Security=SSPI;Initial Catalog=Neat_Academy;Encrypt=False")]
+        [global::System.Configuration.DefaultSettingValueAttribute("Provider=MSOLEDBSQL;Data Source=(localdb)\\MSSQLLocalDB;Integrated Security=SSPI;Initial Catalog=Neat_Academy;Encrypt=False")]
         public string ConnectionString {
             get {
                 return ((string)(this["ConnectionString"]));

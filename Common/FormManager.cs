@@ -13,6 +13,7 @@ namespace kingdom_Preparatory_School_Management_System.Common
     {
         private static Dictionary<Type, Form> _openForms = new Dictionary<Type, Form>();
         private static Form _mainDashboard;
+        private static bool _isClosingAllForms = false;
 
         /// <summary>
         /// Sets the main dashboard form that should remain active
@@ -131,21 +132,31 @@ namespace kingdom_Preparatory_School_Management_System.Common
         /// </summary>
         public static void CloseAllForms()
         {
-            var formsToClose = _openForms.Values.Where(f => f != null && !f.IsDisposed).ToList();
+            if (_isClosingAllForms) return;
 
-            foreach (var form in formsToClose)
+            _isClosingAllForms = true;
+            try
             {
-                try
-                {
-                    form.Close();
-                }
-                catch
-                {
-                    // Form already closed or disposed
-                }
-            }
+                var formsToClose = _openForms.Values.Where(f => f != null && !f.IsDisposed).ToList();
 
-            _openForms.Clear();
+                foreach (var form in formsToClose)
+                {
+                    try
+                    {
+                        form.Close();
+                    }
+                    catch
+                    {
+                        // Form already closed or disposed
+                    }
+                }
+
+                _openForms.Clear();
+            }
+            finally
+            {
+                _isClosingAllForms = false;
+            }
         }
 
         /// <summary>

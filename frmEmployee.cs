@@ -2,6 +2,8 @@ using System;
 using System.Drawing;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.Collections.Generic;
+using System.Linq;
 using kingdom_Preparatory_School_Management_System.Common;
 using kingdom_Preparatory_School_Management_System.Data;
 using kingdom_Preparatory_School_Management_System.Services;
@@ -12,7 +14,10 @@ namespace kingdom_Preparatory_School_Management_System
     public partial class frmEmployee : Form
     {
         private readonly EmployeeService _employeeService;
+        private readonly IClassRepository _classRepository;
         private Label statusLabel;
+        private ComboBox cmbClass;
+        private const string NoClassLabel = "No class";
 
         private static readonly Color PageBackColor = UiTheme.Page;
         private static readonly Color SurfaceColor = UiTheme.Surface;
@@ -37,10 +42,12 @@ namespace kingdom_Preparatory_School_Management_System
         public frmEmployee()
         {
             InitializeComponent();
+            if (!AuthService.RequireAccess("frmEmployee", this)) return;
 
             // Initialize modern architecture
             var repository = new EmployeeRepository(AppConfig.ConnectionString);
             _employeeService = new EmployeeService(repository);
+            _classRepository = new ClassRepository(AppConfig.ConnectionString);
 
             BuildModernEmployeeForm();
             NavigationSidebar.AddTo(this);
@@ -50,6 +57,7 @@ namespace kingdom_Preparatory_School_Management_System
             upload.Click          += upload_Click;
             gunaPictureBox1.Click += gunaPictureBox1_Click;
             pay.Click             += pay_Click;
+            Load                  += frmEmployee_Load;
         }
 
         // ── Layout constants (one place to tune everything) ──────────────────
@@ -361,26 +369,34 @@ namespace kingdom_Preparatory_School_Management_System
             var grid = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
-                RowCount = 5,   // 4 data rows + 1 spacer that absorbs extra height
+                RowCount = 6,   // 5 data rows + 1 spacer that absorbs extra height
                 ColumnCount = 2,
                 BackColor = SurfaceColor,
                 Margin = Padding.Empty
             };
-            for (int r = 0; r < 4; r++)
+            for (int r = 0; r < 5; r++)
                 grid.RowStyles.Add(new RowStyle(SizeType.Absolute, FieldRowH));
             grid.RowStyles.Add(new RowStyle(SizeType.Percent, 100)); // spacer — prevents last data row from expanding
             grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
             grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
 
-            grid.Controls.Add(CreateField("Employment Date",          empdate), 0, 0);
-            grid.Controls.Add(CreateField("Employment Mode",          empMD),   1, 0);
-            grid.Controls.Add(CreateField("Employment Status",        empST),   0, 1);
-            grid.Controls.Add(CreateField("Performance Review",       empRV),   1, 1);
-            grid.Controls.Add(CreateField("Emergency Contact Person", empCN),   0, 2);
-            grid.Controls.Add(CreateField("Emergency Contact",        empEC),   1, 2);
+            cmbClass = new ComboBox
+            {
+                Dock = DockStyle.Bottom,
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Font = new Font("Segoe UI", 10F),
+                Height = InputH
+            };
+
+            grid.Controls.Add(CreateField("Employment Date",          empdate),  0, 0);
+            grid.Controls.Add(CreateField("Employment Mode",          empMD),    1, 0);
+            grid.Controls.Add(CreateField("Employment Status",        empST),    0, 1);
+            grid.Controls.Add(CreateField("Performance Review",       empRV),    1, 1);
+            grid.Controls.Add(CreateField("Emergency Contact Person", empCN),    0, 2);
+            grid.Controls.Add(CreateField("Emergency Contact",        empEC),    1, 2);
+            grid.Controls.Add(CreateField("Assigned Class",           cmbClass), 0, 3);
             var salField = CreateField("Salary (GHS)", empSA);
-            grid.Controls.Add(salField, 0, 3);
-            grid.SetColumnSpan(salField, 2);
+            grid.Controls.Add(salField, 1, 3);
 
             var tip = new Panel
             {
@@ -677,6 +693,7 @@ namespace kingdom_Preparatory_School_Management_System
         {
             try
             {
+                await PopulateClassComboAsync();
                 txtEMdID.Text = await _employeeService.GenerateNextEmployeeIdAsync();
                 ClearEmployeeDetails();
                 statusLabel.Text = "Ready for a new employee record.";
@@ -707,6 +724,26 @@ namespace kingdom_Preparatory_School_Management_System
             dateDOB.Value = DateTime.Today.AddYears(-DefaultEmployeeAge);
             empdate.Value = DateTime.Today;
             emp_pic.Image = null;
+            if (cmbClass != null && cmbClass.Items.Count > 0) cmbClass.SelectedIndex = 0;
+        }
+
+        private async System.Threading.Tasks.Task PopulateClassComboAsync()
+        {
+            try
+            {
+                var assignments = (await _classRepository.GetAllClassAssignmentsAsync()).ToList();
+                cmbClass.Items.Clear();
+                cmbClass.Items.Add(NoClassLabel);
+                foreach (var (className, _) in assignments)
+                {
+                    cmbClass.Items.Add(className);
+                }
+                cmbClass.SelectedIndex = 0;
+            }
+            catch (Exception ex)
+            {
+                LoggerHelper.LogError("Failed to load class list", ex);
+            }
         }
 
         private async void txtEmployeeID_TextChanged(object sender, EventArgs e)
@@ -740,6 +777,14 @@ namespace kingdom_Preparatory_School_Management_System
                     empCN.Text = existingEmployee.EmergencyContactPerson ?? "";
                     empEC.Text = existingEmployee.EmergencyContact ?? "";
                     empRV.Text = existingEmployee.PerformanceReview ?? "";
+
+                    if (int.TryParse(employeeId, out int loadedEmpId))
+                    {
+                        var assignedClasses = (await _classRepository.GetClassesForTeacherAsync(loadedEmpId)).ToList();
+                        string current = assignedClasses.FirstOrDefault() ?? NoClassLabel;
+                        int idx = cmbClass.Items.IndexOf(current);
+                        cmbClass.SelectedIndex = idx >= 0 ? idx : 0;
+                    }
 
                     statusLabel.Text = $"Loaded employee: {existingEmployee.FullName}";
                 }
@@ -803,6 +848,26 @@ namespace kingdom_Preparatory_School_Management_System
             };
         }
 
+        private async System.Threading.Tasks.Task PersistClassAssignmentAsync(string employeeIdText)
+        {
+            try
+            {
+                if (!int.TryParse(employeeIdText, out int empId)) return;
+                string picked = cmbClass.SelectedItem?.ToString();
+                var newSet = (string.IsNullOrEmpty(picked) || picked == NoClassLabel)
+                    ? new List<string>()
+                    : new List<string> { picked };
+                await _classRepository.SetClassAssignmentsForTeacherAsync(empId, newSet);
+            }
+            catch (Exception ex)
+            {
+                LoggerHelper.LogError($"Failed to persist class assignment for {employeeIdText}", ex);
+                UIHelper.ShowWarning(
+                    "Employee saved, but class assignment failed: " + ex.Message,
+                    "Class Assignment");
+            }
+        }
+
         private async System.Threading.Tasks.Task SaveEmployeeAsync()
         {
             try
@@ -824,6 +889,11 @@ namespace kingdom_Preparatory_School_Management_System
 
                 if (success)
                 {
+                    // Persist class assignment alongside the employee record. The
+                    // combo is part of the same Save action — picking "No class"
+                    // unassigns any classes this employee previously held.
+                    await PersistClassAssignmentAsync(employee.EmployeeID);
+
                     ConfirmationHelper.ShowInfo($"Employee {(isNew ? "added" : "updated")} successfully");
                     LoggerHelper.LogInfo($"Employee {employee.EmployeeID} {(isNew ? "added" : "updated")}");
                     txtEMdID.Text = "";
@@ -832,7 +902,8 @@ namespace kingdom_Preparatory_School_Management_System
                 }
                 else
                 {
-                    UIHelper.ShowError("Could not save employee", "Error");
+                    UIHelper.ShowError(string.IsNullOrWhiteSpace(message) ? "Could not save employee" : message, "Save Failed");
+                    LoggerHelper.LogWarning($"Employee save failed: {message}");
                 }
             }
             catch (Exception ex)

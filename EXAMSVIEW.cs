@@ -64,7 +64,7 @@ namespace kingdom_Preparatory_School_Management_System
 
             var root = new TableLayoutPanel { Dock = DockStyle.Fill, RowCount = 4, ColumnCount = 1, BackColor = PageBackColor, Padding = new Padding(26) };
             root.RowStyles.Add(new RowStyle(SizeType.Absolute, 78));
-            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 118));
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 128));
             root.RowStyles.Add(new RowStyle(SizeType.Absolute, 76));
             root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
@@ -88,10 +88,10 @@ namespace kingdom_Preparatory_School_Management_System
 
             var actions = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.RightToLeft, BackColor = PageBackColor, Padding = new Padding(0, 12, 0, 0) };
             // Dashboard removed — NavigationSidebar handles navigation
-            actions.Controls.Add(CreateButton("Enter Scores", () => new EXAMS().Show(), true, 118));
+            actions.Controls.Add(CreateButton("Enter Scores", () => new EXAMS().Show(), true, 104));
             actions.Controls.Add(CreatePrintReportCardButton());
-            actions.Controls.Add(CreateButton("View Details", OpenSelectedResult, false, 106));
-            actions.Controls.Add(CreateButton("Refresh", async () => await LoadResults(), false, 90));
+            actions.Controls.Add(CreateButton("View Details", OpenSelectedResult, false, 96));
+            actions.Controls.Add(CreateButton("Refresh", async () => await LoadResults(), false, 80));
 
             header.Controls.Add(title, 0, 0);
             header.Controls.Add(actions, 1, 0);
@@ -177,16 +177,46 @@ namespace kingdom_Preparatory_School_Management_System
 
         private Control CreateMetricCard(string title, Label valueLabel, string caption)
         {
-            var panel = CreateSurfacePanel(new Padding(16), new Padding(0, 0, 12, 0));
-            panel.Controls.Add(new Label { Dock = DockStyle.Bottom, Height = 24, Text = caption, ForeColor = MutedTextColor, Font = new Font("Segoe UI", 8.5F), TextAlign = ContentAlignment.BottomLeft });
+            // Outer wrapper: 3 px Navy left padding = accent bar; the card fills the rest
+            var wrapper = new Panel { Dock = DockStyle.Fill, BackColor = Navy, Padding = new Padding(3, 0, 0, 0), Margin = new Padding(0, 0, 12, 0) };
+            var card = new Panel { Dock = DockStyle.Fill, BackColor = SurfaceColor, Padding = new Padding(14, 10, 14, 10) };
+            wrapper.Controls.Add(card);
+
+            // Title row
+            var titleLabel = new Label
+            {
+                Dock = DockStyle.Top,
+                Height = 20,
+                Text = title,
+                ForeColor = TextColor,
+                Font = new Font("Segoe UI Semibold", 9.5F, FontStyle.Bold),
+                TextAlign = ContentAlignment.MiddleLeft
+            };
+
+            // Big value number
             valueLabel.Dock = DockStyle.Top;
-            valueLabel.Height = 36;
+            valueLabel.Height = 44;
             valueLabel.Text = "--";
-            valueLabel.ForeColor = TextColor;
-            valueLabel.Font = new Font("Segoe UI Semibold", 18F, FontStyle.Bold);
-            panel.Controls.Add(valueLabel);
-            panel.Controls.Add(new Label { Dock = DockStyle.Top, Height = 22, Text = title, ForeColor = MutedTextColor, Font = new Font("Segoe UI", 9F), TextAlign = ContentAlignment.MiddleLeft });
-            return panel;
+            valueLabel.ForeColor = Navy;
+            valueLabel.Font = new Font("Segoe UI", 26F, FontStyle.Bold);
+            valueLabel.TextAlign = ContentAlignment.MiddleLeft;
+
+            // Caption row (subtitle)
+            var captionLabel = new Label
+            {
+                Dock = DockStyle.Top,
+                Height = 18,
+                Text = caption,
+                ForeColor = MutedTextColor,
+                Font = new Font("Segoe UI", 8F),
+                TextAlign = ContentAlignment.MiddleLeft
+            };
+
+            // Controls added bottom→top for correct Dock stacking
+            card.Controls.Add(captionLabel);
+            card.Controls.Add(valueLabel);
+            card.Controls.Add(titleLabel);
+            return wrapper;
         }
 
         private Panel CreateSurfacePanel(Padding padding, Padding margin)
@@ -207,9 +237,9 @@ namespace kingdom_Preparatory_School_Management_System
         {
             var btn = new Button
             {
-                Text = "Print Report Card",
+                Text = "Print PDF",
                 Height = 36,
-                Width = 144,
+                Width = 86,
                 Margin = new Padding(8, 0, 0, 0),
                 FlatStyle = FlatStyle.Flat,
                 Font = new Font("Segoe UI Semibold", 9.25F, FontStyle.Bold),

@@ -183,5 +183,104 @@ namespace kingdom_Preparatory_School_Management_System.Data
             }
             return null;
         }
+
+        public async Task<IEnumerable<string>> GetClassesForTeacherAsync(int employmentId)
+        {
+            var classes = new List<string>();
+            try
+            {
+                using (var connection = new OleDbConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+                    using (var cmd = new OleDbCommand(
+                        "SELECT ClassName FROM ClassAssignments WHERE ClassTeacherID = ? ORDER BY ClassName",
+                        connection))
+                    {
+                        cmd.Parameters.AddWithValue("?", employmentId);
+                        using (var reader = await cmd.ExecuteReaderAsync())
+                        {
+                            while (await reader.ReadAsync()) classes.Add(reader["ClassName"].ToString());
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Services.LoggerHelper.LogError($"Error retrieving classes for teacher {employmentId}", ex);
+            }
+            return classes;
+        }
+
+        public async Task<IEnumerable<(string ClassName, int? CurrentTeacherID)>> GetAllClassAssignmentsAsync()
+        {
+            var rows = new List<(string, int?)>();
+            try
+            {
+                using (var connection = new OleDbConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+                    using (var cmd = new OleDbCommand(
+                        "SELECT ClassName, ClassTeacherID FROM ClassAssignments ORDER BY ClassName",
+                        connection))
+                    using (var reader = await cmd.ExecuteReaderAsync())
+                    {
+                        while (await reader.ReadAsync())
+                        {
+                            string name = reader["ClassName"].ToString();
+                            int? teacher = reader["ClassTeacherID"] == DBNull.Value
+                                ? (int?)null
+                                : Convert.ToInt32(reader["ClassTeacherID"]);
+                            rows.Add((name, teacher));
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Services.LoggerHelper.LogError("Error retrieving class assignments", ex);
+            }
+            return rows;
+        }
+
+        public async Task SetClassAssignmentsForTeacherAsync(int employmentId, IEnumerable<string> classNames)
+        {
+            // 1. Unassign classes currently held by this teacher that aren't in the new list.
+            // 2. Assign each class in the new list to this teacher (overwriting any other teacher
+            //    — caller is responsible for confirming overwrites first).
+            var newSet = new HashSet<string>(classNames ?? new List<string>(), StringComparer.OrdinalIgnoreCase);
+            try
+            {
+                using (var connection = new OleDbConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+
+                    using (var unassign = new OleDbCommand(
+                        "UPDATE ClassAssignments SET ClassTeacherID = NULL WHERE ClassTeacherID = ?",
+                        connection))
+                    {
+                        unassign.Parameters.AddWithValue("?", employmentId);
+                        await unassign.ExecuteNonQueryAsync();
+                    }
+
+                    foreach (string className in newSet)
+                    {
+                        using (var assign = new OleDbCommand(
+                            "UPDATE ClassAssignments SET ClassTeacherID = ?, AssignedDate = ? WHERE ClassName = ?",
+                            connection))
+                        {
+                            assign.Parameters.AddWithValue("?", employmentId);
+                            assign.Parameters.AddWithValue("?", DateTime.Today);
+                            assign.Parameters.AddWithValue("?", className);
+                            await assign.ExecuteNonQueryAsync();
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Services.LoggerHelper.LogError($"Error setting class assignments for teacher {employmentId}", ex);
+                throw;
+            }
+        }
     }
 }

@@ -269,6 +269,9 @@
     <Compile Include="frmDashboardCharts.cs">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Include="frmTeacherDashboard.cs">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="frmEmpDetails.cs">
       <SubType>Form</SubType>
     </Compile>

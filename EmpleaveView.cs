@@ -16,7 +16,8 @@ namespace kingdom_Preparatory_School_Management_System
         public EmpleaveView()
         {
             InitializeComponent();
-            
+            if (!AuthService.RequireAccess("EmpleaveView", this)) return;
+
             // Initialize modern architecture
             var repository = new LeaveRepository(AppConfig.ConnectionString);
             _leaveService = new LeaveService(repository);

@@ -25,7 +25,8 @@ namespace kingdom_Preparatory_School_Management_System
         public frmStudentPromotion()
         {
             InitializeComponent();
-            
+            if (!AuthService.RequireAccess("frmStudentPromotion", this)) return;
+
             // Initialize modern architecture
             var studentRepo = new StudentRepository(AppConfig.ConnectionString);
             var feeRepo = new FeeRepository(AppConfig.ConnectionString);

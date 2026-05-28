@@ -19,6 +19,7 @@ namespace kingdom_Preparatory_School_Management_System
         public GenerateReportCardsForm(ReportCardManager reportCardManager)
         {
             InitializeComponent();
+            if (!AuthService.RequireAccess("GenerateReportCardsForm", this)) return;
             _reportCardManager = reportCardManager;
             UiTheme.Apply(this);
             LoadFilters();

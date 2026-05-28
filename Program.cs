@@ -13,7 +13,7 @@ namespace kingdom_Preparatory_School_Management_System
         [STAThread]
         static void Main()
         {
-            // Wake up the (localdb)\KPS instance BEFORE showing any UI.
+            // Wake up the (localdb)\MSSQLLocalDB instance BEFORE showing any UI.
             // LocalDB auto-stops after ~5 min of idle; starting it here gives the
             // engine time to become ready for connections before the login form appears.
             EnsureLocalDbRunning();
@@ -30,7 +30,7 @@ namespace kingdom_Preparatory_School_Management_System
         }
 
         /// <summary>
-        /// Starts the (localdb)\KPS LocalDB instance if it is stopped.
+        /// Starts the (localdb)\MSSQLLocalDB LocalDB instance if it is stopped.
         /// The call completes in &lt;100 ms when the instance is already running,
         /// and takes ~1-2 s on a cold start — well before the first DB call.
         /// </summary>
@@ -41,7 +41,7 @@ namespace kingdom_Preparatory_School_Management_System
                 var psi = new ProcessStartInfo
                 {
                     FileName               = "sqllocaldb",
-                    Arguments              = "start KPS",
+                    Arguments              = "start MSSQLLocalDB",
                     UseShellExecute        = false,
                     CreateNoWindow         = true,
                     RedirectStandardOutput = true,

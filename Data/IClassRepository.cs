@@ -12,5 +12,8 @@ namespace kingdom_Preparatory_School_Management_System.Data
         Task<bool> SaveClassAsync(Models.ClassConfig config);
         Task<bool> DeleteClassAsync(string className);
         Task<Models.ClassConfig> GetByClassNameAsync(string className);
+        Task<IEnumerable<string>> GetClassesForTeacherAsync(int employmentId);
+        Task<IEnumerable<(string ClassName, int? CurrentTeacherID)>> GetAllClassAssignmentsAsync();
+        Task SetClassAssignmentsForTeacherAsync(int employmentId, IEnumerable<string> classNames);
     }
 }

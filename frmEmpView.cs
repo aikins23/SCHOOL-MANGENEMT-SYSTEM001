@@ -27,6 +27,7 @@ namespace kingdom_Preparatory_School_Management_System
         public frmEmpView()
         {
             InitializeComponent();
+            if (!AuthService.RequireAccess("frmEmpView", this)) return;
 
             // Initialize modern architecture
             var repository = new EmployeeRepository(AppConfig.ConnectionString);
@@ -41,6 +42,7 @@ namespace kingdom_Preparatory_School_Management_System
             gunaPictureBox2.Click       += gunaPictureBox2_Click;
             gunaButton1.Click           += gunaButton1_Click;
             gunaButton2.Click           += gunaButton2_Click_1;
+            Load                        += frmEmpView_Load;
         }
 
         private void BuildModernEmployeeView()

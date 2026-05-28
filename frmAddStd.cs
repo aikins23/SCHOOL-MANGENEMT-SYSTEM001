@@ -38,7 +38,8 @@ namespace kingdom_Preparatory_School_Management_System
         public frmAddStd()
         {
             InitializeComponent();
-            
+            if (!AuthService.RequireAccess("frmAddStd", this)) return;
+
             // Initialize modern architecture
             var studentRepository = new StudentRepository(AppConfig.ConnectionString);
             var feeRepository = new FeeRepository(AppConfig.ConnectionString);
@@ -47,6 +48,7 @@ namespace kingdom_Preparatory_School_Management_System
             BuildModernAdmissionView();
             NavigationSidebar.AddTo(this);
             EnableFormDragging();
+            Load += frmAddStd_Load;
 
             // Wire events commented-out in designer
             upload.Click            += upload_Click;

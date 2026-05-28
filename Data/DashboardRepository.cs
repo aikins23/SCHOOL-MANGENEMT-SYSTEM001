@@ -162,6 +162,249 @@ namespace kingdom_Preparatory_School_Management_System.Data
             return table;
         }
 
+        public async Task<DataTable> GetMonthlyAttendanceRateAsync(int year)
+        {
+            var query = @"
+                SELECT MONTH([Date]) AS Mo,
+                       CAST(SUM(CASE WHEN UPPER([Status]) = 'PRESENT' THEN 1 ELSE 0 END) * 100.0
+                            / NULLIF(COUNT(*), 0) AS DECIMAL(5,2)) AS RatePct
+                FROM Attendance
+                WHERE YEAR([Date]) = ?
+                GROUP BY MONTH([Date])
+                ORDER BY MONTH([Date])";
+
+            var table = new DataTable();
+            try
+            {
+                using (var connection = new OleDbConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+                    using (var command = new OleDbCommand(query, connection))
+                    {
+                        command.Parameters.AddWithValue("?", year);
+                        using (var adapter = new OleDbDataAdapter(command))
+                        {
+                            adapter.Fill(table);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Services.LoggerHelper.LogError($"Error getting monthly attendance rate for {year}", ex);
+            }
+            return table;
+        }
+
+        public async Task<DataTable> GetMonthlyIncomeVsExpensesAsync(int year)
+        {
+            // Expenses.Amount is stored as varchar — strip commas before casting.
+            var query = @"
+                SELECT Mo, SUM(Income) AS Income, SUM(Expense) AS Expense FROM (
+                    SELECT MONTH([Date]) AS Mo, SUM(Amount_paid) AS Income, 0 AS Expense
+                    FROM payment_record WHERE YEAR([Date]) = ?
+                    GROUP BY MONTH([Date])
+                    UNION ALL
+                    SELECT MONTH(Date_Time) AS Mo, 0 AS Income,
+                           SUM(TRY_CAST(REPLACE(ISNULL(Amount, '0'), ',', '') AS DECIMAL(18,2))) AS Expense
+                    FROM Expenses WHERE YEAR(Date_Time) = ?
+                    GROUP BY MONTH(Date_Time)
+                ) t
+                GROUP BY Mo
+                ORDER BY Mo";
+
+            var table = new DataTable();
+            try
+            {
+                using (var connection = new OleDbConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+                    using (var command = new OleDbCommand(query, connection))
+                    {
+                        command.Parameters.AddWithValue("?", year);
+                        command.Parameters.AddWithValue("?", year);
+                        using (var adapter = new OleDbDataAdapter(command))
+                        {
+                            adapter.Fill(table);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Services.LoggerHelper.LogError($"Error getting monthly income vs expenses for {year}", ex);
+            }
+            return table;
+        }
+
+        public async Task<DataTable> GetGradeDistributionAsync()
+        {
+            var query = @"
+                SELECT grade AS Grade, COUNT(*) AS Total
+                FROM examss
+                WHERE grade IS NOT NULL AND LTRIM(RTRIM(grade)) <> ''
+                GROUP BY grade
+                ORDER BY grade";
+            return await FetchTableAsync(query);
+        }
+
+        public async Task<DataTable> GetAttendanceRateByClassAsync()
+        {
+            var query = @"
+                SELECT s.ClassID AS [Class],
+                       CAST(SUM(CASE WHEN UPPER(a.[Status]) = 'PRESENT' THEN 1 ELSE 0 END) * 100.0
+                            / NULLIF(COUNT(*), 0) AS DECIMAL(5,2)) AS RatePct
+                FROM Attendance a
+                INNER JOIN Students s ON s.StudentID = a.ReferenceID
+                WHERE UPPER(a.ReferenceType) = 'STUDENT'
+                GROUP BY s.ClassID
+                ORDER BY s.ClassID";
+            return await FetchTableAsync(query);
+        }
+
+        public async Task<DataTable> GetOutstandingFeesByClassAsync()
+        {
+            // Use the latest payment row per student to avoid summing historical balances.
+            var query = @"
+                SELECT classID AS [Class], SUM(Balance) AS Outstanding
+                FROM (
+                    SELECT pr.StudentID, pr.classID, pr.Balance,
+                           ROW_NUMBER() OVER (PARTITION BY pr.StudentID ORDER BY pr.[Date] DESC, pr.tm DESC) AS rn
+                    FROM payment_record pr
+                ) latest
+                WHERE rn = 1 AND Balance > 0
+                GROUP BY classID
+                ORDER BY SUM(Balance) DESC";
+            return await FetchTableAsync(query);
+        }
+
+        public async Task<DataTable> GetPaymentModeBreakdownAsync()
+        {
+            var query = @"
+                SELECT ISNULL(NULLIF(LTRIM(RTRIM(payment_mode)), ''), 'Unknown') AS Mode,
+                       SUM(Amount_paid) AS Total
+                FROM payment_record
+                GROUP BY ISNULL(NULLIF(LTRIM(RTRIM(payment_mode)), ''), 'Unknown')
+                ORDER BY SUM(Amount_paid) DESC";
+            return await FetchTableAsync(query);
+        }
+
+        public async Task<DataTable> GetStaffByDepartmentAsync()
+        {
+            var query = @"
+                SELECT ISNULL(NULLIF(LTRIM(RTRIM(department)), ''), 'Unassigned') AS Department,
+                       COUNT(*) AS Total
+                FROM Employee
+                GROUP BY ISNULL(NULLIF(LTRIM(RTRIM(department)), ''), 'Unassigned')
+                ORDER BY COUNT(*) DESC";
+            return await FetchTableAsync(query);
+        }
+
+        public async Task<DataTable> GetExpenseByCategoryAsync()
+        {
+            var query = @"
+                SELECT ISNULL(NULLIF(LTRIM(RTRIM(Purpose)), ''), 'Uncategorized') AS Category,
+                       SUM(TRY_CAST(REPLACE(ISNULL(Amount, '0'), ',', '') AS DECIMAL(18,2))) AS Total
+                FROM Expenses
+                GROUP BY ISNULL(NULLIF(LTRIM(RTRIM(Purpose)), ''), 'Uncategorized')
+                ORDER BY SUM(TRY_CAST(REPLACE(ISNULL(Amount, '0'), ',', '') AS DECIMAL(18,2))) DESC";
+            return await FetchTableAsync(query);
+        }
+
+        public async Task<DataTable> GetTopAbsentStudentsAsync(int topN)
+        {
+            var query = $@"
+                SELECT TOP {topN} a.FullName AS Student,
+                       SUM(CASE WHEN UPPER(a.[Status]) = 'ABSENT' THEN 1 ELSE 0 END) AS Absences
+                FROM Attendance a
+                WHERE UPPER(a.ReferenceType) = 'STUDENT'
+                GROUP BY a.FullName
+                HAVING SUM(CASE WHEN UPPER(a.[Status]) = 'ABSENT' THEN 1 ELSE 0 END) > 0
+                ORDER BY SUM(CASE WHEN UPPER(a.[Status]) = 'ABSENT' THEN 1 ELSE 0 END) DESC";
+            return await FetchTableAsync(query);
+        }
+
+        public async Task<DataTable> GetClassAverageScoreAsync()
+        {
+            var query = @"
+                SELECT std_class AS [Class], AVG(gt) AS AvgScore
+                FROM examss
+                WHERE std_class IS NOT NULL AND LTRIM(RTRIM(std_class)) <> ''
+                GROUP BY std_class
+                ORDER BY std_class";
+            return await FetchTableAsync(query);
+        }
+
+        public async Task<DataTable> GetStudentGenderDistributionAsync()
+        {
+            var query = @"
+                SELECT ISNULL(NULLIF(LTRIM(RTRIM(Gender)), ''), 'Unknown') AS Gender,
+                       COUNT(*) AS Total
+                FROM Students
+                GROUP BY ISNULL(NULLIF(LTRIM(RTRIM(Gender)), ''), 'Unknown')
+                ORDER BY COUNT(*) DESC";
+            return await FetchTableAsync(query);
+        }
+
+        public async Task<DataTable> GetTermOverTermPerformanceAsync()
+        {
+            var query = @"
+                SELECT [year] AS Yr, term AS Term, AVG(gt) AS AvgScore
+                FROM examss
+                WHERE gt IS NOT NULL
+                  AND [year] IS NOT NULL AND LTRIM(RTRIM([year])) <> ''
+                  AND term IS NOT NULL AND LTRIM(RTRIM(term)) <> ''
+                GROUP BY [year], term
+                ORDER BY [year], term";
+            return await FetchTableAsync(query);
+        }
+
+        public async Task<DataTable> GetAdmissionsPerYearAsync()
+        {
+            var query = @"
+                SELECT YEAR(admission_date) AS Yr, COUNT(*) AS Total
+                FROM Students
+                WHERE admission_date IS NOT NULL
+                GROUP BY YEAR(admission_date)
+                ORDER BY YEAR(admission_date)";
+            return await FetchTableAsync(query);
+        }
+
+        public async Task<DataTable> GetActiveVsRolledOutStudentsAsync()
+        {
+            var query = @"
+                SELECT 'Active' AS Bucket, COUNT(*) AS Total FROM Students
+                UNION ALL
+                SELECT 'Rolled Out' AS Bucket, COUNT(*) AS Total FROM Rolled_Out_Students";
+            return await FetchTableAsync(query);
+        }
+
+        public async Task<DataTable> GetSalarySpendByDepartmentAsync()
+        {
+            var query = @"
+                SELECT ISNULL(NULLIF(LTRIM(RTRIM(department)), ''), 'Unassigned') AS Department,
+                       SUM(salary) AS TotalSalary
+                FROM Employee
+                GROUP BY ISNULL(NULLIF(LTRIM(RTRIM(department)), ''), 'Unassigned')
+                ORDER BY SUM(salary) DESC";
+            return await FetchTableAsync(query);
+        }
+
+        public async Task<DataTable> GetSubjectPassFailRateAsync()
+        {
+            // Pass threshold: gt >= 50.
+            var query = @"
+                SELECT [subject] AS Subject,
+                       SUM(CASE WHEN gt >= 50 THEN 1 ELSE 0 END) AS PassCount,
+                       SUM(CASE WHEN gt <  50 THEN 1 ELSE 0 END) AS FailCount
+                FROM examss
+                WHERE gt IS NOT NULL
+                  AND [subject] IS NOT NULL AND LTRIM(RTRIM([subject])) <> ''
+                GROUP BY [subject]
+                ORDER BY [subject]";
+            return await FetchTableAsync(query);
+        }
+
         private async Task<int> ExecuteScalarIntAsync(string query)
         {
             try

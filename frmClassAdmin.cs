@@ -27,7 +27,8 @@ namespace kingdom_Preparatory_School_Management_System
         public frmClassAdmin()
         {
             InitializeComponent();
-            
+            if (!AuthService.RequireAccess("frmClassAdmin", this)) return;
+
             // Initialize modern architecture
             var repository = new ClassRepository(AppConfig.ConnectionString);
             _classService = new ClassService(repository);

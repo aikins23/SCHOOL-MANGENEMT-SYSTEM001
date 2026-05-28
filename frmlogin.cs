@@ -342,6 +342,18 @@ namespace kingdom_Preparatory_School_Management_System
 
                 if (success)
                 {
+                    // Parents never use the desktop app — they have a separate web portal.
+                    if (AuthService.CurrentUser.Role == AuthService.UserRole.Parent)
+                    {
+                        AuthService.Logout();
+                        if (statusLabel != null) statusLabel.Text = "Use the parent web portal.";
+                        UIHelper.ShowWarning(
+                            "Parent accounts cannot sign in here. Please use the parent web portal.",
+                            "Wrong portal");
+                        ClearLoginForm();
+                        return;
+                    }
+
                     if (statusLabel != null) statusLabel.Text = "Login successful.";
 
                     // Attempt to log, but continue even if logging fails
@@ -356,13 +368,19 @@ namespace kingdom_Preparatory_School_Management_System
 
                     UIHelper.ShowSuccess("Welcome! Loading dashboard...", "Login Success");
 
-                    // Show dashboard then hide login.
+                    // Route to the role-appropriate dashboard.
                     // We Hide (not Close) because Application.Run(frmlogin) keeps
-                    // the message loop alive only while this form exists. Closing it
-                    // would exit the app before the dashboard appears.
-                    // frmDashboard already calls Application.Exit() in all its
-                    // exit paths, which will terminate the process cleanly.
-                    var dashboard = new frmDashboard();
+                    // the message loop alive only while this form exists. Closing
+                    // it would exit the app before the dashboard appears.
+                    Form dashboard;
+                    if (AuthService.CurrentUser.Role == AuthService.UserRole.Teacher)
+                    {
+                        dashboard = new frmTeacherDashboard();
+                    }
+                    else
+                    {
+                        dashboard = new frmDashboard();
+                    }
                     dashboard.Show();
                     this.Hide();
                 }

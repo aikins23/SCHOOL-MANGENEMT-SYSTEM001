@@ -42,6 +42,7 @@ namespace kingdom_Preparatory_School_Management_System
 public frmDashboard()
 {
     InitializeComponent();
+    if (!AuthService.RequireAccess("frmDashboard", this)) return;
 
     // Initialize modern architecture
     var repository = new DashboardRepository(AppConfig.ConnectionString);
@@ -121,11 +122,13 @@ public frmDashboard()
 
         private void FrmDashboard_FormClosing(object sender, FormClosingEventArgs e)
         {
-            // When dashboard close button is clicked, close all child forms and exit
+            // When dashboard close button is clicked, close all child forms.
+            // The dashboard is the app's main form — letting it finish closing
+            // ends the message loop naturally. Calling Application.Exit() here
+            // re-enters the thread-context teardown and throws NRE.
             if (e.CloseReason == CloseReason.UserClosing)
             {
                 FormManager.CloseAllForms();
-                Application.Exit();
             }
         }
 

@@ -27,6 +27,7 @@ namespace kingdom_Preparatory_School_Management_System
         public frmStdView()
         {
             InitializeComponent();
+            if (!AuthService.RequireAccess("frmStdView", this)) return;
 
             // Initialize modern architecture
             var studentRepo = new StudentRepository(AppConfig.ConnectionString);
@@ -413,7 +414,25 @@ namespace kingdom_Preparatory_School_Management_System
         private async void frmStdView_Load(object sender, EventArgs e)
         {
             LoadClasses();
+            await ApplyTeacherScopeAsync();
             await LoadStudents();
+        }
+
+        /// <summary>
+        /// If the current user is a Teacher, lock the class filter to their assigned
+        /// class so they only see their own pupils. No-op for other roles.
+        /// </summary>
+        private async System.Threading.Tasks.Task ApplyTeacherScopeAsync()
+        {
+            if (!AuthService.IsTeacher) return;
+            string myClass = await AuthService.GetCurrentTeacherClassAsync();
+            if (string.IsNullOrEmpty(myClass)) return;
+            int idx = classFilter.Items.IndexOf(myClass);
+            if (idx >= 0)
+            {
+                classFilter.SelectedIndex = idx;
+                classFilter.Enabled = false;
+            }
         }
 
         private void data_CellContentClick(object sender, DataGridViewCellEventArgs e)

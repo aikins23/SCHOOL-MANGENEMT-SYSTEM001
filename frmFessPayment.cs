@@ -36,6 +36,7 @@ namespace kingdom_Preparatory_School_Management_System
         public frmFessPayment()
         {
             InitializeComponent();
+            if (!AuthService.RequireAccess("frmFessPayment", this)) return;
 
             // Initialize modern architecture
             var studentRepo = new StudentRepository(AppConfig.ConnectionString);
@@ -49,6 +50,7 @@ namespace kingdom_Preparatory_School_Management_System
             pay.Click                 += pay_Click;
             txtStdID.TextChanged      += txtStdID_TextChanged;
             gunaPictureBox1.Click     += gunaPictureBox1_Click_1;
+            Load                      += frmFessPayment_Load;
         }
 
         private void BuildModernPaymentView()
