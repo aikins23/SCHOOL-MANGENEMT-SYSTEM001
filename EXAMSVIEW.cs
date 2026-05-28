@@ -93,13 +93,13 @@ namespace kingdom_Preparatory_School_Management_System
                 Dock = DockStyle.Fill,
                 ColumnCount = 5,
                 BackColor = PageBackColor,
-                Padding = new Padding(0, 18, 0, 0)
+                Padding = new Padding(0, 18, 12, 0) // 12 px right gap keeps buttons off the form edge
             };
             actions.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); // spacer
-            actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 112)); // Enter Scores
-            actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 94));  // Print PDF
-            actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 104)); // View Details
-            actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 88));  // Refresh
+            actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 108)); // Enter Scores
+            actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 90));  // Print PDF
+            actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 100)); // View Details
+            actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 84));  // Refresh
 
             actions.Controls.Add(new Panel { BackColor = PageBackColor }, 0, 0);
             actions.Controls.Add(MakeHeaderBtn("Enter Scores", () => new EXAMS().Show(), true), 1, 0);
