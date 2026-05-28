@@ -79,23 +79,57 @@ namespace kingdom_Preparatory_School_Management_System
         private Control BuildHeader()
         {
             var header = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, BackColor = PageBackColor };
-            header.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 58));
-            header.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 42));
+            header.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 55));
+            header.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 45));
 
             var title = new Panel { Dock = DockStyle.Fill, BackColor = PageBackColor };
             title.Controls.Add(new Label { Dock = DockStyle.Top, Height = 40, Text = "Exam Results", ForeColor = TextColor, Font = new Font("Segoe UI Semibold", 22F, FontStyle.Bold), TextAlign = ContentAlignment.MiddleLeft });
             title.Controls.Add(new Label { Dock = DockStyle.Bottom, Height = 28, Text = "Search results, review rankings, and generate report cards", ForeColor = MutedTextColor, Font = new Font("Segoe UI", 10F), TextAlign = ContentAlignment.MiddleLeft });
 
-            var actions = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.RightToLeft, BackColor = PageBackColor, Padding = new Padding(0, 12, 0, 0) };
-            // Dashboard removed — NavigationSidebar handles navigation
-            actions.Controls.Add(CreateButton("Enter Scores", () => new EXAMS().Show(), true, 104));
-            actions.Controls.Add(CreatePrintReportCardButton());
-            actions.Controls.Add(CreateButton("View Details", OpenSelectedResult, false, 96));
-            actions.Controls.Add(CreateButton("Refresh", async () => await LoadResults(), false, 80));
+            // Use TableLayoutPanel instead of FlowLayoutPanel so buttons never wrap to a second row.
+            // Columns: [spacer (fills leftover)] [Enter Scores] [Print PDF] [View Details] [Refresh]
+            var actions = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 5,
+                BackColor = PageBackColor,
+                Padding = new Padding(0, 18, 0, 0)
+            };
+            actions.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); // spacer
+            actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 112)); // Enter Scores
+            actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 94));  // Print PDF
+            actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 104)); // View Details
+            actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 88));  // Refresh
+
+            actions.Controls.Add(new Panel { BackColor = PageBackColor }, 0, 0);
+            actions.Controls.Add(MakeHeaderBtn("Enter Scores", () => new EXAMS().Show(), true), 1, 0);
+            actions.Controls.Add(CreatePrintReportCardButton(), 2, 0);
+            actions.Controls.Add(MakeHeaderBtn("View Details", OpenSelectedResult, false), 3, 0);
+            actions.Controls.Add(MakeHeaderBtn("Refresh", async () => await LoadResults(), false), 4, 0);
 
             header.Controls.Add(title, 0, 0);
             header.Controls.Add(actions, 1, 0);
             return header;
+        }
+
+        /// <summary>Header button that fills its TableLayoutPanel cell (no fixed Width).</summary>
+        private Button MakeHeaderBtn(string text, Action action, bool primary)
+        {
+            var btn = new Button
+            {
+                Dock = DockStyle.Fill,
+                Margin = new Padding(8, 0, 0, 0),
+                Text = text,
+                FlatStyle = FlatStyle.Flat,
+                Font = new Font("Segoe UI Semibold", 9.25F, FontStyle.Bold),
+                Cursor = Cursors.Hand,
+                BackColor = primary ? PrimaryColor : SurfaceColor,
+                ForeColor = primary ? Color.White : TextColor
+            };
+            btn.FlatAppearance.BorderColor = primary ? PrimaryColor : BorderColor;
+            btn.FlatAppearance.MouseOverBackColor = primary ? UiTheme.NavyHover : UiTheme.GoldSoft;
+            btn.Click += (s, e) => action();
+            return btn;
         }
 
         private Control BuildInsightBar()
@@ -238,8 +272,7 @@ namespace kingdom_Preparatory_School_Management_System
             var btn = new Button
             {
                 Text = "Print PDF",
-                Height = 36,
-                Width = 86,
+                Dock = DockStyle.Fill,
                 Margin = new Padding(8, 0, 0, 0),
                 FlatStyle = FlatStyle.Flat,
                 Font = new Font("Segoe UI Semibold", 9.25F, FontStyle.Bold),

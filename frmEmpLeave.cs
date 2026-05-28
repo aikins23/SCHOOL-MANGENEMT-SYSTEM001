@@ -14,12 +14,13 @@ namespace kingdom_Preparatory_School_Management_System
         private readonly EmployeeService _employeeService;
         private Label statusLabel;
 
-        private static readonly Color PageBackColor = Color.FromArgb(246, 248, 251);
-        private static readonly Color SurfaceColor = Color.White;
-        private static readonly Color PrimaryColor = Color.FromArgb(31, 99, 198);
-        private static readonly Color TextColor = Color.FromArgb(25, 36, 49);
-        private static readonly Color MutedTextColor = Color.FromArgb(93, 108, 123);
-        private static readonly Color BorderColor = Color.FromArgb(219, 226, 236);
+        private static readonly Color PageBackColor  = UiTheme.Page;
+        private static readonly Color SurfaceColor   = UiTheme.Surface;
+        private static readonly Color Navy            = UiTheme.Navy;
+        private static readonly Color PrimaryColor    = UiTheme.Navy;
+        private static readonly Color TextColor       = UiTheme.Text;
+        private static readonly Color MutedTextColor  = UiTheme.Muted;
+        private static readonly Color BorderColor     = UiTheme.Border;
 
         public frmEmpLeave()
         {
@@ -34,6 +35,7 @@ namespace kingdom_Preparatory_School_Management_System
             _employeeService = new EmployeeService(employeeRepo);
 
             BuildModernLeaveView();
+            NavigationSidebar.AddTo(this);
         }
 
         private void BuildModernLeaveView()
@@ -73,22 +75,29 @@ namespace kingdom_Preparatory_School_Management_System
 
         private void PrepareInputs()
         {
-            txtName.ReadOnly = true;
-            txtdepartment.ReadOnly = true;
-            txtposition.ReadOnly = true;
-            txtName.BackColor = Color.FromArgb(247, 249, 252);
-            txtdepartment.BackColor = Color.FromArgb(247, 249, 252);
-            txtposition.BackColor = Color.FromArgb(247, 249, 252);
+            // ── Editable ID field ─────────────────────────────────────────────
+            // Designer sets MidnightBlue/White; override to match the app theme.
+            txtEmployeeId.BackColor = SurfaceColor;
+            txtEmployeeId.ForeColor = TextColor;
+            txtEmployeeId.Font      = new Font("Segoe UI", 10.5F);
+            txtEmployeeId.BorderStyle = BorderStyle.FixedSingle;
 
-            txtEmployeeId.Font = new Font("Segoe UI", 10.5F);
-            txtName.Font = new Font("Segoe UI", 10.5F);
-            txtdepartment.Font = new Font("Segoe UI", 10.5F);
-            txtposition.Font = new Font("Segoe UI", 10.5F);
+            // ── Read-only lookup fields ───────────────────────────────────────
+            Color readOnlyBg = UiTheme.SurfaceAlt;
+            foreach (var tb in new[] { txtName, txtdepartment, txtposition })
+            {
+                tb.ReadOnly   = true;
+                tb.BackColor  = readOnlyBg;
+                tb.ForeColor  = TextColor;
+                tb.Font       = new Font("Segoe UI", 10.5F);
+                tb.BorderStyle = BorderStyle.FixedSingle;
+            }
 
-            rdpay.Checked = true;
-            rdoSick.Checked = true;
+            // ── Leave-option defaults ─────────────────────────────────────────
+            rdpay.Checked    = true;
+            rdoSick.Checked  = true;
             dtpdatestart.Value = DateTime.Today;
-            dtpenddate.Value = DateTime.Today;
+            dtpenddate.Value   = DateTime.Today;
         }
 
         private Control BuildHeader()
@@ -122,19 +131,21 @@ namespace kingdom_Preparatory_School_Management_System
                 TextAlign = ContentAlignment.MiddleLeft
             });
 
-            var actions = new FlowLayoutPanel
+            // Fixed-column layout so buttons never wrap to a second row
+            var actions = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
-                FlowDirection = FlowDirection.RightToLeft,
+                ColumnCount = 3,
                 BackColor = PageBackColor,
-                Padding = new Padding(0, 12, 0, 0)
+                Padding = new Padding(0, 18, 0, 0)
             };
-            actions.Controls.Add(CreateSecondaryButton("Dashboard", () =>
-            {
-                Close();
-                new frmDashboard().Show();
-            }));
-            actions.Controls.Add(CreateSecondaryButton("Leave View", () => new EmpleaveView().Show()));
+            actions.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); // spacer
+            actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 108)); // Leave View
+            actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 110)); // Submit Leave (primary)
+
+            actions.Controls.Add(new Panel { BackColor = PageBackColor }, 0, 0);
+            actions.Controls.Add(MakeHeaderBtn("Leave View",    () => FormManager.ShowForm<EmpleaveView>(this), false), 1, 0);
+            actions.Controls.Add(MakeHeaderBtn("Submit Leave",  SubmitLeave, true), 2, 0);
 
             header.Controls.Add(titleBlock, 0, 0);
             header.Controls.Add(actions, 1, 0);
@@ -174,14 +185,7 @@ namespace kingdom_Preparatory_School_Management_System
             }
             layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
-            layout.Controls.Add(new Label
-            {
-                Dock = DockStyle.Fill,
-                Text = "Employee Lookup",
-                ForeColor = TextColor,
-                Font = new Font("Segoe UI Semibold", 15F, FontStyle.Bold),
-                TextAlign = ContentAlignment.MiddleLeft
-            }, 0, 0);
+            layout.Controls.Add(MakeCardHeader("Employee Lookup"), 0, 0);
 
             layout.Controls.Add(CreateField("Employee ID", txtEmployeeId), 0, 1);
             layout.Controls.Add(CreateField("Name", txtName), 0, 2);
@@ -218,16 +222,9 @@ namespace kingdom_Preparatory_School_Management_System
             layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 82));
             layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
-            var title = new Label
-            {
-                Dock = DockStyle.Fill,
-                Text = "Leave Details",
-                ForeColor = TextColor,
-                Font = new Font("Segoe UI Semibold", 15F, FontStyle.Bold),
-                TextAlign = ContentAlignment.MiddleLeft
-            };
-            layout.Controls.Add(title, 0, 0);
-            layout.SetColumnSpan(title, 2);
+            var leaveTitle = MakeCardHeader("Leave Details");
+            layout.Controls.Add(leaveTitle, 0, 0);
+            layout.SetColumnSpan(leaveTitle, 2);
 
             layout.Controls.Add(CreateOptionGroup("Leave Type", new Control[]
             {
@@ -327,6 +324,49 @@ namespace kingdom_Preparatory_School_Management_System
             return panel;
         }
 
+        /// <summary>
+        /// Card-section heading: a 3 px Navy left accent bar + bold title, matching
+        /// the metric cards used across the app.
+        /// </summary>
+        private Control MakeCardHeader(string title)
+        {
+            var wrapper = new Panel { Dock = DockStyle.Fill, BackColor = Navy, Padding = new Padding(3, 0, 0, 0) };
+            var inner   = new Panel { Dock = DockStyle.Fill, BackColor = SurfaceColor };
+            inner.Controls.Add(new Label
+            {
+                Dock      = DockStyle.Fill,
+                Text      = title,
+                ForeColor = TextColor,
+                Font      = new Font("Segoe UI Semibold", 14F, FontStyle.Bold),
+                TextAlign = ContentAlignment.MiddleLeft,
+                Padding   = new Padding(8, 0, 0, 0)
+            });
+            wrapper.Controls.Add(inner);
+            return wrapper;
+        }
+
+        /// <summary>
+        /// Header-row button that fills its TableLayoutPanel cell (Dock.Fill, no fixed Width).
+        /// </summary>
+        private Button MakeHeaderBtn(string text, Action action, bool primary)
+        {
+            var btn = new Button
+            {
+                Dock      = DockStyle.Fill,
+                Margin    = new Padding(8, 0, 0, 0),
+                Text      = text,
+                FlatStyle = FlatStyle.Flat,
+                Font      = new Font("Segoe UI Semibold", 9.25F, FontStyle.Bold),
+                Cursor    = Cursors.Hand,
+                BackColor = primary ? PrimaryColor : SurfaceColor,
+                ForeColor = primary ? Color.White : TextColor
+            };
+            btn.FlatAppearance.BorderColor       = primary ? PrimaryColor : BorderColor;
+            btn.FlatAppearance.MouseOverBackColor = primary ? UiTheme.NavyHover : UiTheme.GoldSoft;
+            btn.Click += (s, e) => action();
+            return btn;
+        }
+
         private Panel CreateSurfacePanel(Padding padding, Padding margin)
         {
             return new Panel
@@ -382,17 +422,15 @@ namespace kingdom_Preparatory_School_Management_System
             var actions = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
-                ColumnCount = 4,
+                ColumnCount = 3,
                 BackColor = PageBackColor
             };
-            actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 150));
-            actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 120));
-            actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 130));
-            actions.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 148)); // Submit Leave (primary)
+            actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 112)); // Clear
+            actions.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));  // fill
 
             actions.Controls.Add(CreatePrimaryButton("Submit Leave", SubmitLeave), 0, 0);
             actions.Controls.Add(CreateSecondaryButton("Clear", ClearForm), 1, 0);
-            actions.Controls.Add(CreateSecondaryButton("Leave View", () => new EmpleaveView().Show()), 2, 0);
             return actions;
         }
 
