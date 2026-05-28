@@ -114,8 +114,8 @@ namespace kingdom_Preparatory_School_Management_System
                 ColumnCount = 2,
                 BackColor   = PageBack
             };
-            header.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 55));
-            header.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 45));
+            header.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+            header.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
 
             // Left: title block
             var titleBlock = new Panel { Dock = DockStyle.Fill, BackColor = PageBack };
@@ -147,16 +147,16 @@ namespace kingdom_Preparatory_School_Management_System
                 Padding       = new Padding(0, 14, 0, 0)
             };
 
-            btnSave = MakePrimaryBtn("Save Attendance", NavyHead);
+            btnSave = MakePrimaryBtn("Save", NavyHead, 90);
             btnSave.Click += (s, e) => SaveAttendance();
 
-            btnAnalysis = MakeSecondaryBtn("Analysis");
+            btnAnalysis = MakeSecondaryBtn("Analysis", 96);
             btnAnalysis.Click += async (s, e) => await ToggleReportMode();
 
-            var btnMarkAll = MakePrimaryBtn("✓ Mark All Present", Success);
+            var btnMarkAll = MakePrimaryBtn("✓ All Present", Success, 110);
             btnMarkAll.Click += (s, e) => MarkAll("PRESENT");
 
-            var btnClear = MakePrimaryBtn("✕ Clear All", Danger);
+            var btnClear = MakePrimaryBtn("✕ Clear", Danger, 80);
             btnClear.Click += (s, e) => MarkAll("");
 
             // Right-to-left so Save appears rightmost
@@ -324,7 +324,7 @@ namespace kingdom_Preparatory_School_Management_System
         // Button factories (plain WinForms, no Guna)
         // ─────────────────────────────────────────────────────────────────────
 
-        private Button MakePrimaryBtn(string text, Color bgColor)
+        private Button MakePrimaryBtn(string text, Color bgColor, int width = 130)
         {
             var btn = new Button
             {
@@ -332,7 +332,7 @@ namespace kingdom_Preparatory_School_Management_System
                 FlatStyle = FlatStyle.Flat,
                 BackColor = bgColor,
                 ForeColor = Color.White,
-                Width     = 148,
+                Width     = width,
                 Height    = 36,
                 Margin    = new Padding(0, 0, 8, 0),
                 Font      = new Font("Segoe UI Semibold", 9F, FontStyle.Bold),
@@ -343,7 +343,7 @@ namespace kingdom_Preparatory_School_Management_System
             return btn;
         }
 
-        private Button MakeSecondaryBtn(string text)
+        private Button MakeSecondaryBtn(string text, int width = 110)
         {
             var btn = new Button
             {
@@ -351,7 +351,7 @@ namespace kingdom_Preparatory_School_Management_System
                 FlatStyle = FlatStyle.Flat,
                 BackColor = Surface,
                 ForeColor = TextCol,
-                Width     = 110,
+                Width     = width,
                 Height    = 36,
                 Margin    = new Padding(0, 0, 8, 0),
                 Font      = new Font("Segoe UI Semibold", 9F, FontStyle.Bold),
@@ -416,7 +416,7 @@ namespace kingdom_Preparatory_School_Management_System
             // Swap button label and style
             if (_isReportMode)
             {
-                btnAnalysis.Text      = "← Back to Today";
+                btnAnalysis.Text      = "← Back";
                 btnAnalysis.BackColor = Color.FromArgb(101, 75, 14);
                 btnAnalysis.ForeColor = Color.White;
                 btnAnalysis.FlatAppearance.BorderSize = 0;

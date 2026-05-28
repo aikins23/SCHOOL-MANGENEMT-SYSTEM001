@@ -33,15 +33,23 @@ namespace kingdom_Preparatory_School_Management_System
         private static readonly Color MutedTextColor = UiTheme.Muted;
         private static readonly Color BorderColor = UiTheme.Border;
 
+        // ── Win32 placeholder helper ──────────────────────────────────────────
+        [System.Runtime.InteropServices.DllImport("user32.dll", CharSet = System.Runtime.InteropServices.CharSet.Auto)]
+        private static extern int SendMessage(IntPtr hWnd, int msg, int wParam,
+            [System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPWStr)] string lParam);
+        private const int EM_SETCUEBANNER = 0x1501;
+
         public EXAMSVIEW()
         {
             InitializeComponent();
-            
+            if (!AuthService.RequireAccess("EXAMSVIEW", this)) return;
+
             // Initialize modern architecture
             var examRepo = new ExamRepository(AppConfig.ConnectionString);
             _examService = new ExamService(examRepo);
 
             BuildResultsView();
+            NavigationSidebar.AddTo(this);
         }
 
         private void BuildResultsView()
@@ -79,11 +87,11 @@ namespace kingdom_Preparatory_School_Management_System
             title.Controls.Add(new Label { Dock = DockStyle.Bottom, Height = 28, Text = "Search results, review rankings, and generate report cards", ForeColor = MutedTextColor, Font = new Font("Segoe UI", 10F), TextAlign = ContentAlignment.MiddleLeft });
 
             var actions = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.RightToLeft, BackColor = PageBackColor, Padding = new Padding(0, 12, 0, 0) };
-            actions.Controls.Add(CreateButton("Enter Scores", () => new EXAMS().Show(), true, 126));
-            actions.Controls.Add(CreateButton("Report Card", OpenSelectedResult, false, 126));
+            // Dashboard removed — NavigationSidebar handles navigation
+            actions.Controls.Add(CreateButton("Enter Scores", () => new EXAMS().Show(), true, 118));
             actions.Controls.Add(CreatePrintReportCardButton());
-            actions.Controls.Add(CreateButton("Dashboard", () => new frmDashboard().Show(), false, 112));
-            actions.Controls.Add(CreateButton("Refresh", async () => await LoadResults(), false, 96));
+            actions.Controls.Add(CreateButton("View Details", OpenSelectedResult, false, 106));
+            actions.Controls.Add(CreateButton("Refresh", async () => await LoadResults(), false, 90));
 
             header.Controls.Add(title, 0, 0);
             header.Controls.Add(actions, 1, 0);
@@ -118,6 +126,8 @@ namespace kingdom_Preparatory_School_Management_System
 
             searchBox = new TextBox { Dock = DockStyle.Fill, Font = new Font("Segoe UI", 10.5F), BorderStyle = BorderStyle.FixedSingle };
             searchBox.TextChanged += (sender, args) => ApplyFilters();
+            searchBox.HandleCreated += (s, e) =>
+                SendMessage(searchBox.Handle, EM_SETCUEBANNER, 1, "Search by student name…");
             classFilter = new ComboBox { Dock = DockStyle.Fill, Font = new Font("Segoe UI", 10.5F), DropDownStyle = ComboBoxStyle.DropDownList, Margin = new Padding(10, 0, 0, 0) };
             classFilter.SelectedIndexChanged += (sender, args) => ApplyFilters();
             termFilter = new ComboBox { Dock = DockStyle.Fill, Font = new Font("Segoe UI", 10.5F), DropDownStyle = ComboBoxStyle.DropDownList, Margin = new Padding(10, 0, 0, 0) };
@@ -283,6 +293,7 @@ namespace kingdom_Preparatory_School_Management_System
                 
                 ConfigureGridColumns();
                 LoadFilterValues();
+                await ApplyTeacherScopeAsync();
                 ApplyFilters();
 
                 if (resultsTable == null || resultsTable.Rows.Count == 0)
@@ -333,6 +344,19 @@ namespace kingdom_Preparatory_School_Management_System
         {
             LoadCombo(classFilter, "All classes", "CLASS");
             LoadCombo(termFilter, "All terms", "TERMS");
+        }
+
+        private async System.Threading.Tasks.Task ApplyTeacherScopeAsync()
+        {
+            if (!AuthService.IsTeacher) return;
+            string myClass = await AuthService.GetCurrentTeacherClassAsync();
+            if (string.IsNullOrEmpty(myClass)) return;
+            int idx = classFilter.Items.IndexOf(myClass);
+            if (idx >= 0)
+            {
+                classFilter.SelectedIndex = idx;
+                classFilter.Enabled = false;
+            }
         }
 
         private void LoadCombo(ComboBox combo, string allText, string column)
