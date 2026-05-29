@@ -558,11 +558,17 @@ namespace kingdom_Preparatory_School_Management_System
             var actionContainer = new Panel { Dock = DockStyle.Fill, BackColor = SurfaceColor };
             _preRecordActions  = BuildPreRecordActions();
             _postRecordActions = BuildPostRecordActions();
-            _preRecordActions.Dock  = DockStyle.Fill;
-            _postRecordActions.Dock = DockStyle.Fill;
+            _preRecordActions.Dock  = DockStyle.None;
+            _postRecordActions.Dock = DockStyle.None;
             _postRecordActions.Visible = false;
             actionContainer.Controls.Add(_preRecordActions);
             actionContainer.Controls.Add(_postRecordActions);
+            actionContainer.Resize += (s, e) =>
+            {
+                var sz = ((Panel)s).ClientSize;
+                _preRecordActions.Bounds  = new Rectangle(Point.Empty, sz);
+                _postRecordActions.Bounds = new Rectangle(Point.Empty, sz);
+            };
             outer.Controls.Add(actionContainer, 0, 2);
 
             _step3Panel.Controls.Add(outer);
@@ -650,7 +656,15 @@ namespace kingdom_Preparatory_School_Management_System
             schoolRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
             _rpLogoPictureBox = new PictureBox { Dock = DockStyle.Fill, SizeMode = PictureBoxSizeMode.Zoom, BackColor = SurfaceColor, Margin = new Padding(0, 0, 8, 0) };
             string logoPath = GetSchoolLogoPath();
-            if (!string.IsNullOrWhiteSpace(logoPath)) { try { _rpLogoPictureBox.Image = Image.FromFile(logoPath); } catch { } }
+            if (!string.IsNullOrWhiteSpace(logoPath))
+            {
+                try
+                {
+                    using (var tmp = Image.FromFile(logoPath))
+                        _rpLogoPictureBox.Image = new Bitmap(tmp);
+                }
+                catch { }
+            }
             var schoolText = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 3, BackColor = SurfaceColor };
             schoolText.RowStyles.Add(new RowStyle(SizeType.Percent, 45));
             schoolText.RowStyles.Add(new RowStyle(SizeType.Percent, 28));
