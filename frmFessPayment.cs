@@ -268,6 +268,130 @@ namespace kingdom_Preparatory_School_Management_System
             _progressPanel?.Invalidate();
         }
 
+        private void ShowStep(int step) { }
+
+        private Panel BuildStep1Panel()
+        {
+            _step1Panel = new Panel { Dock = DockStyle.Fill, BackColor = SurfaceColor, Visible = true };
+
+            var layout = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 1,
+                RowCount = 5,
+                BackColor = SurfaceColor,
+                Padding = new Padding(0, 8, 0, 0)
+            };
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 58));   // Student ID field
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 22));   // Inline error
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 62));   // Student info card
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 58));   // Fee type
+            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));   // Continue button + filler
+
+            // Row 0: Student ID
+            layout.Controls.Add(CreateField("STUDENT ID", studentIdBox), 0, 0);
+
+            // Row 1: Inline error label (hidden by default)
+            _studentNotFoundLbl = new Label
+            {
+                Dock = DockStyle.Fill,
+                Text = "No student found with this ID",
+                ForeColor = Color.FromArgb(192, 57, 43),
+                Font = new Font("Segoe UI", 9F),
+                TextAlign = ContentAlignment.MiddleLeft,
+                Visible = false
+            };
+            layout.Controls.Add(_studentNotFoundLbl, 0, 1);
+
+            // Row 2: Student info card (shown after successful lookup)
+            _studentInfoCard = new Panel
+            {
+                Dock = DockStyle.Fill,
+                BackColor = Color.FromArgb(238, 242, 251),
+                Visible = false,
+                Padding = new Padding(12, 0, 12, 0),
+                Margin = new Padding(0, 0, 0, 4)
+            };
+            var infoRow = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 2,
+                BackColor = Color.FromArgb(238, 242, 251)
+            };
+            infoRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 60));
+            infoRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 40));
+            _studentInfoNameLbl = new Label
+            {
+                Dock = DockStyle.Fill,
+                ForeColor = PrimaryColor,
+                Font = new Font("Segoe UI Semibold", 10F, FontStyle.Bold),
+                TextAlign = ContentAlignment.MiddleLeft
+            };
+            _studentInfoBalanceLbl = new Label
+            {
+                Dock = DockStyle.Fill,
+                ForeColor = Color.FromArgb(192, 57, 43),
+                Font = new Font("Segoe UI Semibold", 10F, FontStyle.Bold),
+                TextAlign = ContentAlignment.MiddleRight
+            };
+            infoRow.Controls.Add(_studentInfoNameLbl, 0, 0);
+            infoRow.Controls.Add(_studentInfoBalanceLbl, 1, 0);
+            _studentInfoCard.Controls.Add(infoRow);
+            layout.Controls.Add(_studentInfoCard, 0, 2);
+
+            // Row 3: Fee Type (editable ComboBox)
+            feeTypeBox = new ComboBox
+            {
+                DropDownStyle = ComboBoxStyle.DropDown,
+                Font = new Font("Segoe UI", 10.5F),
+                Height = 32,
+                AutoCompleteMode = AutoCompleteMode.SuggestAppend,
+                AutoCompleteSource = AutoCompleteSource.ListItems
+            };
+            feeTypeBox.Items.AddRange(new object[]
+            {
+                "School Fees", "Examination Fees", "PTA Levy",
+                "Uniform / Clothing", "Sports / Activity Fees", "Registration Fees"
+            });
+            feeTypeBox.TextChanged += (s, e) => UpdateContinueButton();
+            layout.Controls.Add(CreateField("FEE TYPE  (select or type)", feeTypeBox), 0, 3);
+
+            // Row 4: Continue button right-aligned
+            _continueToPaymentBtn = CreatePrimaryButton("Continue to Payment →", GoToStep2);
+            _continueToPaymentBtn.Enabled = false;
+            _continueToPaymentBtn.Dock = DockStyle.None;
+            _continueToPaymentBtn.Anchor = AnchorStyles.Right | AnchorStyles.Top;
+            _continueToPaymentBtn.Size = new Size(220, 36);
+            var btnWrap = new Panel { Dock = DockStyle.Fill, BackColor = SurfaceColor };
+            btnWrap.Controls.Add(_continueToPaymentBtn);
+            btnWrap.Resize += (s, e) =>
+                _continueToPaymentBtn.Location = new Point(btnWrap.Width - 220, 8);
+            layout.Controls.Add(btnWrap, 0, 4);
+
+            _step1Panel.Controls.Add(layout);
+            return _step1Panel;
+        }
+
+        private void UpdateContinueButton()
+        {
+            if (_continueToPaymentBtn == null) return;
+            bool hasStudent = !string.IsNullOrWhiteSpace(studentNameBox?.Text);
+            bool hasFeeType = !string.IsNullOrWhiteSpace(feeTypeBox?.Text);
+            _continueToPaymentBtn.Enabled = hasStudent && hasFeeType;
+        }
+
+        private void GoToStep2()
+        {
+            string feeType = feeTypeBox?.Text.Trim() ?? "";
+            if (beingBox != null &&
+                (string.IsNullOrWhiteSpace(beingBox.Text) || beingBox.Text == _lastFeeTypeAutoFilled))
+            {
+                beingBox.Text = feeType;
+                _lastFeeTypeAutoFilled = feeType;
+            }
+            ShowStep(2);
+        }
+
         private Control BuildPaymentPanel()
         {
             var receipt = new Panel
