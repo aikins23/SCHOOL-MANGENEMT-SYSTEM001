@@ -131,6 +131,8 @@ namespace kingdom_Preparatory_School_Management_System
             MinimumSize = new Size(1120, 780);
             ClientSize = new Size(1240, 880);
 
+            InitializeFormControls();
+
             var root = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
@@ -144,11 +146,54 @@ namespace kingdom_Preparatory_School_Management_System
             root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
             root.Controls.Add(BuildHeader(), 0, 0);
-            root.Controls.Add(BuildPaymentPanel(), 0, 1);
+            root.Controls.Add(BuildWizardPanel(), 0, 1);
             root.Controls.Add(BuildHistoryPanel(), 0, 2);
 
             Controls.Add(root);
             ResumeLayout(true);
+        }
+
+        private void InitializeFormControls()
+        {
+            studentIdBox   = CreateTextBox();
+            studentNameBox = CreateTextBox(true);
+            classBox       = CreateTextBox(true);
+            balanceBox     = CreateTextBox(true);
+            amountBox      = CreateTextBox();
+            amountWordsBox = CreateTextBox(true);
+            beingBox       = CreateTextBox();
+            bursarBox      = CreateTextBox();
+            cashChequeBox  = CreateTextBox();
+
+            paymentModeBox = new ComboBox
+            {
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                FlatStyle = FlatStyle.Flat,
+                Font = new Font("Segoe UI", 10.5F),
+                Height = 32
+            };
+            paymentModeBox.Items.AddRange(new object[] { "Cash", "Mobile Money", "Bank Transfer", "Cheque" });
+            paymentModeBox.SelectedIndex = 0;
+
+            paymentDatePicker = new DateTimePicker
+            {
+                Format = DateTimePickerFormat.Short,
+                Font = new Font("Segoe UI", 10.5F),
+                Height = 32
+            };
+
+            receiptNumberLabel = new Label
+            {
+                Dock = DockStyle.Fill,
+                Text = "No. " + CreateReceiptNumber(),
+                ForeColor = Color.Black,
+                Font = new Font("Consolas", 21F, FontStyle.Regular),
+                TextAlign = ContentAlignment.MiddleCenter
+            };
+
+            studentIdBox.TextChanged += (sender, args) => LookupStudent();
+            amountBox.TextChanged    += (sender, args) => UpdateReceiptAmountWords();
+            beingBox.Text = "School fees payment";
         }
 
         private Control BuildHeader()
@@ -199,6 +244,49 @@ namespace kingdom_Preparatory_School_Management_System
             header.Controls.Add(titleBlock, 0, 0);
             header.Controls.Add(actions, 1, 0);
             return header;
+        }
+
+        private Control BuildWizardPanel()
+        {
+            var shell = new Panel
+            {
+                Dock = DockStyle.Fill,
+                BackColor = SurfaceColor,
+                BorderStyle = BorderStyle.FixedSingle,
+                Padding = new Padding(24, 12, 24, 12),
+                Margin = new Padding(0, 0, 0, 14)
+            };
+
+            var layout = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 1,
+                RowCount = 3,
+                BackColor = SurfaceColor
+            };
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 62));   // Progress indicator
+            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));   // Step container
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 26));   // Status label
+
+            layout.Controls.Add(BuildProgressIndicator(), 0, 0);
+
+            _stepContainer = new Panel { Dock = DockStyle.Fill, BackColor = SurfaceColor };
+            _stepContainer.Controls.Add(BuildStep1Panel());
+            _stepContainer.Controls.Add(BuildStep2Panel());
+            _stepContainer.Controls.Add(BuildStep3Panel());
+            layout.Controls.Add(_stepContainer, 0, 1);
+
+            statusLabel = new Label
+            {
+                Dock = DockStyle.Fill,
+                ForeColor = MutedTextColor,
+                TextAlign = ContentAlignment.MiddleLeft,
+                Font = new Font("Segoe UI", 9.5F)
+            };
+            layout.Controls.Add(statusLabel, 0, 2);
+
+            shell.Controls.Add(layout);
+            return shell;
         }
 
         private Panel BuildProgressIndicator()
@@ -914,35 +1002,6 @@ namespace kingdom_Preparatory_School_Management_System
             layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 58));
             layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
-            studentIdBox = CreateTextBox();
-            studentNameBox = CreateTextBox(true);
-            classBox = CreateTextBox(true);
-            balanceBox = CreateTextBox(true);
-            amountBox = CreateTextBox();
-            amountWordsBox = CreateTextBox(true);
-            beingBox = CreateTextBox();
-            bursarBox = CreateTextBox();
-            cashChequeBox = CreateTextBox();
-            paymentModeBox = new ComboBox
-            {
-                DropDownStyle = ComboBoxStyle.DropDownList,
-                FlatStyle = FlatStyle.Flat,
-                Font = new Font("Segoe UI", 10.5F),
-                Height = 32
-            };
-            paymentModeBox.Items.AddRange(new object[] { "Cash", "Mobile Money", "Bank Transfer", "Cheque" });
-            paymentModeBox.SelectedIndex = 0;
-            paymentDatePicker = new DateTimePicker
-            {
-                Format = DateTimePickerFormat.Short,
-                Font = new Font("Segoe UI", 10.5F),
-                Height = 32
-            };
-
-            studentIdBox.TextChanged += (sender, args) => LookupStudent();
-            amountBox.TextChanged += (sender, args) => UpdateReceiptAmountWords();
-            beingBox.Text = "School fees payment";
-
             var logo = BuildReceiptLogo();
             layout.Controls.Add(logo, 0, 0);
 
@@ -963,14 +1022,6 @@ namespace kingdom_Preparatory_School_Management_System
             layout.Controls.Add(title, 0, 1);
             layout.SetColumnSpan(title, 2);
 
-            receiptNumberLabel = new Label
-            {
-                Dock = DockStyle.Fill,
-                Text = "No. " + CreateReceiptNumber(),
-                ForeColor = Color.Black,
-                Font = new Font("Consolas", 21F, FontStyle.Regular),
-                TextAlign = ContentAlignment.MiddleCenter
-            };
             layout.Controls.Add(receiptNumberLabel, 2, 1);
             layout.SetColumnSpan(receiptNumberLabel, 2);
             layout.Controls.Add(CreateReceiptField("Date", paymentDatePicker), 4, 1);
@@ -1011,13 +1062,6 @@ namespace kingdom_Preparatory_School_Management_System
             };
             layout.Controls.Add(signature, 5, 6);
 
-            statusLabel = new Label
-            {
-                Dock = DockStyle.Fill,
-                ForeColor = MutedTextColor,
-                TextAlign = ContentAlignment.MiddleLeft,
-                Font = new Font("Segoe UI", 9.5F)
-            };
             layout.Controls.Add(statusLabel, 0, 7);
             layout.SetColumnSpan(statusLabel, 2);
             layout.Controls.Add(CreateSecondaryButton("Print Receipt", PrintReceiptPreview), 2, 7);
