@@ -1311,50 +1311,6 @@ namespace kingdom_Preparatory_School_Management_System
             }
         }
 
-        private Control BuildAmountBox()
-        {
-            var box = new TableLayoutPanel
-            {
-                Dock = DockStyle.Fill,
-                ColumnCount = 3,
-                RowCount = 1,
-                BackColor = SurfaceColor,
-                Margin = new Padding(0, 8, 18, 8),
-                CellBorderStyle = TableLayoutPanelCellBorderStyle.Single
-            };
-            box.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 110));
-            box.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-            box.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 70));
-
-            box.Controls.Add(new Label
-            {
-                Dock = DockStyle.Fill,
-                Text = "GHc",
-                ForeColor = PrimaryColor,
-                Font = new Font("Arial Narrow", 24F, FontStyle.Bold),
-                TextAlign = ContentAlignment.MiddleCenter
-            }, 0, 0);
-
-            amountBox.BorderStyle = BorderStyle.None;
-            amountBox.AutoSize = false;
-            amountBox.Height = 36;
-            amountBox.TextAlign = HorizontalAlignment.Right;
-            amountBox.Font = new Font("Segoe UI Semibold", 18F, FontStyle.Bold);
-            amountBox.Margin = new Padding(8, 14, 8, 6);
-            box.Controls.Add(amountBox, 1, 0);
-
-            box.Controls.Add(new Label
-            {
-                Dock = DockStyle.Fill,
-                Text = ".Gp",
-                ForeColor = PrimaryColor,
-                Font = new Font("Arial Narrow", 24F, FontStyle.Bold),
-                TextAlign = ContentAlignment.MiddleCenter
-            }, 2, 0);
-
-            return box;
-        }
-
         private string CreateReceiptNumber()
         {
             return DateTime.Now.ToString("MMddHHmmss");
@@ -1891,6 +1847,7 @@ namespace kingdom_Preparatory_School_Management_System
             lastPrintedReceipt = null;
             statusLabel.Text = "Ready.";
             if (feeTypeBox        != null) feeTypeBox.Text = "";
+            if (beingBox          != null) beingBox.Text   = "";
             _lastFeeTypeAutoFilled = "";
             if (_studentInfoCard    != null) _studentInfoCard.Visible    = false;
             if (_studentNotFoundLbl != null) _studentNotFoundLbl.Visible = false;
