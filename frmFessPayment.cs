@@ -4,6 +4,7 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.IO;
 using System.Drawing.Printing;
+using System.Linq;
 using System.Windows.Forms;
 using kingdom_Preparatory_School_Management_System.Common;
 using kingdom_Preparatory_School_Management_System.Data;
@@ -391,6 +392,115 @@ namespace kingdom_Preparatory_School_Management_System
             }
             ShowStep(2);
         }
+
+        private Panel BuildStep2Panel()
+        {
+            _step2Panel = new Panel { Dock = DockStyle.Fill, BackColor = SurfaceColor, Visible = false };
+
+            var layout = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 1,
+                RowCount = 5,
+                BackColor = SurfaceColor,
+                Padding = new Padding(0, 8, 0, 0)
+            };
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 36));   // Student summary bar
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 58));   // Amount + Mode + Ref
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 56));   // Amount in words
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 56));   // Being + Bursar + Date
+            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));   // Back + Preview buttons
+
+            // Row 0: Student summary bar
+            var summaryBar = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 2,
+                BackColor = Color.FromArgb(238, 242, 251),
+                Margin = new Padding(0, 0, 0, 6),
+                Padding = new Padding(10, 0, 10, 0),
+                Name = "step2SummaryBar"
+            };
+            summaryBar.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 60));
+            summaryBar.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 40));
+            summaryBar.Controls.Add(new Label
+            {
+                Dock = DockStyle.Fill,
+                ForeColor = PrimaryColor,
+                Font = new Font("Segoe UI Semibold", 9.5F, FontStyle.Bold),
+                TextAlign = ContentAlignment.MiddleLeft,
+                Name = "step2NameLbl"
+            }, 0, 0);
+            summaryBar.Controls.Add(new Label
+            {
+                Dock = DockStyle.Fill,
+                ForeColor = Color.FromArgb(192, 57, 43),
+                Font = new Font("Segoe UI Semibold", 9.5F, FontStyle.Bold),
+                TextAlign = ContentAlignment.MiddleRight,
+                Name = "step2BalanceLbl"
+            }, 1, 0);
+            layout.Controls.Add(summaryBar, 0, 0);
+
+            // Row 1: Amount + Payment Mode + Cheque/Ref
+            var row1 = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 3, BackColor = SurfaceColor };
+            row1.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 34));
+            row1.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33));
+            row1.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33));
+            amountBox.Font = new Font("Segoe UI Semibold", 13F, FontStyle.Bold);
+            amountBox.TextAlign = HorizontalAlignment.Right;
+            amountBox.TextChanged += (s, e) => UpdatePreviewButton();
+            row1.Controls.Add(CreateField("AMOUNT (GHc)", amountBox));
+            row1.Controls.Add(CreateField("PAYMENT MODE", paymentModeBox));
+            row1.Controls.Add(CreateField("CHEQUE / REF NO.", cashChequeBox));
+            layout.Controls.Add(row1, 0, 1);
+
+            // Row 2: Amount in words (read-only)
+            layout.Controls.Add(CreateField("AMOUNT IN WORDS", amountWordsBox), 0, 2);
+
+            // Row 3: Being + Bursar + Date
+            var row3 = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 3, BackColor = SurfaceColor };
+            row3.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+            row3.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 28));
+            row3.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 22));
+            row3.Controls.Add(CreateField("BEING (REASON)", beingBox));
+            row3.Controls.Add(CreateField("BURSAR / CASHIER", bursarBox));
+            row3.Controls.Add(CreateField("DATE", paymentDatePicker));
+            layout.Controls.Add(row3, 0, 3);
+
+            // Row 4: Back + Preview Receipt
+            var btnRow = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 3, BackColor = SurfaceColor, Padding = new Padding(0, 8, 0, 0) };
+            btnRow.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 110));
+            btnRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            btnRow.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 200));
+            var backBtn2 = CreateSecondaryButton("← Back", () => ShowStep(1));
+            var previewBtn = CreatePrimaryButton("Preview Receipt →", GoToStep3);
+            previewBtn.Name = "previewReceiptBtn";
+            previewBtn.Enabled = false;
+            btnRow.Controls.Add(backBtn2, 0, 0);
+            btnRow.Controls.Add(new Panel { BackColor = SurfaceColor }, 1, 0);
+            btnRow.Controls.Add(previewBtn, 2, 0);
+            layout.Controls.Add(btnRow, 0, 4);
+
+            _step2Panel.Controls.Add(layout);
+            return _step2Panel;
+        }
+
+        private void UpdatePreviewButton()
+        {
+            if (_step2Panel == null) return;
+            var btn = _step2Panel.Controls.Find("previewReceiptBtn", true).FirstOrDefault() as Button;
+            if (btn == null) return;
+            decimal amount;
+            btn.Enabled = decimal.TryParse(amountBox?.Text, out amount) && amount > 0;
+        }
+
+        private void GoToStep3()
+        {
+            RefreshReceiptPreview();
+            ShowStep(3);
+        }
+
+        private void RefreshReceiptPreview() { }
 
         private Control BuildPaymentPanel()
         {
