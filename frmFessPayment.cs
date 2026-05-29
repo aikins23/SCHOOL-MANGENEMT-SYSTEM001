@@ -53,6 +53,7 @@ namespace kingdom_Preparatory_School_Management_System
         private Label _studentInfoBalanceLbl;
         private Label _studentNotFoundLbl;
         private Button _continueToPaymentBtn;
+        private Button _previewReceiptBtn;
 
         // Step 3 receipt preview value labels
         private Label _rpStudentIdLbl;
@@ -473,12 +474,12 @@ namespace kingdom_Preparatory_School_Management_System
             btnRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
             btnRow.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 200));
             var backBtn2 = CreateSecondaryButton("← Back", () => ShowStep(1));
-            var previewBtn = CreatePrimaryButton("Preview Receipt →", GoToStep3);
-            previewBtn.Name = "previewReceiptBtn";
-            previewBtn.Enabled = false;
+            _previewReceiptBtn = CreatePrimaryButton("Preview Receipt →", GoToStep3);
+            _previewReceiptBtn.Name = "previewReceiptBtn";
+            _previewReceiptBtn.Enabled = false;
             btnRow.Controls.Add(backBtn2, 0, 0);
             btnRow.Controls.Add(new Panel { BackColor = SurfaceColor }, 1, 0);
-            btnRow.Controls.Add(previewBtn, 2, 0);
+            btnRow.Controls.Add(_previewReceiptBtn, 2, 0);
             layout.Controls.Add(btnRow, 0, 4);
 
             _step2Panel.Controls.Add(layout);
@@ -487,11 +488,9 @@ namespace kingdom_Preparatory_School_Management_System
 
         private void UpdatePreviewButton()
         {
-            if (_step2Panel == null) return;
-            var btn = _step2Panel.Controls.Find("previewReceiptBtn", true).FirstOrDefault() as Button;
-            if (btn == null) return;
-            decimal amount;
-            btn.Enabled = decimal.TryParse(amountBox?.Text, out amount) && amount > 0;
+            if (_previewReceiptBtn == null) return;
+            _previewReceiptBtn.Enabled =
+                decimal.TryParse(amountBox?.Text, out decimal amount) && amount > 0;
         }
 
         private void GoToStep3()
