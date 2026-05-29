@@ -199,6 +199,73 @@ namespace kingdom_Preparatory_School_Management_System
             return header;
         }
 
+        private Panel BuildProgressIndicator()
+        {
+            _progressPanel = new Panel
+            {
+                Dock = DockStyle.Fill,
+                BackColor = SurfaceColor,
+                Padding = new Padding(0, 8, 0, 4)
+            };
+            _progressPanel.Paint += ProgressPanel_Paint;
+            return _progressPanel;
+        }
+
+        private void ProgressPanel_Paint(object sender, PaintEventArgs e)
+        {
+            var g = e.Graphics;
+            g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+            var panel = (Panel)sender;
+            int w = panel.Width;
+            int cy = 18;
+            int r  = 12;
+            int[] xs = { w / 2 - 90, w / 2, w / 2 + 90 };
+            string[] stepLabels = { "LOOK UP", "PAYMENT", "RECEIPT" };
+
+            Color navyColor     = PrimaryColor;
+            Color greenColor    = Color.FromArgb(76, 175, 80);
+            Color greyCircle    = Color.FromArgb(210, 213, 220);
+            Color greyText      = Color.FromArgb(160, 163, 172);
+
+            using (var labelFontActive   = new Font("Segoe UI Semibold", 7.5F, FontStyle.Bold))
+            using (var labelFontInactive = new Font("Segoe UI", 7.5F))
+            using (var numFont           = new Font("Segoe UI Semibold", 8F, FontStyle.Bold))
+            using (var sfCenter          = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center })
+            using (var sfTop             = new StringFormat { Alignment = StringAlignment.Center })
+            {
+                for (int i = 0; i < 3; i++)
+                {
+                    bool completed = i + 1 < _currentStep;
+                    bool active    = i + 1 == _currentStep;
+                    Color circleColor = completed ? greenColor : (active ? navyColor : greyCircle);
+                    Color lineColor   = i > 0 && i < _currentStep ? navyColor : greyCircle;
+
+                    if (i > 0)
+                    {
+                        using (var pen = new Pen(lineColor, 2))
+                            g.DrawLine(pen, xs[i - 1] + r, cy, xs[i] - r, cy);
+                    }
+
+                    using (var brush = new SolidBrush(circleColor))
+                        g.FillEllipse(brush, xs[i] - r, cy - r, r * 2, r * 2);
+
+                    using (var brush = new SolidBrush(Color.White))
+                        g.DrawString(completed ? "✓" : (i + 1).ToString(), numFont, brush,
+                            new RectangleF(xs[i] - r, cy - r, r * 2, r * 2), sfCenter);
+
+                    Color labelColor = completed ? greenColor : (active ? navyColor : greyText);
+                    var labelFont    = (completed || active) ? labelFontActive : labelFontInactive;
+                    using (var brush = new SolidBrush(labelColor))
+                        g.DrawString(stepLabels[i], labelFont, brush, xs[i], cy + r + 3, sfTop);
+                }
+            }
+        }
+
+        private void RefreshProgressIndicator()
+        {
+            _progressPanel?.Invalidate();
+        }
+
         private Control BuildPaymentPanel()
         {
             var receipt = new Panel
