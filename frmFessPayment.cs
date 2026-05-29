@@ -1798,16 +1798,12 @@ namespace kingdom_Preparatory_School_Management_System
                     lastPrintedReceipt = BuildReceiptPrintData();
 
                     // Update balance label in receipt preview to the actual saved value
-                    decimal amountPaid2 = 0m;
-                    decimal.TryParse(amountBox.Text, out amountPaid2);
-                    decimal newBal = 0m;
-                    decimal.TryParse(balanceBox.Text, out newBal);
                     if (_rpBalanceLbl != null)
-                        _rpBalanceLbl.Text = "GHc " + newBal.ToString("N2");
+                        _rpBalanceLbl.Text = "GHc " + newBalance.ToString("N2");
 
                     // Show inline success state (no dialog)
                     if (_successBannerLbl != null)
-                        _successBannerLbl.Text = $"Payment Recorded  ·  GHc {amountPaid2:N2} from {studentNameBox.Text}  ·  New balance: GHc {newBal:N2}";
+                        _successBannerLbl.Text = $"Payment Recorded  ·  GHc {amountPaid:N2} from {studentNameBox.Text}  ·  New balance: GHc {newBalance:N2}";
                     if (_successBanner     != null) _successBanner.Visible     = true;
                     if (_preRecordActions  != null) _preRecordActions.Visible  = false;
                     if (_postRecordActions != null) _postRecordActions.Visible = true;
