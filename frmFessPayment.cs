@@ -191,6 +191,14 @@ namespace kingdom_Preparatory_School_Management_System
                 TextAlign = ContentAlignment.MiddleCenter
             };
 
+            statusLabel = new Label
+            {
+                Dock = DockStyle.Fill,
+                ForeColor = MutedTextColor,
+                TextAlign = ContentAlignment.MiddleLeft,
+                Font = new Font("Segoe UI", 9.5F)
+            };
+
             studentIdBox.TextChanged += (sender, args) => LookupStudent();
             amountBox.TextChanged    += (sender, args) => UpdateReceiptAmountWords();
             beingBox.Text = "School fees payment";
@@ -276,13 +284,6 @@ namespace kingdom_Preparatory_School_Management_System
             _stepContainer.Controls.Add(BuildStep3Panel());
             layout.Controls.Add(_stepContainer, 0, 1);
 
-            statusLabel = new Label
-            {
-                Dock = DockStyle.Fill,
-                ForeColor = MutedTextColor,
-                TextAlign = ContentAlignment.MiddleLeft,
-                Font = new Font("Segoe UI", 9.5F)
-            };
             layout.Controls.Add(statusLabel, 0, 2);
 
             shell.Controls.Add(layout);
@@ -1022,35 +1023,25 @@ namespace kingdom_Preparatory_School_Management_System
             layout.Controls.Add(title, 0, 1);
             layout.SetColumnSpan(title, 2);
 
-            layout.Controls.Add(receiptNumberLabel, 2, 1);
-            layout.SetColumnSpan(receiptNumberLabel, 2);
-            layout.Controls.Add(CreateReceiptField("Date", paymentDatePicker), 4, 1);
-            layout.SetColumnSpan(layout.GetControlFromPosition(4, 1), 2);
+            // [shared control: now owned by wizard panels] receiptNumberLabel → row 1, col 2
+            // [shared control: now owned by wizard panels] paymentDatePicker  → row 1, col 4
 
-            layout.Controls.Add(CreateReceiptField("Student ID", studentIdBox), 0, 2);
-            layout.Controls.Add(CreateReceiptField("Class", classBox), 1, 2);
-            layout.Controls.Add(CreateReceiptField("Received From", studentNameBox), 2, 2);
-            layout.SetColumnSpan(layout.GetControlFromPosition(2, 2), 4);
+            // [shared control: now owned by wizard panels] studentIdBox   → row 2, col 0
+            // [shared control: now owned by wizard panels] classBox        → row 2, col 1
+            // [shared control: now owned by wizard panels] studentNameBox  → row 2, col 2..5
 
-            layout.Controls.Add(CreateReceiptField("The sum of", amountWordsBox), 0, 3);
-            layout.SetColumnSpan(layout.GetControlFromPosition(0, 3), 6);
+            // [shared control: now owned by wizard panels] amountWordsBox → row 3, col 0..5
 
-            layout.Controls.Add(CreateReceiptField("Being", beingBox), 0, 4);
-            layout.SetColumnSpan(layout.GetControlFromPosition(0, 4), 6);
+            // [shared control: now owned by wizard panels] beingBox       → row 4, col 0..5
 
-            layout.Controls.Add(CreateReceiptField("Payment Mode", paymentModeBox), 0, 5);
-            layout.SetColumnSpan(layout.GetControlFromPosition(0, 5), 2);
-            layout.Controls.Add(CreateReceiptField("Cash/Cheque No.", cashChequeBox), 2, 5);
-            layout.SetColumnSpan(layout.GetControlFromPosition(2, 5), 2);
-            layout.Controls.Add(CreateReceiptField("Balance GHc", balanceBox), 4, 5);
-            layout.SetColumnSpan(layout.GetControlFromPosition(4, 5), 2);
+            // [shared control: now owned by wizard panels] paymentModeBox → row 5, col 0..1
+            // [shared control: now owned by wizard panels] cashChequeBox  → row 5, col 2..3
+            // [shared control: now owned by wizard panels] balanceBox     → row 5, col 4..5
 
-            var amountBoxPanel = BuildAmountBox();
-            layout.Controls.Add(amountBoxPanel, 0, 6);
-            layout.SetColumnSpan(amountBoxPanel, 3);
+            // [shared control: now owned by wizard panels] amountBox (via BuildAmountBox) → row 6, col 0..2
+            // BuildAmountBox() omitted here: BuildStep2Panel already configures amountBox font/alignment
 
-            layout.Controls.Add(CreateReceiptField("Bursar / Cashier", bursarBox), 3, 6);
-            layout.SetColumnSpan(layout.GetControlFromPosition(3, 6), 2);
+            // [shared control: now owned by wizard panels] bursarBox      → row 6, col 3..4
 
             var signature = new Label
             {
@@ -1062,12 +1053,8 @@ namespace kingdom_Preparatory_School_Management_System
             };
             layout.Controls.Add(signature, 5, 6);
 
-            layout.Controls.Add(statusLabel, 0, 7);
-            layout.SetColumnSpan(statusLabel, 2);
-            layout.Controls.Add(CreateSecondaryButton("Print Receipt", PrintReceiptPreview), 2, 7);
-            layout.Controls.Add(CreatePrimaryButton("Record Payment", RecordPayment), 3, 7);
-            layout.SetColumnSpan(layout.GetControlFromPosition(3, 7), 2);
-            layout.Controls.Add(CreateSecondaryButton("Clear", ClearPaymentForm), 5, 7);
+            // [shared control: now owned by wizard panels] statusLabel → row 7, col 0..1
+            // Action buttons below are omitted: wizard panels (BuildPreRecordActions/BuildPostRecordActions) own them
 
             receipt.Controls.Add(layout);
             return receipt;
