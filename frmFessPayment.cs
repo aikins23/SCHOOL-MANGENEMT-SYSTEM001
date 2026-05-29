@@ -216,6 +216,7 @@ namespace kingdom_Preparatory_School_Management_System
             var g = e.Graphics;
             g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
             var panel = (Panel)sender;
+            if (panel.Width < 40) return;
             int w = panel.Width;
             int cy = 18;
             int r  = 12;
@@ -256,7 +257,8 @@ namespace kingdom_Preparatory_School_Management_System
                     Color labelColor = completed ? greenColor : (active ? navyColor : greyText);
                     var labelFont    = (completed || active) ? labelFontActive : labelFontInactive;
                     using (var brush = new SolidBrush(labelColor))
-                        g.DrawString(stepLabels[i], labelFont, brush, xs[i], cy + r + 3, sfTop);
+                        g.DrawString(stepLabels[i], labelFont, brush,
+                            new RectangleF(xs[i] - 40f, cy + r + 3, 80f, 18f), sfTop);
                 }
             }
         }
