@@ -270,7 +270,35 @@ namespace kingdom_Preparatory_School_Management_System
             _progressPanel?.Invalidate();
         }
 
-        private void ShowStep(int step) { }
+        private void ShowStep(int step)
+        {
+            _currentStep = step;
+
+            if (_step1Panel != null) _step1Panel.Visible = (step == 1);
+            if (_step2Panel != null) _step2Panel.Visible = (step == 2);
+            if (_step3Panel != null) _step3Panel.Visible = (step == 3);
+
+            // Refresh Step 2 summary bar
+            if (step == 2 && _step2Panel != null)
+            {
+                var bar    = _step2Panel.Controls.Find("step2SummaryBar", true).FirstOrDefault() as TableLayoutPanel;
+                var namLbl = bar?.Controls.Find("step2NameLbl",    true).FirstOrDefault() as Label;
+                var balLbl = bar?.Controls.Find("step2BalanceLbl", true).FirstOrDefault() as Label;
+                if (namLbl != null) namLbl.Text = $"{studentNameBox?.Text.Trim()}  ·  {classBox?.Text.Trim()}";
+                if (balLbl != null) balLbl.Text = "Balance: GHc " + (balanceBox?.Text ?? "0.00");
+            }
+
+            // Reset Step 3 to pre-record state when entering from step 2
+            if (step == 3)
+            {
+                if (_successBanner     != null) _successBanner.Visible     = false;
+                if (_preRecordActions  != null) _preRecordActions.Visible  = true;
+                if (_postRecordActions != null) _postRecordActions.Visible = false;
+                if (_receiptPreviewShell != null) _receiptPreviewShell.BorderStyle = BorderStyle.FixedSingle;
+            }
+
+            RefreshProgressIndicator();
+        }
 
         private Panel BuildStep1Panel()
         {
@@ -1670,6 +1698,9 @@ namespace kingdom_Preparatory_School_Management_System
                 classBox.Text = "";
                 balanceBox.Text = "";
                 if (amountWordsBox != null) amountWordsBox.Text = "";
+                if (_studentInfoCard    != null) _studentInfoCard.Visible    = false;
+                if (_studentNotFoundLbl != null) _studentNotFoundLbl.Visible = false;
+                UpdateContinueButton();
                 return;
             }
 
@@ -1685,6 +1716,9 @@ namespace kingdom_Preparatory_School_Management_System
                     balanceBox.Text = "";
                     if (amountWordsBox != null) amountWordsBox.Text = "";
                     statusLabel.Text = "Student not found";
+                    if (_studentInfoCard    != null) _studentInfoCard.Visible    = false;
+                    if (_studentNotFoundLbl != null) _studentNotFoundLbl.Visible = true;
+                    UpdateContinueButton();
                     return;
                 }
 
@@ -1704,11 +1738,19 @@ namespace kingdom_Preparatory_School_Management_System
 
                 balanceBox.Text = (balance ?? 0m).ToString("0.00");
                 statusLabel.Text = "Student details loaded";
+                if (_studentInfoNameLbl    != null) _studentInfoNameLbl.Text    = $"{student.FullName}  ·  {student.ClassID}  ·  ID: {studentId}";
+                if (_studentInfoBalanceLbl != null) _studentInfoBalanceLbl.Text = "Balance: GHc " + (balance ?? 0m).ToString("N2");
+                if (_studentInfoCard       != null) _studentInfoCard.Visible    = true;
+                if (_studentNotFoundLbl    != null) _studentNotFoundLbl.Visible = false;
+                UpdateContinueButton();
             }
             catch (Exception ex)
             {
                 statusLabel.Text = "Lookup failed";
                 UIHelper.ShowError("Lookup error: " + ex.Message, "Payment");
+                if (_studentInfoCard    != null) _studentInfoCard.Visible    = false;
+                if (_studentNotFoundLbl != null) _studentNotFoundLbl.Visible = false;
+                UpdateContinueButton();
             }
         }
 
@@ -1754,11 +1796,27 @@ namespace kingdom_Preparatory_School_Management_System
                 {
                     balanceBox.Text = newBalance.ToString("0.00");
                     lastPrintedReceipt = BuildReceiptPrintData();
+
+                    // Update balance label in receipt preview to the actual saved value
+                    decimal amountPaid2 = 0m;
+                    decimal.TryParse(amountBox.Text, out amountPaid2);
+                    decimal newBal = 0m;
+                    decimal.TryParse(balanceBox.Text, out newBal);
+                    if (_rpBalanceLbl != null)
+                        _rpBalanceLbl.Text = "GHc " + newBal.ToString("N2");
+
+                    // Show inline success state (no dialog)
+                    if (_successBannerLbl != null)
+                        _successBannerLbl.Text = $"Payment Recorded  ·  GHc {amountPaid2:N2} from {studentNameBox.Text}  ·  New balance: GHc {newBal:N2}";
+                    if (_successBanner     != null) _successBanner.Visible     = true;
+                    if (_preRecordActions  != null) _preRecordActions.Visible  = false;
+                    if (_postRecordActions != null) _postRecordActions.Visible = true;
+                    if (_receiptPreviewShell != null) _receiptPreviewShell.BorderStyle = BorderStyle.FixedSingle;
+
                     amountBox.Text = "";
                     receiptNumberLabel.Text = "No. " + CreateReceiptNumber();
                     statusLabel.Text = "Payment recorded";
                     await LoadPaymentHistory();
-                    UIHelper.ShowSuccess("Payment recorded successfully.", "Payment");
                 }
                 else
                 {
@@ -1798,7 +1856,6 @@ namespace kingdom_Preparatory_School_Management_System
             balanceBox.Text = "";
             amountBox.Text = "";
             amountWordsBox.Text = "";
-            beingBox.Text = "School fees payment";
             bursarBox.Text = "";
             cashChequeBox.Text = "";
             paymentModeBox.SelectedIndex = 0;
@@ -1806,6 +1863,12 @@ namespace kingdom_Preparatory_School_Management_System
             receiptNumberLabel.Text = "No. " + CreateReceiptNumber();
             lastPrintedReceipt = null;
             statusLabel.Text = "Ready.";
+            if (feeTypeBox        != null) feeTypeBox.Text = "";
+            _lastFeeTypeAutoFilled = "";
+            if (_studentInfoCard    != null) _studentInfoCard.Visible    = false;
+            if (_studentNotFoundLbl != null) _studentNotFoundLbl.Visible = false;
+            UpdateContinueButton();
+            ShowStep(1);
         }
 
         private async void frmFessPayment_Load(object sender, EventArgs e)
