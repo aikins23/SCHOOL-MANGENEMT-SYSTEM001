@@ -31,9 +31,23 @@ namespace kingdom_Preparatory_School_Management_System.Services
                 }
 
                 var result = await _repository.AddAsync(employee);
-                return result 
-                    ? (true, $"Employee {employee.FullName} added successfully") 
-                    : (false, "Failed to add employee to database");
+                if (result)
+                {
+                    // Send registration notifications (fire-and-forget)
+                    if (!string.IsNullOrWhiteSpace(employee.Email))
+                    {
+                        string subject = "Welcome to Kingdom Preparatory School";
+                        string body = $"Dear {employee.FullName},\n\nYou have been successfully registered as an employee at Kingdom Preparatory School.\n\nDepartment: {employee.Department}\nPosition: {employee.Position}\n\nWe look forward to working with you.\n\nBest regards,\nHuman Resources";
+                        _ = NotificationService.SendEmailAsync(employee.Email, subject, body, NotificationService.NotificationType.GeneralAnnouncement);
+                    }
+                    if (!string.IsNullOrWhiteSpace(employee.Contact))
+                    {
+                        _ = SmsService.SendEmployeeAdmissionAsync(employee.Contact, employee.FullName);
+                    }
+
+                    return (true, $"Employee {employee.FullName} added successfully");
+                }
+                return (false, "Failed to add employee to database");
             }
             catch (Exception ex)
             {
@@ -155,6 +169,9 @@ namespace kingdom_Preparatory_School_Management_System.Services
 
             if (!ValidationHelper.IsNotEmpty(employee.Contact))
                 return new ValidationResult(false, "Contact number is required");
+
+            if (!string.IsNullOrWhiteSpace(employee.Email) && !ValidationHelper.IsValidEmail(employee.Email))
+                return new ValidationResult(false, "Email format is invalid");
 
             if (employee.Salary <= 0)
                 return new ValidationResult(false, "Salary must be a positive amount");
