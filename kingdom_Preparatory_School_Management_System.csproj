@@ -405,6 +405,7 @@
     <Compile Include="Services\NotificationService.cs" />
     <Compile Include="Services\SmsService.cs" />
     <Compile Include="Services\PhoneNumberGh.cs" />
+    <Compile Include="Services\SmsSenderIds.cs" />
     <Compile Include="Services\DatabaseBackupService.cs" />
     <Compile Include="frmBackupManager.cs">
       <SubType>Form</SubType>
@@ -419,6 +420,7 @@
     <Compile Include="UiTheme.cs" />
     <Compile Include="Tests\LoggerHelperTests.cs" />
     <Compile Include="Tests\PhoneNumberGhTests.cs" />
+    <Compile Include="Tests\SmsSenderIdsTests.cs" />
     <EmbeddedResource Include="EmpleaveView.resx">
       <DependentUpon>EmpleaveView.cs</DependentUpon>
     </EmbeddedResource>
