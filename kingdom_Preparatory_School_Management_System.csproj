@@ -94,6 +94,18 @@
     <Reference Include="NLog">
       <HintPath>packages\NLog.5.3.4\lib\net45\NLog.dll</HintPath>
     </Reference>
+    <Reference Include="xunit.abstractions">
+      <HintPath>packages\xunit.abstractions.2.0.3\lib\net35\xunit.abstractions.dll</HintPath>
+    </Reference>
+    <Reference Include="xunit.core">
+      <HintPath>packages\xunit.extensibility.core.2.9.3\lib\net452\xunit.core.dll</HintPath>
+    </Reference>
+    <Reference Include="xunit.assert">
+      <HintPath>packages\xunit.assert.2.9.3\lib\netstandard1.1\xunit.assert.dll</HintPath>
+    </Reference>
+    <Reference Include="xunit.execution.desktop">
+      <HintPath>packages\xunit.extensibility.execution.2.9.3\lib\net452\xunit.execution.desktop.dll</HintPath>
+    </Reference>
     <Reference Include="PdfSharp, Version=6.1.0.0, Culture=neutral, PublicKeyToken=f94615aa0424f9eb, processorArchitecture=MSIL">
       <HintPath>packages\PDFsharp.6.1.0\lib\netstandard2.0\PdfSharp.dll</HintPath>
     </Reference>
@@ -391,6 +403,8 @@
     <Compile Include="Services\ReportCardPrinter.cs" />
     <Compile Include="Services\StudentService.cs" />
     <Compile Include="Services\NotificationService.cs" />
+    <Compile Include="Services\SmsService.cs" />
+    <Compile Include="Services\PhoneNumberGh.cs" />
     <Compile Include="Services\DatabaseBackupService.cs" />
     <Compile Include="frmBackupManager.cs">
       <SubType>Form</SubType>
@@ -404,6 +418,7 @@
     <Compile Include="Models\LeaveBalance.cs" />
     <Compile Include="UiTheme.cs" />
     <Compile Include="Tests\LoggerHelperTests.cs" />
+    <Compile Include="Tests\PhoneNumberGhTests.cs" />
     <EmbeddedResource Include="EmpleaveView.resx">
       <DependentUpon>EmpleaveView.cs</DependentUpon>
     </EmbeddedResource>
