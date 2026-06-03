@@ -79,10 +79,11 @@ namespace kingdom_Preparatory_School_Management_System.Services
         /// </summary>
         public static bool CanAccess(string formKey)
         {
-            if (string.IsNullOrEmpty(formKey)) return true;
+            // Deny by default; every protected screen must be registered in _formAccess.
+            if (string.IsNullOrWhiteSpace(formKey)) return false;
             if (CurrentUser == null || CurrentUser.Role == UserRole.Unknown) return false;
             if (CurrentUser.Role == UserRole.Parent) return false; // parents never use desktop
-            if (!_formAccess.TryGetValue(formKey, out var allowedRoles)) return true;
+            if (!_formAccess.TryGetValue(formKey, out var allowedRoles)) return false;
             return Array.IndexOf(allowedRoles, CurrentUser.Role) >= 0;
         }
 
