@@ -16,12 +16,14 @@ namespace kingdom_Preparatory_School_Management_System.Services
 
         private static ISmsProvider ResolveProvider()
         {
-            // Real sending only when enabled AND provider is Arkesel AND a key exists.
-            if (AppConfig.Sms.Enabled &&
-                string.Equals(AppConfig.Sms.Provider, "Arkesel", StringComparison.OrdinalIgnoreCase) &&
-                !string.IsNullOrWhiteSpace(AppConfig.Sms.ApiKey))
+            // Real sending only when enabled, a known provider is selected, and a key exists.
+            if (AppConfig.Sms.Enabled && !string.IsNullOrWhiteSpace(AppConfig.Sms.ApiKey))
             {
-                return new ArkeselSmsProvider(AppConfig.Sms.ApiKey);
+                string provider = AppConfig.Sms.Provider;
+                if (string.Equals(provider, "Arkesel", StringComparison.OrdinalIgnoreCase))
+                    return new ArkeselSmsProvider(AppConfig.Sms.ApiKey);
+                if (string.Equals(provider, "BulkSMSGh", StringComparison.OrdinalIgnoreCase))
+                    return new BulkSmsGhProvider(AppConfig.Sms.ApiKey);
             }
             return new LogSmsProvider();
         }

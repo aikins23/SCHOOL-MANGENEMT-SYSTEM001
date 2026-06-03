@@ -33,6 +33,8 @@ namespace kingdom_Preparatory_School_Management_System
         // SMS settings
         private GroupBox grpSmsSettings;
         private CheckBox chkSmsEnabled;
+        private Label lblSmsProvider;
+        private ComboBox cmbSmsProvider;
         private Label lblSmsApiKey;
         private TextBox txtSmsApiKey;
         private Label lblSmsAbbr;
@@ -57,7 +59,7 @@ namespace kingdom_Preparatory_School_Management_System
         private void InitializeComponent()
         {
             this.Text = "Email Settings";
-            this.Size = new System.Drawing.Size(500, 840);
+            this.Size = new System.Drawing.Size(500, 877);
             this.StartPosition = FormStartPosition.CenterParent;
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
@@ -165,9 +167,9 @@ namespace kingdom_Preparatory_School_Management_System
             // ─── SMS Settings Group ───────────────────────────
             int sy = grpSmtpSettings.Bottom + 12;
             grpSmsSettings = new GroupBox();
-            grpSmsSettings.Text = "SMS Notifications (Arkesel)";
+            grpSmsSettings.Text = "SMS Notifications";
             grpSmsSettings.Location = new System.Drawing.Point(padding, sy);
-            grpSmsSettings.Size = new System.Drawing.Size(this.ClientSize.Width - (padding * 2), 330);
+            grpSmsSettings.Size = new System.Drawing.Size(this.ClientSize.Width - (padding * 2), 367);
             grpSmsSettings.Padding = new Padding(15);
 
             int my = 22;
@@ -176,6 +178,20 @@ namespace kingdom_Preparatory_School_Management_System
             chkSmsEnabled.Location = new System.Drawing.Point(15, my);
             chkSmsEnabled.Size = new System.Drawing.Size(controlWidth + labelWidth, controlHeight);
             grpSmsSettings.Controls.Add(chkSmsEnabled);
+            my += controlHeight + 12;
+
+            lblSmsProvider = new Label();
+            lblSmsProvider.Text = "Provider:";
+            lblSmsProvider.Location = new System.Drawing.Point(15, my);
+            lblSmsProvider.Size = new System.Drawing.Size(labelWidth, controlHeight);
+            grpSmsSettings.Controls.Add(lblSmsProvider);
+
+            cmbSmsProvider = new ComboBox();
+            cmbSmsProvider.DropDownStyle = ComboBoxStyle.DropDownList;
+            cmbSmsProvider.Location = new System.Drawing.Point(15 + labelWidth + 10, my);
+            cmbSmsProvider.Size = new System.Drawing.Size(160, controlHeight);
+            cmbSmsProvider.Items.AddRange(new object[] { "Arkesel", "BulkSMSGh" });
+            grpSmsSettings.Controls.Add(cmbSmsProvider);
             my += controlHeight + 12;
 
             lblSmsApiKey = new Label();
@@ -351,6 +367,7 @@ namespace kingdom_Preparatory_School_Management_System
                 chkUseSSL.Checked = AppConfig.Email.UseSSL;
 
                 chkSmsEnabled.Checked = AppConfig.Sms.Enabled;
+                cmbSmsProvider.SelectedItem = AppConfig.Sms.Provider == "BulkSMSGh" ? "BulkSMSGh" : "Arkesel";
                 txtSmsApiKey.Text = AppConfig.Sms.ApiKey;
                 txtSmsAbbr.Text = AppConfig.Sms.SchoolAbbreviation;
                 UpdateSenderPreview();
@@ -375,7 +392,7 @@ namespace kingdom_Preparatory_School_Management_System
                 // Persist SMS settings first, independently of email validation, so
                 // SMS-only configuration can be saved even when SMTP fields are blank.
                 AppConfig.Sms.Enabled = chkSmsEnabled.Checked;
-                AppConfig.Sms.Provider = "Arkesel";
+                AppConfig.Sms.Provider = (cmbSmsProvider.SelectedItem?.ToString() ?? "Arkesel");
                 AppConfig.Sms.ApiKey = txtSmsApiKey.Text.Trim();
                 AppConfig.Sms.SchoolAbbreviation = txtSmsAbbr.Text.Trim();
                 AppConfig.Notify.HrEmail = txtHrEmail.Text.Trim();
@@ -495,7 +512,7 @@ namespace kingdom_Preparatory_School_Management_System
         {
             // Persist current SMS fields first so the test uses what the user typed.
             AppConfig.Sms.Enabled = chkSmsEnabled.Checked;
-            AppConfig.Sms.Provider = "Arkesel";
+            AppConfig.Sms.Provider = (cmbSmsProvider.SelectedItem?.ToString() ?? "Arkesel");
             AppConfig.Sms.ApiKey = txtSmsApiKey.Text.Trim();
             AppConfig.Sms.SchoolAbbreviation = txtSmsAbbr.Text.Trim();
 

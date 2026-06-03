@@ -401,6 +401,7 @@
     <Compile Include="Services\ISmsProvider.cs" />
     <Compile Include="Services\Sms\LogSmsProvider.cs" />
     <Compile Include="Services\Sms\ArkeselSmsProvider.cs" />
+    <Compile Include="Services\Sms\BulkSmsGhProvider.cs" />
     <Compile Include="frmBackupManager.cs">
       <SubType>Form</SubType>
     </Compile>
