@@ -30,6 +30,18 @@ namespace kingdom_Preparatory_School_Management_System
 
         private Label lblStatus;
 
+        // SMS settings
+        private GroupBox grpSmsSettings;
+        private CheckBox chkSmsEnabled;
+        private Label lblSmsApiKey;
+        private TextBox txtSmsApiKey;
+        private Label lblSmsAbbr;
+        private TextBox txtSmsAbbr;
+        private Label lblSmsSenderPreview;
+        private Label lblSmsTestPhone;
+        private TextBox txtSmsTestPhone;
+        private Button btnTestSms;
+
         public frmEmailSettings()
         {
             InitializeComponent();
@@ -41,7 +53,7 @@ namespace kingdom_Preparatory_School_Management_System
         private void InitializeComponent()
         {
             this.Text = "Email Settings";
-            this.Size = new System.Drawing.Size(500, 500);
+            this.Size = new System.Drawing.Size(500, 760);
             this.StartPosition = FormStartPosition.CenterParent;
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
@@ -145,12 +157,84 @@ namespace kingdom_Preparatory_School_Management_System
             grpSmtpSettings.Controls.Add(chkUseSSL);
 
             this.Controls.Add(grpSmtpSettings);
-            y += grpSmtpSettings.Height + padding;
 
-            // ─── Buttons ───────────────────────────────────────
+            // ─── SMS Settings Group ───────────────────────────
+            int sy = grpSmtpSettings.Bottom + 12;
+            grpSmsSettings = new GroupBox();
+            grpSmsSettings.Text = "SMS Notifications (Arkesel)";
+            grpSmsSettings.Location = new System.Drawing.Point(padding, sy);
+            grpSmsSettings.Size = new System.Drawing.Size(this.ClientSize.Width - (padding * 2), 250);
+            grpSmsSettings.Padding = new Padding(15);
+
+            int my = 22;
+            chkSmsEnabled = new CheckBox();
+            chkSmsEnabled.Text = "Enable SMS sending (off = log only)";
+            chkSmsEnabled.Location = new System.Drawing.Point(15, my);
+            chkSmsEnabled.Size = new System.Drawing.Size(controlWidth + labelWidth, controlHeight);
+            grpSmsSettings.Controls.Add(chkSmsEnabled);
+            my += controlHeight + 12;
+
+            lblSmsApiKey = new Label();
+            lblSmsApiKey.Text = "API Key:";
+            lblSmsApiKey.Location = new System.Drawing.Point(15, my);
+            lblSmsApiKey.Size = new System.Drawing.Size(labelWidth, controlHeight);
+            grpSmsSettings.Controls.Add(lblSmsApiKey);
+
+            txtSmsApiKey = new TextBox();
+            txtSmsApiKey.Location = new System.Drawing.Point(15 + labelWidth + 10, my);
+            txtSmsApiKey.Size = new System.Drawing.Size(controlWidth, controlHeight);
+            txtSmsApiKey.UseSystemPasswordChar = true;
+            grpSmsSettings.Controls.Add(txtSmsApiKey);
+            my += controlHeight + 12;
+
+            lblSmsAbbr = new Label();
+            lblSmsAbbr.Text = "School Abbrev.:";
+            lblSmsAbbr.Location = new System.Drawing.Point(15, my);
+            lblSmsAbbr.Size = new System.Drawing.Size(labelWidth, controlHeight);
+            grpSmsSettings.Controls.Add(lblSmsAbbr);
+
+            txtSmsAbbr = new TextBox();
+            txtSmsAbbr.Location = new System.Drawing.Point(15 + labelWidth + 10, my);
+            txtSmsAbbr.Size = new System.Drawing.Size(120, controlHeight);
+            txtSmsAbbr.CharacterCasing = CharacterCasing.Upper;
+            txtSmsAbbr.MaxLength = 5;
+            txtSmsAbbr.TextChanged += (s, e) => UpdateSenderPreview();
+            grpSmsSettings.Controls.Add(txtSmsAbbr);
+            my += controlHeight + 8;
+
+            lblSmsSenderPreview = new Label();
+            lblSmsSenderPreview.Location = new System.Drawing.Point(15, my);
+            lblSmsSenderPreview.Size = new System.Drawing.Size(controlWidth + labelWidth, controlHeight + 6);
+            lblSmsSenderPreview.ForeColor = System.Drawing.Color.DimGray;
+            grpSmsSettings.Controls.Add(lblSmsSenderPreview);
+            my += controlHeight + 14;
+
+            lblSmsTestPhone = new Label();
+            lblSmsTestPhone.Text = "Test phone:";
+            lblSmsTestPhone.Location = new System.Drawing.Point(15, my);
+            lblSmsTestPhone.Size = new System.Drawing.Size(labelWidth, controlHeight);
+            grpSmsSettings.Controls.Add(lblSmsTestPhone);
+
+            txtSmsTestPhone = new TextBox();
+            txtSmsTestPhone.Location = new System.Drawing.Point(15 + labelWidth + 10, my);
+            txtSmsTestPhone.Size = new System.Drawing.Size(140, controlHeight);
+            grpSmsSettings.Controls.Add(txtSmsTestPhone);
+
+            btnTestSms = new Button();
+            btnTestSms.Text = "Send Test SMS";
+            btnTestSms.Location = new System.Drawing.Point(15 + labelWidth + 10 + 150, my - 1);
+            btnTestSms.Size = new System.Drawing.Size(130, controlHeight + 2);
+            btnTestSms.Click += btnTestSms_Click;
+            grpSmsSettings.Controls.Add(btnTestSms);
+
+            this.Controls.Add(grpSmsSettings);
+
+            // ─── Buttons (anchored below SMS group) ────────────
+            int by = grpSmsSettings.Bottom + 15;
+
             btnTestEmail = new Button();
             btnTestEmail.Text = "🧪 Test Email Configuration";
-            btnTestEmail.Location = new System.Drawing.Point(padding, y);
+            btnTestEmail.Location = new System.Drawing.Point(padding, by);
             btnTestEmail.Size = new System.Drawing.Size(this.ClientSize.Width - (padding * 2), 40);
             btnTestEmail.Click += BtnTestEmail_Click;
             btnTestEmail.BackColor = System.Drawing.Color.FromArgb(59, 130, 246);
@@ -159,21 +243,21 @@ namespace kingdom_Preparatory_School_Management_System
             btnTestEmail.FlatStyle = FlatStyle.Flat;
             btnTestEmail.FlatAppearance.BorderSize = 0;
             this.Controls.Add(btnTestEmail);
-            y += 50;
+            by += 50;
 
             // Status Label
             lblStatus = new Label();
             lblStatus.Text = "Status: Not configured";
-            lblStatus.Location = new System.Drawing.Point(padding, y);
+            lblStatus.Location = new System.Drawing.Point(padding, by);
             lblStatus.Size = new System.Drawing.Size(this.ClientSize.Width - (padding * 2), 25);
             lblStatus.Font = new System.Drawing.Font("Arial", 9);
             this.Controls.Add(lblStatus);
-            y += 30;
+            by += 30;
 
             // Save Button
             btnSave = new Button();
             btnSave.Text = "💾 Save Settings";
-            btnSave.Location = new System.Drawing.Point(padding, y);
+            btnSave.Location = new System.Drawing.Point(padding, by);
             btnSave.Size = new System.Drawing.Size((this.ClientSize.Width - (padding * 3)) / 2, 40);
             btnSave.Click += BtnSave_Click;
             btnSave.BackColor = System.Drawing.Color.FromArgb(22, 163, 74);
@@ -186,7 +270,7 @@ namespace kingdom_Preparatory_School_Management_System
             // Cancel Button
             btnCancel = new Button();
             btnCancel.Text = "Cancel";
-            btnCancel.Location = new System.Drawing.Point(padding + (this.ClientSize.Width - (padding * 3)) / 2 + 15, y);
+            btnCancel.Location = new System.Drawing.Point(padding + (this.ClientSize.Width - (padding * 3)) / 2 + 15, by);
             btnCancel.Size = new System.Drawing.Size((this.ClientSize.Width - (padding * 3)) / 2, 40);
             btnCancel.Click += (s, e) => this.Close();
             btnCancel.BackColor = System.Drawing.Color.FromArgb(107, 114, 128);
@@ -237,6 +321,11 @@ namespace kingdom_Preparatory_School_Management_System
                 txtPassword.Text = AppConfig.Email.SmtpPassword;
                 txtFromEmail.Text = AppConfig.Email.FromEmail;
                 chkUseSSL.Checked = AppConfig.Email.UseSSL;
+
+                chkSmsEnabled.Checked = AppConfig.Sms.Enabled;
+                txtSmsApiKey.Text = AppConfig.Sms.ApiKey;
+                txtSmsAbbr.Text = AppConfig.Sms.SchoolAbbreviation;
+                UpdateSenderPreview();
 
                 if (AppConfig.Email.IsConfigured)
                     lblStatus.Text = "Status: ✓ Configured";
@@ -351,6 +440,37 @@ namespace kingdom_Preparatory_School_Management_System
             {
                 btnTestEmail.Enabled = true;
             }
+        }
+
+        private void UpdateSenderPreview()
+        {
+            string abbr = (txtSmsAbbr.Text ?? "").Trim().ToUpperInvariant();
+            string student  = abbr + "STDADM";
+            string employee = abbr + "EMPADM";
+            string fees     = abbr + "FEES";
+            string warn = student.Length > 11 ? "  ⚠ exceeds 11 chars" : "";
+            lblSmsSenderPreview.Text = $"Sender IDs: {student} · {employee} · {fees}{warn}";
+        }
+
+        private async void btnTestSms_Click(object sender, EventArgs e)
+        {
+            // Persist current SMS fields first so the test uses what the user typed.
+            AppConfig.Sms.Enabled = chkSmsEnabled.Checked;
+            AppConfig.Sms.Provider = "Arkesel";
+            AppConfig.Sms.ApiKey = txtSmsApiKey.Text.Trim();
+            AppConfig.Sms.SchoolAbbreviation = txtSmsAbbr.Text.Trim();
+
+            btnTestSms.Enabled = false;
+            try
+            {
+                var result = await SmsService.SendTestAsync(txtSmsTestPhone.Text.Trim());
+                if (lblStatus != null)
+                {
+                    lblStatus.Text = result.Message;
+                    lblStatus.ForeColor = result.Success ? System.Drawing.Color.Green : System.Drawing.Color.Red;
+                }
+            }
+            finally { btnTestSms.Enabled = true; }
         }
     }
 }
