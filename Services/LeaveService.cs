@@ -11,10 +11,15 @@ namespace kingdom_Preparatory_School_Management_System.Services
     public class LeaveService
     {
         private readonly ILeaveRepository _repository;
+        private readonly EmployeeService _employeeService;
 
         public LeaveService(ILeaveRepository repository)
+            : this(repository, null) { }
+
+        public LeaveService(ILeaveRepository repository, EmployeeService employeeService)
         {
             _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+            _employeeService = employeeService;
         }
 
         public async Task<(bool Success, string Message)> ApplyForLeaveAsync(Models.LeaveRequest request)
@@ -36,6 +41,10 @@ namespace kingdom_Preparatory_School_Management_System.Services
 
                 request.Status = "PENDING";
                 bool success = await _repository.AddLeaveRequestAsync(request);
+                if (success)
+                {
+                    _ = NotifyLeaveSubmittedAsync(request);
+                }
                 return success
                     ? (true, "Leave application submitted successfully.")
                     : (false, "Failed to submit leave application.");
@@ -78,8 +87,12 @@ namespace kingdom_Preparatory_School_Management_System.Services
             {
                 request.Status = newStatus;
                 bool success = await _repository.UpdateLeaveRequestAsync(request);
-                return success 
-                    ? (true, $"Leave application {newStatus.ToLower()} successfully.") 
+                if (success && (newStatus == "APPROVED" || newStatus == "REJECTED"))
+                {
+                    _ = NotifyLeaveDecisionAsync(request, newStatus);
+                }
+                return success
+                    ? (true, $"Leave application {newStatus.ToLower()} successfully.")
                     : (false, $"Failed to {newStatus.ToLower()} leave application.");
             }
             catch (Exception ex)
@@ -100,6 +113,58 @@ namespace kingdom_Preparatory_School_Management_System.Services
         public async Task<IEnumerable<Models.LeaveRequest>> GetStaffLeaveHistoryAsync(string employeeId)
         {
             return await _repository.GetEmployeeLeaveHistoryAsync(employeeId);
+        }
+
+        // Fire-and-forget; resolves the employee's contact and sends email + SMS.
+        private async Task NotifyLeaveSubmittedAsync(Models.LeaveRequest request)
+        {
+            if (_employeeService == null) return;
+            try
+            {
+                var emp = await _employeeService.GetEmployeeAsync(request.EmployeeID);
+                if (emp != null)
+                {
+                    if (!string.IsNullOrWhiteSpace(emp.Email))
+                        _ = NotificationService.SendLeaveSubmittedAsync(
+                            request.EmployeeName, emp.Email, request.StartDate, request.EndDate);
+                    if (!string.IsNullOrWhiteSpace(emp.Contact))
+                        _ = SmsService.SendLeaveSubmittedAsync(emp.Contact, request.EmployeeName);
+                }
+
+                string hrEmail = AppConfig.Notify.HrEmail;
+                if (!string.IsNullOrWhiteSpace(hrEmail))
+                    _ = NotificationService.SendLeaveRequestHrAlertAsync(
+                        hrEmail, request.EmployeeName, request.StartDate, request.EndDate, request.Reason);
+
+                string hrPhone = AppConfig.Notify.HrPhone;
+                if (!string.IsNullOrWhiteSpace(hrPhone))
+                    _ = SmsService.SendLeaveHrAlertAsync(
+                        hrPhone, request.EmployeeName, request.StartDate, request.EndDate);
+            }
+            catch (Exception ex)
+            {
+                LoggerHelper.LogError("Leave-submitted notification failed", ex);
+            }
+        }
+
+        private async Task NotifyLeaveDecisionAsync(Models.LeaveRequest request, string status)
+        {
+            if (_employeeService == null) return;
+            try
+            {
+                var emp = await _employeeService.GetEmployeeAsync(request.EmployeeID);
+                if (emp == null) return;
+                if (!string.IsNullOrWhiteSpace(emp.Email))
+                    _ = NotificationService.SendLeaveApprovalAsync(
+                        request.EmployeeName, emp.Email, status, request.StartDate, request.EndDate, request.Reason);
+                if (!string.IsNullOrWhiteSpace(emp.Contact))
+                    _ = SmsService.SendLeaveDecisionAsync(
+                        emp.Contact, request.EmployeeName, status, request.StartDate, request.EndDate);
+            }
+            catch (Exception ex)
+            {
+                LoggerHelper.LogError("Leave-decision notification failed", ex);
+            }
         }
     }
 }
