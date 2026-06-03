@@ -98,12 +98,21 @@ namespace kingdom_Preparatory_School_Management_System.Common
                 {
                     try
                     {
-                        return Properties.Settings.Default.SmtpPassword ?? "";
+                        return SecretStorage.Unprotect(Properties.Settings.Default.SmtpPassword ?? "");
                     }
                     catch
                     {
                         return "";
                     }
+                }
+                set
+                {
+                    try
+                    {
+                        Properties.Settings.Default.SmtpPassword = SecretStorage.Protect(value ?? "");
+                        Properties.Settings.Default.Save();
+                    }
+                    catch { }
                 }
             }
 
@@ -167,14 +176,14 @@ namespace kingdom_Preparatory_School_Management_System.Common
             {
                 get
                 {
-                    try { return Properties.Settings.Default.SmsApiKey ?? ""; }
+                    try { return SecretStorage.Unprotect(Properties.Settings.Default.SmsApiKey ?? ""); }
                     catch { return ""; }
                 }
                 set
                 {
                     try
                     {
-                        Properties.Settings.Default.SmsApiKey = value;
+                        Properties.Settings.Default.SmsApiKey = SecretStorage.Protect(value ?? "");
                         Properties.Settings.Default.Save();
                     }
                     catch { }

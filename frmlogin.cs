@@ -7,6 +7,7 @@ using System.ComponentModel;
 using System.Data;
 using System.Data.OleDb;
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -366,7 +367,7 @@ namespace kingdom_Preparatory_School_Management_System
                         System.Diagnostics.Debug.WriteLine($"Failed to log info: {logEx.Message}");
                     }
 
-                    UIHelper.ShowSuccess("Welcome! Loading dashboard...", "Login Success");
+                    ShowLoginSuccessPrompt(username, AuthService.CurrentUser.Role);
 
                     // Route to the role-appropriate dashboard.
                     // We Hide (not Close) because Application.Run(frmlogin) keeps
@@ -426,6 +427,200 @@ namespace kingdom_Preparatory_School_Management_System
             TXTUser.Focus();
         }
 
+        private void ShowLoginSuccessPrompt(string username, AuthService.UserRole role)
+        {
+            using (var dialog = new LoginSuccessDialog(username, role.ToString()))
+            {
+                dialog.ShowDialog(this);
+            }
+        }
+
         private void BTN_Login_Click_1(object sender, EventArgs e) => LoginUser();
+
+        private sealed class LoginSuccessDialog : Form
+        {
+            private static readonly Color DialogBackColor = Color.FromArgb(255, 253, 247);
+            private static readonly Color DialogBorderColor = Color.FromArgb(218, 210, 187);
+            private static readonly Color DialogTextColor = Color.FromArgb(28, 36, 52);
+            private static readonly Color DialogMutedColor = Color.FromArgb(102, 112, 133);
+            private static readonly Color DialogSuccessColor = Color.FromArgb(34, 139, 88);
+
+            public LoginSuccessDialog(string username, string roleName)
+            {
+                Text = "Login Successful";
+                Width = 460;
+                Height = 320;
+                BackColor = DialogBackColor;
+                FormBorderStyle = FormBorderStyle.None;
+                StartPosition = FormStartPosition.CenterParent;
+                ShowInTaskbar = false;
+                Font = new Font("Segoe UI", 9.5F, FontStyle.Regular);
+                KeyPreview = true;
+                Padding = new Padding(1);
+
+                var accent = new Panel
+                {
+                    Dock = DockStyle.Top,
+                    Height = 5,
+                    BackColor = GoldColor
+                };
+                Controls.Add(accent);
+
+                var content = new TableLayoutPanel
+                {
+                    Dock = DockStyle.Fill,
+                    BackColor = DialogBackColor,
+                    ColumnCount = 1,
+                    RowCount = 6,
+                    Padding = new Padding(36, 28, 36, 28)
+                };
+                content.RowStyles.Add(new RowStyle(SizeType.Absolute, 72));
+                content.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
+                content.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
+                content.RowStyles.Add(new RowStyle(SizeType.Absolute, 40));
+                content.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+                content.RowStyles.Add(new RowStyle(SizeType.Absolute, 46));
+                Controls.Add(content);
+
+                var icon = new Panel
+                {
+                    Width = 64,
+                    Height = 64,
+                    Anchor = AnchorStyles.None,
+                    BackColor = DialogBackColor
+                };
+                icon.Paint += PaintSuccessIcon;
+                content.Controls.Add(icon, 0, 0);
+
+                content.Controls.Add(new Label
+                {
+                    Dock = DockStyle.Fill,
+                    Text = "Access Granted",
+                    ForeColor = DialogTextColor,
+                    Font = new Font("Georgia", 20F, FontStyle.Bold),
+                    TextAlign = ContentAlignment.MiddleCenter
+                }, 0, 1);
+
+                content.Controls.Add(new Label
+                {
+                    Dock = DockStyle.Fill,
+                    Text = $"Welcome back, {username}.",
+                    ForeColor = DialogTextColor,
+                    Font = new Font("Segoe UI Semibold", 11F, FontStyle.Bold),
+                    TextAlign = ContentAlignment.MiddleCenter
+                }, 0, 2);
+
+                content.Controls.Add(new Label
+                {
+                    Dock = DockStyle.Fill,
+                    Text = $"Signed in as {roleName}. Your dashboard is ready.",
+                    ForeColor = DialogMutedColor,
+                    Font = new Font("Segoe UI", 9.5F),
+                    TextAlign = ContentAlignment.MiddleCenter
+                }, 0, 3);
+
+                var continueButton = new Button
+                {
+                    Width = 158,
+                    Height = 40,
+                    Anchor = AnchorStyles.None,
+                    Text = "Continue",
+                    BackColor = PrimaryColor,
+                    ForeColor = Color.White,
+                    FlatStyle = FlatStyle.Flat,
+                    Font = new Font("Segoe UI Semibold", 10F, FontStyle.Bold),
+                    Cursor = Cursors.Hand,
+                    DialogResult = DialogResult.OK
+                };
+                continueButton.FlatAppearance.BorderSize = 0;
+                content.Controls.Add(continueButton, 0, 5);
+
+                AcceptButton = continueButton;
+                KeyDown += (s, e) =>
+                {
+                    if (e.KeyCode == Keys.Escape || e.KeyCode == Keys.Enter)
+                    {
+                        DialogResult = DialogResult.OK;
+                        Close();
+                    }
+                };
+            }
+
+            protected override CreateParams CreateParams
+            {
+                get
+                {
+                    const int CS_DROPSHADOW = 0x00020000;
+                    var cp = base.CreateParams;
+                    cp.ClassStyle |= CS_DROPSHADOW;
+                    return cp;
+                }
+            }
+
+            protected override void OnShown(EventArgs e)
+            {
+                base.OnShown(e);
+                ApplyRoundedRegion();
+            }
+
+            protected override void OnResize(EventArgs e)
+            {
+                base.OnResize(e);
+                ApplyRoundedRegion();
+            }
+
+            protected override void OnPaint(PaintEventArgs e)
+            {
+                base.OnPaint(e);
+                using (var path = CreateRoundedRectangle(new Rectangle(0, 0, Width - 1, Height - 1), 18))
+                using (var pen = new Pen(DialogBorderColor))
+                {
+                    e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                    e.Graphics.DrawPath(pen, path);
+                }
+            }
+
+            private void ApplyRoundedRegion()
+            {
+                if (Width <= 0 || Height <= 0) return;
+                using (var path = CreateRoundedRectangle(new Rectangle(0, 0, Width, Height), 18))
+                {
+                    Region = new Region(path);
+                }
+            }
+
+            private void PaintSuccessIcon(object sender, PaintEventArgs e)
+            {
+                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+
+                using (var softBrush = new SolidBrush(Color.FromArgb(224, 246, 235)))
+                using (var mainBrush = new SolidBrush(DialogSuccessColor))
+                using (var checkPen = new Pen(Color.White, 5F))
+                {
+                    e.Graphics.FillEllipse(softBrush, 0, 0, 64, 64);
+                    e.Graphics.FillEllipse(mainBrush, 10, 10, 44, 44);
+                    checkPen.StartCap = LineCap.Round;
+                    checkPen.EndCap = LineCap.Round;
+                    e.Graphics.DrawLines(checkPen, new[]
+                    {
+                        new Point(24, 33),
+                        new Point(31, 40),
+                        new Point(43, 26)
+                    });
+                }
+            }
+
+            private static GraphicsPath CreateRoundedRectangle(Rectangle bounds, int radius)
+            {
+                int diameter = radius * 2;
+                var path = new GraphicsPath();
+                path.AddArc(bounds.Left, bounds.Top, diameter, diameter, 180, 90);
+                path.AddArc(bounds.Right - diameter, bounds.Top, diameter, diameter, 270, 90);
+                path.AddArc(bounds.Right - diameter, bounds.Bottom - diameter, diameter, diameter, 0, 90);
+                path.AddArc(bounds.Left, bounds.Bottom - diameter, diameter, diameter, 90, 90);
+                path.CloseFigure();
+                return path;
+            }
+        }
     }
 }

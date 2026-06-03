@@ -115,10 +115,10 @@ namespace kingdom_Preparatory_School_Management_System.Data
                     // employmentID is INT IDENTITY — never include it in INSERT.
                     var query = $@"
                         INSERT INTO {EMPLOYEE_TABLE}
-                        (fullName, gender, dOB, conatct, department, position, homeTown, residence,
+                        (fullName, gender, dOB, conatct, email, department, position, homeTown, residence,
                          date_of_Emplyment, employment_Mode, employment_Status, emergency_Contact_Person,
                          emergency_contact, Employees_Reviews, salary, pic)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
                     using (var command = new OleDbCommand(query, connection))
                     {
@@ -156,7 +156,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
                     await connection.OpenAsync();
                     var query = $@"
                         UPDATE {EMPLOYEE_TABLE} 
-                        SET fullName = ?, gender = ?, dOB = ?, conatct = ?, department = ?, 
+                        SET fullName = ?, gender = ?, dOB = ?, conatct = ?, email = ?, department = ?, 
                             position = ?, homeTown = ?, residence = ?, date_of_Emplyment = ?, 
                             employment_Mode = ?, employment_Status = ?, emergency_Contact_Person = ?, 
                             emergency_contact = ?, Employees_Reviews = ?, salary = ?, pic = ?
@@ -334,6 +334,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
                 Gender = reader["gender"]?.ToString() ?? "",
                 DateOfBirth = reader["dOB"] != DBNull.Value ? (DateTime)reader["dOB"] : DateTime.MinValue,
                 Contact = reader["conatct"]?.ToString() ?? "",
+                Email = reader["email"]?.ToString() ?? "",
                 Department = reader["department"]?.ToString() ?? "",
                 Position = reader["position"]?.ToString() ?? "",
                 HomeTown = reader["homeTown"]?.ToString() ?? "",
@@ -355,6 +356,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
             command.Parameters.AddWithValue("?", employee.Gender ?? "");
             command.Parameters.AddWithValue("?", employee.DateOfBirth);
             command.Parameters.AddWithValue("?", employee.Contact ?? "");
+            command.Parameters.AddWithValue("?", employee.Email ?? "");
             command.Parameters.AddWithValue("?", employee.Department ?? "");
             command.Parameters.AddWithValue("?", employee.Position ?? "");
             command.Parameters.AddWithValue("?", employee.HomeTown ?? "");

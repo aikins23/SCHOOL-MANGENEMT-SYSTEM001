@@ -317,8 +317,8 @@ namespace kingdom_Preparatory_School_Management_System
                         return;
                     }
 
-                    resultLabel.Text = $"Generating report for {studentName}...";
-                    
+                    if (resultLabel != null) resultLabel.Text = $"Generating report for {studentName}...";
+
                     var remarksRepository = new StudentTermRemarksRepository(AppConfig.ConnectionString);
                     var dataService = new ReportCardDataService(AppConfig.ConnectionString, remarksRepository);
                     var pdfGenerator = new ReportCardPDFGenerator();
@@ -333,13 +333,13 @@ namespace kingdom_Preparatory_School_Management_System
                         UIHelper.ShowSuccess($"Report card generated and sent to printer for {studentName}", "Generate Report Card");
                     }
                     
-                    resultLabel.Text = "Ready.";
+                    if (resultLabel != null) resultLabel.Text = "Ready.";
                 }
                 catch (Exception ex)
                 {
                     LoggerHelper.LogError("Report generation failed", ex);
                     UIHelper.ShowError($"Failed to generate report: {ex.Message}", "Generate Report Card");
-                    resultLabel.Text = "Generation failed.";
+                    if (resultLabel != null) resultLabel.Text = "Generation failed.";
                 }
             };
 
@@ -350,7 +350,13 @@ namespace kingdom_Preparatory_School_Management_System
         {
             try
             {
-                resultLabel.Text = "Loading academic reports...";
+                if (_examService == null)
+                {
+                    LoggerHelper.LogWarning("Exam service not initialized. Access may have been denied.");
+                    return;
+                }
+
+                if (resultLabel != null) resultLabel.Text = "Loading academic reports...";
                 resultsTable = await _examService.GetResultsReportTableAsync();
                 resultsGrid.DataSource = resultsTable;
                 
@@ -361,7 +367,7 @@ namespace kingdom_Preparatory_School_Management_System
 
                 if (resultsTable == null || resultsTable.Rows.Count == 0)
                 {
-                    resultLabel.Text = "No exam records found in database.";
+                    if (resultLabel != null) resultLabel.Text = "No exam records found in database.";
                     LoggerHelper.LogWarning("Exam results table is empty.");
                 }
                 else
@@ -447,7 +453,7 @@ namespace kingdom_Preparatory_School_Management_System
             if (termFilter.SelectedIndex > 0) filters.Add("TERMS = '" + termFilter.Text.Replace("'", "''") + "'");
 
             resultsTable.DefaultView.RowFilter = string.Join(" AND ", filters);
-            resultLabel.Text = resultsTable.DefaultView.Count + " report card(s) shown";
+            if (resultLabel != null) resultLabel.Text = resultsTable.DefaultView.Count + " report card(s) shown";
             UpdateMetrics();
         }
 

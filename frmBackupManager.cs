@@ -58,7 +58,6 @@ namespace kingdom_Preparatory_School_Management_System
             int x = padding;
             int y = padding;
             int groupWidth = this.ClientSize.Width - (padding * 2);
-            int labelHeight = 25;
             int buttonHeight = 40;
             int controlWidth = (groupWidth - 30) / 2;
 

@@ -1,0 +1,38 @@
+# ADDITIONAL STRATEGIC RECOMMENDATIONS
+# Kingdom Preparatory School Management System
+
+Based on the current architecture and feature set, these are the recommended next steps to elevate the system to an enterprise-grade solution.
+
+---
+
+## 1. Transport & School Bus Management
+A major pain point for schools is logistics. Adding a module for transportation would be a significant differentiator:
+* Route Management: Define routes, stops, and assigned buses.
+* Vehicle Maintenance: Track bus insurance, service dates, and fuel costs.
+* Student Mapping: Assign students to specific routes and track "Bus Fees" separately from tuition.
+
+## 2. Library & Resource Inventory
+Transform the "Asset Tracking" idea into a full-fledged Library Management System:
+* Book Cataloging: ISBN scanning or manual entry with category/author.
+* Lending System: Issue books to students/staff with automated due-date tracking.
+* Fine Calculation: Auto-calculate fines for overdue books and link them to the student's financial record.
+
+## 3. Parent Portal (Web/API Extension)
+Since you already have a solid AuthService and StudentService, the next step is to let parents access data without needing the desktop app:
+* Self-Hosted Web API: Use your existing service layer to create a small ASP.NET Core Web API.
+* View-Only Portal: A simple web page where parents can log in (using the Parent role) to download Report Cards or check Fee Balances.
+* Mobile Notifications: Use the API to send push notifications via a service like OneSignal or Firebase.
+
+## 4. Dynamic Grading & Subject Configuration
+To make the software sellable to other schools and more flexible:
+* Grading Schemes: Allow Admins to define grading thresholds (e.g., A = 80+, 85+, or 90+).
+* Subject Setup: Allow the creation of custom subjects per class level through the UI.
+* Report Card Templates: Allow schools to upload their own logos and header text through a settings menu.
+
+## 5. Technical "Final Polish"
+* Dependency Injection: Implement a DI container (e.g., Microsoft.Extensions.DependencyInjection) to manage service lifetimes.
+* Database Migration Tool: Create a tool to help schools migrate from local file-based DBs to SQL Server as they grow.
+* Advanced Unit Testing: Increase coverage to 80%+ across the Service and Data layers.
+
+---
+Recommendations generated on May 28, 2026.

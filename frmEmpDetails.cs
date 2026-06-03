@@ -15,6 +15,7 @@ namespace kingdom_Preparatory_School_Management_System
         private readonly EmployeeService _employeeService;
         private readonly DataTable data;
         private Label statusLabel;
+        private Guna.UI2.WinForms.Guna2TextBox txtEM;
 
         private static readonly Color PageBackColor = UiTheme.Page;
         private static readonly Color SurfaceColor = UiTheme.Surface;
@@ -179,6 +180,14 @@ namespace kingdom_Preparatory_School_Management_System
 
         private Control BuildPersonalPanel()
         {
+            txtEM = new Guna.UI2.WinForms.Guna2TextBox
+            {
+                Dock = DockStyle.Fill,
+                Font = new Font("Segoe UI", 10F),
+                Height = 36,
+                PlaceholderText = "email@example.com"
+            };
+
             var panel = CreateSurfacePanel(new Padding(24, 20, 24, 22), new Padding(0, 0, 0, 14));
             var layout = CreateSectionLayout("Personal Details", 5, 2);
             layout.Controls.Add(CreateField("Employee ID", txtEMdID), 0, 1);
@@ -186,7 +195,7 @@ namespace kingdom_Preparatory_School_Management_System
             layout.Controls.Add(CreateField("Gender", cmbGN), 0, 2);
             layout.Controls.Add(CreateField("Date of Birth", dateDOB), 1, 2);
             layout.Controls.Add(CreateField("Contact", txtCN), 0, 3);
-            layout.Controls.Add(CreateField("Department", cmbDPT), 1, 3);
+            layout.Controls.Add(CreateField("Email", txtEM), 1, 3);
             layout.Controls.Add(CreateField("Home Town", txtHT), 0, 4);
             layout.Controls.Add(CreateField("Residence", txtRD), 1, 4);
             panel.Controls.Add(layout);
@@ -337,6 +346,7 @@ namespace kingdom_Preparatory_School_Management_System
             cmbGN.Text = row["GENDER"].ToString();
             dateDOB.Value = SafeDate(row["DATE OF BIRTH"], DateTime.Today.AddYears(-25));
             txtCN.Text = row["CONTACT"].ToString();
+            txtEM.Text = row.Table.Columns.Contains("EMAIL") ? row["EMAIL"].ToString() : "";
             cmbDPT.Text = row["DEPARTMENT"].ToString();
             CmbPs.Text = row["POSITION"].ToString();
             txtHT.Text = row["HOME TOWN"].ToString();
@@ -386,6 +396,7 @@ namespace kingdom_Preparatory_School_Management_System
                 Gender = cmbGN.Text.Trim(),
                 DateOfBirth = dateDOB.Value.Date,
                 Contact = txtCN.Text.Trim(),
+                Email = txtEM.Text.Trim(),
                 Department = cmbDPT.Text.Trim(),
                 Position = CmbPs.Text.Trim(),
                 HomeTown = txtHT.Text.Trim(),

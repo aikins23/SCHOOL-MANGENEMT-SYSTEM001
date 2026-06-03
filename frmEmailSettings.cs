@@ -403,7 +403,7 @@ namespace kingdom_Preparatory_School_Management_System
                 Properties.Settings.Default.SmtpServer = txtSmtpServer.Text;
                 Properties.Settings.Default.SmtpPort = (int)numSmtpPort.Value;
                 Properties.Settings.Default.SmtpUsername = txtUsername.Text;
-                Properties.Settings.Default.SmtpPassword = txtPassword.Text;
+                Properties.Settings.Default.SmtpPassword = SecretStorage.Protect(txtPassword.Text);
                 Properties.Settings.Default.FromEmail = txtFromEmail.Text;
                 Properties.Settings.Default.UseSSL = chkUseSSL.Checked;
                 Properties.Settings.Default.Save();
@@ -423,7 +423,7 @@ namespace kingdom_Preparatory_School_Management_System
             Properties.Settings.Default.SmtpServer = txtSmtpServer.Text;
             Properties.Settings.Default.SmtpPort = (int)numSmtpPort.Value;
             Properties.Settings.Default.SmtpUsername = txtUsername.Text;
-            Properties.Settings.Default.SmtpPassword = txtPassword.Text;
+            Properties.Settings.Default.SmtpPassword = SecretStorage.Protect(txtPassword.Text);
             Properties.Settings.Default.FromEmail = txtFromEmail.Text;
             Properties.Settings.Default.UseSSL = chkUseSSL.Checked;
 

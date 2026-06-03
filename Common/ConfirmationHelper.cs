@@ -9,8 +9,6 @@ namespace kingdom_Preparatory_School_Management_System.Common
     /// </summary>
     public static class ConfirmationHelper
     {
-        private static readonly string AppName = "Kingdom Prep";
-
         /// <summary>
         /// Ask for confirmation before deleting a record
         /// </summary>

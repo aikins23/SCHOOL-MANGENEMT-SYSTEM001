@@ -17,6 +17,7 @@ namespace kingdom_Preparatory_School_Management_System
         private Panel _stepPanel;          // custom-drawn step-dot indicator
         private Button previousPageButton;
         private Button nextPageButton;
+        private Button[] stepButtons;
         private Control[] formPages;
         private int currentPageIndex;
 
@@ -71,7 +72,8 @@ namespace kingdom_Preparatory_School_Management_System
             BackColor = PageBackColor;
             Font = new Font("Segoe UI", 9.5F, FontStyle.Regular);
             StartPosition = FormStartPosition.CenterScreen;
-            MinimumSize = new Size(1180, 720);
+            MinimumSize = new Size(1180, 760);
+            ClientSize = new Size(1320, 820);
 
             PrepareInputs();
 
@@ -81,12 +83,12 @@ namespace kingdom_Preparatory_School_Management_System
                 RowCount = 4,
                 ColumnCount = 1,
                 BackColor = PageBackColor,
-                Padding = new Padding(26, 22, 26, 18)
+                Padding = new Padding(34, 26, 34, 24)
             };
-            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 72));
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 76));
             root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
-            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 58));
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 76));
 
             root.Controls.Add(BuildHeader(), 0, 0);
             root.Controls.Add(BuildFormBody(), 0, 1);
@@ -137,6 +139,7 @@ namespace kingdom_Preparatory_School_Management_System
 
             if (control is Guna.UI2.WinForms.Guna2TextBox textBox)
             {
+                textBox.Multiline = false;
                 textBox.FillColor = SurfaceColor;
                 textBox.BorderColor = BorderColor;
                 textBox.FocusedState.BorderColor = GoldColor;
@@ -197,11 +200,23 @@ namespace kingdom_Preparatory_School_Management_System
 
         private Control BuildFormBody()
         {
+            var body = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                RowCount = 2,
+                ColumnCount = 1,
+                BackColor = PageBackColor,
+                Margin = Padding.Empty
+            };
+            body.RowStyles.Add(new RowStyle(SizeType.Absolute, 50));
+            body.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+
             pageHost = new Panel
             {
                 Dock = DockStyle.Fill,
                 BackColor = PageBackColor,
-                Margin = Padding.Empty
+                Margin = Padding.Empty,
+                AutoScroll = true
             };
 
             formPages = new[]
@@ -210,10 +225,54 @@ namespace kingdom_Preparatory_School_Management_System
                 BuildGuardianPanel(),
                 BuildPhotoPanel()
             };
+            stepButtons = BuildStepButtons(new[] { "Learner", "Guardian", "Photo" });
             currentPageIndex = 0;
+
+            body.Controls.Add(BuildStepStrip(stepButtons), 0, 0);
+            body.Controls.Add(pageHost, 0, 1);
             ShowStudentPage(currentPageIndex);
 
-            return pageHost;
+            return body;
+        }
+
+        private Button[] BuildStepButtons(string[] labels)
+        {
+            var buttons = new Button[labels.Length];
+            for (int i = 0; i < labels.Length; i++)
+            {
+                int pageIndex = i;
+                buttons[i] = new Button
+                {
+                    Dock = DockStyle.Fill,
+                    Margin = new Padding(i == 0 ? 0 : 8, 0, 0, 8),
+                    Text = $"{i + 1}. {labels[i]}",
+                    FlatStyle = FlatStyle.Flat,
+                    Font = new Font("Segoe UI Semibold", 9.25F, FontStyle.Bold),
+                    Cursor = Cursors.Hand,
+                    TextAlign = ContentAlignment.MiddleCenter
+                };
+                buttons[i].FlatAppearance.BorderSize = 1;
+                buttons[i].Click += (sender, args) => ShowStudentPage(pageIndex);
+            }
+            return buttons;
+        }
+
+        private Control BuildStepStrip(Button[] buttons)
+        {
+            var strip = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = buttons.Length,
+                BackColor = PageBackColor,
+                Margin = Padding.Empty,
+                Padding = Padding.Empty
+            };
+            for (int i = 0; i < buttons.Length; i++)
+            {
+                strip.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F / buttons.Length));
+                strip.Controls.Add(buttons[i], i, 0);
+            }
+            return strip;
         }
 
         private Control BuildPersonalPanel()
@@ -335,15 +394,16 @@ namespace kingdom_Preparatory_School_Management_System
             var layout = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
-                RowCount = rows,
+                RowCount = rows + 1,
                 ColumnCount = columns,
                 BackColor = SurfaceColor
             };
-            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 52));
             for (int i = 1; i < rows; i++)
             {
-                layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100F / (rows - 1)));
+                layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 78));
             }
+            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
             for (int i = 0; i < columns; i++)
             {
                 layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F / columns));
@@ -369,13 +429,14 @@ namespace kingdom_Preparatory_School_Management_System
             var panel = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
-                RowCount = 2,
+                RowCount = 3,
                 ColumnCount = 1,
-                Padding = new Padding(0, 0, 12, 10),
+                Padding = new Padding(0, 2, 12, 4),
                 BackColor = SurfaceColor,
                 Margin = Padding.Empty
             };
             panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 22));
+            panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
             panel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
             panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
 
@@ -391,7 +452,7 @@ namespace kingdom_Preparatory_School_Management_System
             };
 
             input.Dock = DockStyle.Fill;
-            input.Height = 36;
+            input.Height = 38;
             panel.Controls.Add(label, 0, 0);
             panel.Controls.Add(input, 0, 1);
             return panel;
@@ -420,9 +481,9 @@ namespace kingdom_Preparatory_School_Management_System
                 ColumnCount = 3,
                 RowCount = 1,
                 BackColor = PageBackColor,
-                Padding = new Padding(0, 6, 0, 4)
+                Padding = new Padding(0, 12, 0, 6)
             };
-            wrapper.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 284)); // navigator
+            wrapper.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 0));   // old footer pager hidden; steps are above the card
             wrapper.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));  // spacer
             wrapper.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 500)); // CRUD
 
@@ -584,7 +645,8 @@ namespace kingdom_Preparatory_School_Management_System
             pageHost.Controls.Clear();
 
             var page = formPages[currentPageIndex];
-            page.Dock = DockStyle.Fill;
+            page.Dock = DockStyle.Top;
+            page.Height = GetStudentPageHeight(currentPageIndex);
             pageHost.Controls.Add(page);
 
             bool isFirst = currentPageIndex == 0;
@@ -603,7 +665,22 @@ namespace kingdom_Preparatory_School_Management_System
                 nextPageButton.Text      = isLast ? "Done ✓" : "Next →";
             }
 
-            _stepPanel?.Invalidate();
+            if (stepButtons != null)
+            {
+                for (int i = 0; i < stepButtons.Length; i++)
+                {
+                    bool active = i == currentPageIndex;
+                    stepButtons[i].BackColor = active ? PrimaryColor : SurfaceColor;
+                    stepButtons[i].ForeColor = active ? Color.White : TextColor;
+                    stepButtons[i].FlatAppearance.BorderColor = active ? PrimaryColor : BorderColor;
+                }
+            }
+        }
+
+        private int GetStudentPageHeight(int pageIndex)
+        {
+            if (pageIndex == 1) return 365;
+            return pageIndex == 2 ? 520 : 500;
         }
 
         private Button CreatePrimaryButton(string text, Action action)
@@ -670,13 +747,16 @@ namespace kingdom_Preparatory_School_Management_System
         {
             var button = new Button
             {
-                Dock = DockStyle.Fill,
-                Height = 38,
-                Margin = new Padding(8, 0, 0, 0),
+                Width = text == "Roll Out" ? 118 : 104,
+                Height = 42,
+                Margin = new Padding(8, 2, 0, 2),
                 Text = text,
                 FlatStyle = FlatStyle.Flat,
                 Font = new Font("Segoe UI Semibold", 9.5F, FontStyle.Bold),
-                Cursor = Cursors.Hand
+                Cursor = Cursors.Hand,
+                TextAlign = ContentAlignment.MiddleCenter,
+                UseVisualStyleBackColor = false,
+                FlatAppearance = { BorderSize = 1 }
             };
             button.Click += (sender, args) => action();
             return button;
@@ -686,13 +766,16 @@ namespace kingdom_Preparatory_School_Management_System
         {
             var button = new Button
             {
-                Dock = DockStyle.Fill,
-                Height = 38,
-                Margin = new Padding(8, 0, 0, 0),
+                Width = text == "Roll Out" ? 118 : 104,
+                Height = 42,
+                Margin = new Padding(8, 2, 0, 2),
                 Text = text,
                 FlatStyle = FlatStyle.Flat,
                 Font = new Font("Segoe UI Semibold", 9.5F, FontStyle.Bold),
-                Cursor = Cursors.Hand
+                Cursor = Cursors.Hand,
+                TextAlign = ContentAlignment.MiddleCenter,
+                UseVisualStyleBackColor = false,
+                FlatAppearance = { BorderSize = 1 }
             };
             button.Click += async (sender, args) => await asyncAction();
             return button;

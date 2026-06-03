@@ -11,7 +11,7 @@ namespace kingdom_Preparatory_School_Management_System.Common
     /// </summary>
     public static class FormManager
     {
-        private static Dictionary<Type, Form> _openForms = new Dictionary<Type, Form>();
+        private static Dictionary<string, Form> _openForms = new Dictionary<string, Form>();
         private static Form _mainDashboard;
         private static bool _isClosingAllForms = false;
 
@@ -38,11 +38,12 @@ namespace kingdom_Preparatory_School_Management_System.Common
         public static T OpenForm<T>(Func<T> formFactory) where T : Form
         {
             Type formType = typeof(T);
+            string cacheKey = GetCacheKey(formType);
 
             // Check if form already exists and is not disposed
-            if (_openForms.ContainsKey(formType) && _openForms[formType] != null && !_openForms[formType].IsDisposed)
+            if (_openForms.ContainsKey(cacheKey) && _openForms[cacheKey] != null && !_openForms[cacheKey].IsDisposed)
             {
-                Form existingForm = _openForms[formType];
+                Form existingForm = _openForms[cacheKey];
                 existingForm.Show();
                 existingForm.BringToFront();
                 existingForm.Focus();
@@ -51,10 +52,10 @@ namespace kingdom_Preparatory_School_Management_System.Common
 
             // Create new form instance
             T form = formFactory();
-            _openForms[formType] = form;
+            _openForms[cacheKey] = form;
 
             // Subscribe to form closed event
-            form.FormClosed += (s, e) => OnFormClosed(formType);
+            form.FormClosed += (s, e) => OnFormClosed(cacheKey);
 
             form.Show();
             form.BringToFront();
@@ -68,11 +69,11 @@ namespace kingdom_Preparatory_School_Management_System.Common
         /// </summary>
         public static T OpenForm<T>(string key, Func<T> formFactory) where T : Form
         {
-            string cacheKey = typeof(T).FullName + "_" + key;
+            string cacheKey = GetCacheKey(typeof(T), key);
 
-            if (_openForms.ContainsKey(typeof(T)) && _openForms[typeof(T)] != null && !_openForms[typeof(T)].IsDisposed)
+            if (_openForms.ContainsKey(cacheKey) && _openForms[cacheKey] != null && !_openForms[cacheKey].IsDisposed)
             {
-                Form existingForm = _openForms[typeof(T)];
+                Form existingForm = _openForms[cacheKey];
                 existingForm.Show();
                 existingForm.BringToFront();
                 existingForm.Focus();
@@ -80,9 +81,9 @@ namespace kingdom_Preparatory_School_Management_System.Common
             }
 
             T form = formFactory();
-            _openForms[typeof(T)] = form;
+            _openForms[cacheKey] = form;
 
-            form.FormClosed += (s, e) => OnFormClosed(typeof(T));
+            form.FormClosed += (s, e) => OnFormClosed(cacheKey);
             form.Show();
             form.BringToFront();
             form.Focus();
@@ -96,11 +97,12 @@ namespace kingdom_Preparatory_School_Management_System.Common
         public static void CloseForm<T>() where T : Form
         {
             Type formType = typeof(T);
-            if (_openForms.ContainsKey(formType) && _openForms[formType] != null)
+            string cacheKey = GetCacheKey(formType);
+            if (_openForms.ContainsKey(cacheKey) && _openForms[cacheKey] != null)
             {
-                if (!_openForms[formType].IsDisposed)
+                if (!_openForms[cacheKey].IsDisposed)
                 {
-                    _openForms[formType].Close();
+                    _openForms[cacheKey].Close();
                 }
             }
         }
@@ -213,10 +215,11 @@ namespace kingdom_Preparatory_School_Management_System.Common
         public static bool IsFormOpen<T>() where T : Form
         {
             Type formType = typeof(T);
-            return _openForms.ContainsKey(formType) && 
-                   _openForms[formType] != null && 
-                   !_openForms[formType].IsDisposed &&
-                   _openForms[formType].Visible;
+            string cacheKey = GetCacheKey(formType);
+            return _openForms.ContainsKey(cacheKey) &&
+                   _openForms[cacheKey] != null &&
+                   !_openForms[cacheKey].IsDisposed &&
+                   _openForms[cacheKey].Visible;
         }
 
         /// <summary>
@@ -225,9 +228,10 @@ namespace kingdom_Preparatory_School_Management_System.Common
         public static T GetOpenForm<T>() where T : Form
         {
             Type formType = typeof(T);
-            if (_openForms.ContainsKey(formType) && _openForms[formType] != null && !_openForms[formType].IsDisposed)
+            string cacheKey = GetCacheKey(formType);
+            if (_openForms.ContainsKey(cacheKey) && _openForms[cacheKey] != null && !_openForms[cacheKey].IsDisposed)
             {
-                return (T)_openForms[formType];
+                return (T)_openForms[cacheKey];
             }
             return null;
         }
@@ -247,11 +251,11 @@ namespace kingdom_Preparatory_School_Management_System.Common
         /// <summary>
         /// Called when a form is closed
         /// </summary>
-        private static void OnFormClosed(Type formType)
+        private static void OnFormClosed(string cacheKey)
         {
-            if (_openForms.ContainsKey(formType))
+            if (_openForms.ContainsKey(cacheKey))
             {
-                _openForms[formType] = null;
+                _openForms[cacheKey] = null;
             }
         }
 
@@ -265,6 +269,13 @@ namespace kingdom_Preparatory_School_Management_System.Common
             {
                 _openForms.Remove(formType);
             }
+        }
+
+        private static string GetCacheKey(Type formType, string key = null)
+        {
+            return string.IsNullOrEmpty(key)
+                ? formType.FullName
+                : formType.FullName + "_" + key;
         }
     }
 }

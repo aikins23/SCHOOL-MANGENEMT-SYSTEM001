@@ -248,6 +248,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
                 case "BASIC 6":
                 case "BASIC 7":
                 case "BASIC 8":
+                case "BASIC 9":
                     return 2423m;
                 default:
                     return 1200m;

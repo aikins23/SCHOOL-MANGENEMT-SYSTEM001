@@ -2755,7 +2755,7 @@ namespace kingdom_Preparatory_School_Management_System
                     return;
                 }
 
-                decimal newBalance = Math.Max(0m, currentBalance - amountPaid);
+                decimal newBalance = FeeBalanceCalculator.CalculateNewBalance(currentBalance, amountPaid);
 
                 string changeDescription = $"Record payment of GHS {amountPaid:N2} for {studentNameBox.Text} (ID: {studentIdBox.Text.Trim()})?";
                 if (!ConfirmationHelper.ConfirmSave(changeDescription)) return;

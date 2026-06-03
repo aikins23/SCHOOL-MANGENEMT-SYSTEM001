@@ -12,6 +12,7 @@ namespace kingdom_Preparatory_School_Management_System.Models
         public string Gender { get; set; }
         public DateTime DateOfBirth { get; set; }
         public string Contact { get; set; }
+        public string Email { get; set; }
         public string Department { get; set; }
         public string Position { get; set; }
         public string HomeTown { get; set; }

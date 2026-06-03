@@ -49,10 +49,35 @@ namespace kingdom_Preparatory_School_Management_System
                 foreach (var cls in classes)
                     cmbClass.Items.Add(cls);
                 cmbClass.SelectedIndex = 0;
+
+                await ApplyTeacherScopeAsync();
             }
             catch (Exception ex)
             {
                 UIHelper.ShowError($"Error loading classes: {ex.Message}", "Generate Report Cards");
+            }
+        }
+
+        /// <summary>
+        /// Teachers may only generate report cards for their own class. Locks the
+        /// class dropdown to their assigned class and disables "Print All" so they
+        /// can't bypass the filter.
+        /// </summary>
+        private async Task ApplyTeacherScopeAsync()
+        {
+            if (!AuthService.IsTeacher) return;
+            string myClass = await AuthService.GetCurrentTeacherClassAsync();
+            if (string.IsNullOrEmpty(myClass)) return;
+            int idx = cmbClass.Items.IndexOf(myClass);
+            if (idx >= 0)
+            {
+                cmbClass.SelectedIndex = idx;
+                cmbClass.Enabled = false;
+            }
+            if (chkPrintAll != null)
+            {
+                chkPrintAll.Checked = false;
+                chkPrintAll.Enabled = false;
             }
         }
 
@@ -79,7 +104,11 @@ namespace kingdom_Preparatory_School_Management_System
         {
             try
             {
-                if (chkPrintAll.Checked)
+                // For Teacher: always route through the filtered path so the
+                // teacher-scope cmbClass selection is honoured. Belt-and-braces —
+                // we also disable the chkPrintAll checkbox in ApplyTeacherScopeAsync,
+                // but defending here too in case the UI state is bypassed.
+                if (chkPrintAll.Checked && !AuthService.IsTeacher)
                 {
                     _selectedStudentIds = await GetAllStudentIdsAsync();
                 }

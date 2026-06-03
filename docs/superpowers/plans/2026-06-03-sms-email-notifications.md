@@ -55,9 +55,11 @@ The xUnit `[Fact]` tests are still written (they document intent and run if a ru
 ## Task 1: Add SMS config settings (Enabled, SchoolAbbreviation)
 
 **Files:**
+- Modify: `Properties/Settings.settings` (after the `SmsFromNumber` Setting, ~line 42)
 - Modify: `Properties/Settings.Designer.cs` (after the `SmsFromNumber` property, ~line 154)
-- Modify: `app.config` (userSettings section — copy the existing `SmsApiKey` entry as template)
 - Modify: `Common/AppConfig.cs` (inside `public static class Sms`, after `FromNumber`)
+
+> NOTE: This project has **no `userSettings` section in `app.config`** — settings rely on `DefaultSettingValueAttribute` in `Settings.Designer.cs` and the `Settings.settings` source file (user-scoped values persist to `user.config` at runtime). Do NOT edit `app.config`.
 
 - [ ] **Step 1: Add the two settings properties to `Settings.Designer.cs`**
 
@@ -89,17 +91,17 @@ Insert after the `SmsFromNumber` property block:
         }
 ```
 
-- [ ] **Step 2: Add matching entries to `app.config`**
+- [ ] **Step 2: Add matching entries to `Properties/Settings.settings`**
 
-Find the `<userSettings>` block containing `<setting name="SmsApiKey" ...>`. Add two siblings (match the exact element style already present there):
+Find the `<Setting Name="SmsFromNumber" ...>` element and add two siblings after it (match the existing element style):
 
 ```xml
-            <setting name="SmsEnabled" serializeAs="String">
-                <value>False</value>
-            </setting>
-            <setting name="SmsSchoolAbbreviation" serializeAs="String">
-                <value>KPS</value>
-            </setting>
+    <Setting Name="SmsEnabled" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="SmsSchoolAbbreviation" Type="System.String" Scope="User">
+      <Value Profile="(Default)">KPS</Value>
+    </Setting>
 ```
 
 - [ ] **Step 3: Add accessors to `AppConfig.Sms`**
@@ -148,7 +150,7 @@ Expected: `Build succeeded.` / `0 Error(s)`
 - [ ] **Step 5: Commit**
 
 ```bash
-git add Properties/Settings.Designer.cs app.config Common/AppConfig.cs
+git add Properties/Settings.settings Properties/Settings.Designer.cs Common/AppConfig.cs
 git commit -m "feat(sms): add SmsEnabled and SmsSchoolAbbreviation settings"
 ```
 

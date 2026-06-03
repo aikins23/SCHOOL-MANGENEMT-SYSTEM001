@@ -17,10 +17,12 @@ namespace kingdom_Preparatory_School_Management_System
         private readonly IClassRepository _classRepository;
         private Label statusLabel;
         private ComboBox cmbClass;
+        private Guna.UI2.WinForms.Guna2TextBox txtEM;
         private Panel pageHost;
-        private Panel _stepPanel;          // custom-drawn step-dot indicator
+        private Panel _stepPanel;
         private Button previousPageButton;
         private Button nextPageButton;
+        private Button[] stepButtons;
         private readonly List<Control> formPages = new List<Control>();
         private int currentPageIndex;
         private const string NoClassLabel = "No class";
@@ -67,10 +69,10 @@ namespace kingdom_Preparatory_School_Management_System
         }
 
         // ── Layout constants (one place to tune everything) ──────────────────
-        private const int InputH      = 38;   // all text/combo/date inputs
+        private const int InputH      = 36;   // all text/combo/date inputs
         private const int LabelH      = 19;   // field caption
         private const int FieldGap    = 10;   // bottom gap between fields
-        private const int FieldRowH   = LabelH + InputH + FieldGap; // 67 px
+        private const int FieldRowH   = LabelH + InputH + FieldGap; // 65 px
         private const int CardPad     = 22;   // inner card padding
         private const int HeaderH     = 58;   // section header height
         private const int SectionGap  = 12;   // gap between cards
@@ -84,8 +86,8 @@ namespace kingdom_Preparatory_School_Management_System
             BackColor = PageBackColor;
             Font = new Font("Segoe UI", 9.5F, FontStyle.Regular);
             StartPosition = FormStartPosition.CenterScreen;
-            MinimumSize = new Size(1100, 700);
-            ClientSize = new Size(1240, 780);
+            MinimumSize = new Size(1180, 760);
+            ClientSize = new Size(1320, 820);
 
             var root = new TableLayoutPanel
             {
@@ -93,12 +95,12 @@ namespace kingdom_Preparatory_School_Management_System
                 RowCount = 4,
                 ColumnCount = 1,
                 BackColor = PageBackColor,
-                Padding = new Padding(28, 20, 28, 14)
+                Padding = new Padding(34, 26, 34, 24)
             };
-            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 68));   // header
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 76));   // header
             root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));   // cards
-            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 26));   // status
-            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 60));   // buttons (increased from 50)
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));   // status
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 68));   // buttons
 
             root.Controls.Add(BuildHeader(), 0, 0);
             root.Controls.Add(BuildFormBody(), 0, 1);
@@ -175,6 +177,7 @@ namespace kingdom_Preparatory_School_Management_System
 
             if (control is Guna.UI2.WinForms.Guna2TextBox tb)
             {
+                tb.Multiline             = false;
                 tb.FillColor             = SurfaceColor;
                 tb.BorderColor           = BorderColor;
                 tb.FocusedState.BorderColor = UiTheme.Gold;
@@ -236,21 +239,77 @@ namespace kingdom_Preparatory_School_Management_System
 
         private Control BuildFormBody()
         {
+            var body = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                RowCount = 2,
+                ColumnCount = 1,
+                BackColor = PageBackColor,
+                Margin = Padding.Empty
+            };
+            body.RowStyles.Add(new RowStyle(SizeType.Absolute, 50));
+            body.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+
             pageHost = new Panel
             {
                 Dock = DockStyle.Fill,
                 BackColor = PageBackColor,
-                Margin = Padding.Empty
+                Margin = Padding.Empty,
+                AutoScroll = true
             };
 
             formPages.Clear();
             formPages.Add(BuildPersonalPanel());
             formPages.Add(BuildEmploymentPanel());
             formPages.Add(BuildPhotoPanel());
+            stepButtons = BuildStepButtons(new[] { "Personal", "Employment", "Photo" });
             currentPageIndex = 0;
+
+            body.Controls.Add(BuildStepStrip(stepButtons), 0, 0);
+            body.Controls.Add(pageHost, 0, 1);
             ShowEmployeePage(currentPageIndex);
 
-            return pageHost;
+            return body;
+        }
+
+        private Button[] BuildStepButtons(string[] labels)
+        {
+            var buttons = new Button[labels.Length];
+            for (int i = 0; i < labels.Length; i++)
+            {
+                int pageIndex = i;
+                buttons[i] = new Button
+                {
+                    Dock = DockStyle.Fill,
+                    Margin = new Padding(i == 0 ? 0 : 8, 0, 0, 8),
+                    Text = $"{i + 1}. {labels[i]}",
+                    FlatStyle = FlatStyle.Flat,
+                    Font = new Font("Segoe UI Semibold", 9.25F, FontStyle.Bold),
+                    Cursor = Cursors.Hand,
+                    TextAlign = ContentAlignment.MiddleCenter
+                };
+                buttons[i].FlatAppearance.BorderSize = 1;
+                buttons[i].Click += (sender, args) => ShowEmployeePage(pageIndex);
+            }
+            return buttons;
+        }
+
+        private Control BuildStepStrip(Button[] buttons)
+        {
+            var strip = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = buttons.Length,
+                BackColor = PageBackColor,
+                Margin = Padding.Empty,
+                Padding = Padding.Empty
+            };
+            for (int i = 0; i < buttons.Length; i++)
+            {
+                strip.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F / buttons.Length));
+                strip.Controls.Add(buttons[i], i, 0);
+            }
+            return strip;
         }
 
         // Personal Details card — 5 field rows × 2 columns
@@ -272,12 +331,12 @@ namespace kingdom_Preparatory_School_Management_System
             var grid = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
-                RowCount = 6,   // 5 data rows + 1 spacer that absorbs extra height
+                RowCount = 7,   // 6 data rows + 1 spacer that absorbs extra height
                 ColumnCount = 2,
                 BackColor = SurfaceColor,
                 Margin = Padding.Empty
             };
-            for (int r = 0; r < 5; r++)
+            for (int r = 0; r < 6; r++)
                 grid.RowStyles.Add(new RowStyle(SizeType.Absolute, FieldRowH));
             grid.RowStyles.Add(new RowStyle(SizeType.Percent, 100)); // spacer — prevents last data row from expanding
             grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
@@ -289,11 +348,18 @@ namespace kingdom_Preparatory_School_Management_System
             grid.Controls.Add(CreateField("Date of Birth", dateDOB),  1, 1);
             grid.Controls.Add(CreateField("Department",    cmbDPT),   0, 2);
             grid.Controls.Add(CreateField("Position",      CmbPs),    1, 2);
+            txtEM = new Guna.UI2.WinForms.Guna2TextBox
+            {
+                Dock = DockStyle.Fill,
+                Font = new Font("Segoe UI", 10F),
+                Height = InputH,
+                PlaceholderText = "email@example.com"
+            };
+
             grid.Controls.Add(CreateField("Contact",       txtCN),    0, 3);
-            grid.Controls.Add(CreateField("Home Town",     txtHT),    1, 3);
-            var resField = CreateField("Residence", txtRD);
-            grid.Controls.Add(resField, 0, 4);
-            grid.SetColumnSpan(resField, 2);
+            grid.Controls.Add(CreateField("Email",         txtEM),    1, 3);
+            grid.Controls.Add(CreateField("Home Town",     txtHT),    0, 4);
+            grid.Controls.Add(CreateField("Residence",     txtRD),    1, 4);
 
             inner.Controls.Add(BuildSectionHeader("Personal Details",
                 "ID, name, placement & contact"), 0, 0);
@@ -505,13 +571,14 @@ namespace kingdom_Preparatory_School_Management_System
             var panel = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
-                RowCount = 2,
+                RowCount = 3,
                 ColumnCount = 1,
-                Padding = new Padding(0, 4, 8, 4),
+                Padding = new Padding(0, 3, 10, 3),
                 BackColor = SurfaceColor,
                 Margin = Padding.Empty
             };
             panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 20));
+            panel.RowStyles.Add(new RowStyle(SizeType.Absolute, InputH));
             panel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
             panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
 
@@ -527,6 +594,7 @@ namespace kingdom_Preparatory_School_Management_System
             }, 0, 0);
 
             input.Dock = DockStyle.Fill;
+            input.Height = InputH;
             panel.Controls.Add(input, 0, 1);
             return panel;
         }
@@ -554,10 +622,10 @@ namespace kingdom_Preparatory_School_Management_System
                 ColumnCount = 3,
                 RowCount = 1,
                 BackColor = PageBackColor,
-                Padding = new Padding(0, 6, 0, 4),
+                Padding = new Padding(0, 12, 0, 6),
                 Margin = Padding.Empty
             };
-            wrapper.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 284)); // navigator
+            wrapper.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 0));   // old footer pager hidden; steps are above the card
             wrapper.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));  // spacer
             wrapper.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 468)); // CRUD
 
@@ -716,7 +784,8 @@ namespace kingdom_Preparatory_School_Management_System
             pageHost.Controls.Clear();
 
             var page = formPages[currentPageIndex];
-            page.Dock = DockStyle.Fill;
+            page.Dock = DockStyle.Top;
+            page.Height = GetEmployeePageHeight(currentPageIndex);
             pageHost.Controls.Add(page);
 
             bool isFirst = currentPageIndex == 0;
@@ -735,7 +804,21 @@ namespace kingdom_Preparatory_School_Management_System
                 nextPageButton.Text      = isLast ? "Done ✓" : "Next →";
             }
 
-            _stepPanel?.Invalidate();
+            if (stepButtons != null)
+            {
+                for (int i = 0; i < stepButtons.Length; i++)
+                {
+                    bool active = i == currentPageIndex;
+                    stepButtons[i].BackColor = active ? Navy : SurfaceColor;
+                    stepButtons[i].ForeColor = active ? Color.White : TextColor;
+                    stepButtons[i].FlatAppearance.BorderColor = active ? Navy : BorderColor;
+                }
+            }
+        }
+
+        private int GetEmployeePageHeight(int pageIndex)
+        {
+            return pageIndex == 2 ? 520 : 455;
         }
 
         private Button CreatePrimaryButton(string text, Func<Task> asyncAction)
@@ -822,6 +905,7 @@ namespace kingdom_Preparatory_School_Management_System
         {
             txtFN.Text = "";
             txtCN.Text = "";
+            txtEM.Text = "";
             txtHT.Text = "";
             txtRD.Text = "";
             empCN.Text = "";
@@ -879,6 +963,7 @@ namespace kingdom_Preparatory_School_Management_System
                     CmbPs.Text = existingEmployee.Position ?? "";
                     dateDOB.Value = existingEmployee.DateOfBirth;
                     txtCN.Text = existingEmployee.Contact ?? "";
+                    txtEM.Text = existingEmployee.Email ?? "";
                     empSA.Text = existingEmployee.Salary.ToString("0.00");
                     cmbGN.Text = existingEmployee.Gender ?? "";
                     txtHT.Text = existingEmployee.HomeTown ?? "";
@@ -945,6 +1030,7 @@ namespace kingdom_Preparatory_School_Management_System
                 Gender = cmbGN.Text.Trim(),
                 DateOfBirth = dateDOB.Value.Date,
                 Contact = txtCN.Text.Trim(),
+                Email = txtEM.Text.Trim(),
                 Department = cmbDPT.Text.Trim(),
                 Position = CmbPs.Text.Trim(),
                 HomeTown = txtHT.Text.Trim(),
