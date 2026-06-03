@@ -179,6 +179,22 @@ namespace kingdom_Preparatory_School_Management_System.Properties {
 
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string HrNotifyEmail {
+            get { return ((string)(this["HrNotifyEmail"])); }
+            set { this["HrNotifyEmail"] = value; }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string HrNotifyPhone {
+            get { return ((string)(this["HrNotifyPhone"])); }
+            set { this["HrNotifyPhone"] = value; }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("0")]
         public int LastFeeReminderWeek {
             get {

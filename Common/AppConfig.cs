@@ -232,6 +232,22 @@ namespace kingdom_Preparatory_School_Management_System.Common
             }
         }
 
+        // Notification recipients (HR leave alerts, etc.)
+        public static class Notify
+        {
+            public static string HrEmail
+            {
+                get { try { return Properties.Settings.Default.HrNotifyEmail ?? ""; } catch { return ""; } }
+                set { try { Properties.Settings.Default.HrNotifyEmail = value; Properties.Settings.Default.Save(); } catch { } }
+            }
+
+            public static string HrPhone
+            {
+                get { try { return Properties.Settings.Default.HrNotifyPhone ?? ""; } catch { return ""; } }
+                set { try { Properties.Settings.Default.HrNotifyPhone = value; Properties.Settings.Default.Save(); } catch { } }
+            }
+        }
+
         // Leave Management
         public static class Leave
         {
