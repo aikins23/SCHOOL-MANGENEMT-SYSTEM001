@@ -41,6 +41,10 @@ namespace kingdom_Preparatory_School_Management_System
         private Label lblSmsTestPhone;
         private TextBox txtSmsTestPhone;
         private Button btnTestSms;
+        private Label lblHrEmail;
+        private TextBox txtHrEmail;
+        private Label lblHrPhone;
+        private TextBox txtHrPhone;
 
         public frmEmailSettings()
         {
@@ -53,7 +57,7 @@ namespace kingdom_Preparatory_School_Management_System
         private void InitializeComponent()
         {
             this.Text = "Email Settings";
-            this.Size = new System.Drawing.Size(500, 760);
+            this.Size = new System.Drawing.Size(500, 840);
             this.StartPosition = FormStartPosition.CenterParent;
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
@@ -163,7 +167,7 @@ namespace kingdom_Preparatory_School_Management_System
             grpSmsSettings = new GroupBox();
             grpSmsSettings.Text = "SMS Notifications (Arkesel)";
             grpSmsSettings.Location = new System.Drawing.Point(padding, sy);
-            grpSmsSettings.Size = new System.Drawing.Size(this.ClientSize.Width - (padding * 2), 250);
+            grpSmsSettings.Size = new System.Drawing.Size(this.ClientSize.Width - (padding * 2), 330);
             grpSmsSettings.Padding = new Padding(15);
 
             int my = 22;
@@ -208,6 +212,30 @@ namespace kingdom_Preparatory_School_Management_System
             lblSmsSenderPreview.ForeColor = System.Drawing.Color.DimGray;
             grpSmsSettings.Controls.Add(lblSmsSenderPreview);
             my += controlHeight + 14;
+
+            lblHrEmail = new Label();
+            lblHrEmail.Text = "HR Email:";
+            lblHrEmail.Location = new System.Drawing.Point(15, my);
+            lblHrEmail.Size = new System.Drawing.Size(labelWidth, controlHeight);
+            grpSmsSettings.Controls.Add(lblHrEmail);
+
+            txtHrEmail = new TextBox();
+            txtHrEmail.Location = new System.Drawing.Point(15 + labelWidth + 10, my);
+            txtHrEmail.Size = new System.Drawing.Size(controlWidth, controlHeight);
+            grpSmsSettings.Controls.Add(txtHrEmail);
+            my += controlHeight + 10;
+
+            lblHrPhone = new Label();
+            lblHrPhone.Text = "HR Phone:";
+            lblHrPhone.Location = new System.Drawing.Point(15, my);
+            lblHrPhone.Size = new System.Drawing.Size(labelWidth, controlHeight);
+            grpSmsSettings.Controls.Add(lblHrPhone);
+
+            txtHrPhone = new TextBox();
+            txtHrPhone.Location = new System.Drawing.Point(15 + labelWidth + 10, my);
+            txtHrPhone.Size = new System.Drawing.Size(140, controlHeight);
+            grpSmsSettings.Controls.Add(txtHrPhone);
+            my += controlHeight + 12;
 
             lblSmsTestPhone = new Label();
             lblSmsTestPhone.Text = "Test phone:";
@@ -326,6 +354,8 @@ namespace kingdom_Preparatory_School_Management_System
                 txtSmsApiKey.Text = AppConfig.Sms.ApiKey;
                 txtSmsAbbr.Text = AppConfig.Sms.SchoolAbbreviation;
                 UpdateSenderPreview();
+                txtHrEmail.Text = AppConfig.Notify.HrEmail;
+                txtHrPhone.Text = AppConfig.Notify.HrPhone;
 
                 if (AppConfig.Email.IsConfigured)
                     lblStatus.Text = "Status: ✓ Configured";
@@ -348,6 +378,8 @@ namespace kingdom_Preparatory_School_Management_System
                 AppConfig.Sms.Provider = "Arkesel";
                 AppConfig.Sms.ApiKey = txtSmsApiKey.Text.Trim();
                 AppConfig.Sms.SchoolAbbreviation = txtSmsAbbr.Text.Trim();
+                AppConfig.Notify.HrEmail = txtHrEmail.Text.Trim();
+                AppConfig.Notify.HrPhone = txtHrPhone.Text.Trim();
 
                 if (string.IsNullOrWhiteSpace(txtSmtpServer.Text))
                 {
