@@ -18,7 +18,8 @@ namespace kingdom_Preparatory_School_Management_System
             InitializeComponent();
             if (!AuthService.RequireAccess("frmLeaveDetails", this)) return;
             var repository = new LeaveRepository(AppConfig.ConnectionString);
-            _leaveService = new LeaveService(repository);
+            var employeeService = new EmployeeService(new EmployeeRepository(AppConfig.ConnectionString));
+            _leaveService = new LeaveService(repository, employeeService);
             UiTheme.Apply(this);
 
             // Wire events commented-out in designer

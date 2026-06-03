@@ -41,7 +41,8 @@ namespace kingdom_Preparatory_School_Management_System
 
             // Initialize modern architecture
             var repository = new LeaveRepository(AppConfig.ConnectionString);
-            _leaveService = new LeaveService(repository);
+            var employeeService = new EmployeeService(new EmployeeRepository(AppConfig.ConnectionString));
+            _leaveService = new LeaveService(repository, employeeService);
 
             BuildModernApprovalView();
 

@@ -29,10 +29,9 @@ namespace kingdom_Preparatory_School_Management_System
 
             // Initialize modern architecture
             var leaveRepo = new LeaveRepository(AppConfig.ConnectionString);
-            _leaveService = new LeaveService(leaveRepo);
-            
             var employeeRepo = new EmployeeRepository(AppConfig.ConnectionString);
             _employeeService = new EmployeeService(employeeRepo);
+            _leaveService = new LeaveService(leaveRepo, _employeeService);
 
             BuildModernLeaveView();
             NavigationSidebar.AddTo(this);
