@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="KingdomPrep.Web.Core/KingdomPrep.Web.Core.csproj" />
+  <Project Path="KingdomPrep.Web.Data/KingdomPrep.Web.Data.csproj" />
+  <Project Path="KingdomPrep.Web.Tests/KingdomPrep.Web.Tests.csproj" />
+  <Project Path="KingdomPrep.Web/KingdomPrep.Web.csproj" />
+</Solution>
