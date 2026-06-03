@@ -342,6 +342,13 @@ namespace kingdom_Preparatory_School_Management_System
         {
             try
             {
+                // Persist SMS settings first, independently of email validation, so
+                // SMS-only configuration can be saved even when SMTP fields are blank.
+                AppConfig.Sms.Enabled = chkSmsEnabled.Checked;
+                AppConfig.Sms.Provider = "Arkesel";
+                AppConfig.Sms.ApiKey = txtSmsApiKey.Text.Trim();
+                AppConfig.Sms.SchoolAbbreviation = txtSmsAbbr.Text.Trim();
+
                 if (string.IsNullOrWhiteSpace(txtSmtpServer.Text))
                 {
                     MessageBox.Show("SMTP Server is required.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);

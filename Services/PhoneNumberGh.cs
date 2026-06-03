@@ -16,17 +16,19 @@ namespace kingdom_Preparatory_School_Management_System.Services
             string digits = new string(raw.Where(char.IsDigit).ToArray());
             if (digits.Length == 0) return null;
 
-            // 0XXXXXXXXX (10) -> 233XXXXXXXXX
+            string candidate = null;
             if (digits.Length == 10 && digits[0] == '0')
-                return "233" + digits.Substring(1);
+                candidate = "233" + digits.Substring(1);   // 0XXXXXXXXX
+            else if (digits.Length == 12 && digits.StartsWith("233"))
+                candidate = digits;                          // 233XXXXXXXXX
+            else if (digits.Length == 9)
+                candidate = "233" + digits;                  // XXXXXXXXX (no leading 0)
 
-            // 233XXXXXXXXX (12)
-            if (digits.Length == 12 && digits.StartsWith("233"))
-                return digits;
-
-            // 9-digit local without leading zero (e.g. 24XXXXXXX) -> 233XXXXXXXXX
-            if (digits.Length == 9)
-                return "233" + digits;
+            // A valid GH mobile is 233 + a network digit (2 or 5) + 8 more digits.
+            // This rejects 9/10-digit junk that would otherwise get a bogus 233 prefix.
+            if (candidate != null && candidate.Length == 12 &&
+                (candidate[3] == '2' || candidate[3] == '5'))
+                return candidate;
 
             return null;
         }
