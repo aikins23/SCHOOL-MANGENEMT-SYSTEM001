@@ -1,6 +1,7 @@
 using System;
 using System.Net.Http;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace kingdom_Preparatory_School_Management_System.Services
@@ -39,8 +40,10 @@ namespace kingdom_Preparatory_School_Management_System.Services
                     using (var resp = await Http.SendAsync(req))
                     {
                         string body = await resp.Content.ReadAsStringAsync();
+                        // Arkesel v2 success: {"status":"success", ...}. Tolerate whitespace
+                        // around the colon (e.g. "status": "success").
                         bool ok = resp.IsSuccessStatusCode &&
-                                  body.IndexOf("\"status\":\"success\"", StringComparison.OrdinalIgnoreCase) >= 0;
+                                  Regex.IsMatch(body ?? "", "\"status\"\\s*:\\s*\"success\"", RegexOptions.IgnoreCase);
                         return ok
                             ? (true, $"SMS sent to {recipient233} (sender {senderId})")
                             : (false, $"Arkesel error ({(int)resp.StatusCode}): {Trim(body)}");
