@@ -99,6 +99,45 @@ Please pay at your earliest convenience.
                 SmsSenderIds.StudentAdmission);
         }
 
+        public static Task<(bool Success, string Message)> SendPaymentReceivedAsync(
+            string recipient, string studentName, decimal amountPaid, decimal newBalance)
+        {
+            string balanceLine = newBalance > 0
+                ? $"Outstanding balance: GHS {newBalance:N2}."
+                : "Balance fully cleared.";
+            string message =
+                $"Dear Guardian, payment of GHS {amountPaid:N2} received for {studentName}. " +
+                $"{balanceLine} Thank you. - Kingdom Preparatory School Accounts";
+            return SendSmsAsync(recipient, message, SmsSenderIds.FeeReminder);
+        }
+
+        public static Task<(bool Success, string Message)> SendLeaveSubmittedAsync(
+            string recipient, string employeeName)
+        {
+            string message =
+                $"Dear {employeeName}, your leave request has been submitted and is pending approval. " +
+                "- Kingdom Preparatory School HR";
+            return SendSmsAsync(recipient, message, SmsSenderIds.EmployeeAdmission);
+        }
+
+        public static Task<(bool Success, string Message)> SendLeaveDecisionAsync(
+            string recipient, string employeeName, string status, DateTime startDate, DateTime endDate)
+        {
+            string message =
+                $"Dear {employeeName}, your leave ({startDate:dd/MM/yyyy} - {endDate:dd/MM/yyyy}) " +
+                $"has been {status.ToUpperInvariant()}. - Kingdom Preparatory School HR";
+            return SendSmsAsync(recipient, message, SmsSenderIds.EmployeeAdmission);
+        }
+
+        public static Task<(bool Success, string Message)> SendLeaveHrAlertAsync(
+            string hrPhone, string employeeName, DateTime startDate, DateTime endDate)
+        {
+            string message =
+                $"Leave request from {employeeName} ({startDate:dd/MM/yyyy} - {endDate:dd/MM/yyyy}) " +
+                "is pending review. - Kingdom Preparatory School";
+            return SendSmsAsync(hrPhone, message, SmsSenderIds.EmployeeAdmission);
+        }
+
         private static void Log(string eventType, string recipient, string senderId, string details)
         {
             try
