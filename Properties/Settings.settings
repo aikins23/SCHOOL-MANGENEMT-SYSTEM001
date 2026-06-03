@@ -31,5 +31,23 @@
     <Setting Name="LeaveDaysPerTerm" Type="System.Int32" Scope="User">
       <Value Profile="(Default)">7</Value>
     </Setting>
+    <Setting Name="SmsProvider" Type="System.String" Scope="User">
+      <Value Profile="(Default)">LogOnly</Value>
+    </Setting>
+    <Setting Name="SmsApiKey" Type="System.String" Scope="User">
+      <Value Profile="(Default)"></Value>
+    </Setting>
+    <Setting Name="SmsFromNumber" Type="System.String" Scope="User">
+      <Value Profile="(Default)">KPSchool</Value>
+    </Setting>
+    <Setting Name="SmsEnabled" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="SmsSchoolAbbreviation" Type="System.String" Scope="User">
+      <Value Profile="(Default)">KPS</Value>
+    </Setting>
+    <Setting Name="LastFeeReminderWeek" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">0</Value>
+    </Setting>
   </Settings>
 </SettingsFile>

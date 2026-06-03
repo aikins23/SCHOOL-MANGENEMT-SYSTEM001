@@ -142,6 +142,96 @@ namespace kingdom_Preparatory_School_Management_System.Common
             public static bool IsConfigured => !string.IsNullOrWhiteSpace(SmtpUsername) && !string.IsNullOrWhiteSpace(SmtpPassword);
         }
 
+        // SMS Settings
+        public static class Sms
+        {
+            public static string Provider
+            {
+                get
+                {
+                    try { return Properties.Settings.Default.SmsProvider ?? "LogOnly"; }
+                    catch { return "LogOnly"; }
+                }
+                set
+                {
+                    try
+                    {
+                        Properties.Settings.Default.SmsProvider = value;
+                        Properties.Settings.Default.Save();
+                    }
+                    catch { }
+                }
+            }
+
+            public static string ApiKey
+            {
+                get
+                {
+                    try { return Properties.Settings.Default.SmsApiKey ?? ""; }
+                    catch { return ""; }
+                }
+                set
+                {
+                    try
+                    {
+                        Properties.Settings.Default.SmsApiKey = value;
+                        Properties.Settings.Default.Save();
+                    }
+                    catch { }
+                }
+            }
+
+            public static string FromNumber
+            {
+                get
+                {
+                    try { return Properties.Settings.Default.SmsFromNumber ?? "KPSchool"; }
+                    catch { return "KPSchool"; }
+                }
+                set
+                {
+                    try
+                    {
+                        Properties.Settings.Default.SmsFromNumber = value;
+                        Properties.Settings.Default.Save();
+                    }
+                    catch { }
+                }
+            }
+
+            public static bool Enabled
+            {
+                get
+                {
+                    try { return Properties.Settings.Default.SmsEnabled; }
+                    catch { return false; }
+                }
+                set
+                {
+                    try { Properties.Settings.Default.SmsEnabled = value; Properties.Settings.Default.Save(); }
+                    catch { }
+                }
+            }
+
+            public static string SchoolAbbreviation
+            {
+                get
+                {
+                    try
+                    {
+                        string v = Properties.Settings.Default.SmsSchoolAbbreviation;
+                        return string.IsNullOrWhiteSpace(v) ? "KPS" : v.Trim().ToUpperInvariant();
+                    }
+                    catch { return "KPS"; }
+                }
+                set
+                {
+                    try { Properties.Settings.Default.SmsSchoolAbbreviation = value; Properties.Settings.Default.Save(); }
+                    catch { }
+                }
+            }
+        }
+
         // Leave Management
         public static class Leave
         {

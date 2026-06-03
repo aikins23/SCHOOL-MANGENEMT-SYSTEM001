@@ -116,5 +116,77 @@ namespace kingdom_Preparatory_School_Management_System.Properties {
                 this["LeaveDaysPerTerm"] = value;
             }
         }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("LogOnly")]
+        public string SmsProvider {
+            get {
+                return ((string)(this["SmsProvider"]));
+            }
+            set {
+                this["SmsProvider"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string SmsApiKey {
+            get {
+                return ((string)(this["SmsApiKey"]));
+            }
+            set {
+                this["SmsApiKey"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("KPSchool")]
+        public string SmsFromNumber {
+            get {
+                return ((string)(this["SmsFromNumber"]));
+            }
+            set {
+                this["SmsFromNumber"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool SmsEnabled {
+            get {
+                return ((bool)(this["SmsEnabled"]));
+            }
+            set {
+                this["SmsEnabled"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("KPS")]
+        public string SmsSchoolAbbreviation {
+            get {
+                return ((string)(this["SmsSchoolAbbreviation"]));
+            }
+            set {
+                this["SmsSchoolAbbreviation"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public int LastFeeReminderWeek {
+            get {
+                return ((int)(this["LastFeeReminderWeek"]));
+            }
+            set {
+                this["LastFeeReminderWeek"] = value;
+            }
+        }
     }
 }
