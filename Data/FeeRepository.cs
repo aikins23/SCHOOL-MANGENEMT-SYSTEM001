@@ -205,9 +205,15 @@ namespace kingdom_Preparatory_School_Management_System.Data
                             var guardianEmail = await GetStudentGuardianEmailAsync(studentId);
                             if (!string.IsNullOrWhiteSpace(guardianEmail))
                             {
-                                await NotificationService.SendPaymentReceivedAsync(
-                                    studentName, guardianEmail, amountPaid, newBalance, date, classId
-                                );
+                                _ = NotificationService.SendPaymentReceivedAsync(
+                                    studentName, guardianEmail, amountPaid, newBalance, date, classId);
+                            }
+
+                            var guardianPhone = await GetStudentGuardianPhoneAsync(studentId);
+                            if (!string.IsNullOrWhiteSpace(guardianPhone))
+                            {
+                                _ = SmsService.SendPaymentReceivedAsync(
+                                    guardianPhone, studentName, amountPaid, newBalance);
                             }
                         }
 
@@ -231,6 +237,29 @@ namespace kingdom_Preparatory_School_Management_System.Data
                     await connection.OpenAsync();
                     // Actual column name in Students table is GuidianceEmail (legacy typo)
                     var query = "SELECT GuidianceEmail FROM Students WHERE StudentID = ?";
+                    using (var command = new OleDbCommand(query, connection))
+                    {
+                        command.Parameters.AddWithValue("?", studentId);
+                        var result = await command.ExecuteScalarAsync();
+                        return result?.ToString() ?? "";
+                    }
+                }
+            }
+            catch
+            {
+                return "";
+            }
+        }
+
+        private async Task<string> GetStudentGuardianPhoneAsync(string studentId)
+        {
+            try
+            {
+                using (var connection = new OleDbConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+                    // Column EmergencyConatct is a legacy typo; same number used at registration.
+                    var query = "SELECT EmergencyConatct FROM Students WHERE StudentID = ?";
                     using (var command = new OleDbCommand(query, connection))
                     {
                         command.Parameters.AddWithValue("?", studentId);
