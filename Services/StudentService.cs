@@ -54,6 +54,18 @@ namespace kingdom_Preparatory_School_Management_System.Services
                 await _feeRepository.AddInitialFeeRecordAsync(student.StudentID, student.ClassID, fee);
                 await _feeRepository.AddInitialPaymentRecordAsync(student.StudentID, student.ClassID, student.FullName, fee);
 
+                // Send registration notifications (fire-and-forget)
+                if (!string.IsNullOrWhiteSpace(student.GuardianEmail))
+                {
+                    string subject = "Welcome to Kingdom Preparatory School";
+                    string body = $"Dear Guardian,\n\nYour child {student.FullName} has been successfully registered at Kingdom Preparatory School.\n\nWe look forward to a wonderful academic journey together.\n\nBest regards,\nAdministration";
+                    _ = NotificationService.SendEmailAsync(student.GuardianEmail, subject, body, NotificationService.NotificationType.GeneralAnnouncement);
+                }
+                if (!string.IsNullOrWhiteSpace(student.EmergencyContact))
+                {
+                    _ = SmsService.SendStudentAdmissionAsync(student.EmergencyContact, student.FullName);
+                }
+
                 return (true, $"Student {student.FullName} added successfully with opening fee record");
             }
             catch (Exception ex)
