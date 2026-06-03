@@ -1,6 +1,7 @@
 using System;
 using System.Data;
 using System.Drawing;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using kingdom_Preparatory_School_Management_System.Common;
@@ -12,6 +13,9 @@ namespace kingdom_Preparatory_School_Management_System
     public partial class frmDashboard : Form
     {
         private readonly DashboardService _dashboardService;
+        private System.Windows.Forms.Timer _feeReminderTimer;
+        private StudentService _studentService;
+        private FeeRepository _feeRepository;
 
         private Label studentCountLabel;
         private Label employeeCountLabel;
@@ -48,6 +52,11 @@ public frmDashboard()
     var repository = new DashboardRepository(AppConfig.ConnectionString);
     _dashboardService = new DashboardService(repository);
 
+    _studentService = new StudentService(
+        new StudentRepository(AppConfig.ConnectionString),
+        new FeeRepository(AppConfig.ConnectionString));
+    _feeRepository = new FeeRepository(AppConfig.ConnectionString);
+
     BuildModernDashboard();
     ApplyRolePermissions();
 
@@ -56,6 +65,11 @@ public frmDashboard()
 
     // Handle form closing to keep app alive
     this.FormClosing += FrmDashboard_FormClosing;
+
+    // Weekly fee reminder timer — every 60 minutes
+    _feeReminderTimer = new System.Windows.Forms.Timer();
+    _feeReminderTimer.Interval = 60 * 60 * 1000;
+    _feeReminderTimer.Tick += async (s, e) => await CheckFeeRemindersAsync();
 
     // Load event is commented-out in designer — wire it manually
     this.Load += frmDashboard_Load;
@@ -1111,11 +1125,84 @@ public frmDashboard()
             {
                 await LoadDashboardStatisticsAsync();
                 LoggerHelper.LogInfo("frmDashboard loaded successfully");
+
+                // Start weekly fee reminder timer
+                _feeReminderTimer.Start();
+                await CheckFeeRemindersAsync();
             }
             catch (Exception ex)
             {
                 UIHelper.ShowError("Error loading dashboard: " + ex.Message, "Dashboard");
                 LoggerHelper.LogError("frmDashboard_Load failed", ex);
+            }
+        }
+
+        private async System.Threading.Tasks.Task CheckFeeRemindersAsync()
+        {
+            try
+            {
+                // Only send reminders on Mondays
+                if (DateTime.Today.DayOfWeek != DayOfWeek.Monday)
+                    return;
+
+                // Check if already sent this week
+                int currentWeek = System.Globalization.CultureInfo.InvariantCulture.Calendar.GetWeekOfYear(
+                    DateTime.Today, System.Globalization.CalendarWeekRule.FirstFourDayWeek, DayOfWeek.Monday);
+                int lastWeek = Properties.Settings.Default.LastFeeReminderWeek;
+                if (lastWeek == currentWeek)
+                    return;
+
+                var outstandingTable = await _feeRepository.GetOutstandingBalancesTableAsync();
+                if (outstandingTable == null || outstandingTable.Rows.Count == 0)
+                    return;
+
+                int sentCount = 0;
+                foreach (DataRow row in outstandingTable.Rows)
+                {
+                    try
+                    {
+                        string studentId = row["ID"]?.ToString() ?? "";
+                        decimal balance = Convert.ToDecimal(row["Balance Owed"] ?? 0);
+                        string studentName = row["Student Name"]?.ToString() ?? "";
+
+                        if (string.IsNullOrWhiteSpace(studentId) || balance <= 0)
+                            continue;
+
+                        var student = await _studentService.GetStudentAsync(studentId);
+                        if (student == null)
+                            continue;
+
+                        // Send email reminder to guardian
+                        if (!string.IsNullOrWhiteSpace(student.GuardianEmail))
+                        {
+                            _ = NotificationService.SendFeeReminderAsync(
+                                studentName, student.GuardianEmail, balance, student.ClassID);
+                        }
+
+                        // Send SMS reminder (custom sender ID KPSFEES)
+                        if (!string.IsNullOrWhiteSpace(student.EmergencyContact))
+                        {
+                            _ = SmsService.SendFeeReminderAsync(
+                                student.EmergencyContact, studentName, balance);
+                        }
+
+                        sentCount++;
+                    }
+                    catch
+                    {
+                        // Continue with next student on error
+                    }
+                }
+
+                // Persist the week number to avoid re-sending
+                Properties.Settings.Default.LastFeeReminderWeek = currentWeek;
+                Properties.Settings.Default.Save();
+
+                LoggerHelper.LogInfo($"Weekly fee reminders sent to {sentCount} student(s)");
+            }
+            catch (Exception ex)
+            {
+                LoggerHelper.LogError("Failed to send weekly fee reminders", ex);
             }
         }
 
