@@ -39,12 +39,23 @@ namespace kingdom_Preparatory_School_Management_System
         private int _currentStep = 1;
         private string _lastFeeTypeAutoFilled = "";
 
+        // Placeholder shown in the "Being" field before a fee type is chosen.
+        // Treated as an auto-filled value so the selected fee type can replace it.
+        private const string DefaultBeingText = "School fees payment";
+
+        // Overpayment: set only when the cashier approves an amount over the balance.
+        // Reset whenever the amount changes so a new figure must be re-approved.
+        private bool _overpaymentApproved;
+        private decimal _approvedOverpayment;
+
         // Step container panels
         private Panel _stepContainer;
         private Panel _step1Panel;
         private Panel _step2Panel;
         private Panel _step3Panel;
         private TableLayoutPanel _step1RowLayout;
+        private Label _step2NameLbl;
+        private Label _step2BalanceLbl;
 
         // Progress indicator
         private Panel _progressPanel;
@@ -69,6 +80,7 @@ namespace kingdom_Preparatory_School_Management_System
         private Label _rpModeLbl;
         private Label _rpAmountLbl;
         private Label _rpBalanceLbl;
+        private Label _rpCreditLbl;
         private Label _rpBursarLbl;
         private Label _rpReceiptNumLbl;
         private Label _rpDateLbl;
@@ -260,14 +272,18 @@ namespace kingdom_Preparatory_School_Management_System
 
             studentIdBox.TextChanged += (sender, args) => LookupStudent();
             amountBox.TextChanged    += (sender, args) => {
+                // Any change to the amount invalidates a prior overpayment approval.
+                _overpaymentApproved = false;
+                _approvedOverpayment = 0m;
                 UpdateReceiptAmountWords();
                 UpdatePreviewButton();
+                UpdateStep2Balance();
                 if (!string.IsNullOrEmpty(amountBox.Text) && !decimal.TryParse(amountBox.Text, out _))
                     amountBox.ForeColor = Color.Red;
                 else
                     amountBox.ForeColor = TextColor;
             };
-            beingBox.Text = "School fees payment";
+            beingBox.Text = DefaultBeingText;
 
             historySearchBox = CreateTextBox();
             SetPlaceholder(historySearchBox, "Search history (Name, ID, Class, Bursar)...");
@@ -561,11 +577,9 @@ namespace kingdom_Preparatory_School_Management_System
             // Refresh Step 2 summary bar
             if (step == 2 && _step2Panel != null)
             {
-                var bar    = _step2Panel.Controls.Find("step2SummaryBar", true).FirstOrDefault() as TableLayoutPanel;
-                var namLbl = bar?.Controls.Find("step2NameLbl",    true).FirstOrDefault() as Label;
-                var balLbl = bar?.Controls.Find("step2BalanceLbl", true).FirstOrDefault() as Label;
-                if (namLbl != null) namLbl.Text = $"{studentNameBox?.Text.Trim()}  -  {classBox?.Text.Trim()}";
-                if (balLbl != null) balLbl.Text = "Balance: GHc " + (balanceBox?.Text ?? "0.00");
+                if (_step2NameLbl != null)
+                    _step2NameLbl.Text = $"{studentNameBox?.Text.Trim()}  -  {classBox?.Text.Trim()}";
+                UpdateStep2Balance();
             }
 
             // Reset Step 3 to pre-record state when entering from step 2
@@ -574,7 +588,6 @@ namespace kingdom_Preparatory_School_Management_System
                 if (_successBanner     != null) { _successBanner.Visible = false; _successBanner.Height = 0; }
                 if (_preRecordActions  != null) _preRecordActions.Visible  = true;
                 if (_postRecordActions != null) _postRecordActions.Visible = false;
-                if (_receiptPreviewShell != null) _receiptPreviewShell.BorderStyle = BorderStyle.FixedSingle;
                 RefreshReceiptPreview();
             }
 
@@ -850,8 +863,13 @@ namespace kingdom_Preparatory_School_Management_System
         private void GoToStep2()
         {
             string feeType = feeTypeBox?.Text.Trim() ?? "";
-            if (beingBox != null &&
-                (string.IsNullOrWhiteSpace(beingBox.Text) || beingBox.Text == _lastFeeTypeAutoFilled))
+            // Let the chosen fee type populate "Being" unless the user has typed
+            // their own purpose. The default placeholder and any previous auto-fill
+            // are both considered replaceable.
+            if (beingBox != null && feeType.Length > 0 &&
+                (string.IsNullOrWhiteSpace(beingBox.Text)
+                 || beingBox.Text == _lastFeeTypeAutoFilled
+                 || beingBox.Text == DefaultBeingText))
             {
                 beingBox.Text = feeType;
                 _lastFeeTypeAutoFilled = feeType;
@@ -925,22 +943,24 @@ namespace kingdom_Preparatory_School_Management_System
             };
             summaryBar.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 60));
             summaryBar.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 40));
-            summaryBar.Controls.Add(new Label
+            _step2NameLbl = new Label
             {
                 Dock = DockStyle.Fill,
                 ForeColor = PrimaryColor,
                 Font = new Font("Segoe UI Semibold", 11F, FontStyle.Bold),
                 TextAlign = ContentAlignment.MiddleLeft,
                 Name = "step2NameLbl"
-            }, 0, 0);
-            summaryBar.Controls.Add(new Label
+            };
+            summaryBar.Controls.Add(_step2NameLbl, 0, 0);
+            _step2BalanceLbl = new Label
             {
                 Dock = DockStyle.Fill,
                 ForeColor = Color.FromArgb(192, 57, 43),
                 Font = new Font("Segoe UI Semibold", 11F, FontStyle.Bold),
                 TextAlign = ContentAlignment.MiddleRight,
                 Name = "step2BalanceLbl"
-            }, 1, 0);
+            };
+            summaryBar.Controls.Add(_step2BalanceLbl, 1, 0);
             layout.Controls.Add(summaryBar, 0, 0);
             layout.SetColumnSpan(summaryBar, 2);
 
@@ -982,8 +1002,37 @@ namespace kingdom_Preparatory_School_Management_System
 
         private void GoToStep3()
         {
+            if (!ConfirmOverpaymentIfNeeded()) return;
             RefreshReceiptPreview();
             ShowStep(3);
+        }
+
+        // When the payment amount exceeds the outstanding balance, ask the cashier
+        // to approve the overpayment. The excess is only computed/accepted on "Yes";
+        // a "No" keeps the user on Step 2 to correct the amount.
+        private bool ConfirmOverpaymentIfNeeded()
+        {
+            decimal balance = 0m;
+            decimal.TryParse(balanceBox?.Text, out balance);
+            decimal amount = 0m;
+            decimal.TryParse(amountBox?.Text, out amount);
+
+            if (amount <= balance) return true;
+
+            decimal excess = amount - balance;
+            var result = UIHelper.ShowConfirmation(
+                $"The payment amount (GHc {amount:N2}) is more than the outstanding " +
+                $"balance (GHc {balance:N2}).\n\n" +
+                $"Overpayment / excess: GHc {excess:N2}\n\n" +
+                "Do you want to continue and record this overpayment as a credit?",
+                "Overpayment");
+
+            if (result != DialogResult.Yes) return false;
+
+            _overpaymentApproved = true;
+            _approvedOverpayment = excess;
+            UpdateStep2Balance();
+            return true;
         }
 
         private Panel BuildStep3Panel()
@@ -999,9 +1048,6 @@ namespace kingdom_Preparatory_School_Management_System
                 Margin = Padding.Empty
             };
 
-            // Dock-based layout: actions docked Bottom (always visible), success docked Top,
-            // receipt Fills the remaining space. Order matters — add bottom/top docked
-            // controls AFTER the Fill control so they get layout priority.
             var outer = new Panel
             {
                 Dock = DockStyle.Fill,
@@ -1010,7 +1056,19 @@ namespace kingdom_Preparatory_School_Management_System
             };
 
             // Action buttons container (pre/post record panels overlaid)
-            var actionContainer = new Panel { Dock = DockStyle.Bottom, Height = 50, BackColor = SurfaceColor };
+            var actionContainer = new Panel
+            {
+                Dock = DockStyle.Bottom,
+                Height = 54,
+                BackColor = SurfaceColor,
+                Padding = new Padding(0, 2, 0, 0)
+            };
+            actionContainer.Paint += (s, e) =>
+            {
+                var p = (Panel)s;
+                using (var pen = new Pen(Color.FromArgb(210, 213, 220), 1))
+                    e.Graphics.DrawLine(pen, 0, 0, p.Width, 0);
+            };
             _preRecordActions  = BuildPreRecordActions();
             _postRecordActions = BuildPostRecordActions();
             _preRecordActions.Dock  = DockStyle.Fill;
@@ -1023,10 +1081,10 @@ namespace kingdom_Preparatory_School_Management_System
             _successBanner = new Panel
             {
                 Dock = DockStyle.Top,
-                Height = 0,  // Hidden initially (height 0)
+                Height = 0,
                 BackColor = Color.FromArgb(232, 245, 233),
                 Visible = false,
-                Padding = new Padding(10, 0, 10, 0)
+                Padding = new Padding(14, 4, 14, 4)
             };
             var successRow = new TableLayoutPanel
             {
@@ -1034,14 +1092,14 @@ namespace kingdom_Preparatory_School_Management_System
                 ColumnCount = 2,
                 BackColor = Color.FromArgb(232, 245, 233)
             };
-            successRow.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 26));
+            successRow.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 28));
             successRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
             successRow.Controls.Add(new Label
             {
                 Dock = DockStyle.Fill,
-                Text = "OK",
+                Text = "✓",
                 ForeColor = Color.FromArgb(76, 175, 80),
-                Font = new Font("Segoe UI", 13F, FontStyle.Bold),
+                Font = new Font("Segoe UI", 14F, FontStyle.Bold),
                 TextAlign = ContentAlignment.MiddleCenter
             }, 0, 0);
             _successBannerLbl = new Label
@@ -1054,13 +1112,9 @@ namespace kingdom_Preparatory_School_Management_System
             successRow.Controls.Add(_successBannerLbl, 1, 0);
             _successBanner.Controls.Add(successRow);
 
-            // Receipt preview — fills the remaining space (between top success banner and bottom actions)
             var receipt = BuildReceiptPreviewControl();
             receipt.Dock = DockStyle.Fill;
 
-            // Add in this order so dock layout works correctly:
-            //   Fill control FIRST (lowest dock priority)
-            //   Top/Bottom controls LAST (highest dock priority → they reserve their space first)
             outer.Controls.Add(receipt);
             outer.Controls.Add(_successBanner);
             outer.Controls.Add(actionContainer);
@@ -1132,45 +1186,94 @@ namespace kingdom_Preparatory_School_Management_System
             return row;
         }
 
+        // A scroll container that paints all children through a single back buffer
+        // (WS_EX_COMPOSITED). Without this, scrolling the custom-painted receipt
+        // panels bit-blits without a full repaint and leaves ghosted/overlapping text.
+        private sealed class SmoothScrollPanel : Panel
+        {
+            public SmoothScrollPanel()
+            {
+                DoubleBuffered = true;
+                SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.AllPaintingInWmPaint, true);
+            }
+            protected override CreateParams CreateParams
+            {
+                get
+                {
+                    var cp = base.CreateParams;
+                    cp.ExStyle |= 0x02000000; // WS_EX_COMPOSITED
+                    return cp;
+                }
+            }
+        }
+
         private Control BuildReceiptPreviewControl()
         {
-            _receiptPreviewShell = new Panel
+            _receiptPreviewShell = new SmoothScrollPanel
             {
                 Dock = DockStyle.Fill,
                 BackColor = SurfaceColor,
-                BorderStyle = BorderStyle.FixedSingle,
-                Padding = new Padding(30, 8, 30, 8)
+                AutoScroll = true
+            };
+
+            var card = new Panel
+            {
+                BackColor = Color.White,
+                Size = new Size(780, 560),
+                MinimumSize = new Size(500, 520)
+            };
+            card.Paint += (s, e) =>
+            {
+                var p = (Panel)s;
+                using (var pen = new Pen(Color.FromArgb(200, 205, 215), 1))
+                    e.Graphics.DrawRectangle(pen, 0, 0, p.Width - 1, p.Height - 1);
+                using (var accent = new Pen(Color.FromArgb(192, 165, 65), 3))
+                    e.Graphics.DrawLine(accent, 40, 0, p.Width - 40, 0);
             };
 
             var layout = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
                 ColumnCount = 1,
-                RowCount = 7,
-                BackColor = SurfaceColor
+                RowCount = 9,
+                BackColor = Color.White,
+                Padding = new Padding(40, 16, 40, 16)
             };
-            // Proportional rows: the receipt always scales to exactly fill its panel —
-            // it can never clip or trigger a scrollbar regardless of window size / DPI.
-            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 17));   // School header
-            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 9));    // Receipt title + number + date
-            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 14));   // Student row
-            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 12));   // Sum of
-            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 12));   // Being + mode
-            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 22));   // Amount box + balance
-            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 14));   // Bursar + signature
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 100));  // School header
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 10));   // Spacer
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 60));   // Receipt title + number + date
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 12));   // Spacer
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 76));   // Student row
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 54));   // Sum of (amount in words)
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 54));   // Being + mode
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 86));   // Amount box + balance
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 54));   // Bursar + signature
 
             // ── Row 0: School header (logo + name/address) ──────────────────────────
-            var schoolOuter = new Panel { Dock = DockStyle.Fill, BackColor = SurfaceColor, Padding = new Padding(0, 0, 0, 8) };
-            schoolOuter.Paint += (s, e) =>
+            var schoolRow = new TableLayoutPanel
             {
-                int y = ((Panel)s).Height - 2;
-                using (var pen = new Pen(PrimaryColor, 2))
-                    e.Graphics.DrawLine(pen, 0, y, ((Panel)s).Width, y);
+                Dock = DockStyle.Fill,
+                ColumnCount = 2,
+                BackColor = Color.White,
+                Padding = new Padding(0, 0, 0, 10)
             };
-            var schoolRow = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, BackColor = SurfaceColor };
             schoolRow.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 80));
             schoolRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-            _rpLogoPictureBox = new PictureBox { Dock = DockStyle.Fill, SizeMode = PictureBoxSizeMode.Zoom, BackColor = SurfaceColor, Margin = new Padding(0, 0, 15, 0) };
+            schoolRow.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+            schoolRow.Paint += (s, e) =>
+            {
+                var tlp = (TableLayoutPanel)s;
+                int y = tlp.Height - 2;
+                using (var pen = new Pen(PrimaryColor, 2))
+                    e.Graphics.DrawLine(pen, 0, y, tlp.Width, y);
+            };
+            _rpLogoPictureBox = new PictureBox
+            {
+                Dock = DockStyle.Fill,
+                SizeMode = PictureBoxSizeMode.Zoom,
+                BackColor = Color.White,
+                Margin = new Padding(0, 0, 16, 0)
+            };
             string logoPath = GetSchoolLogoPath();
             if (!string.IsNullOrWhiteSpace(logoPath))
             {
@@ -1181,118 +1284,272 @@ namespace kingdom_Preparatory_School_Management_System
                 }
                 catch { }
             }
-            var schoolText = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 3, BackColor = SurfaceColor };
-            schoolText.RowStyles.Add(new RowStyle(SizeType.Percent, 54));
-            schoolText.RowStyles.Add(new RowStyle(SizeType.Percent, 24));
-            schoolText.RowStyles.Add(new RowStyle(SizeType.Percent, 22));
-            schoolText.Controls.Add(new Label { Dock = DockStyle.Fill, Text = "KINGDOM PREPARATORY J.H.S",    ForeColor = PrimaryColor,     Font = new Font("Arial Narrow", 15F, FontStyle.Bold),    TextAlign = ContentAlignment.BottomCenter  }, 0, 0);
-            schoolText.Controls.Add(new Label { Dock = DockStyle.Fill, Text = "P. O. BOX 7 AKIM ODA",         ForeColor = PrimaryColor,     Font = new Font("Georgia", 10F, FontStyle.Bold),          TextAlign = ContentAlignment.MiddleCenter  }, 0, 1);
-            schoolText.Controls.Add(new Label { Dock = DockStyle.Fill, Text = "Tel: 0548 050 141 | 0200 369 762 | 0201 455 533", ForeColor = MutedTextColor, Font = new Font("Georgia", 9F), TextAlign = ContentAlignment.TopCenter }, 0, 2);
+            var schoolText = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 1,
+                RowCount = 3,
+                BackColor = Color.White
+            };
+            schoolText.RowStyles.Add(new RowStyle(SizeType.Percent, 44));
+            schoolText.RowStyles.Add(new RowStyle(SizeType.Percent, 28));
+            schoolText.RowStyles.Add(new RowStyle(SizeType.Percent, 28));
+            schoolText.Controls.Add(new Label
+            {
+                Dock = DockStyle.Fill,
+                Text = "KINGDOM PREPARATORY J.H.S",
+                ForeColor = PrimaryColor,
+                Font = new Font("Segoe UI Semibold", 16F, FontStyle.Bold),
+                TextAlign = ContentAlignment.BottomCenter
+            }, 0, 0);
+            schoolText.Controls.Add(new Label
+            {
+                Dock = DockStyle.Fill,
+                Text = "P. O. BOX 7 AKIM ODA",
+                ForeColor = PrimaryColor,
+                Font = new Font("Georgia", 10.5F, FontStyle.Bold),
+                TextAlign = ContentAlignment.MiddleCenter
+            }, 0, 1);
+            schoolText.Controls.Add(new Label
+            {
+                Dock = DockStyle.Fill,
+                Text = "Tel: 0548 050 141 | 0200 369 762 | 0201 455 533",
+                ForeColor = MutedTextColor,
+                Font = new Font("Georgia", 9F),
+                TextAlign = ContentAlignment.TopCenter
+            }, 0, 2);
             schoolRow.Controls.Add(_rpLogoPictureBox, 0, 0);
             schoolRow.Controls.Add(schoolText, 1, 0);
-            schoolOuter.Controls.Add(schoolRow);
-            layout.Controls.Add(schoolOuter, 0, 0);
+            layout.Controls.Add(schoolRow, 0, 0);
 
-            // ── Row 1: Receipt title + number + date ────────────────────────────────
-            var titleRow = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, BackColor = SurfaceColor, Margin = new Padding(0, 5, 0, 5) };
-            titleRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
-            titleRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+            // ── Row 1: Spacer ────────────────────────────────────────────────────────
+            layout.Controls.Add(new Panel { Dock = DockStyle.Fill, BackColor = Color.White }, 0, 1);
+
+            // ── Row 2: Receipt title + number + date ────────────────────────────────
+            var titleRow = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 2,
+                BackColor = Color.White,
+                Padding = new Padding(0, 0, 0, 8)
+            };
+            titleRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 55));
+            titleRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 45));
+            titleRow.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+            titleRow.Paint += (s, e) =>
+            {
+                var tlp = (TableLayoutPanel)s;
+                int y = tlp.Height - 2;
+                using (var pen = new Pen(Color.FromArgb(210, 213, 220), 1))
+                    e.Graphics.DrawLine(pen, 0, y, tlp.Width, y);
+            };
             var titleBox = new Label
             {
                 Dock = DockStyle.Fill,
-                Text = "Official Receipt",
+                Text = "OFFICIAL RECEIPT",
                 ForeColor = PrimaryColor,
-                Font = new Font("Arial Narrow", 16F, FontStyle.Bold),
-                TextAlign = ContentAlignment.MiddleCenter,
-                BorderStyle = BorderStyle.FixedSingle,
-                Margin = new Padding(0, 4, 15, 4)
+                Font = new Font("Segoe UI Semibold", 18F, FontStyle.Bold),
+                TextAlign = ContentAlignment.MiddleLeft,
+                AutoSize = false
             };
             titleRow.Controls.Add(titleBox, 0, 0);
-            var numDatePanel = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 2, BackColor = SurfaceColor };
-            numDatePanel.RowStyles.Add(new RowStyle(SizeType.Percent, 50));
-            numDatePanel.RowStyles.Add(new RowStyle(SizeType.Percent, 50));
-            _rpReceiptNumLbl = new Label { Dock = DockStyle.Fill, ForeColor = Color.FromArgb(192, 57, 43), Font = new Font("Consolas", 11F, FontStyle.Bold), TextAlign = ContentAlignment.MiddleRight };
-            _rpDateLbl       = new Label { Dock = DockStyle.Fill, ForeColor = MutedTextColor, Font = new Font("Segoe UI Semibold", 10F, FontStyle.Bold), TextAlign = ContentAlignment.MiddleRight };
+            var numDatePanel = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 1,
+                RowCount = 2,
+                BackColor = Color.White
+            };
+            _rpReceiptNumLbl = new Label
+            {
+                Dock = DockStyle.Fill,
+                ForeColor = Color.FromArgb(192, 57, 43),
+                Font = new Font("Consolas", 12F, FontStyle.Bold),
+                TextAlign = ContentAlignment.MiddleRight
+            };
+            _rpDateLbl = new Label
+            {
+                Dock = DockStyle.Fill,
+                ForeColor = MutedTextColor,
+                Font = new Font("Segoe UI Semibold", 10F, FontStyle.Bold),
+                TextAlign = ContentAlignment.MiddleRight
+            };
             numDatePanel.Controls.Add(_rpReceiptNumLbl, 0, 0);
             numDatePanel.Controls.Add(_rpDateLbl, 0, 1);
             titleRow.Controls.Add(numDatePanel, 1, 0);
-            layout.Controls.Add(titleRow, 0, 1);
+            layout.Controls.Add(titleRow, 0, 2);
 
-            // ── Row 2: Student row ───────────────────────────────────────────────────
-            var studentRow = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 3, BackColor = SurfaceColor, Margin = new Padding(0, 0, 0, 5) };
+            // ── Row 3: Spacer ────────────────────────────────────────────────────────
+            layout.Controls.Add(new Panel { Dock = DockStyle.Fill, BackColor = Color.White }, 0, 3);
+
+            // ── Row 4: Student row (tiles) ───────────────────────────────────────────
+            var studentRow = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 3,
+                BackColor = Color.White
+            };
+            studentRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 16));
             studentRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 18));
-            studentRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 22));
-            studentRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 60));
+            studentRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 66));
+            studentRow.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
             Panel idTile, clsTile, namTile;
             _rpStudentIdLbl = CreateReceiptTile("STUDENT ID",  out idTile);
             _rpClassLbl     = CreateReceiptTile("CLASS",       out clsTile);
             _rpNameLbl      = CreateReceiptTile("RECEIVED FROM", out namTile);
+            foreach (var t in new[] { idTile, clsTile, namTile })
+                t.BackColor = Color.FromArgb(248, 249, 251);
             studentRow.Controls.Add(idTile,  0, 0);
             studentRow.Controls.Add(clsTile, 1, 0);
             studentRow.Controls.Add(namTile, 2, 0);
-            layout.Controls.Add(studentRow, 0, 2);
+            layout.Controls.Add(studentRow, 0, 4);
 
-            // ── Row 3: The sum of (amount in words) ──────────────────────────────────
+            // ── Row 5: The sum of (amount in words) ──────────────────────────────────
             Panel sumTile;
             _rpAmountWordsLbl = CreateReceiptTile("THE SUM OF", out sumTile);
-            _rpAmountWordsLbl.Font = new Font("Georgia", 11F, FontStyle.Italic);
-            sumTile.BackColor = Color.FromArgb(247, 249, 255);
-            sumTile.Margin = new Padding(0, 0, 0, 5);
+            _rpAmountWordsLbl.Font = new Font("Georgia", 12F, FontStyle.Italic);
+            sumTile.BackColor = Color.FromArgb(245, 247, 252);
             sumTile.Paint += (s, e) =>
             {
                 using (var pen = new Pen(PrimaryColor, 3))
                     e.Graphics.DrawLine(pen, 0, 0, 0, ((Panel)s).Height);
             };
-            layout.Controls.Add(sumTile, 0, 3);
+            layout.Controls.Add(sumTile, 0, 5);
 
-            // ── Row 4: Being + Payment mode ──────────────────────────────────────────
-            var beingRow = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, BackColor = SurfaceColor, Margin = new Padding(0, 0, 0, 5) };
-            beingRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 65));
-            beingRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 35));
+            // ── Row 6: Being + Payment mode ──────────────────────────────────────────
+            var beingRow = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 2,
+                BackColor = Color.White
+            };
+            beingRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 60));
+            beingRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 40));
+            beingRow.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
             Panel beiTile, modTile;
             _rpBeingLbl = CreateReceiptTile("BEING",        out beiTile);
             _rpModeLbl  = CreateReceiptTile("PAYMENT MODE", out modTile);
+            beiTile.BackColor = Color.FromArgb(248, 249, 251);
+            modTile.BackColor = Color.FromArgb(248, 249, 251);
             beingRow.Controls.Add(beiTile, 0, 0);
             beingRow.Controls.Add(modTile, 1, 0);
-            layout.Controls.Add(beingRow, 0, 4);
+            layout.Controls.Add(beingRow, 0, 6);
 
-            // ── Row 5: Amount box + Balance After ────────────────────────────────────
-            var amountRow = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, BackColor = SurfaceColor, Margin = new Padding(0, 5, 0, 5) };
-            amountRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 60));
-            amountRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 40));
+            // ── Row 7: Amount box + Balance After ────────────────────────────────────
+            var amountRow = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 2,
+                BackColor = Color.White
+            };
+            amountRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 58));
+            amountRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 42));
+            amountRow.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
 
-            var amtBoxPanel = new Panel { Dock = DockStyle.Fill, BackColor = Color.FromArgb(240, 242, 245), Margin = new Padding(0, 2, 10, 2), Padding = new Padding(1) };
+            var amtBoxPanel = new Panel
+            {
+                Dock = DockStyle.Fill,
+                BackColor = Color.FromArgb(238, 242, 251),
+                Padding = new Padding(20, 8, 20, 8),
+                Margin = new Padding(0, 3, 12, 3)
+            };
             amtBoxPanel.Paint += (s, e) =>
             {
                 var p = (Panel)s;
                 using (var pen = new Pen(PrimaryColor, 2))
                     e.Graphics.DrawRectangle(pen, 0, 0, p.Width - 1, p.Height - 1);
             };
-            var amtInner = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 3, BackColor = Color.Transparent };
-            amtInner.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 64));
+            var amtInner = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 3,
+                BackColor = Color.Transparent
+            };
+            // Side labels are AutoSize + Anchor (not Dock=Fill) so "GHc" and ".00"
+            // can never wrap to a second line when the box is narrow.
+            amtInner.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
             amtInner.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-            amtInner.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 48));
-            amtInner.Controls.Add(new Label { Dock = DockStyle.Fill, Text = "GHc", ForeColor = PrimaryColor, Font = new Font("Arial Narrow", 15F, FontStyle.Bold), TextAlign = ContentAlignment.MiddleCenter, AutoEllipsis = false }, 0, 0);
-            _rpAmountLbl = new Label { Dock = DockStyle.Fill, ForeColor = PrimaryColor, Font = new Font("Consolas", 22F, FontStyle.Bold), TextAlign = ContentAlignment.MiddleRight };
+            amtInner.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+            amtInner.Controls.Add(new Label
+            {
+                AutoSize = true,
+                Anchor = AnchorStyles.None,
+                Margin = new Padding(0, 0, 6, 0),
+                Text = "GHc",
+                ForeColor = PrimaryColor,
+                Font = new Font("Segoe UI Semibold", 14F, FontStyle.Bold)
+            }, 0, 0);
+            _rpAmountLbl = new Label
+            {
+                Dock = DockStyle.Fill,
+                ForeColor = PrimaryColor,
+                Font = new Font("Consolas", 24F, FontStyle.Bold),
+                TextAlign = ContentAlignment.MiddleRight,
+                AutoEllipsis = true
+            };
             amtInner.Controls.Add(_rpAmountLbl, 1, 0);
-            amtInner.Controls.Add(new Label { Dock = DockStyle.Fill, Text = ".00", ForeColor = PrimaryColor, Font = new Font("Arial Narrow", 13F, FontStyle.Bold), TextAlign = ContentAlignment.MiddleLeft }, 2, 0);
+            amtInner.Controls.Add(new Label
+            {
+                AutoSize = true,
+                Anchor = AnchorStyles.None,
+                Margin = new Padding(4, 0, 0, 0),
+                Text = ".00",
+                ForeColor = PrimaryColor,
+                Font = new Font("Segoe UI Semibold", 14F, FontStyle.Bold)
+            }, 2, 0);
             amtBoxPanel.Controls.Add(amtInner);
             amountRow.Controls.Add(amtBoxPanel, 0, 0);
 
-            var balPanel = new Panel { Dock = DockStyle.Fill, BackColor = Color.FromArgb(232, 245, 233), Margin = new Padding(0, 2, 0, 2), Padding = new Padding(15, 8, 15, 8) };
-            var balCaption = new Label { Text = "OUTSTANDING BALANCE AFTER", Dock = DockStyle.Top, Height = 18, ForeColor = Color.FromArgb(46, 125, 50), Font = new Font("Segoe UI", 8F, FontStyle.Bold) };
-            _rpBalanceLbl = new Label { Dock = DockStyle.Fill, ForeColor = Color.FromArgb(46, 125, 50), Font = new Font("Segoe UI Semibold", 18F, FontStyle.Bold), TextAlign = ContentAlignment.MiddleLeft };
+            var balPanel = new Panel
+            {
+                Dock = DockStyle.Fill,
+                BackColor = Color.FromArgb(232, 245, 233),
+                Padding = new Padding(18, 8, 18, 8),
+                Margin = new Padding(0, 3, 0, 3)
+            };
+            var balCaption = new Label
+            {
+                Text = "OUTSTANDING BALANCE AFTER",
+                Dock = DockStyle.Top,
+                Height = 18,
+                ForeColor = Color.FromArgb(46, 125, 50),
+                Font = new Font("Segoe UI", 8F, FontStyle.Bold)
+            };
+            _rpBalanceLbl = new Label
+            {
+                Dock = DockStyle.Fill,
+                ForeColor = Color.FromArgb(46, 125, 50),
+                Font = new Font("Segoe UI Semibold", 18F, FontStyle.Bold),
+                TextAlign = ContentAlignment.MiddleLeft
+            };
+            _rpCreditLbl = new Label
+            {
+                Dock = DockStyle.Bottom,
+                Height = 16,
+                ForeColor = Color.FromArgb(176, 90, 0),
+                Font = new Font("Segoe UI Semibold", 8.5F, FontStyle.Bold),
+                TextAlign = ContentAlignment.MiddleLeft,
+                Visible = false
+            };
             balPanel.Controls.Add(_rpBalanceLbl);
             balPanel.Controls.Add(balCaption);
+            balPanel.Controls.Add(_rpCreditLbl);
             amountRow.Controls.Add(balPanel, 1, 0);
-            layout.Controls.Add(amountRow, 0, 5);
+            layout.Controls.Add(amountRow, 0, 7);
 
-            // ── Row 6: Bursar + Signature ────────────────────────────────────────────
-            var bursarRow = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, BackColor = SurfaceColor, Margin = new Padding(0, 10, 0, 0) };
-            bursarRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 65));
-            bursarRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 35));
+            // ── Row 8: Bursar + Signature ────────────────────────────────────────────
+            var bursarRow = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 2,
+                BackColor = Color.White
+            };
+            bursarRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 60));
+            bursarRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 40));
+            bursarRow.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
             Panel burTile;
             _rpBursarLbl = CreateReceiptTile("BURSAR / CASHIER", out burTile);
+            burTile.BackColor = Color.FromArgb(248, 249, 251);
             bursarRow.Controls.Add(burTile, 0, 0);
             bursarRow.Controls.Add(new Label
             {
@@ -1302,22 +1559,42 @@ namespace kingdom_Preparatory_School_Management_System
                 Font = new Font("Georgia", 10F),
                 TextAlign = ContentAlignment.MiddleCenter
             }, 1, 0);
-            layout.Controls.Add(bursarRow, 0, 6);
+            layout.Controls.Add(bursarRow, 0, 8);
 
-            _receiptPreviewShell.Controls.Add(layout);
+            card.Controls.Add(layout);
+
+            void CenterCard()
+            {
+                int cw = card.Width;
+                int ch = card.Height;
+                int sw = _receiptPreviewShell.ClientSize.Width;
+                int sh = _receiptPreviewShell.ClientSize.Height;
+                if (sw >= cw && sh >= ch)
+                {
+                    card.Location = new Point((sw - cw) / 2, (sh - ch) / 2);
+                    _receiptPreviewShell.AutoScrollMinSize = Size.Empty;
+                }
+                else
+                {
+                    card.Location = new Point(0, 0);
+                    _receiptPreviewShell.AutoScrollMinSize = card.Size;
+                }
+            }
+            _receiptPreviewShell.Resize += (s, e) => CenterCard();
+            _receiptPreviewShell.Controls.Add(card);
+            CenterCard();
+
             return _receiptPreviewShell;
         }
 
         private Label CreateReceiptTile(string caption, out Panel tile)
         {
-            // Dock-based layout: caption reserves the top, value fills the rest.
-            // No manual Location/Resize math — robust at any tile height.
             var tilePanel = new Panel
             {
                 Dock = DockStyle.Fill,
                 BackColor = Color.FromArgb(247, 249, 255),
-                Margin = new Padding(0, 0, 5, 0),
-                Padding = new Padding(12, 6, 8, 4)
+                Margin = new Padding(0, 0, 6, 0),
+                Padding = new Padding(14, 8, 10, 6)
             };
 
             var valueLbl = new Label
@@ -1333,16 +1610,16 @@ namespace kingdom_Preparatory_School_Management_System
             var captionLbl = new Label
             {
                 Dock = DockStyle.Top,
-                Height = 16,
+                Height = 18,
                 Text = caption,
                 ForeColor = MutedTextColor,
-                Font = new Font("Segoe UI", 8F, FontStyle.Bold),
+                Font = new Font("Segoe UI", 8.5F, FontStyle.Bold),
                 AutoSize = false,
                 AutoEllipsis = true
             };
 
-            tilePanel.Controls.Add(valueLbl);   // Fill (added first)
-            tilePanel.Controls.Add(captionLbl); // Top (added last → reserves its space)
+            tilePanel.Controls.Add(valueLbl);
+            tilePanel.Controls.Add(captionLbl);
             tile = tilePanel;
             return valueLbl;
         }
@@ -1361,10 +1638,32 @@ namespace kingdom_Preparatory_School_Management_System
             _rpClassLbl.Text       = classBox?.Text.Trim() ?? "";
             _rpNameLbl.Text        = studentNameBox?.Text.Trim() ?? "";
             _rpAmountWordsLbl.Text = amountWordsBox?.Text.Trim() ?? "";
-            _rpBeingLbl.Text       = beingBox?.Text.Trim() ?? "";
-            _rpModeLbl.Text        = paymentModeBox?.Text ?? "";
+
+            // Being: prefer the typed/auto value, but fall back to the fee type
+            // chosen in Step 1 so the receipt is never blank.
+            string being = beingBox?.Text.Trim() ?? "";
+            if (being.Length == 0) being = feeTypeBox?.Text.Trim() ?? "";
+            _rpBeingLbl.Text       = being;
+
+            // Payment mode: a DropDownList combo can read blank before its handle
+            // exists — fall back to the selected item, then to "Cash".
+            string mode = paymentModeBox?.Text;
+            if (string.IsNullOrWhiteSpace(mode))
+                mode = paymentModeBox?.SelectedItem?.ToString();
+            _rpModeLbl.Text        = string.IsNullOrWhiteSpace(mode) ? "Cash" : mode;
             _rpAmountLbl.Text      = amount > 0 ? ((int)Math.Floor(amount)).ToString("N0") : "—";
             _rpBalanceLbl.Text     = "GHc " + projected.ToString("N2");
+
+            // Show the approved overpayment as a credit beneath the balance-after.
+            if (_rpCreditLbl != null)
+            {
+                bool hasCredit = _overpaymentApproved && _approvedOverpayment > 0m;
+                _rpCreditLbl.Visible = hasCredit;
+                _rpCreditLbl.Text = hasCredit
+                    ? "Incl. overpayment credit: GHc " + _approvedOverpayment.ToString("N2")
+                    : "";
+            }
+
             _rpBursarLbl.Text      = bursarBox?.Text.Trim() ?? "";
             _rpReceiptNumLbl.Text  = receiptNumberLabel?.Text ?? "";
             _rpDateLbl.Text        = paymentDatePicker?.Value.ToString("dd/MM/yyyy") ?? "";
@@ -1816,7 +2115,25 @@ namespace kingdom_Preparatory_School_Management_System
             {
                 text += " and " + NumberToWords(pesewas) + " pesewas";
             }
-            amountWordsBox.Text = text;
+            amountWordsBox.Text = text.ToUpperInvariant();
+        }
+
+        // Live-update the Step 2 summary balance to reflect the payment amount
+        // being deducted from the student's outstanding balance.
+        private void UpdateStep2Balance()
+        {
+            if (_step2BalanceLbl == null) return;
+            decimal balance = 0m;
+            decimal.TryParse(balanceBox?.Text, out balance);
+            decimal amount = 0m;
+            decimal.TryParse(amountBox?.Text, out amount);
+            decimal remaining = Math.Max(0m, balance - amount);
+
+            if (_overpaymentApproved && _approvedOverpayment > 0m)
+                _step2BalanceLbl.Text = "Balance: GHc 0.00  ·  Credit: GHc " +
+                                        _approvedOverpayment.ToString("N2");
+            else
+                _step2BalanceLbl.Text = "Balance: GHc " + remaining.ToString("N2");
         }
 
         private string NumberToWords(int number)
@@ -2389,7 +2706,7 @@ namespace kingdom_Preparatory_School_Management_System
                 classBox.Text = student.ClassID;
                 if (beingBox != null && string.IsNullOrWhiteSpace(beingBox.Text))
                 {
-                    beingBox.Text = "School fees payment";
+                    beingBox.Text = DefaultBeingText;
                 }
 
                 // Try to get latest payment balance, otherwise default fee
@@ -2471,8 +2788,6 @@ namespace kingdom_Preparatory_School_Management_System
                     if (_successBanner     != null) { _successBanner.Visible = true; _successBanner.Height = 34; }
                     if (_preRecordActions  != null) _preRecordActions.Visible  = false;
                     if (_postRecordActions != null) _postRecordActions.Visible = true;
-                    if (_receiptPreviewShell != null) _receiptPreviewShell.BorderStyle = BorderStyle.FixedSingle;
-
                     // Leave the on-screen receipt fully populated for review/print.
                     // Inputs (amount, receipt number) reset on "+ New Payment" (ClearPaymentForm).
                     statusLabel.Text = "Payment recorded";
@@ -2529,6 +2844,8 @@ namespace kingdom_Preparatory_School_Management_System
             if (feeTypeBox        != null) feeTypeBox.Text = "";
             if (beingBox          != null) beingBox.Text   = "";
             _lastFeeTypeAutoFilled = "";
+            _overpaymentApproved = false;
+            _approvedOverpayment = 0m;
             SetStudentInfoCardVisible(false);
             SetStudentNotFoundVisible(false);
             UpdateContinueButton();
