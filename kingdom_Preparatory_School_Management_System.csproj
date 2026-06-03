@@ -395,6 +395,8 @@
     <Compile Include="Services\PhoneNumberGh.cs" />
     <Compile Include="Services\SmsSenderIds.cs" />
     <Compile Include="Services\DatabaseBackupService.cs" />
+    <Compile Include="Services\ISmsProvider.cs" />
+    <Compile Include="Services\Sms\LogSmsProvider.cs" />
     <Compile Include="frmBackupManager.cs">
       <SubType>Form</SubType>
     </Compile>
