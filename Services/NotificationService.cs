@@ -171,6 +171,57 @@ Kingdom Preparatory School";
             return await SendEmailAsync(employeeEmail, subject, body, NotificationType.LeaveApproval);
         }
 
+        /// <summary>Confirms to the employee that their leave request was received.</summary>
+        public static async Task<(bool Success, string Message)> SendLeaveSubmittedAsync(
+            string employeeName, string employeeEmail, DateTime startDate, DateTime endDate)
+        {
+            if (string.IsNullOrWhiteSpace(employeeEmail))
+                return (false, "Employee email is required");
+
+            int duration = (endDate.Date - startDate.Date).Days + 1;
+            string subject = "Leave Request Received - Kingdom Preparatory School";
+            string body = $@"Dear {employeeName},
+
+Your leave application has been received and is pending approval.
+
+  Start Date: {startDate:MMMM dd, yyyy}
+  End Date: {endDate:MMMM dd, yyyy}
+  Duration: {duration} day(s)
+  Status: PENDING
+
+You will be notified once a decision has been made.
+
+Best regards,
+Human Resources Department
+Kingdom Preparatory School";
+
+            return await SendEmailAsync(employeeEmail, subject, body, NotificationType.LeaveApproval);
+        }
+
+        /// <summary>Alerts the HR address that a new leave request needs review.</summary>
+        public static async Task<(bool Success, string Message)> SendLeaveRequestHrAlertAsync(
+            string hrEmail, string employeeName, DateTime startDate, DateTime endDate, string reason)
+        {
+            if (string.IsNullOrWhiteSpace(hrEmail))
+                return (false, "HR email is required");
+
+            int duration = (endDate.Date - startDate.Date).Days + 1;
+            string subject = $"Leave Request Pending Review - {employeeName}";
+            string body = $@"A new leave request requires review:
+
+  Employee: {employeeName}
+  Start Date: {startDate:MMMM dd, yyyy}
+  End Date: {endDate:MMMM dd, yyyy}
+  Duration: {duration} day(s)
+  Reason: {reason}
+
+Please review it in the Leave Approval screen.
+
+Kingdom Preparatory School";
+
+            return await SendEmailAsync(hrEmail, subject, body, NotificationType.LeaveApproval);
+        }
+
         /// <summary>
         /// Sends payment received confirmation to guardian.
         /// </summary>
