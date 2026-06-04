@@ -445,7 +445,11 @@ namespace kingdom_Preparatory_School_Management_System.Services
 
             try
             {
-                using (var stream = new MemoryStream(imageBytes))
+                // PdfSharp's XImage.FromStream calls GetBuffer() on the stream, which
+                // throws for a MemoryStream created from a byte[] (non-publicly-visible
+                // buffer). Pass publiclyVisible: true so the logo/photo actually decode
+                // instead of silently falling back to the placeholder.
+                using (var stream = new MemoryStream(imageBytes, 0, imageBytes.Length, writable: false, publiclyVisible: true))
                 using (var image = XImage.FromStream(stream))
                 {
                     gfx.DrawImage(image, x, y, width, height);
