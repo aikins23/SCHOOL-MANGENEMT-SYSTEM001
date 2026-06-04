@@ -11,7 +11,10 @@ namespace kingdom_Preparatory_School_Management_System.Services
     {
         public const string StudentSuffix  = "STDADM";
         public const string EmployeeSuffix = "EMPADM";
-        public const string FeeSuffix      = "FEES";
+        // Trailing dot matches the sender ID approved on BulkSMSGh ("KPSFEES.").
+        // NOTE: Arkesel approved "KPSFEES" (no dot) — fee SMS via Arkesel will need
+        // that ID re-approved as "KPSFEES." (or make this provider-specific).
+        public const string FeeSuffix      = "FEES.";
         public const int MaxLength = 11;
 
         public static string Build(string abbreviation, string suffix)

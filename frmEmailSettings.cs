@@ -501,9 +501,10 @@ namespace kingdom_Preparatory_School_Management_System
         private void UpdateSenderPreview()
         {
             string abbr = (txtSmsAbbr.Text ?? "").Trim().ToUpperInvariant();
-            string student  = abbr + "STDADM";
-            string employee = abbr + "EMPADM";
-            string fees     = abbr + "FEES";
+            // Reference SmsSenderIds so the preview always matches what is actually sent.
+            string student  = abbr + SmsSenderIds.StudentSuffix;
+            string employee = abbr + SmsSenderIds.EmployeeSuffix;
+            string fees     = abbr + SmsSenderIds.FeeSuffix;
             string warn = student.Length > 11 ? "  ⚠ exceeds 11 chars" : "";
             lblSmsSenderPreview.Text = $"Sender IDs: {student} · {employee} · {fees}{warn}";
         }
