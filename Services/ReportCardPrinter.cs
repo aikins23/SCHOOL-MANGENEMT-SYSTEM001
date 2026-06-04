@@ -57,24 +57,56 @@ namespace kingdom_Preparatory_School_Management_System.Services
         }
 
         /// <summary>
-        /// Saves PDF to file system
+        /// Saves PDF to the file system. If the target file is open in another
+        /// program (e.g. a PDF viewer left open from a previous save), it falls back
+        /// to a uniquely-numbered filename instead of failing. Returns the path
+        /// actually written.
         /// </summary>
-        public async Task SaveToFileAsync(byte[] pdfBytes, string filePath)
+        public async Task<string> SaveToFileAsync(byte[] pdfBytes, string filePath)
         {
             try
             {
                 // Create directory if needed
                 var directory = Path.GetDirectoryName(filePath);
-                if (!Directory.Exists(directory))
+                if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
                     Directory.CreateDirectory(directory);
 
-                await Task.Run(() => File.WriteAllBytes(filePath, pdfBytes));
+                return await Task.Run(() =>
+                {
+                    try
+                    {
+                        File.WriteAllBytes(filePath, pdfBytes);
+                        return filePath;
+                    }
+                    catch (IOException) // target locked / in use by another process
+                    {
+                        var alt = GetUniquePath(filePath);
+                        File.WriteAllBytes(alt, pdfBytes);
+                        LoggerHelper.LogWarning(
+                            $"'{filePath}' was in use (likely open in a viewer); saved to '{alt}' instead.");
+                        return alt;
+                    }
+                });
             }
             catch (Exception ex)
             {
                 LoggerHelper.LogError($"Error saving report card to {filePath}", ex);
                 throw new PrintingException($"Error saving report card to {filePath}", ex);
             }
+        }
+
+        /// <summary>Finds "name (1).pdf", "name (2).pdf", … that doesn't already exist.</summary>
+        private static string GetUniquePath(string filePath)
+        {
+            var dir = Path.GetDirectoryName(filePath) ?? "";
+            var name = Path.GetFileNameWithoutExtension(filePath);
+            var ext = Path.GetExtension(filePath);
+            for (int i = 1; i < 1000; i++)
+            {
+                var candidate = Path.Combine(dir, $"{name} ({i}){ext}");
+                if (!File.Exists(candidate)) return candidate;
+            }
+            return Path.Combine(dir, $"{name}_{DateTime.Now:yyyyMMdd_HHmmss}{ext}");
         }
 
         /// <summary>
