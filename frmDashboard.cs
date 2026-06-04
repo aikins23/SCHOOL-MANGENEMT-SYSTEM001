@@ -923,25 +923,25 @@ public frmDashboard()
             charts.BringToFront();
         }
 
-        private async void RunBackup()
+        private void RunBackup()
         {
-            statusLabel.Text = "Creating database backup...";
-            // var (success, message) = await DatabaseBackupService.CreateBackupAsync(); // TODO: Implement backup service
-            // if (success) // UIHelper.ShowSuccess(message, "System Backup"); // TODO: Implement
-            // else UIHelper.ShowError(message, "Backup Error");
-            statusLabel.Text = "Ready.";
+            // Open the dedicated backup manager (create / restore / list backups).
+            new frmBackupManager().ShowDialog();
         }
 
         private void ViewLogs()
         {
-            string logPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "notifications_log.txt");
-            if (System.IO.File.Exists(logPath))
+            try
             {
-                System.Diagnostics.Process.Start("notepad.exe", logPath);
+                string logsDir = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logs");
+                if (System.IO.Directory.Exists(logsDir))
+                    System.Diagnostics.Process.Start("explorer.exe", logsDir);
+                else
+                    UIHelper.ShowWarning("No logs found yet.", "System Logs");
             }
-            else
+            catch (Exception ex)
             {
-                // UIHelper.ShowInfo("No notification logs found yet.", "System Logs"); // TODO: Implement
+                UIHelper.ShowError("Could not open logs: " + ex.Message, "System Logs");
             }
         }
 
