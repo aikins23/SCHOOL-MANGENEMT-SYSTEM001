@@ -1,13 +1,15 @@
 using System;
 using System.Net.Http;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace kingdom_Preparatory_School_Management_System.Services
 {
     /// <summary>
     /// BulkSMSGh (bulksmsghana.com). GET clientlogin.bulksmsgh.com/smsapi with
-    /// query params key, to, msg, sender_id. The response is a plain status code:
-    /// "1000" = sent; other codes are errors (see Describe).
+    /// query params key, to, msg, sender_id. The current API returns JSON
+    /// {"success":bool,"code":int,"message":"..."}; older deployments returned a
+    /// bare status code string ("1000" = sent). Both are handled.
     /// </summary>
     public sealed class BulkSmsGhProvider : ISmsProvider
     {
@@ -34,16 +36,32 @@ namespace kingdom_Preparatory_School_Management_System.Services
             {
                 using (var resp = await Http.GetAsync(url))
                 {
-                    string code = (await resp.Content.ReadAsStringAsync() ?? "").Trim();
-                    if (code == "1000")
+                    string body = (await resp.Content.ReadAsStringAsync() ?? "").Trim();
+
+                    // Current API: JSON {"success":true,"code":1000,...}.
+                    // Legacy API: a bare status code string ("1000" = sent).
+                    bool ok = Regex.IsMatch(body, "\"success\"\\s*:\\s*true", RegexOptions.IgnoreCase)
+                              || body == "1000";
+                    if (ok)
                         return (true, $"SMS sent to {recipient233} (sender {senderId})");
-                    return (false, $"BulkSMSGh error {Describe(code)}");
+
+                    string code = Match(body, "\"code\"\\s*:\\s*\"?(\\d+)");
+                    string msg = Match(body, "\"message\"\\s*:\\s*\"([^\"]*)\"");
+                    if (string.IsNullOrEmpty(code) && string.IsNullOrEmpty(msg))
+                        return (false, $"BulkSMSGh error {Describe(body)}");   // legacy bare code
+                    return (false, $"BulkSMSGh error {(string.IsNullOrEmpty(code) ? "" : code + ": ")}{msg}".Trim());
                 }
             }
             catch (Exception ex)
             {
                 return (false, $"BulkSMSGh request failed: {ex.Message}");
             }
+        }
+
+        private static string Match(string input, string pattern)
+        {
+            var m = Regex.Match(input ?? "", pattern, RegexOptions.IgnoreCase);
+            return m.Success ? m.Groups[1].Value : "";
         }
 
         private static string Describe(string code)
