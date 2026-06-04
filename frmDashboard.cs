@@ -266,6 +266,7 @@ public frmDashboard()
             nav.Controls.Add(CreateNavButton("Exams",          () => OpenForm(new EXAMS())));
             nav.Controls.Add(CreateNavButton("Exam Reports",   () => OpenForm(new EXAMSVIEW())));
             nav.Controls.Add(CreateNavButton("Analytics",      OpenAnalyticsDashboard));
+            nav.Controls.Add(CreateNavButton("Apply for Leave", () => OpenForm(new frmEmpLeave())));
             nav.Controls.Add(CreateNavButton("Leave Requests", () => OpenForm(new frmLeaveDetails())));
 
             var role = AuthService.CurrentUser.Role;
