@@ -981,7 +981,8 @@ namespace kingdom_Preparatory_School_Management_System
                 }
                 else
                 {
-                    UIHelper.ShowError("Could not save student", "Error");
+                    UIHelper.ShowError(string.IsNullOrWhiteSpace(message) ? "Could not save student" : message, "Error");
+                    LoggerHelper.LogError($"Student save returned failure for {student?.StudentID}: {message}", null);
                 }
             }
             catch (Exception ex)
