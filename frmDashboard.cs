@@ -269,6 +269,11 @@ public frmDashboard()
             nav.Controls.Add(CreateNavButton("Leave Requests", () => OpenForm(new frmLeaveDetails())));
 
             var role = AuthService.CurrentUser.Role;
+            if (role == AuthService.UserRole.Director || role == AuthService.UserRole.Administrator)
+            {
+                // Email + SMS notification settings (Arkesel/BulkSMSGh, sender IDs, HR address).
+                nav.Controls.Add(CreateNavButton("Settings", () => new frmEmailSettings().ShowDialog()));
+            }
             if (role == AuthService.UserRole.Administrator || role == AuthService.UserRole.Headmaster)
             {
                 nav.Controls.Add(CreateNavButton("Database Backup", RunBackup));
