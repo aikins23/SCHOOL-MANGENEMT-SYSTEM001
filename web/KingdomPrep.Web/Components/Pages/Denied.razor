@@ -1,0 +1,22 @@
+@page "/denied"
+@attribute [AllowAnonymous]
+@layout BlankLayout
+
+<PageTitle>Access denied</PageTitle>
+
+<div class="login-wrap">
+    @if (Accountant == "1")
+    {
+        <h2>Accountants use the desktop app</h2>
+        <p>The web portal is for academic progress. Please use the desktop application for accounts and fees.</p>
+    }
+    else
+    {
+        <h2>Access denied</h2>
+    }
+    <a href="/login">Back to sign in</a>
+</div>
+
+@code {
+    [SupplyParameterFromQuery(Name = "accountant")] private string? Accountant { get; set; }
+}

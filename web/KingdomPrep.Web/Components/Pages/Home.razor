@@ -1,7 +1,39 @@
-﻿@page "/"
+@page "/"
+@attribute [Authorize]
+@inject IStudentStats Stats
 
-<PageTitle>Home</PageTitle>
+<PageTitle>Dashboard - Kingdom Preparatory</PageTitle>
 
-<h1>Hello, world!</h1>
+<AuthorizeView>
+    <Authorized Context="auth">
+        <h1>Welcome, @auth.User.Identity?.Name</h1>
+        <p>Signed in as <strong>@RoleName(auth)</strong></p>
 
-Welcome to your new app.
+        @if (RoleName(auth) == "Parent")
+        {
+            <p>Your child's progress will appear here soon.</p>
+        }
+        else
+        {
+            <div class="dash-cards">
+                <div class="dash-card">Students: <strong>@_studentCount</strong></div>
+                <div class="dash-card disabled">Academic progress (coming soon)</div>
+                <div class="dash-card disabled">Attendance (coming soon)</div>
+                <div class="dash-card disabled">HR &amp; Leave (coming soon)</div>
+            </div>
+        }
+
+        <form method="post" action="/logout" class="mt-3">
+            <button type="submit">Sign out</button>
+        </form>
+    </Authorized>
+</AuthorizeView>
+
+@code {
+    private int _studentCount;
+
+    protected override async Task OnInitializedAsync() => _studentCount = await Stats.CountAsync();
+
+    private static string RoleName(AuthenticationState s)
+        => s.User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? "";
+}
