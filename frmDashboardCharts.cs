@@ -118,7 +118,7 @@ namespace kingdom_Preparatory_School_Management_System
             var entryBtn = MakeSecondaryButton("Enter Scores");
             entryBtn.Click += (s, e) => new EXAMS().Show();
             var dashboardBtn = MakeSecondaryButton("Dashboard");
-            dashboardBtn.Click += (s, e) => { Close(); new frmDashboard().Show(); };
+            dashboardBtn.Click += (s, e) => { Close(); Common.FormManager.GoToDashboard(); };
 
             statusLabel = new Label { AutoSize = false, Width = 220, Height = 36, ForeColor = MutedColor, Font = new Font("Segoe UI", 9F), TextAlign = ContentAlignment.MiddleRight, Margin = new Padding(0, 4, 8, 0) };
 

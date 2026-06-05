@@ -175,6 +175,29 @@ namespace kingdom_Preparatory_School_Management_System.Common
         }
 
         /// <summary>
+        /// Navigates back to the current user's dashboard. Reuses the registered
+        /// main dashboard when it's still alive; otherwise creates the one that
+        /// matches the logged-in role (teachers get frmTeacherDashboard, everyone
+        /// else gets frmDashboard). This avoids opening the admin dashboard for a
+        /// teacher, which would trigger a permission-denied dialog.
+        /// </summary>
+        public static void GoToDashboard()
+        {
+            if (_mainDashboard != null && !_mainDashboard.IsDisposed)
+            {
+                _mainDashboard.Show();
+                _mainDashboard.BringToFront();
+                _mainDashboard.Focus();
+                return;
+            }
+
+            Form dash = Services.AuthService.CurrentUser.Role == Services.AuthService.UserRole.Teacher
+                ? (Form)new frmTeacherDashboard()
+                : new frmDashboard();
+            dash.Show();
+        }
+
+        /// <summary>
         /// Hides all child forms (useful for dashboard-only view)
         /// </summary>
         public static void HideAllChildForms()

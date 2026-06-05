@@ -156,7 +156,7 @@ namespace kingdom_Preparatory_School_Management_System
             title.Controls.Add(new Label { Dock = DockStyle.Bottom, Height = 28, Text = "Review, update, or terminate a staff record", ForeColor = MutedTextColor, Font = new Font("Segoe UI", 10F), TextAlign = ContentAlignment.MiddleLeft });
             var actions = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.RightToLeft, BackColor = PageBackColor, Padding = new Padding(0, 12, 0, 0) };
             actions.Controls.Add(CreatePrimaryButton("Employee List", () => { Close(); new frmEmpView().Show(); }));
-            actions.Controls.Add(CreateSecondaryButton("Dashboard", () => { Close(); new frmDashboard().Show(); }));
+            actions.Controls.Add(CreateSecondaryButton("Dashboard", () => { Close(); Common.FormManager.GoToDashboard(); }));
             header.Controls.Add(title, 0, 0);
             header.Controls.Add(actions, 1, 0);
             return header;

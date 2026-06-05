@@ -49,6 +49,11 @@ namespace kingdom_Preparatory_School_Management_System
 
             InitializeForm();
             BuildUI();
+
+            // Register as the main dashboard so "back to Dashboard" navigation
+            // returns here (and not the admin frmDashboard, which teachers can't open).
+            Common.FormManager.SetMainDashboard(this);
+
             Shown += async (s, e) => await LoadDataAsync();
             FormClosing += (s, e) =>
             {

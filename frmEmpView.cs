@@ -118,7 +118,7 @@ namespace kingdom_Preparatory_School_Management_System
             actions.Controls.Add(CreateSecondaryButton("Dashboard", () =>
             {
                 Close();
-                new frmDashboard().Show();
+                Common.FormManager.GoToDashboard();
             }));
 
             header.Controls.Add(titleBlock, 0, 0);
@@ -378,7 +378,7 @@ namespace kingdom_Preparatory_School_Management_System
         private void gunaPictureBox6_Click(object sender, EventArgs e)
         {
             Close();
-            new frmDashboard().Show();
+            Common.FormManager.GoToDashboard();
         }
 
         private void gunaPictureBox5_Click(object sender, EventArgs e)
