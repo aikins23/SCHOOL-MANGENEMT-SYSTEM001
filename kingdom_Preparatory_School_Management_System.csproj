@@ -160,6 +160,7 @@
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="Common\AppConfig.cs" />
+    <Compile Include="Common\AdmissionFees.cs" />
     <Compile Include="Common\ConfirmationHelper.cs" />
     <Compile Include="Common\DraggableForm.cs">
       <SubType>Form</SubType>
@@ -196,6 +197,8 @@
     <Compile Include="Data\IExamRepository.cs" />
     <Compile Include="Data\IFeeRepository.cs" />
     <Compile Include="Data\FeeRepository.cs" />
+    <Compile Include="Data\IDraftAdmissionRepository.cs" />
+    <Compile Include="Data\DraftAdmissionRepository.cs" />
     <Compile Include="Data\IDashboardRepository.cs" />
     <Compile Include="Data\AttendanceRepository.cs" />
     <Compile Include="Data\IAttendanceRepository.cs" />
@@ -367,6 +370,7 @@
     </Compile>
     <Compile Include="Models\ClassConfig.cs" />
     <Compile Include="Models\Employee.cs" />
+    <Compile Include="Models\DraftAdmission.cs" />
     <Compile Include="Models\AttendanceRecord.cs" />
     <Compile Include="Models\ExamResult.cs" />
     <Compile Include="Models\LeaveRequest.cs" />
@@ -387,6 +391,7 @@
     <Compile Include="Services\FeeBalanceCalculator.cs" />
     <Compile Include="Services\LeaveService.cs" />
     <Compile Include="Services\LoggerHelper.cs" />
+    <Compile Include="Services\PaymentService.cs" />
     <Compile Include="Services\ReportCardDataService.cs" />
     <Compile Include="Services\ReportCardManager.cs" />
     <Compile Include="Services\ReportCardPDFGenerator.cs" />
@@ -395,6 +400,7 @@
     <Compile Include="Services\StudentService.cs" />
     <Compile Include="Services\NotificationService.cs" />
     <Compile Include="Services\SmsService.cs" />
+    <Compile Include="Services\DraftAdmissionService.cs" />
     <Compile Include="Services\PhoneNumberGh.cs" />
     <Compile Include="Services\SmsSenderIds.cs" />
     <Compile Include="Services\DatabaseBackupService.cs" />
