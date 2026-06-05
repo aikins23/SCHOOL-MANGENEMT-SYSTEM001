@@ -84,15 +84,28 @@ To rectify any details or information, kindly visit or contact the school admini
 - Administrator";
         }
 
-        public static Task<(bool Success, string Message)> SendEmployeeAdmissionAsync(string recipient, string fullName)
+        public static Task<(bool Success, string Message)> SendEmployeeAdmissionAsync(
+            string recipient, Models.Employee employee)
         {
-            string message =
-$@"Welcome to Kingdom Preparatory School, {fullName}!
+            return SendSmsAsync(recipient, BuildEmployeeAdmissionMessage(employee), SmsSenderIds.EmployeeAdmission);
+        }
 
-You have been successfully registered as an employee.
+        /// <summary>
+        /// Detailed employment confirmation addressed to the employee, listing the
+        /// recorded details (salary intentionally excluded). Shared by SMS and email.
+        /// </summary>
+        public static string BuildEmployeeAdmissionMessage(Models.Employee e)
+        {
+            return
+$@"Dear {e.FullName}, you have been registered as an employee at Kingdom Preparatory School with the following details:
+- Employee ID: {e.EmployeeID}
+- Name: {e.FullName}
+- Department: {e.Department}
+- Position: {e.Position}
+- Employment Date: {e.EmploymentDate:dd/MM/yyyy}
 
-- Administration";
-            return SendSmsAsync(recipient, message, SmsSenderIds.EmployeeAdmission);
+To rectify any details or information, kindly visit or contact the school administrator. Thank you.
+- Administrator";
         }
 
         public static Task<(bool Success, string Message)> SendFeeReminderAsync(

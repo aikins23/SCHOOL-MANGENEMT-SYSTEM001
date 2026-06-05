@@ -36,13 +36,13 @@ namespace kingdom_Preparatory_School_Management_System.Services
                     // Send registration notifications (fire-and-forget)
                     if (!string.IsNullOrWhiteSpace(employee.Email))
                     {
-                        string subject = "Welcome to Kingdom Preparatory School";
-                        string body = $"Dear {employee.FullName},\n\nYou have been successfully registered as an employee at Kingdom Preparatory School.\n\nDepartment: {employee.Department}\nPosition: {employee.Position}\n\nWe look forward to working with you.\n\nBest regards,\nHuman Resources";
+                        string subject = "Employment Confirmation - Kingdom Preparatory School";
+                        string body = SmsService.BuildEmployeeAdmissionMessage(employee);
                         _ = NotificationService.SendEmailAsync(employee.Email, subject, body, NotificationService.NotificationType.GeneralAnnouncement);
                     }
                     if (!string.IsNullOrWhiteSpace(employee.Contact))
                     {
-                        _ = SmsService.SendEmployeeAdmissionAsync(employee.Contact, employee.FullName);
+                        _ = SmsService.SendEmployeeAdmissionAsync(employee.Contact, employee);
                     }
 
                     return (true, $"Employee {employee.FullName} added successfully");
