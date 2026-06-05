@@ -270,6 +270,11 @@ public frmDashboard()
             nav.Controls.Add(CreateNavButton("Leave Requests", () => OpenForm(new frmLeaveDetails())));
 
             var role = AuthService.CurrentUser.Role;
+            if (role == AuthService.UserRole.Accountant)
+            {
+                // Bursar: approve pending admission payments (promotes draft + receipts + SMS).
+                nav.Controls.Add(CreateNavButton("Admission Approvals", () => OpenForm(new frmPendingApprovals())));
+            }
             if (role == AuthService.UserRole.Director || role == AuthService.UserRole.Administrator)
             {
                 // Email + SMS notification settings (Arkesel/BulkSMSGh, sender IDs, HR address).

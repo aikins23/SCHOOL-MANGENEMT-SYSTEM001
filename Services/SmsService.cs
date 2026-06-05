@@ -84,6 +84,37 @@ To rectify any details or information, kindly visit or contact the school admini
 - Administrator";
         }
 
+        /// <summary>
+        /// Admission confirmation including the bursar-approved payment lines.
+        /// Used after a draft admission is approved.
+        /// </summary>
+        public static string BuildStudentAdmissionMessage(
+            Models.Student s, decimal admissionFeePaid, decimal schoolFeePaid, decimal termTotal)
+        {
+            string guardian = string.IsNullOrWhiteSpace(s.GuardianName) ? "Guardian" : s.GuardianName.Trim();
+            return
+$@"Dear {guardian}, your ward {s.FirstName} has been admitted to Kingdom Preparatory School with the following details:
+- Student ID: {s.StudentID}
+- Name: {s.FullName}
+- Class: {s.ClassID}
+- Gender: {s.Gender}
+- Date of Birth: {s.DateOfBirth:dd/MM/yyyy}
+- Admission Date: {s.AdmissionDate:dd/MM/yyyy}
+- Admission fee paid: GHS {admissionFeePaid:N2}
+- School fee paid: GHS {schoolFeePaid:N2} out of GHS {termTotal:N2}
+
+To rectify any details or information, kindly visit or contact the school administrator. Thank you.
+- Administrator";
+        }
+
+        public static Task<(bool Success, string Message)> SendStudentAdmissionAsync(
+            string recipient, Models.Student student, decimal admissionFeePaid, decimal schoolFeePaid, decimal termTotal)
+        {
+            return SendSmsAsync(recipient,
+                BuildStudentAdmissionMessage(student, admissionFeePaid, schoolFeePaid, termTotal),
+                SmsSenderIds.StudentAdmission);
+        }
+
         public static Task<(bool Success, string Message)> SendEmployeeAdmissionAsync(
             string recipient, Models.Employee employee)
         {

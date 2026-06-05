@@ -54,17 +54,9 @@ namespace kingdom_Preparatory_School_Management_System.Services
                 await _feeRepository.AddInitialFeeRecordAsync(student.StudentID, student.ClassID, fee);
                 await _feeRepository.AddInitialPaymentRecordAsync(student.StudentID, student.ClassID, student.FullName, fee);
 
-                // Send registration notifications (fire-and-forget)
-                if (!string.IsNullOrWhiteSpace(student.GuardianEmail))
-                {
-                    string subject = "Admission Confirmation - Kingdom Preparatory School";
-                    string body = SmsService.BuildStudentAdmissionMessage(student);
-                    _ = NotificationService.SendEmailAsync(student.GuardianEmail, subject, body, NotificationService.NotificationType.GeneralAnnouncement);
-                }
-                if (!string.IsNullOrWhiteSpace(student.EmergencyContact))
-                {
-                    _ = SmsService.SendStudentAdmissionAsync(student.EmergencyContact, student);
-                }
+                // Admission notifications (SMS + email) are sent by the bursar-approval
+                // path with the payment lines, not here. See DraftAdmissionService /
+                // the Pending Approvals flow in frmFessPayment.
 
                 return (true, $"Student {student.FullName} added successfully with opening fee record");
             }

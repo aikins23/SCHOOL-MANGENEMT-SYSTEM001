@@ -963,18 +963,50 @@ namespace kingdom_Preparatory_School_Management_System
                 if (!ConfirmationHelper.ConfirmSave($"This will {action} student {txtFN.Text}?"))
                     return;
 
-                // Save to database
                 var student = MapFormToStudent();
-
                 bool isNew = await _studentService.GetStudentAsync(student.StudentID) == null;
-                var (success, message) = isNew
-                    ? await _studentService.AddStudentAsync(student)
-                    : await _studentService.UpdateStudentAsync(student);
 
+                if (isNew)
+                {
+                    // New admission: don't save yet. Collect the admission + school-fee
+                    // payment, then submit a draft for bursar approval. The student,
+                    // receipts, and SMS are created only when the bursar approves.
+                    var draft = new Models.DraftAdmission
+                    {
+                        FirstName = student.FirstName,
+                        LastName = student.LastName,
+                        DateOfBirth = student.DateOfBirth,
+                        Gender = student.Gender,
+                        ClassID = student.ClassID,
+                        Email = student.Email,
+                        HomeTown = student.HomeTown,
+                        Residence = student.Residence,
+                        Allergies = student.Allergies,
+                        GuardianName = student.GuardianName,
+                        GuardianEmail = student.GuardianEmail,
+                        GuardianLocation = student.GuardianLocation,
+                        EmergencyContact = student.EmergencyContact,
+                        AdmissionDate = student.AdmissionDate,
+                        ProfilePhoto = student.ProfilePhoto,
+                        TermTotal = _studentService.GetFeeForClass(student.ClassID),
+                        AdmissionFee = Common.AdmissionFees.Amount,
+                        SubmittedBy = AuthService.CurrentUser.Username
+                    };
+                    using (var pay = new frmFessPayment(draft))
+                    {
+                        pay.ShowDialog();
+                    }
+                    txtStdID.Text = "";
+                    ClearStudentDetails();
+                    txtStdID.Focus();
+                    return;
+                }
+
+                var (success, message) = await _studentService.UpdateStudentAsync(student);
                 if (success)
                 {
-                    ConfirmationHelper.ShowInfo($"Student {(isNew ? "added" : "updated")} successfully");
-                    LoggerHelper.LogInfo($"Student {student.StudentID} {(isNew ? "added" : "updated")}");
+                    ConfirmationHelper.ShowInfo("Student updated successfully");
+                    LoggerHelper.LogInfo($"Student {student.StudentID} updated");
                     txtStdID.Text = "";
                     ClearStudentDetails();
                     txtStdID.Focus();
@@ -982,7 +1014,7 @@ namespace kingdom_Preparatory_School_Management_System
                 else
                 {
                     UIHelper.ShowError(string.IsNullOrWhiteSpace(message) ? "Could not save student" : message, "Error");
-                    LoggerHelper.LogError($"Student save returned failure for {student?.StudentID}: {message}", null);
+                    LoggerHelper.LogError($"Student update returned failure for {student?.StudentID}: {message}", null);
                 }
             }
             catch (Exception ex)

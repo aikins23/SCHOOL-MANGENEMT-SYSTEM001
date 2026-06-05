@@ -17,6 +17,7 @@ namespace kingdom_Preparatory_School_Management_System
     {
         private readonly StudentService _studentService;
         private readonly IFeeRepository _feeRepository;
+        private readonly PaymentService _paymentService;
 
         private TextBox studentIdBox;
         private TextBox studentNameBox;
@@ -117,7 +118,23 @@ namespace kingdom_Preparatory_School_Management_System
             public DateTime PaymentDate { get; set; }
         }
 
-        public frmFessPayment()
+        private Models.DraftAdmission _admissionDraft;
+        private Button _recordBtn;
+
+        public frmFessPayment() : this(true) { }
+
+        /// <summary>
+        /// Admission mode: the administrator submits a draft admission for bursar
+        /// approval. Skips the Accountant-only access check used for normal fee
+        /// payments (the admin's authority comes from the admission screen).
+        /// </summary>
+        public frmFessPayment(Models.DraftAdmission draft) : this(false)
+        {
+            _admissionDraft = draft;
+            EnterAdmissionMode();
+        }
+
+        private frmFessPayment(bool enforceAccess)
         {
             InitializeComponent();
 
@@ -125,11 +142,9 @@ namespace kingdom_Preparatory_School_Management_System
             var studentRepo = new StudentRepository(AppConfig.ConnectionString);
             _feeRepository = new FeeRepository(AppConfig.ConnectionString);
             _studentService = new StudentService(studentRepo, _feeRepository);
+            _paymentService = new PaymentService(_feeRepository);
 
-            // Build the wizard UI BEFORE running the permission check. If the user
-            // isn't authorized, RequireAccess will show the Access Denied dialog and
-            // close the form on its Shown event — but at least the form was
-            // constructed correctly (no half-initialised state if the close races).
+            // Build the wizard UI BEFORE running the permission check.
             BuildModernPaymentView();
 
             // Wire events commented-out in designer
@@ -139,7 +154,7 @@ namespace kingdom_Preparatory_School_Management_System
             gunaPictureBox1.Click     += gunaPictureBox1_Click_1;
             Load                      += frmFessPayment_Load;
 
-            AuthService.RequireAccess("frmFessPayment", this);
+            if (enforceAccess) AuthService.RequireAccess("frmFessPayment", this);
         }
 
         private void BuildModernPaymentView()
@@ -1138,6 +1153,7 @@ namespace kingdom_Preparatory_School_Management_System
             recordBtn.Dock = DockStyle.None;
             recordBtn.Size = new Size(380, 36);
             recordBtn.Margin = Padding.Empty;
+            _recordBtn = recordBtn;
 
             var clearBtn = CreateSecondaryButton("Clear", ClearPaymentForm);
             clearBtn.Dock = DockStyle.None;
@@ -2735,10 +2751,52 @@ namespace kingdom_Preparatory_School_Management_System
             }
         }
 
+        private void EnterAdmissionMode()
+        {
+            // Prefill the wizard from the draft and jump straight to the payment step.
+            if (studentNameBox != null) studentNameBox.Text = _admissionDraft.FullName;
+            if (classBox != null)       classBox.Text = _admissionDraft.ClassID;
+            if (balanceBox != null)     balanceBox.Text = _admissionDraft.TermTotal.ToString("0.00");
+            if (beingBox != null)       beingBox.Text = "Admission - School Fees";
+            if (amountBox != null)      amountBox.Text = Services.DraftAdmissionService.MinSchoolFee(_admissionDraft.TermTotal).ToString("0.00");
+            if (_recordBtn != null)     _recordBtn.Text = "Submit for Approval";
+            this.Text = "New Admission - Payment";
+            ShowStep(2);
+        }
+
+        // Admission mode: validate + save the draft (admission fee GHS 100 + school fee >= 50%)
+        // for bursar approval. No real student/payment/SMS/receipt until the bursar approves.
+        private async System.Threading.Tasks.Task SubmitAdmissionDraftAsync()
+        {
+            if (!decimal.TryParse(amountBox.Text, out decimal schoolPaid))
+            {
+                UIHelper.ShowError("Enter a valid school-fee amount.", "Admission");
+                return;
+            }
+            _admissionDraft.SchoolFeePaid = schoolPaid;
+            _admissionDraft.AdmissionFee = Common.AdmissionFees.Amount;
+            _admissionDraft.PaymentMode = string.IsNullOrWhiteSpace(paymentModeBox?.Text) ? "Cash" : paymentModeBox.Text;
+
+            var svc = new Services.DraftAdmissionService(
+                new Data.DraftAdmissionRepository(AppConfig.ConnectionString),
+                _studentService,
+                _feeRepository);
+
+            var result = await svc.CreateDraftAsync(_admissionDraft);
+            if (!result.Ok)
+            {
+                UIHelper.ShowError(result.Message, "Admission");
+                return;
+            }
+            UIHelper.ShowSuccess("Submitted for bursar approval. The SMS and receipts will be sent once the bursar approves.", "Admission");
+            Close();
+        }
+
         private async void RecordPayment()
         {
             try
             {
+                if (_admissionDraft != null) { await SubmitAdmissionDraftAsync(); return; }
                 if (!FormValidationHelper.ValidateRequired(studentIdBox, "Student ID")) return;
                 if (!FormValidationHelper.ValidateNumeric(amountBox, "Amount Paid", out decimal amountPaid)) return;
                 if (!FormValidationHelper.ValidateRequired(bursarBox, "Bursar Name")) return;
@@ -2755,26 +2813,26 @@ namespace kingdom_Preparatory_School_Management_System
                     return;
                 }
 
-                decimal newBalance = FeeBalanceCalculator.CalculateNewBalance(currentBalance, amountPaid);
-
                 string changeDescription = $"Record payment of GHS {amountPaid:N2} for {studentNameBox.Text} (ID: {studentIdBox.Text.Trim()})?";
                 if (!ConfirmationHelper.ConfirmSave(changeDescription)) return;
 
                 statusLabel.Text = "Recording payment...";
 
-                bool success = await _feeRepository.AddPaymentRecordAsync(
-                    studentIdBox.Text.Trim(),
-                    classBox.Text,
-                    studentNameBox.Text,
-                    amountPaid,
-                    newBalance,
-                    paymentModeBox.Text,
-                    bursarBox.Text,
-                    paymentDatePicker.Value.Date
-                );
-
-                if (success)
+                PaymentRecordResult result = await _paymentService.RecordPaymentAsync(new PaymentRecordRequest
                 {
+                    StudentId = studentIdBox.Text,
+                    ClassId = classBox.Text,
+                    StudentName = studentNameBox.Text,
+                    CurrentBalance = currentBalance,
+                    AmountPaid = amountPaid,
+                    PaymentMode = paymentModeBox.Text,
+                    BursarName = bursarBox.Text,
+                    PaymentDate = paymentDatePicker.Value.Date
+                });
+
+                if (result.Success)
+                {
+                    decimal newBalance = result.NewBalance;
                     balanceBox.Text = newBalance.ToString("0.00");
                     lastPrintedReceipt = BuildReceiptPrintData();
 
@@ -2796,7 +2854,7 @@ namespace kingdom_Preparatory_School_Management_System
                 else
                 {
                     statusLabel.Text = "Payment failed";
-                    UIHelper.ShowError("Could not save payment record.", "Payment");
+                    UIHelper.ShowError(result.Message, "Payment");
                 }
             }
             catch (Exception ex)

@@ -64,6 +64,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
             // Finance
             ["frmFess"]                   = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster, UserRole.Accountant },
             ["frmFessPayment"]            = new[] { UserRole.Accountant },
+            ["frmPendingApprovals"]       = new[] { UserRole.Accountant, UserRole.Director, UserRole.Administrator },
             ["frmOutstandingFees"]        = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster, UserRole.Teacher, UserRole.Accountant },
             // System / Admin
             ["frmRegistration"]           = new[] { UserRole.Director, UserRole.Administrator },
