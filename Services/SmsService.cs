@@ -57,15 +57,31 @@ namespace kingdom_Preparatory_School_Management_System.Services
             }
         }
 
-        public static Task<(bool Success, string Message)> SendStudentAdmissionAsync(string recipient, string fullName)
+        public static Task<(bool Success, string Message)> SendStudentAdmissionAsync(
+            string recipient, Models.Student student)
         {
-            string message =
-$@"Welcome to Kingdom Preparatory School, {fullName}!
+            return SendSmsAsync(recipient, BuildStudentAdmissionMessage(student), SmsSenderIds.StudentAdmission);
+        }
 
-You have been successfully registered as a student.
+        /// <summary>
+        /// Detailed admission confirmation addressed to the guardian, listing the
+        /// recorded student details. Shared by the registration SMS and email so
+        /// both channels carry the same content.
+        /// </summary>
+        public static string BuildStudentAdmissionMessage(Models.Student s)
+        {
+            string guardian = string.IsNullOrWhiteSpace(s.GuardianName) ? "Guardian" : s.GuardianName.Trim();
+            return
+$@"Dear {guardian}, your ward {s.FirstName} has been admitted to Kingdom Preparatory School with the following details:
+- Student ID: {s.StudentID}
+- Name: {s.FullName}
+- Class: {s.ClassID}
+- Gender: {s.Gender}
+- Date of Birth: {s.DateOfBirth:dd/MM/yyyy}
+- Admission Date: {s.AdmissionDate:dd/MM/yyyy}
 
-- Administration";
-            return SendSmsAsync(recipient, message, SmsSenderIds.StudentAdmission);
+To rectify any details or information, kindly visit or contact the school administrator. Thank you.
+- Administrator";
         }
 
         public static Task<(bool Success, string Message)> SendEmployeeAdmissionAsync(string recipient, string fullName)
