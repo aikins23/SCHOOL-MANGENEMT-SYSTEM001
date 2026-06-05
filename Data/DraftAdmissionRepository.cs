@@ -55,7 +55,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
                 {
                     cmd.Parameters.AddWithValue("?", d.FirstName ?? "");
                     cmd.Parameters.AddWithValue("?", d.LastName ?? "");
-                    cmd.Parameters.AddWithValue("?", d.DateOfBirth);
+                    cmd.Parameters.AddWithValue("?", TruncateSeconds(d.DateOfBirth));
                     cmd.Parameters.AddWithValue("?", d.Gender ?? "");
                     cmd.Parameters.AddWithValue("?", d.ClassID ?? "");
                     cmd.Parameters.AddWithValue("?", d.Email ?? "");
@@ -66,14 +66,14 @@ namespace kingdom_Preparatory_School_Management_System.Data
                     cmd.Parameters.AddWithValue("?", d.GuardianName ?? "");
                     cmd.Parameters.AddWithValue("?", d.GuardianEmail ?? "");
                     cmd.Parameters.AddWithValue("?", d.GuardianLocation ?? "");
-                    cmd.Parameters.AddWithValue("?", d.AdmissionDate);
+                    cmd.Parameters.AddWithValue("?", TruncateSeconds(d.AdmissionDate));
                     cmd.Parameters.Add("?", OleDbType.VarBinary).Value = (object)d.ProfilePhoto ?? new byte[0];
                     cmd.Parameters.AddWithValue("?", d.AdmissionFee);
                     cmd.Parameters.AddWithValue("?", d.SchoolFeePaid);
                     cmd.Parameters.AddWithValue("?", d.TermTotal);
                     cmd.Parameters.AddWithValue("?", d.PaymentMode ?? "Cash");
                     cmd.Parameters.AddWithValue("?", d.SubmittedBy ?? "");
-                    cmd.Parameters.AddWithValue("?", d.SubmittedDate);
+                    cmd.Parameters.AddWithValue("?", TruncateSeconds(d.SubmittedDate));
                     await cmd.ExecuteNonQueryAsync();
                     using (var idCmd = new OleDbCommand("SELECT @@IDENTITY", c))
                     {
@@ -123,6 +123,10 @@ namespace kingdom_Preparatory_School_Management_System.Data
                 }
             }
         }
+
+        // SQL Server 'datetime' rejects sub-second precision from MSOLEDBSQL; drop it.
+        private static DateTime TruncateSeconds(DateTime t) =>
+            new DateTime(t.Year, t.Month, t.Day, t.Hour, t.Minute, t.Second);
 
         private static DraftAdmission Map(IDataRecord r) => new DraftAdmission
         {
