@@ -27,6 +27,7 @@ namespace kingdom_Preparatory_School_Management_System.Models
         public string PaymentMode { get; set; }
         public string SubmittedBy { get; set; }
         public DateTime SubmittedDate { get; set; }
+        public int? BusRouteId { get; set; }   // chosen transport route, null = no bus
 
         public string FullName => $"{FirstName} {LastName}";
 

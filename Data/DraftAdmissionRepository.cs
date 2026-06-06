@@ -38,6 +38,10 @@ namespace kingdom_Preparatory_School_Management_System.Data
                         AdmissionFee MONEY, SchoolFeePaid MONEY, TermTotal MONEY,
                         PaymentMode NVARCHAR(50), SubmittedBy NVARCHAR(100), SubmittedDate DATETIME);";
                 using (var cmd = new OleDbCommand(sql, c)) await cmd.ExecuteNonQueryAsync();
+
+                using (var alter = new OleDbCommand(
+                    "IF COL_LENGTH('DraftAdmissions','BusRouteId') IS NULL ALTER TABLE DraftAdmissions ADD BusRouteId INT NULL", c))
+                    await alter.ExecuteNonQueryAsync();
             }
         }
 
@@ -49,8 +53,8 @@ namespace kingdom_Preparatory_School_Management_System.Data
                 const string sql = @"INSERT INTO DraftAdmissions
                     (FirstName,LastName,DOB,Gender,ClassID,Email,HomeTown,Residence,Allegies,
                      EmergencyConatct,GuidanceName,GuidianceEmail,Guidiance_Location,admission_date,Std_pic,
-                     AdmissionFee,SchoolFeePaid,TermTotal,PaymentMode,SubmittedBy,SubmittedDate)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+                     AdmissionFee,SchoolFeePaid,TermTotal,PaymentMode,SubmittedBy,SubmittedDate,BusRouteId)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
                 using (var cmd = new OleDbCommand(sql, c))
                 {
                     cmd.Parameters.AddWithValue("?", d.FirstName ?? "");
@@ -74,6 +78,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
                     cmd.Parameters.AddWithValue("?", d.PaymentMode ?? "Cash");
                     cmd.Parameters.AddWithValue("?", d.SubmittedBy ?? "");
                     cmd.Parameters.AddWithValue("?", TruncateSeconds(d.SubmittedDate));
+                    cmd.Parameters.Add("?", OleDbType.Integer).Value = (object)d.BusRouteId ?? DBNull.Value;
                     await cmd.ExecuteNonQueryAsync();
                     using (var idCmd = new OleDbCommand("SELECT @@IDENTITY", c))
                     {
@@ -141,6 +146,13 @@ namespace kingdom_Preparatory_School_Management_System.Data
         private static DateTime TruncateSeconds(DateTime t) =>
             new DateTime(t.Year, t.Month, t.Day, t.Hour, t.Minute, t.Second);
 
+        private static bool HasCol(IDataRecord r, string name)
+        {
+            for (int i = 0; i < r.FieldCount; i++)
+                if (string.Equals(r.GetName(i), name, StringComparison.OrdinalIgnoreCase)) return true;
+            return false;
+        }
+
         private static DraftAdmission Map(IDataRecord r) => new DraftAdmission
         {
             DraftID = Convert.ToInt32(r["DraftID"]),
@@ -164,7 +176,8 @@ namespace kingdom_Preparatory_School_Management_System.Data
             TermTotal = Convert.ToDecimal(r["TermTotal"]),
             PaymentMode = r["PaymentMode"]?.ToString(),
             SubmittedBy = r["SubmittedBy"]?.ToString(),
-            SubmittedDate = Convert.ToDateTime(r["SubmittedDate"])
+            SubmittedDate = Convert.ToDateTime(r["SubmittedDate"]),
+            BusRouteId = HasCol(r, "BusRouteId") && r["BusRouteId"] != DBNull.Value ? Convert.ToInt32(r["BusRouteId"]) : (int?)null
         };
     }
 }
