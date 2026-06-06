@@ -82,6 +82,7 @@ namespace kingdom_Preparatory_School_Management_System
             _grid.AlternatingRowsDefaultCellStyle.BackColor = UiTheme.SurfaceAlt;
             _grid.GridColor = UiTheme.Border;
             _grid.CellFormatting += Grid_CellFormatting;
+            Common.StudentId.AttachGridFormatting(_grid, "STUDENT ID");
 
             Controls.Add(_grid);
             Controls.Add(bar);

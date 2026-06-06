@@ -311,6 +311,7 @@ namespace kingdom_Preparatory_School_Management_System
                 GridColor                 = Border
             };
 
+            Common.StudentId.AttachGridFormatting(feesGrid, "ID");
             feesGrid.ColumnHeadersDefaultCellStyle.BackColor         = NavyHead;
             feesGrid.ColumnHeadersDefaultCellStyle.ForeColor         = Color.White;
             feesGrid.ColumnHeadersDefaultCellStyle.Font              = new Font("Segoe UI Semibold", 9.5F, FontStyle.Bold);
@@ -496,7 +497,7 @@ namespace kingdom_Preparatory_School_Management_System
                 {
                     sw.WriteLine("ID,Student Name,Class,Balance Owed,Last Payment");
                     foreach (DataRowView row in feesTable.DefaultView)
-                        sw.WriteLine($"{row["ID"]},{row["Student Name"]},{row["Class"]},{row["Balance Owed"]},{row["Last Payment"]}");
+                        sw.WriteLine($"{Common.StudentId.Display(row["ID"])},{row["Student Name"]},{row["Class"]},{row["Balance Owed"]},{row["Last Payment"]}");
                 }
 
                 UIHelper.ShowSuccess($"Defaulters list saved to Desktop:\n{Path.GetFileName(path)}", "Export Success");

@@ -297,6 +297,8 @@ namespace kingdom_Preparatory_School_Management_System
                 GridColor                     = Border
             };
 
+            Common.StudentId.AttachGridFormatting(dataGrid, "ID");
+
             // Header style
             dataGrid.ColumnHeadersDefaultCellStyle.BackColor  = NavyHead;
             dataGrid.ColumnHeadersDefaultCellStyle.ForeColor  = Color.White;

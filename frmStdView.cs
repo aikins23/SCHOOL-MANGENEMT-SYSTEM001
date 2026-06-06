@@ -222,6 +222,7 @@ namespace kingdom_Preparatory_School_Management_System
                 EnableHeadersVisualStyles = false
             };
             UiTheme.StyleDataGrid(studentsGrid);
+            Common.StudentId.AttachGridFormatting(studentsGrid, "STUDENT ID");
             studentsGrid.ColumnHeadersDefaultCellStyle.BackColor = SidebarBackColor;
             studentsGrid.ColumnHeadersDefaultCellStyle.ForeColor = Color.White;
             studentsGrid.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI Semibold", 9.5F, FontStyle.Bold);

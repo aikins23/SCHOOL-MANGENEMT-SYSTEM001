@@ -605,6 +605,7 @@ public frmDashboard()
             analyticsGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 38));
 
             recentPaymentsGrid = CreateAnalyticsGrid();
+            Common.StudentId.AttachGridFormatting(recentPaymentsGrid, "ID");
             classSummaryGrid = CreateAnalyticsGrid();
             leaveSummaryGrid = CreateAnalyticsGrid();
             recentPaymentsGrid.ScrollBars = ScrollBars.Both;
