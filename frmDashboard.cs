@@ -462,11 +462,14 @@ public frmDashboard()
                 TextAlign = ContentAlignment.MiddleLeft
             });
 
+            // Dock.Fill must be added FIRST so it is laid out LAST and takes only the space
+            // left after the top brand and the bottom footer — otherwise navScroll overlaps the
+            // footer and overflow nav buttons render behind it / off-screen (no scroll).
+            sidebar.Controls.Add(navScroll);
             sidebar.Controls.Add(exitBtn);
             sidebar.Controls.Add(signOutBtn);
             sidebar.Controls.Add(bottomDivider);
             sidebar.Controls.Add(userFooter);
-            sidebar.Controls.Add(navScroll);
             sidebar.Controls.Add(topDivider);
             sidebar.Controls.Add(brand);
 
