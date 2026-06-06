@@ -30,11 +30,9 @@ namespace kingdom_Preparatory_School_Management_System
         private TextBox cashChequeBox;
         private ComboBox paymentModeBox;
         private DateTimePicker paymentDatePicker;
-        private DataGridView paymentGrid;
         private Label statusLabel;
         private Label receiptNumberLabel;
         private ReceiptPrintData lastPrintedReceipt;
-        private TextBox historySearchBox;
 
         // Wizard navigation
         private int _currentStep = 1;
@@ -85,7 +83,6 @@ namespace kingdom_Preparatory_School_Management_System
         private Label _rpBursarLbl;
         private Label _rpReceiptNumLbl;
         private Label _rpDateLbl;
-        private Label _historyCountLbl;
         private PictureBox _rpLogoPictureBox;
         private Panel _receiptPreviewShell;
 
@@ -148,11 +145,9 @@ namespace kingdom_Preparatory_School_Management_System
             BuildModernPaymentView();
 
             // Wire events commented-out in designer
-            btn_Re.Click              += btn_Re_Click;
             pay.Click                 += pay_Click;
             txtStdID.TextChanged      += txtStdID_TextChanged;
             gunaPictureBox1.Click     += gunaPictureBox1_Click_1;
-            Load                      += frmFessPayment_Load;
 
             if (enforceAccess) AuthService.RequireAccess("frmFessPayment", this);
         }
@@ -174,16 +169,14 @@ namespace kingdom_Preparatory_School_Management_System
             var root = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
-                RowCount = 2,
+                RowCount = 1,
                 ColumnCount = 1,
                 BackColor = PageBackColor,
                 Padding = new Padding(26)
             };
             root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 130));
 
             root.Controls.Add(BuildWizardPanel(), 0, 0);
-            root.Controls.Add(BuildHistoryPanel(), 0, 1);
 
             Controls.Add(root);
             ResumeLayout(true);
@@ -303,9 +296,6 @@ namespace kingdom_Preparatory_School_Management_System
             };
             beingBox.Text = DefaultBeingText;
 
-            historySearchBox = CreateTextBox();
-            SetPlaceholder(historySearchBox, "Search history (Name, ID, Class, Bursar)...");
-            historySearchBox.TextChanged += (s, e) => FilterHistory();
         }
 
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
@@ -315,56 +305,6 @@ namespace kingdom_Preparatory_School_Management_System
         private void SetPlaceholder(TextBox control, string text)
         {
             SendMessage(control.Handle, EM_SETCUEBANNER, (IntPtr)1, text);
-        }
-
-        private Control BuildHeader()
-        {
-            var header = new TableLayoutPanel
-            {
-                Dock = DockStyle.Fill,
-                ColumnCount = 2,
-                BackColor = PageBackColor
-            };
-            header.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 70));
-            header.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 30));
-
-            var titleBlock = new Panel { Dock = DockStyle.Fill, BackColor = PageBackColor };
-            titleBlock.Controls.Add(new Label
-            {
-                Dock = DockStyle.Top,
-                Height = 38,
-                Text = "Fees Payment",
-                ForeColor = TextColor,
-                Font = new Font("Segoe UI Semibold", 22F, FontStyle.Bold),
-                TextAlign = ContentAlignment.MiddleLeft
-            });
-            titleBlock.Controls.Add(new Label
-            {
-                Dock = DockStyle.Bottom,
-                Height = 28,
-                Text = "Look up a student, record payment, and review payment history",
-                ForeColor = MutedTextColor,
-                Font = new Font("Segoe UI", 10F),
-                TextAlign = ContentAlignment.MiddleLeft
-            });
-
-            var actions = new FlowLayoutPanel
-            {
-                Dock = DockStyle.Fill,
-                FlowDirection = FlowDirection.RightToLeft,
-                BackColor = PageBackColor,
-                Padding = new Padding(0, 12, 0, 0)
-            };
-            actions.Controls.Add(CreateSecondaryButton("Dashboard", () =>
-            {
-                Close();
-                new frmDashboard().Show();
-            }));
-            actions.Controls.Add(CreateSecondaryButton("Refresh", async () => await LoadPaymentHistory()));
-
-            header.Controls.Add(titleBlock, 0, 0);
-            header.Controls.Add(actions, 1, 0);
-            return header;
         }
 
         private Control BuildWizardPanel()
@@ -388,14 +328,13 @@ namespace kingdom_Preparatory_School_Management_System
             {
                 Dock = DockStyle.Fill,
                 ColumnCount = 1,
-                RowCount = 5,
+                RowCount = 4,
                 BackColor = SurfaceColor
             };
             layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 52));   // Title row
             layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 70));   // Progress
             layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));   // Step container
             layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 24));   // Status
-            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));   // Footer
 
             layout.Controls.Add(BuildWizardTitleRow(), 0, 0);
             layout.Controls.Add(BuildProgressIndicator(), 0, 1);
@@ -412,7 +351,6 @@ namespace kingdom_Preparatory_School_Management_System
             layout.Controls.Add(_stepContainer, 0, 2);
 
             layout.Controls.Add(statusLabel, 0, 3);
-            layout.Controls.Add(BuildHistoryFooter(), 0, 4);
 
             shell.Controls.Add(layout);
             return shell;
@@ -462,57 +400,11 @@ namespace kingdom_Preparatory_School_Management_System
                 Close();
                 new frmDashboard().Show();
             }));
-            actions.Controls.Add(CreateSecondaryButton("Refresh", async () => await LoadPaymentHistory()));
+            actions.Controls.Add(CreateSecondaryButton("View Payment History", () => new frmPaymentHistory().Show()));
 
             row.Controls.Add(titleBlock, 0, 0);
             row.Controls.Add(actions, 1, 0);
             return row;
-        }
-
-        private Control BuildHistoryFooter()
-        {
-            var panel = new Panel
-            {
-                Dock = DockStyle.Fill,
-                BackColor = SurfaceColor,
-                Padding = new Padding(2, 6, 2, 0)
-            };
-            panel.Paint += (s, e) =>
-            {
-                var p = (Panel)s;
-                using (var pen = new Pen(BorderColor, 1))
-                    e.Graphics.DrawLine(pen, 0, 0, p.Width, 0);
-            };
-            var row = new TableLayoutPanel
-            {
-                Dock = DockStyle.Fill,
-                ColumnCount = 2,
-                BackColor = SurfaceColor
-            };
-            row.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-            row.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
-            row.Controls.Add(new Label
-            {
-                Dock = DockStyle.Fill,
-                Text = "Payment History ↓",
-                ForeColor = TextColor,
-                Font = new Font("Segoe UI Semibold", 10F, FontStyle.Bold),
-                TextAlign = ContentAlignment.MiddleLeft
-            }, 0, 0);
-            _historyCountLbl = new Label
-            {
-                AutoSize = true,
-                Anchor = AnchorStyles.Right | AnchorStyles.Top,
-                Text = "0 records",
-                ForeColor = Color.White,
-                BackColor = PrimaryColor,
-                Font = new Font("Segoe UI Semibold", 8.5F, FontStyle.Bold),
-                Padding = new Padding(9, 3, 9, 3),
-                Margin = new Padding(0, 7, 0, 0)
-            };
-            row.Controls.Add(_historyCountLbl, 1, 0);
-            panel.Controls.Add(row);
-            return panel;
         }
 
         private Panel BuildProgressIndicator()
@@ -1831,157 +1723,6 @@ namespace kingdom_Preparatory_School_Management_System
             return panel;
         }
 
-        private void FilterHistory()
-        {
-            if (paymentGrid.DataSource is DataTable table)
-            {
-                string filter = historySearchBox.Text.Trim().Replace("'", "''");
-                if (string.IsNullOrEmpty(filter))
-                {
-                    table.DefaultView.RowFilter = "";
-                }
-                else
-                {
-                    table.DefaultView.RowFilter = string.Format(
-                        "[STUDENT ID] LIKE '%{0}%' OR [STUDENT NAME] LIKE '%{0}%' OR [CLASS ID] LIKE '%{0}%' OR [BURSAR NAME] LIKE '%{0}%'",
-                        filter);
-                }
-                if (_historyCountLbl != null)
-                    _historyCountLbl.Text = table.DefaultView.Count + " records";
-            }
-        }
-
-        private Control BuildHistoryPanel()
-        {
-            var container = new TableLayoutPanel
-            {
-                Dock = DockStyle.Fill,
-                RowCount = 2,
-                ColumnCount = 1,
-                BackColor = PageBackColor
-            };
-            container.RowStyles.Add(new RowStyle(SizeType.Absolute, 40));
-            container.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-
-            var searchPanel = new Panel { Dock = DockStyle.Fill, Padding = new Padding(0, 0, 0, 8) };
-            historySearchBox.Dock = DockStyle.Left;
-            historySearchBox.Width = 350;
-            searchPanel.Controls.Add(historySearchBox);
-            container.Controls.Add(searchPanel, 0, 0);
-
-            paymentGrid = new DataGridView
-            {
-                Dock = DockStyle.Fill,
-                BackgroundColor = SurfaceColor,
-                BorderStyle = BorderStyle.None,
-                AllowUserToAddRows = false,
-                AllowUserToDeleteRows = false,
-                ReadOnly = true,
-                RowHeadersVisible = false,
-                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
-                SelectionMode = DataGridViewSelectionMode.FullRowSelect,
-                MultiSelect = false,
-                EnableHeadersVisualStyles = false
-            };
-            UiTheme.StyleDataGrid(paymentGrid, true);
-            paymentGrid.ColumnHeadersDefaultCellStyle.BackColor = SidebarBackColor;
-            paymentGrid.ColumnHeadersDefaultCellStyle.ForeColor = Color.White;
-            paymentGrid.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI Semibold", 8.5F, FontStyle.Bold);
-            paymentGrid.ColumnHeadersDefaultCellStyle.WrapMode = DataGridViewTriState.False;
-            paymentGrid.ColumnHeadersHeight = 32;
-            paymentGrid.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
-            paymentGrid.DefaultCellStyle.BackColor = SurfaceColor;
-            paymentGrid.DefaultCellStyle.ForeColor = TextColor;
-            paymentGrid.DefaultCellStyle.SelectionBackColor = AccentColor;
-            paymentGrid.DefaultCellStyle.SelectionForeColor = TextColor;
-            paymentGrid.AlternatingRowsDefaultCellStyle.BackColor = UiTheme.SurfaceAlt;
-            paymentGrid.GridColor = BorderColor;
-            paymentGrid.CellFormatting += PaymentGrid_CellFormatting;
-
-            container.Controls.Add(paymentGrid, 0, 1);
-            return container;
-        }
-
-        private void ApplyPaymentHistoryGridLayout()
-        {
-            if (paymentGrid == null || paymentGrid.Columns.Count == 0)
-            {
-                return;
-            }
-
-            paymentGrid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
-            SetHistoryColumn("STUDENT ID", 76, 70);
-            SetHistoryColumn("CLASS ID", 82, 75);
-            SetHistoryColumn("STUDENT NAME", 170, 150);
-            SetHistoryColumn("AMOUNT PAID", 104, 95, DataGridViewContentAlignment.MiddleRight);
-            SetHistoryColumn("BALANCE", 96, 90, DataGridViewContentAlignment.MiddleRight);
-            SetHistoryColumn("PAYMENT DATE", 104, 95, DataGridViewContentAlignment.MiddleCenter);
-            SetHistoryColumn("PAYMENT TIME", 96, 90, DataGridViewContentAlignment.MiddleCenter);
-            SetHistoryColumn("PAYMENT MODE", 118, 105);
-            SetHistoryColumn("BURSAR NAME", 136, 120);
-        }
-
-        private void SetHistoryColumn(string columnName, int fillWeight, int minWidth, DataGridViewContentAlignment alignment = DataGridViewContentAlignment.MiddleLeft)
-        {
-            if (!paymentGrid.Columns.Contains(columnName))
-            {
-                return;
-            }
-
-            var column = paymentGrid.Columns[columnName];
-            column.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
-            column.FillWeight = fillWeight;
-            column.MinimumWidth = minWidth;
-            column.DefaultCellStyle.Alignment = alignment;
-        }
-
-        private void PaymentGrid_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
-        {
-            if (paymentGrid == null || e.Value == null || e.Value == DBNull.Value || e.ColumnIndex < 0)
-            {
-                return;
-            }
-
-            string columnName = paymentGrid.Columns[e.ColumnIndex].Name;
-            if (columnName == "AMOUNT PAID" || columnName == "BALANCE")
-            {
-                if (decimal.TryParse(e.Value.ToString(), out decimal amount))
-                {
-                    e.Value = amount.ToString("N2");
-                    e.FormattingApplied = true;
-                }
-                return;
-            }
-
-            if (columnName == "PAYMENT DATE")
-            {
-                if (DateTime.TryParse(e.Value.ToString(), out DateTime dateValue))
-                {
-                    e.Value = dateValue.ToString("dd/MM/yyyy");
-                    e.FormattingApplied = true;
-                }
-                return;
-            }
-
-            if (columnName == "PAYMENT TIME")
-            {
-                if (e.Value is TimeSpan timeValue)
-                {
-                    e.Value = timeValue.ToString(@"hh\:mm");
-                    e.FormattingApplied = true;
-                }
-                else if (DateTime.TryParse(e.Value.ToString(), out DateTime dateTimeValue))
-                {
-                    e.Value = dateTimeValue.ToString("HH:mm");
-                    e.FormattingApplied = true;
-                }
-                else if (TimeSpan.TryParse(e.Value.ToString(), out TimeSpan parsedTime))
-                {
-                    e.Value = parsedTime.ToString(@"hh\:mm");
-                    e.FormattingApplied = true;
-                }
-            }
-        }
 
         private string GetSchoolLogoPath()
         {
@@ -2852,7 +2593,6 @@ namespace kingdom_Preparatory_School_Management_System
                     // Leave the on-screen receipt fully populated for review/print.
                     // Inputs (amount, receipt number) reset on "+ New Payment" (ClearPaymentForm).
                     statusLabel.Text = "Payment recorded";
-                    await LoadPaymentHistory();
                 }
                 else
                 {
@@ -2865,25 +2605,6 @@ namespace kingdom_Preparatory_School_Management_System
                 LoggerHelper.LogError("RecordPayment failed", ex);
                 statusLabel.Text = "Payment error";
                 UIHelper.ShowError("Record payment failed: " + ex.Message, "Fee Payment");
-            }
-        }
-
-        private async System.Threading.Tasks.Task LoadPaymentHistory()
-        {
-            try
-            {
-                statusLabel.Text = "Refreshing history...";
-                DataTable table = await _feeRepository.GetPaymentHistoryTableAsync();
-                paymentGrid.DataSource = table;
-                ApplyPaymentHistoryGridLayout();
-                int count = table.Rows.Count;
-                statusLabel.Text = "";
-                if (_historyCountLbl != null)
-                    _historyCountLbl.Text = count + " records";
-            }
-            catch (Exception ex)
-            {
-                UIHelper.ShowError("History refresh error: " + ex.Message, "Payment");
             }
         }
 
@@ -2913,14 +2634,8 @@ namespace kingdom_Preparatory_School_Management_System
             ShowStep(1);
         }
 
-        private async void frmFessPayment_Load(object sender, EventArgs e)
-        {
-            await LoadPaymentHistory();
-        }
-
         private void txtStdID_TextChanged(object sender, EventArgs e) { LookupStudent(); }
         private void pay_Click(object sender, EventArgs e) { RecordPayment(); }
-        private void btn_Re_Click(object sender, EventArgs e) { _ = LoadPaymentHistory(); }
         private void gunaDateTimePicker1_ValueChanged(object sender, EventArgs e) { }
         private void guna2TextBox8_TextChanged(object sender, EventArgs e) { }
         private void txtpm_TextChanged(object sender, EventArgs e) { }
