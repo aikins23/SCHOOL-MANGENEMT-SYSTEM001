@@ -405,8 +405,13 @@
     <Compile Include="Services\NotificationService.cs" />
     <Compile Include="Services\SmsService.cs" />
     <Compile Include="Services\DraftAdmissionService.cs" />
-    <Compile Include="frmPendingApprovals.cs" />
-    <Compile Include="frmSchoolInfo.cs" />
+    <Compile Include="frmPendingApprovals.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmSchoolInfo.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmPaymentHistory.cs" />
     <Compile Include="Services\PhoneNumberGh.cs" />
     <Compile Include="Services\SmsSenderIds.cs" />
     <Compile Include="Services\DatabaseBackupService.cs" />
@@ -571,7 +576,6 @@
   <ItemGroup>
     <Folder Include="datasets\" />
     <Folder Include="reports\" />
-    <Folder Include="Tests\" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="features to work.txt" />

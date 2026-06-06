@@ -77,6 +77,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
             ["frmBackupManager"]          = new[] { UserRole.Director, UserRole.Administrator },
             ["frmEmailSettings"]          = new[] { UserRole.Director, UserRole.Administrator },
             ["frmSchoolInfo"]             = new[] { UserRole.Director, UserRole.Administrator },
+            ["frmPaymentHistory"]         = new[] { UserRole.Accountant, UserRole.Director, UserRole.Administrator, UserRole.Headmaster },
         };
 
         /// <summary>
