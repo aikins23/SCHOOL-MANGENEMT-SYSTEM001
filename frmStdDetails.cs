@@ -341,7 +341,7 @@ namespace kingdom_Preparatory_School_Management_System
             }
 
             DataRow row = data.Rows[0];
-            txtStdID.Text = row["ID"].ToString();
+            txtStdID.Text = Common.StudentId.Display(row["ID"]);
             txtFN.Text = row["FIRST NAME"].ToString();
             txtLN.Text = row["LAST NAME"].ToString();
             dateDOB.Value = SafeDate(row["DATE OF BIRTH"], DateTime.Today.AddYears(-5));
@@ -388,7 +388,7 @@ namespace kingdom_Preparatory_School_Management_System
         {
             return new Student
             {
-                StudentID = txtStdID.Text,
+                StudentID = Common.StudentId.Parse(txtStdID.Text),
                 FirstName = txtFN.Text.Trim(),
                 LastName = txtLN.Text.Trim(),
                 DateOfBirth = dateDOB.Value.Date,
@@ -457,7 +457,7 @@ namespace kingdom_Preparatory_School_Management_System
                     return;
 
                 statusLabel.Text = "Rolling out student...";
-                var (success, message) = await _studentService.RollOutStudentAsync(txtStdID.Text);
+                var (success, message) = await _studentService.RollOutStudentAsync(Common.StudentId.Parse(txtStdID.Text));
 
                 if (success)
                 {
