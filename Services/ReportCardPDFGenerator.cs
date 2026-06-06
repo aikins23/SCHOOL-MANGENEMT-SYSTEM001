@@ -157,7 +157,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
             string term = string.IsNullOrWhiteSpace(data?.Term) ? "TERM 3" : data.Term.ToUpperInvariant();
 
             yield return new InfoRow("Student Name:", data?.StudentName ?? "", "Resuming Date:", "MON.,1ST SEPTEMBER,2025");
-            yield return new InfoRow("Admission No.:", data?.StudentID ?? "", "Attendance:", "",
+            yield return new InfoRow("Admission No.:", Common.StudentId.Display(data?.StudentID), "Attendance:", "",
                 data?.PresentDays > 0 ? data.PresentDays.ToString() : "",
                 data?.TotalSchoolDays > 0 ? data.TotalSchoolDays.ToString() : "");
             yield return new InfoRow("Class/Form:", data?.ClassID ?? "", "Number On Roll:", data?.TotalStudentsInClass > 0 ? data.TotalStudentsInClass.ToString() : "");

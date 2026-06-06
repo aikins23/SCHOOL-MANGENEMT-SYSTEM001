@@ -73,7 +73,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
             string guardian = string.IsNullOrWhiteSpace(s.GuardianName) ? "Guardian" : s.GuardianName.Trim();
             return
 $@"Dear {guardian}, your ward {s.FirstName} has been admitted to Kingdom Preparatory School with the following details:
-- Student ID: {s.StudentID}
+- Student ID: {Common.StudentId.Display(s.StudentID)}
 - Name: {s.FullName}
 - Class: {s.ClassID}
 - Gender: {s.Gender}
@@ -94,7 +94,7 @@ To rectify any details or information, kindly visit or contact the school admini
             string guardian = string.IsNullOrWhiteSpace(s.GuardianName) ? "Guardian" : s.GuardianName.Trim();
             return
 $@"Dear {guardian}, your ward {s.FirstName} has been admitted to Kingdom Preparatory School with the following details:
-- Student ID: {s.StudentID}
+- Student ID: {Common.StudentId.Display(s.StudentID)}
 - Name: {s.FullName}
 - Class: {s.ClassID}
 - Gender: {s.Gender}
