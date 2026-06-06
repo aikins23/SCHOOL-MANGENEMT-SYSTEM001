@@ -159,61 +159,10 @@ public frmDashboard()
 
         private void ApplyRolePermissions()
         {
-    var role = AuthService.CurrentUser.Role;
-    var isUserKnown = AuthService.CurrentUser.IsAuthenticated;
-
-    // Dashboard always accessible
-
-    // Restrict modules based on role
-    bool canManageAdmissions = (role == AuthService.UserRole.Administrator || role == AuthService.UserRole.Headmaster);
-    bool canManageEmployees = (role == AuthService.UserRole.Administrator || role == AuthService.UserRole.Headmaster);
-    bool canManageFees = (role == AuthService.UserRole.Administrator || role == AuthService.UserRole.Accountant || role == AuthService.UserRole.Headmaster);
-    bool canManageExams = (role == AuthService.UserRole.Administrator || role == AuthService.UserRole.Teacher || role == AuthService.UserRole.Headmaster);
-    bool canViewReports = isUserKnown;
-    bool canManageLeave = (role == AuthService.UserRole.Administrator || role == AuthService.UserRole.Headmaster);
-
-    EnableNavButton("Add Student", canManageAdmissions);
-    EnableNavButton("View Students", canViewReports);
-    EnableNavButton("Add Employee", canManageEmployees);
-    EnableNavButton("View Employees", canViewReports);
-    EnableNavButton("Fees Payment", canManageFees);
-    EnableNavButton("Exams", canManageExams);
-    EnableNavButton("Exam Reports", canViewReports);
-    EnableNavButton("Analytics", canViewReports);
-    EnableNavButton("Leave Requests", isUserKnown);
-
-    statusLabel.Text = $"Signed in as {AuthService.CurrentUser.Username} ({role})";
-}
-
-        private void EnableNavButton(string text, bool enabled)
-        {
-    foreach (Control ctrl in this.Controls)
-    {
-        if (ctrl is TableLayoutPanel root)
-        {
-            foreach (Control sidebar in root.Controls)
-            {
-                if (sidebar is Panel pnl)
-                {
-                    foreach (Control nav in pnl.Controls)
-                    {
-                        if (nav is FlowLayoutPanel flow)
-                        {
-                            foreach (Control btn in flow.Controls)
-                            {
-                                if (btn is Button b && b.Text == text)
-                                {
-                                    b.Enabled = enabled;
-                                    b.BackColor = enabled ? (b.BackColor == PrimaryColor ? PrimaryColor : SidebarBackColor) : Color.FromArgb(40, 55, 78);
-                                    b.ForeColor = enabled ? Color.White : Color.Gray;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-            }
+            // Access is decided when the nav groups are built (BuildModernDashboard); inaccessible
+            // items are simply not created. Here we just reflect who is signed in.
+            var role = AuthService.CurrentUser.Role;
+            statusLabel.Text = $"Signed in as {AuthService.CurrentUser.Username} ({role})";
         }
 
         private void FrmDashboard_FormClosing(object sender, FormClosingEventArgs e)
@@ -360,48 +309,67 @@ public frmDashboard()
             // scrollbar width when the scrollbar is visible).
             navScroll.SizeChanged += (s, e) => nav.Width = navScroll.ClientSize.Width;
 
-            nav.Controls.Add(CreateNavButton("Dashboard",      null,                                       true));
-            nav.Controls.Add(CreateNavButton("Add Student",    () => OpenForm(new frmAddStd(), true)));
-            nav.Controls.Add(CreateNavButton("View Students",  () => OpenForm(new frmStdView())));
-            nav.Controls.Add(CreateNavButton("Add Employee",   () => OpenForm(new frmEmployee())));
-            nav.Controls.Add(CreateNavButton("View Employees", () => OpenForm(new frmEmpView())));
-            nav.Controls.Add(CreateNavButton("Fees Payment",   () => OpenForm(new frmFessPayment())));
-            nav.Controls.Add(CreateNavButton("Exams",          () => OpenForm(new EXAMS())));
-            nav.Controls.Add(CreateNavButton("Exam Reports",   () => OpenForm(new EXAMSVIEW())));
-            nav.Controls.Add(CreateNavButton("Analytics",      OpenAnalyticsDashboard));
-            nav.Controls.Add(CreateNavButton("Apply for Leave", () => OpenForm(new frmEmpLeave())));
-            nav.Controls.Add(CreateNavButton("Leave Requests", () => OpenForm(new frmLeaveDetails())));
+            nav.Controls.Add(CreateNavButton("Dashboard", null, true));
 
             var role = AuthService.CurrentUser.Role;
-            if (role == AuthService.UserRole.Accountant)
+            bool known   = AuthService.CurrentUser.IsAuthenticated;
+            bool isAdmin = role == AuthService.UserRole.Administrator;
+            bool isHead  = role == AuthService.UserRole.Headmaster;
+            bool isDir   = role == AuthService.UserRole.Director;
+            bool isAcct  = role == AuthService.UserRole.Accountant;
+            bool isTeach = role == AuthService.UserRole.Teacher;
+
+            void Add(System.Collections.Generic.List<Button> g, bool ok, string text, Action act)
+            { if (ok) g.Add(CreateNavButton(text, act)); }
+            void AddGroup(string title, System.Collections.Generic.List<Button> items)
+            { if (items.Count > 0) nav.Controls.Add(CreateNavGroup(title, items)); }
+
+            var students = new System.Collections.Generic.List<Button>();
+            Add(students, isAdmin || isHead, "Add Student", () => OpenForm(new frmAddStd(), true));
+            Add(students, known, "View Students", () => OpenForm(new frmStdView()));
+            AddGroup("Students", students);
+
+            var staff = new System.Collections.Generic.List<Button>();
+            Add(staff, isAdmin || isHead, "Add Employee", () => OpenForm(new frmEmployee()));
+            Add(staff, isDir || isAdmin || isHead || isAcct, "View Employees", () => OpenForm(new frmEmpView()));
+            AddGroup("Staff", staff);
+
+            var leave = new System.Collections.Generic.List<Button>();
+            Add(leave, known, "Apply for Leave", () => OpenForm(new frmEmpLeave()));
+            Add(leave, known, "Leave Requests", () => OpenForm(new frmLeaveDetails()));
+            AddGroup("Leave", leave);
+
+            var academics = new System.Collections.Generic.List<Button>();
+            Add(academics, isAdmin || isTeach || isHead, "Exams", () => OpenForm(new EXAMS()));
+            Add(academics, known, "Exam Reports", () => OpenForm(new EXAMSVIEW()));
+            Add(academics, isDir || isAdmin || isHead, "Subjects", () => new frmSubjects().ShowDialog());
+            AddGroup("Academics", academics);
+
+            var finance = new System.Collections.Generic.List<Button>();
+            Add(finance, isAdmin || isAcct || isHead, "Fees Payment", () => OpenForm(new frmFessPayment()));
+            Add(finance, isAcct || isDir || isAdmin || isHead, "Payment History", () => OpenForm(new frmPaymentHistory()));
+            if (isAcct)
             {
-                // Bursar: approve pending admission payments (promotes draft + receipts + SMS).
                 _approvalsNavBtn = CreateNavButton("Admission Approvals", () => OpenForm(new frmPendingApprovals()));
                 AttachApprovalBadge(_approvalsNavBtn);
-                nav.Controls.Add(_approvalsNavBtn);
+                finance.Add(_approvalsNavBtn);
             }
-            if (role == AuthService.UserRole.Accountant || role == AuthService.UserRole.Director ||
-                role == AuthService.UserRole.Administrator || role == AuthService.UserRole.Headmaster)
-            {
-                // Searchable history of all recorded payments (split out of Fees Payment).
-                nav.Controls.Add(CreateNavButton("Payment History", () => OpenForm(new frmPaymentHistory())));
-            }
-            if (role == AuthService.UserRole.Director || role == AuthService.UserRole.Administrator ||
-                role == AuthService.UserRole.Headmaster)
-            {
-                // Email + SMS notification settings (Arkesel/BulkSMSGh, sender IDs, HR address).
-                nav.Controls.Add(CreateNavButton("Settings", () => new frmEmailSettings().ShowDialog()));
-                nav.Controls.Add(CreateNavButton("School Information", () => new frmSchoolInfo().ShowDialog()));
-                nav.Controls.Add(CreateNavButton("Grading Scheme", () => new frmGradingScheme().ShowDialog()));
-                nav.Controls.Add(CreateNavButton("Subjects", () => new frmSubjects().ShowDialog()));
-                nav.Controls.Add(CreateNavButton("Library", () => new frmLibrary().ShowDialog()));
-                nav.Controls.Add(CreateNavButton("Transport", () => new frmTransport().ShowDialog()));
-            }
-            if (role == AuthService.UserRole.Administrator || role == AuthService.UserRole.Headmaster)
-            {
-                nav.Controls.Add(CreateNavButton("Database Backup", RunBackup));
-                nav.Controls.Add(CreateNavButton("System Logs",     ViewLogs));
-            }
+            AddGroup("Finance", finance);
+
+            var ops = new System.Collections.Generic.List<Button>();
+            Add(ops, isDir || isAdmin || isHead, "Library", () => new frmLibrary().ShowDialog());
+            Add(ops, isDir || isAdmin || isHead, "Transport", () => new frmTransport().ShowDialog());
+            AddGroup("Operations", ops);
+
+            var admin = new System.Collections.Generic.List<Button>();
+            Add(admin, isDir || isAdmin || isHead, "Settings", () => new frmEmailSettings().ShowDialog());
+            Add(admin, isDir || isAdmin || isHead, "School Information", () => new frmSchoolInfo().ShowDialog());
+            Add(admin, isDir || isAdmin || isHead, "Grading Scheme", () => new frmGradingScheme().ShowDialog());
+            Add(admin, isAdmin || isHead, "Database Backup", RunBackup);
+            Add(admin, isAdmin || isHead, "System Logs", ViewLogs);
+            AddGroup("Administration", admin);
+
+            if (known) nav.Controls.Add(CreateNavButton("Analytics", OpenAnalyticsDashboard));
 
             navScroll.Controls.Add(nav);
 
@@ -575,10 +543,10 @@ public frmDashboard()
             feesCollectedLabel = new Label();
             feesBalanceLabel = new Label();
 
-            metricGrid.Controls.Add(CreateMetricCard("Students",        studentCountLabel,  "Active student records",  AccentBlue,  "STUDENTS"),  0, 0);
-            metricGrid.Controls.Add(CreateMetricCard("Employees",       employeeCountLabel, "Current staff records",   AccentGreen, "EMPLOYEES"), 1, 0);
-            metricGrid.Controls.Add(CreateMetricCard("Fees Collected",  feesCollectedLabel, "Total recorded payments", AccentGold,  "REVENUE"),   2, 0);
-            metricGrid.Controls.Add(CreateMetricCard("Outstanding Fees",feesBalanceLabel,   "Positive fee balances",   AccentRed,   "BALANCE"),   3, 0);
+            metricGrid.Controls.Add(CreateMetricCard("Students",        studentCountLabel,  "Active student records",  AccentBlue,  "STUDENTS", DashboardIconType.Students),  0, 0);
+            metricGrid.Controls.Add(CreateMetricCard("Employees",       employeeCountLabel, "Current staff records",   AccentGreen, "EMPLOYEES", DashboardIconType.Employees), 1, 0);
+            metricGrid.Controls.Add(CreateMetricCard("Fees Collected",  feesCollectedLabel, "Total recorded payments", AccentGold,  "REVENUE", DashboardIconType.Fees),   2, 0);
+            metricGrid.Controls.Add(CreateMetricCard("Outstanding Fees",feesBalanceLabel,   "Positive fee balances",   AccentRed,   "BALANCE", DashboardIconType.Balance),   3, 0);
 
             // Currency strings are long ("GHS 15,746.00") — shrink the font and enable
             // ellipsis so they fit the card width without being clipped to "GH".
@@ -597,6 +565,102 @@ public frmDashboard()
 
             scrollHost.Controls.Add(content);
             return scrollHost;
+        }
+
+        // ── Dashboard Icons ──────────────────────────────────────────────────
+        private enum DashboardIconType { Students, Employees, Fees, Balance, Score, Class, Leave }
+
+        private Panel CreateMetricIcon(DashboardIconType type, Color accent)
+        {
+            var p = new Panel { Size = new Size(48, 48), BackColor = Color.Transparent };
+            p.Paint += (s, e) =>
+            {
+                var g = e.Graphics;
+                g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+
+                float w = p.Width;
+                float h = p.Height;
+                float pad = 4;
+                
+                // Use uniform scaling to prevent distortion (keep aspect ratio)
+                float designSize = 48f;
+                float actualSize = Math.Min(w, h) - pad;
+                float scale = actualSize / designSize;
+
+                // Center the icon within the panel
+                float xOffset = (w - actualSize) / 2;
+                float yOffset = (h - actualSize) / 2;
+                g.TranslateTransform(xOffset, yOffset);
+
+                // Subtle soft background circle
+                using (var bg = new SolidBrush(Color.FromArgb(40, accent)))
+                {
+                    g.FillEllipse(bg, 0, 0, actualSize, actualSize);
+                }
+
+                using (var pen = new Pen(accent, 2F))
+                {
+                    pen.StartCap = System.Drawing.Drawing2D.LineCap.Round;
+                    pen.EndCap   = System.Drawing.Drawing2D.LineCap.Round;
+                    pen.LineJoin = System.Drawing.Drawing2D.LineJoin.Round;
+
+                    if (type == DashboardIconType.Students)
+                    {
+                        g.DrawEllipse(pen, 18 * scale, 10 * scale, 12 * scale, 12 * scale);
+                        g.DrawArc(pen, 10 * scale, 24 * scale, 28 * scale, 14 * scale, 180, 180);
+                        g.DrawArc(pen, 6 * scale, 20 * scale, 12 * scale, 10 * scale, 180, 180);
+                        g.DrawArc(pen, 30 * scale, 20 * scale, 12 * scale, 10 * scale, 180, 180);
+                    }
+                    else if (type == DashboardIconType.Employees)
+                    {
+                        g.DrawEllipse(pen, 18 * scale, 14 * scale, 12 * scale, 12 * scale);
+                        g.DrawArc(pen, 10 * scale, 28 * scale, 28 * scale, 12 * scale, 180, 180);
+                        g.DrawLine(pen, 24 * scale, 30 * scale, 21 * scale, 38 * scale);
+                        g.DrawLine(pen, 24 * scale, 30 * scale, 27 * scale, 38 * scale);
+                        g.DrawLine(pen, 21 * scale, 38 * scale, 27 * scale, 38 * scale);
+                    }
+                    else if (type == DashboardIconType.Fees)
+                    {
+                        g.DrawRectangle(pen, 8 * scale, 14 * scale, 32 * scale, 20 * scale);
+                        g.DrawEllipse(pen, 20 * scale, 20 * scale, 8 * scale, 8 * scale);
+                        g.DrawLine(pen, 12 * scale, 18 * scale, 16 * scale, 18 * scale);
+                        g.DrawLine(pen, 32 * scale, 18 * scale, 36 * scale, 18 * scale);
+                    }
+                    else if (type == DashboardIconType.Balance)
+                    {
+                        g.DrawArc(pen, 10 * scale, 14 * scale, 28 * scale, 20 * scale, 0, 360);
+                        g.DrawLine(pen, 10 * scale, 24 * scale, 38 * scale, 24 * scale);
+                        using (var br = new SolidBrush(accent))
+                            g.FillEllipse(br, 22 * scale, 18 * scale, 4 * scale, 4 * scale);
+                    }
+                    else if (type == DashboardIconType.Score)
+                    {
+                        PointF[] shield = {
+                            new PointF(24 * scale, 10 * scale), new PointF(38 * scale, 16 * scale),
+                            new PointF(34 * scale, 34 * scale), new PointF(24 * scale, 40 * scale),
+                            new PointF(14 * scale, 34 * scale), new PointF(10 * scale, 16 * scale)
+                        };
+                        g.DrawPolygon(pen, shield);
+                        g.DrawLine(pen, 24 * scale, 18 * scale, 24 * scale, 32 * scale);
+                    }
+                    else if (type == DashboardIconType.Class)
+                    {
+                        g.DrawRectangle(pen, 10 * scale, 12 * scale, 28 * scale, 24 * scale);
+                        g.DrawLine(pen, 14 * scale, 12 * scale, 14 * scale, 36 * scale);
+                        g.DrawLine(pen, 18 * scale, 20 * scale, 32 * scale, 20 * scale);
+                        g.DrawLine(pen, 18 * scale, 28 * scale, 28 * scale, 28 * scale);
+                    }
+                    else if (type == DashboardIconType.Leave)
+                    {
+                        g.DrawRectangle(pen, 10 * scale, 14 * scale, 28 * scale, 24 * scale);
+                        g.DrawLine(pen, 10 * scale, 20 * scale, 38 * scale, 20 * scale);
+                        g.DrawLine(pen, 16 * scale, 10 * scale, 16 * scale, 16 * scale);
+                        g.DrawLine(pen, 32 * scale, 10 * scale, 32 * scale, 16 * scale);
+                    }
+                }
+                g.ResetTransform();
+            };
+            return p;
         }
 
         private Control BuildAnalyticsGrid()
@@ -668,8 +732,8 @@ public frmDashboard()
             };
             academicSummary.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
             academicSummary.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
-            academicSummary.Controls.Add(CreateInsightTile("Average Score", averageExamLabel), 0, 0);
-            academicSummary.Controls.Add(CreateInsightTile("Top Class", topClassLabel), 1, 0);
+            academicSummary.Controls.Add(CreateInsightTile("Average Score", averageExamLabel, DashboardIconType.Score), 0, 0);
+            academicSummary.Controls.Add(CreateInsightTile("Top Class", topClassLabel, DashboardIconType.Class), 1, 0);
 
             var leaveSummary = new TableLayoutPanel
             {
@@ -680,7 +744,7 @@ public frmDashboard()
             };
             leaveSummary.RowStyles.Add(new RowStyle(SizeType.Absolute, 74));
             leaveSummary.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-            leaveSummary.Controls.Add(CreateInsightTile("Pending Leave", pendingLeaveLabel), 0, 0);
+            leaveSummary.Controls.Add(CreateInsightTile("Pending Leave", pendingLeaveLabel, DashboardIconType.Leave), 0, 0);
             leaveSummary.Controls.Add(leaveSummaryGrid, 0, 1);
 
             insightBody.Controls.Add(academicSummary, 0, 0);
@@ -771,8 +835,44 @@ public frmDashboard()
             return button;
         }
 
+        /// <summary>
+        /// A collapsible sidebar group: a header row with a chevron that toggles the
+        /// visibility of its child nav buttons. Children are pre-filtered by role by the caller.
+        /// </summary>
+        private Control CreateNavGroup(string header, System.Collections.Generic.List<Button> children)
+        {
+            var container = new FlowLayoutPanel
+            {
+                FlowDirection = FlowDirection.TopDown, WrapContents = false,
+                AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                Margin = Padding.Empty, BackColor = SidebarBackColor
+            };
+
+            var headerBtn = CreateNavButton("▸  " + header, null);   // collapsed chevron
+            headerBtn.Font = new Font("Segoe UI Semibold", 9.5F, FontStyle.Bold);
+
+            var childPanel = new FlowLayoutPanel
+            {
+                FlowDirection = FlowDirection.TopDown, WrapContents = false,
+                AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                Margin = new Padding(0, 0, 0, 4), Padding = new Padding(8, 0, 0, 0),
+                BackColor = SidebarBackColor, Visible = false
+            };
+            foreach (var c in children) childPanel.Controls.Add(c);
+
+            headerBtn.Click += (s, e) =>
+            {
+                childPanel.Visible = !childPanel.Visible;
+                headerBtn.Text = (childPanel.Visible ? "▾  " : "▸  ") + header;
+            };
+
+            container.Controls.Add(headerBtn);
+            container.Controls.Add(childPanel);
+            return container;
+        }
+
         private Control CreateMetricCard(string title, Label valueLabel, string caption,
-                                         Color accent, string tag)
+                                         Color accent, string tag, DashboardIconType iconType)
         {
             var card = CreateModernPanel(8);
             card.Dock    = DockStyle.Fill;
@@ -786,11 +886,17 @@ public frmDashboard()
                     e.Graphics.FillRectangle(br, 0, 0, card.Width, 4);
             };
 
+            var body = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 3, BackColor = Color.Transparent };
+            body.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            body.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 54));
+            body.RowStyles.Add(new RowStyle(SizeType.Absolute, 22));
+            body.RowStyles.Add(new RowStyle(SizeType.Absolute, 26));
+            body.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+
             // Tag chip (e.g. "STUDENTS") in accent colour
             var tagLabel = new Label
             {
-                Dock      = DockStyle.Top,
-                Height    = 20,
+                Dock      = DockStyle.Fill,
                 Text      = tag,
                 ForeColor = accent,
                 Font      = new Font("Segoe UI", 7.5F, FontStyle.Bold),
@@ -799,16 +905,14 @@ public frmDashboard()
 
             var titleLabel = new Label
             {
-                Dock      = DockStyle.Top,
-                Height    = 24,
+                Dock      = DockStyle.Fill,
                 Text      = title,
                 ForeColor = MutedTextColor,
                 Font      = new Font("Segoe UI", 9.25F, FontStyle.Regular),
                 TextAlign = ContentAlignment.MiddleLeft
             };
 
-            valueLabel.Dock      = DockStyle.Top;
-            valueLabel.Height    = 44;
+            valueLabel.Dock      = DockStyle.Fill;
             valueLabel.Text      = "--";
             valueLabel.ForeColor = TextColor;
             valueLabel.Font      = new Font("Segoe UI Semibold", 24F, FontStyle.Bold);
@@ -816,17 +920,25 @@ public frmDashboard()
 
             var captionLabel = new Label
             {
-                Dock      = DockStyle.Fill,
+                Dock      = DockStyle.Bottom,
+                Height    = 24,
                 Text      = caption,
                 ForeColor = MutedTextColor,
                 Font      = new Font("Segoe UI", 8.5F, FontStyle.Regular),
                 TextAlign = ContentAlignment.BottomLeft
             };
 
+            var icon = CreateMetricIcon(iconType, accent);
+            icon.Dock = DockStyle.Fill;
+
+            body.Controls.Add(tagLabel, 0, 0);
+            body.Controls.Add(titleLabel, 0, 1);
+            body.Controls.Add(valueLabel, 0, 2);
+            body.Controls.Add(icon, 1, 1);
+            body.SetRowSpan(icon, 2);
+
             card.Controls.Add(captionLabel);
-            card.Controls.Add(valueLabel);
-            card.Controls.Add(titleLabel);
-            card.Controls.Add(tagLabel);
+            card.Controls.Add(body);
             return card;
         }
 
@@ -860,17 +972,20 @@ public frmDashboard()
             return panel;
         }
 
-        private Control CreateInsightTile(string title, Label valueLabel)
+        private Control CreateInsightTile(string title, Label valueLabel, DashboardIconType iconType)
         {
             var tile = CreateModernPanel(7, UiTheme.SurfaceAlt, UiTheme.SurfaceAlt);
             tile.Dock = DockStyle.Fill;
             tile.Margin = new Padding(0, 0, 8, 0);
             tile.Padding = new Padding(12, 8, 12, 8);
 
+            var layout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 2, BackColor = Color.Transparent };
+            layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 42));
+
             var titleLabel = new Label
             {
-                Dock = DockStyle.Top,
-                Height = 22,
+                Dock = DockStyle.Fill,
                 Text = title,
                 ForeColor = MutedTextColor,
                 Font = new Font("Segoe UI", 8.75F, FontStyle.Regular),
@@ -884,8 +999,16 @@ public frmDashboard()
             valueLabel.TextAlign = ContentAlignment.MiddleLeft;
             valueLabel.AutoEllipsis = true;
 
-            tile.Controls.Add(valueLabel);
-            tile.Controls.Add(titleLabel);
+            var icon = CreateMetricIcon(iconType, MutedTextColor);
+            icon.Size = new Size(32, 32);
+            icon.Dock = DockStyle.Fill;
+
+            layout.Controls.Add(titleLabel, 0, 0);
+            layout.Controls.Add(valueLabel, 0, 1);
+            layout.Controls.Add(icon, 1, 0);
+            layout.SetRowSpan(icon, 2);
+
+            tile.Controls.Add(layout);
             return tile;
         }
 
