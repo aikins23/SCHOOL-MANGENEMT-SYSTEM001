@@ -130,7 +130,13 @@ namespace kingdom_Preparatory_School_Management_System.Data
                 using (var connection = new OleDbConnection(_connectionString))
                 {
                     await connection.OpenAsync();
-                    var query = "SELECT TOP 1 [Balance] FROM [payment_record] WHERE [StudentID] = ? ORDER BY [Date] DESC, [tm] DESC";
+                    // Identify the latest record by the monotonic identity key, not by
+                    // (Date, tm): [Date] is a date (no time) and [tm] is time(0) (second
+                    // resolution), so two rows recorded in the same second — e.g. the two
+                    // admission rows (admission fee + school fee) — tie with no reliable
+                    // tiebreaker and the engine can return the wrong Balance. PaymentRecordID
+                    // increases with every insert, so MAX(PaymentRecordID) is the true latest.
+                    var query = "SELECT TOP 1 [Balance] FROM [payment_record] WHERE [StudentID] = ? ORDER BY [PaymentRecordID] DESC";
                     using (var command = new OleDbCommand(query, connection))
                     {
                         command.Parameters.AddWithValue("?", studentId);
@@ -327,10 +333,10 @@ namespace kingdom_Preparatory_School_Management_System.Data
                             p.[Date] AS [Last Payment]
                         FROM payment_record p
                         INNER JOIN (
-                            SELECT StudentID, MAX([Date]) as LastDate, MAX(tm) as LastTime
+                            SELECT StudentID, MAX(PaymentRecordID) AS LastId
                             FROM payment_record
                             GROUP BY StudentID
-                        ) latest ON p.StudentID = latest.StudentID AND p.[Date] = latest.LastDate AND p.tm = latest.LastTime
+                        ) latest ON p.StudentID = latest.StudentID AND p.PaymentRecordID = latest.LastId
                         WHERE p.Balance > 0
                         ORDER BY p.Balance DESC";
                     
