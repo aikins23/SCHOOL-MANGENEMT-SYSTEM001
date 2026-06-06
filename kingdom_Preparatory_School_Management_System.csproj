@@ -198,6 +198,7 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>DataSet4.xsd</DependentUpon>
     </Compile>
+    <Compile Include="DataSeeder.cs" />
     <Compile Include="Data\ExamRepository.cs" />
     <Compile Include="Data\IExamRepository.cs" />
     <Compile Include="Data\IFeeRepository.cs" />
@@ -390,6 +391,8 @@
     <Compile Include="Models\SchoolInfo.cs" />
     <Compile Include="Models\SchoolInformation.cs" />
     <Compile Include="Models\GradeBand.cs" />
+    <Compile Include="Models\Book.cs" />
+    <Compile Include="Models\BookLoan.cs" />
     <Compile Include="Models\Student.cs" />
     <Compile Include="Models\SubjectResult.cs" />
     <Compile Include="Models\StudentTermRemarks.cs" />
