@@ -70,6 +70,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
             ["frmRegistration"]           = new[] { UserRole.Director, UserRole.Administrator },
             ["frmBackupManager"]          = new[] { UserRole.Director, UserRole.Administrator },
             ["frmEmailSettings"]          = new[] { UserRole.Director, UserRole.Administrator },
+            ["frmSchoolInfo"]             = new[] { UserRole.Director, UserRole.Administrator },
         };
 
         /// <summary>
