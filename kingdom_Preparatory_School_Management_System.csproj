@@ -211,6 +211,8 @@
     <Compile Include="Data\GradingSchemeRepository.cs" />
     <Compile Include="Data\ISubjectRepository.cs" />
     <Compile Include="Data\SubjectRepository.cs" />
+    <Compile Include="Data\ILibraryRepository.cs" />
+    <Compile Include="Data\LibraryRepository.cs" />
     <Compile Include="Data\IDashboardRepository.cs" />
     <Compile Include="Data\AttendanceRepository.cs" />
     <Compile Include="Data\IAttendanceRepository.cs" />
