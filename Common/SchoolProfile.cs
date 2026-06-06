@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using kingdom_Preparatory_School_Management_System.Data;
 using kingdom_Preparatory_School_Management_System.Models;
 using kingdom_Preparatory_School_Management_System.Services;
@@ -57,6 +58,19 @@ namespace kingdom_Preparatory_School_Management_System.Common
         public static string Email => Info.Email;
         public static byte[] Logo => Info.Logo;
         public static decimal AdmissionFee => Info.AdmissionFee;
+
+        /// <summary>
+        /// Transient, in-memory colour override used by the settings Preview button so unsaved
+        /// colours render without being persisted. Set it, generate, then clear it in a finally.
+        /// </summary>
+        public static (Color Primary, Color Accent, Color Secondary)? ReportColorOverride;
+
+        public static Color ReportPrimaryColor =>
+            ReportColorOverride?.Primary ?? Color.FromArgb(Info.PrimaryColorArgb);
+        public static Color ReportAccentColor =>
+            ReportColorOverride?.Accent ?? Color.FromArgb(Info.AccentColorArgb);
+        public static Color ReportSecondaryColor =>
+            ReportColorOverride?.Secondary ?? Color.FromArgb(Info.SecondaryColorArgb);
 
         public static decimal FeeForClass(string classId)
         {
