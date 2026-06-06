@@ -40,6 +40,12 @@ namespace kingdom_Preparatory_School_Management_System.Data
                         PaymentTerm NVARCHAR(20) NOT NULL DEFAULT ('Monthly'),
                         BusId INT NULL, Stops NVARCHAR(255), Notes NVARCHAR(255));";
                 using (var cmd = new OleDbCommand(routes, c)) await cmd.ExecuteNonQueryAsync();
+
+                const string stTransport = @"IF OBJECT_ID(N'StudentTransport', N'U') IS NULL
+                    CREATE TABLE StudentTransport (
+                        StudentID INT NOT NULL PRIMARY KEY,
+                        RouteId INT NOT NULL);";
+                using (var cmd = new OleDbCommand(stTransport, c)) await cmd.ExecuteNonQueryAsync();
             }
         }
 
@@ -207,6 +213,45 @@ namespace kingdom_Preparatory_School_Management_System.Data
                     await cmd.ExecuteNonQueryAsync();
                 }
                 return true;
+            }
+        }
+
+        public async Task SetStudentRouteAsync(int studentId, int? routeId)
+        {
+            using (var c = new OleDbConnection(_connectionString))
+            {
+                await c.OpenAsync();
+                using (var del = new OleDbCommand("DELETE FROM StudentTransport WHERE StudentID=?", c))
+                {
+                    del.Parameters.AddWithValue("?", studentId);
+                    await del.ExecuteNonQueryAsync();
+                }
+                if (routeId.HasValue)
+                {
+                    using (var ins = new OleDbCommand("INSERT INTO StudentTransport (StudentID, RouteId) VALUES (?, ?)", c))
+                    {
+                        ins.Parameters.AddWithValue("?", studentId);
+                        ins.Parameters.AddWithValue("?", routeId.Value);
+                        await ins.ExecuteNonQueryAsync();
+                    }
+                }
+            }
+        }
+
+        public async Task<BusRoute> GetStudentRouteAsync(int studentId)
+        {
+            using (var c = new OleDbConnection(_connectionString))
+            {
+                await c.OpenAsync();
+                const string sql = @"SELECT r.*, b.Label AS BusLabel FROM StudentTransport st
+                    INNER JOIN BusRoutes r ON st.RouteId = r.RouteId
+                    LEFT JOIN Buses b ON r.BusId = b.BusId WHERE st.StudentID = ?";
+                using (var cmd = new OleDbCommand(sql, c))
+                {
+                    cmd.Parameters.AddWithValue("?", studentId);
+                    using (var rd = await cmd.ExecuteReaderAsync())
+                        return await rd.ReadAsync() ? MapRoute(rd) : null;
+                }
             }
         }
 

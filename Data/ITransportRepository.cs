@@ -15,5 +15,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
         Task<int> AddRouteAsync(BusRoute route);
         Task UpdateRouteAsync(BusRoute route);
         Task<bool> DeleteRouteAsync(int routeId);
+        Task SetStudentRouteAsync(int studentId, int? routeId);
+        Task<BusRoute> GetStudentRouteAsync(int studentId);
     }
 }
