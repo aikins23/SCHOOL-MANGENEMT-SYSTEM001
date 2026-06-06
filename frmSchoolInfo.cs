@@ -1,0 +1,209 @@
+using System;
+using System.Collections.Generic;
+using System.Drawing;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using kingdom_Preparatory_School_Management_System.Common;
+using kingdom_Preparatory_School_Management_System.Data;
+using kingdom_Preparatory_School_Management_System.Models;
+using kingdom_Preparatory_School_Management_System.Services;
+
+namespace kingdom_Preparatory_School_Management_System
+{
+    /// <summary>
+    /// School Information settings: identity (name, address, P.O. Box, GP address, phones,
+    /// email, logo) and fees (admission fee + per-class term fees). Director/Administrator.
+    /// Saving persists to the database and refreshes the SchoolProfile cache.
+    /// </summary>
+    public class frmSchoolInfo : Form
+    {
+        private readonly SchoolInfoRepository _repo = new SchoolInfoRepository(AppConfig.ConnectionString);
+
+        private TextBox _name, _address, _poBox, _gps, _phone1, _phone2, _email, _admissionFee;
+        private PictureBox _logo;
+        private byte[] _logoBytes;
+        private DataGridView _feeGrid;
+        private Button _saveBtn, _cancelBtn, _uploadBtn;
+        private Label _status;
+
+        public frmSchoolInfo()
+        {
+            BuildUi();
+            if (!AuthService.RequireAccess("frmSchoolInfo", this)) return;
+            Load += async (s, e) => await LoadAsync();
+        }
+
+        private void BuildUi()
+        {
+            Text = "School Information";
+            Size = new Size(640, 760);
+            StartPosition = FormStartPosition.CenterParent;
+            FormBorderStyle = FormBorderStyle.FixedDialog;
+            MaximizeBox = false; MinimizeBox = false; ShowIcon = false;
+            BackColor = AppConfig.Colors.PageBackColor;
+            AutoScroll = true;
+
+            var title = new Label
+            {
+                Text = "  School Information", Dock = DockStyle.Top, Height = 44,
+                Font = new Font("Segoe UI Semibold", 15F, FontStyle.Bold),
+                ForeColor = AppConfig.Colors.PrimaryColor, TextAlign = ContentAlignment.MiddleLeft
+            };
+
+            int y = 56, lblX = 18, boxX = 170, boxW = 420, rowH = 32, gap = 8;
+            Func<string, TextBox> addRow = caption =>
+            {
+                var l = new Label { Text = caption, Left = lblX, Top = y + 4, Width = boxX - lblX - 6, Font = new Font("Segoe UI", 10F) };
+                var t = new TextBox { Left = boxX, Top = y, Width = boxW, Font = new Font("Segoe UI", 10F) };
+                Controls.Add(l); Controls.Add(t);
+                y += rowH + gap;
+                return t;
+            };
+
+            Controls.Add(title);
+            var idHdr = new Label { Text = "Identity", Left = lblX, Top = y, Width = 300, Font = new Font("Segoe UI Semibold", 11F, FontStyle.Bold), ForeColor = AppConfig.Colors.PrimaryColor };
+            Controls.Add(idHdr); y += 28;
+
+            _name = addRow("School Name");
+            _address = addRow("Address");
+            _poBox = addRow("P. O. Box");
+            _gps = addRow("GP Address (Ghana Post GPS)");
+            _phone1 = addRow("Phone 1");
+            _phone2 = addRow("Phone 2");
+            _email = addRow("Email");
+
+            // Logo
+            var logoLbl = new Label { Text = "Logo", Left = lblX, Top = y + 4, Width = boxX - lblX - 6, Font = new Font("Segoe UI", 10F) };
+            _logo = new PictureBox { Left = boxX, Top = y, Width = 96, Height = 96, BorderStyle = BorderStyle.FixedSingle, SizeMode = PictureBoxSizeMode.Zoom, BackColor = Color.White };
+            _uploadBtn = new Button { Text = "Upload Logo…", Left = boxX + 110, Top = y + 30, Width = 130, Height = 32, FlatStyle = FlatStyle.Flat };
+            _uploadBtn.Click += (s, e) => UploadLogo();
+            Controls.Add(logoLbl); Controls.Add(_logo); Controls.Add(_uploadBtn);
+            y += 96 + gap;
+
+            // Fees
+            var feeHdr = new Label { Text = "Fees", Left = lblX, Top = y, Width = 300, Font = new Font("Segoe UI Semibold", 11F, FontStyle.Bold), ForeColor = AppConfig.Colors.PrimaryColor };
+            Controls.Add(feeHdr); y += 28;
+            _admissionFee = addRow("Admission Fee (GHS)");
+
+            var feeGridLbl = new Label { Text = "Per-Class Term Fees (GHS)", Left = lblX, Top = y, Width = 400, Font = new Font("Segoe UI", 10F) };
+            Controls.Add(feeGridLbl); y += 26;
+            _feeGrid = new DataGridView
+            {
+                Left = lblX, Top = y, Width = boxW + boxX - lblX, Height = 200,
+                AllowUserToAddRows = false, AllowUserToDeleteRows = false, RowHeadersVisible = false,
+                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill, BackgroundColor = Color.White
+            };
+            _feeGrid.Columns.Add(new DataGridViewTextBoxColumn { Name = "Class", HeaderText = "Class", ReadOnly = true });
+            _feeGrid.Columns.Add(new DataGridViewTextBoxColumn { Name = "TermFee", HeaderText = "Term Fee" });
+            Controls.Add(_feeGrid); y += _feeGrid.Height + gap;
+
+            _status = new Label { Left = lblX, Top = y, Width = boxW + boxX, Height = 22, ForeColor = AppConfig.Colors.MutedTextColor };
+            Controls.Add(_status); y += 28;
+
+            _saveBtn = new Button { Text = "Save", Left = boxX, Top = y, Width = 130, Height = 38, BackColor = AppConfig.Colors.SuccessColor, ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
+            _cancelBtn = new Button { Text = "Cancel", Left = boxX + 140, Top = y, Width = 110, Height = 38, FlatStyle = FlatStyle.Flat };
+            _saveBtn.Click += async (s, e) => await SaveAsync();
+            _cancelBtn.Click += (s, e) => Close();
+            Controls.Add(_saveBtn); Controls.Add(_cancelBtn);
+        }
+
+        private async Task LoadAsync()
+        {
+            try
+            {
+                await _repo.EnsureTablesAsync();
+                var info = await _repo.GetAsync();
+                var fees = await _repo.GetClassFeesAsync();
+
+                _name.Text = info.Name; _address.Text = info.Address; _poBox.Text = info.PoBox;
+                _gps.Text = info.GpsAddress; _phone1.Text = info.Phone1; _phone2.Text = info.Phone2;
+                _email.Text = info.Email; _admissionFee.Text = info.AdmissionFee.ToString("0.##");
+                _logoBytes = info.Logo;
+                SetLogoPreview(info.Logo);
+
+                _feeGrid.Rows.Clear();
+                foreach (var className in AppConfig.ClassNames)
+                {
+                    decimal fee = fees.TryGetValue(className, out var f) ? f : SchoolInfoRepository.LegacyFeeForClass(className);
+                    _feeGrid.Rows.Add(className, fee.ToString("0.##"));
+                }
+            }
+            catch (Exception ex)
+            {
+                UIHelper.ShowError("Could not load school information: " + ex.Message, "School Information");
+            }
+        }
+
+        private void SetLogoPreview(byte[] bytes)
+        {
+            try
+            {
+                if (bytes != null && bytes.Length > 0)
+                {
+                    using (var ms = new MemoryStream(bytes)) _logo.Image = Image.FromStream(ms);
+                    return;
+                }
+                string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources", "school_logo.png");
+                if (File.Exists(path)) _logo.Image = Image.FromFile(path);
+            }
+            catch { /* preview is best-effort */ }
+        }
+
+        private void UploadLogo()
+        {
+            using (var dlg = new OpenFileDialog { Filter = "Images|*.jpg;*.jpeg;*.png;*.bmp" })
+            {
+                if (dlg.ShowDialog(this) != DialogResult.OK) return;
+                var ext = Path.GetExtension(dlg.FileName).ToLowerInvariant();
+                if (!AppConfig.AllowedImageExtensions.Contains(ext))
+                { UIHelper.ShowWarning("Unsupported image type.", "Logo"); return; }
+                var bytes = File.ReadAllBytes(dlg.FileName);
+                if (bytes.LongLength > AppConfig.MaxPhotoSizeBytes)
+                { UIHelper.ShowWarning($"Logo must be under {AppConfig.MaxPhotoSizeMB} MB.", "Logo"); return; }
+                _logoBytes = bytes;
+                SetLogoPreview(bytes);
+            }
+        }
+
+        private async Task SaveAsync()
+        {
+            if (string.IsNullOrWhiteSpace(_name.Text))
+            { UIHelper.ShowWarning("School name is required.", "School Information"); return; }
+            if (!decimal.TryParse(_admissionFee.Text, out var admission) || admission < 0)
+            { UIHelper.ShowWarning("Admission fee must be a number ≥ 0.", "School Information"); return; }
+
+            var fees = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
+            foreach (DataGridViewRow row in _feeGrid.Rows)
+            {
+                if (row.IsNewRow) continue;
+                string cls = row.Cells["Class"].Value?.ToString();
+                if (!decimal.TryParse(row.Cells["TermFee"].Value?.ToString(), out var fee) || fee < 0)
+                { UIHelper.ShowWarning($"Term fee for {cls} must be a number ≥ 0.", "School Information"); return; }
+                fees[cls] = fee;
+            }
+
+            _saveBtn.Enabled = false;
+            try
+            {
+                var info = new SchoolInformation
+                {
+                    Name = _name.Text.Trim(), Address = _address.Text.Trim(), PoBox = _poBox.Text.Trim(),
+                    GpsAddress = _gps.Text.Trim(), Phone1 = _phone1.Text.Trim(), Phone2 = _phone2.Text.Trim(),
+                    Email = _email.Text.Trim(), Logo = _logoBytes, AdmissionFee = admission
+                };
+                await _repo.SaveAsync(info);
+                await _repo.SaveClassFeesAsync(fees);
+                SchoolProfile.Refresh();
+                _status.Text = "Saved " + DateTime.Now.ToString("HH:mm:ss") + ".";
+                UIHelper.ShowSuccess("School information saved.", "School Information");
+            }
+            catch (Exception ex)
+            {
+                UIHelper.ShowError("Could not save: " + ex.Message, "School Information");
+            }
+            finally { _saveBtn.Enabled = true; }
+        }
+    }
+}
