@@ -377,6 +377,7 @@
     <Compile Include="Models\ReportCardData.cs" />
     <Compile Include="Models\ReportCardOutputAction.cs" />
     <Compile Include="Models\SchoolInfo.cs" />
+    <Compile Include="Models\SchoolInformation.cs" />
     <Compile Include="Models\Student.cs" />
     <Compile Include="Models\SubjectResult.cs" />
     <Compile Include="Models\StudentTermRemarks.cs" />
