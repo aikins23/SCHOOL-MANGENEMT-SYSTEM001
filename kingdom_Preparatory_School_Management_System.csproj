@@ -203,6 +203,8 @@
     <Compile Include="Data\DraftAdmissionRepository.cs" />
     <Compile Include="Data\ISchoolInfoRepository.cs" />
     <Compile Include="Data\SchoolInfoRepository.cs" />
+    <Compile Include="Data\IGradingSchemeRepository.cs" />
+    <Compile Include="Data\GradingSchemeRepository.cs" />
     <Compile Include="Data\IDashboardRepository.cs" />
     <Compile Include="Data\AttendanceRepository.cs" />
     <Compile Include="Data\IAttendanceRepository.cs" />
@@ -382,6 +384,7 @@
     <Compile Include="Models\ReportCardOutputAction.cs" />
     <Compile Include="Models\SchoolInfo.cs" />
     <Compile Include="Models\SchoolInformation.cs" />
+    <Compile Include="Models\GradeBand.cs" />
     <Compile Include="Models\Student.cs" />
     <Compile Include="Models\SubjectResult.cs" />
     <Compile Include="Models\StudentTermRemarks.cs" />
