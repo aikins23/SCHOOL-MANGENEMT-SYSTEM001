@@ -393,6 +393,7 @@ public frmDashboard()
                 nav.Controls.Add(CreateNavButton("Settings", () => new frmEmailSettings().ShowDialog()));
                 nav.Controls.Add(CreateNavButton("School Information", () => new frmSchoolInfo().ShowDialog()));
                 nav.Controls.Add(CreateNavButton("Grading Scheme", () => new frmGradingScheme().ShowDialog()));
+                nav.Controls.Add(CreateNavButton("Subjects", () => new frmSubjects().ShowDialog()));
             }
             if (role == AuthService.UserRole.Administrator || role == AuthService.UserRole.Headmaster)
             {
