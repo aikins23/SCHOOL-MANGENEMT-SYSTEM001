@@ -162,6 +162,7 @@
     <Compile Include="Common\AppConfig.cs" />
     <Compile Include="Common\AdmissionFees.cs" />
     <Compile Include="Common\SchoolProfile.cs" />
+    <Compile Include="Common\StudentId.cs" />
     <Compile Include="Common\ConfirmationHelper.cs" />
     <Compile Include="Common\DraggableForm.cs">
       <SubType>Form</SubType>
