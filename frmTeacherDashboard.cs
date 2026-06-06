@@ -141,11 +141,7 @@ namespace kingdom_Preparatory_School_Management_System
                 Padding = new Padding(0, 18, 0, 0)
             };
             var btnSignOut = MakeSecondaryButton("Sign Out");
-            btnSignOut.Click += (s, e) =>
-            {
-                AuthService.Logout();
-                this.Close();
-            };
+            btnSignOut.Click += (s, e) => Common.FormManager.SignOut();
             var btnRefresh = MakePrimaryButton("Refresh");
             btnRefresh.Click += async (s, e) => await LoadDataAsync();
             actions.Controls.Add(btnSignOut);

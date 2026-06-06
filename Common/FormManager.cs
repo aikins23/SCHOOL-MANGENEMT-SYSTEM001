@@ -198,6 +198,35 @@ namespace kingdom_Preparatory_School_Management_System.Common
         }
 
         /// <summary>
+        /// Signs the current user out and returns to the login screen. Asks for
+        /// confirmation, then shows a fresh login form FIRST (so the message loop always
+        /// has a visible window) before closing every other open form — the dashboard,
+        /// any child forms, and the hidden startup login. Avoids the blank/zombie window
+        /// that a plain Logout()+Close() leaves behind.
+        /// </summary>
+        public static void SignOut()
+        {
+            if (UIHelper.ShowConfirmation("Are you sure you want to sign out?", "Sign Out") != DialogResult.Yes)
+                return;
+
+            Services.AuthService.Logout();
+
+            var login = new frmlogin();
+            login.Show();
+            login.BringToFront();
+
+            // Close everything else (snapshot first — closing mutates Application.OpenForms).
+            foreach (Form f in Application.OpenForms.Cast<Form>().ToList())
+            {
+                if (f == login) continue;
+                try { f.Close(); } catch { /* already closing/disposed */ }
+            }
+
+            _openForms.Clear();
+            _mainDashboard = null;
+        }
+
+        /// <summary>
         /// Hides all child forms (useful for dashboard-only view)
         /// </summary>
         public static void HideAllChildForms()

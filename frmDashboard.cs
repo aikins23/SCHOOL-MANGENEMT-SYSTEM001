@@ -407,6 +407,12 @@ public frmDashboard()
             exitBtn.Margin    = Padding.Empty;
             exitBtn.Padding   = new Padding(16, 0, 0, 0);
 
+            // Sign Out: log out and return to the login screen.
+            var signOutBtn = CreateNavButton("Sign Out", () => FormManager.SignOut());
+            signOutBtn.Dock    = DockStyle.Bottom;
+            signOutBtn.Margin  = Padding.Empty;
+            signOutBtn.Padding = new Padding(16, 0, 0, 0);
+
             var bottomDivider = new Panel { Dock = DockStyle.Bottom, Height = 1, BackColor = Color.FromArgb(36, 48, 88) };
 
             var userFooter = new Panel
@@ -454,6 +460,7 @@ public frmDashboard()
             });
 
             sidebar.Controls.Add(exitBtn);
+            sidebar.Controls.Add(signOutBtn);
             sidebar.Controls.Add(bottomDivider);
             sidebar.Controls.Add(userFooter);
             sidebar.Controls.Add(navScroll);
