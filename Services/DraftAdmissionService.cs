@@ -54,6 +54,22 @@ namespace kingdom_Preparatory_School_Management_System.Services
             return await _drafts.GetPendingAsync();
         }
 
+        /// <summary>Pending-approval count for the dashboard notification bubble.
+        /// Fail-safe: returns 0 if the table is missing or the query errors.</summary>
+        public async Task<int> GetPendingCountAsync()
+        {
+            try
+            {
+                await _drafts.EnsureTableAsync();
+                return await _drafts.CountPendingAsync();
+            }
+            catch (Exception ex)
+            {
+                LoggerHelper.LogWarning("GetPendingCountAsync failed: " + ex.Message);
+                return 0;
+            }
+        }
+
         public Task<bool> RejectAsync(int draftId) => _drafts.DeleteAsync(draftId);
 
         /// <summary>

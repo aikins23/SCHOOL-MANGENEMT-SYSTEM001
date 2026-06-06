@@ -29,6 +29,11 @@ namespace kingdom_Preparatory_School_Management_System
         private DataGridView classSummaryGrid;
         private DataGridView leaveSummaryGrid;
 
+        // Admission-approvals notification (Accountant): count bubble on the nav tab + sign-in alert.
+        private Button _approvalsNavBtn;
+        private int _pendingApprovalsCount;
+        private bool _approvalAlertShown;
+
         private static readonly Color PageBackColor = UiTheme.Page;
         private static readonly Color SidebarBackColor = UiTheme.Navy;
         private static readonly Color SidebarHoverColor = UiTheme.NavyHover;
@@ -73,7 +78,84 @@ public frmDashboard()
 
     // Load event is commented-out in designer — wire it manually
     this.Load += frmDashboard_Load;
+
+    // Refresh the admission-approvals bubble whenever the dashboard regains focus
+    // (e.g. after approving/rejecting in the approvals screen).
+    this.Activated += async (s, e) => await RefreshApprovalNotificationAsync();
 }
+
+        /// <summary>
+        /// Draws a small red count bubble on the right edge of a nav button when there
+        /// are pending admission approvals. Display-only; driven by _pendingApprovalsCount.
+        /// </summary>
+        private void AttachApprovalBadge(Button btn)
+        {
+            btn.Paint += (s, e) =>
+            {
+                if (_pendingApprovalsCount <= 0) return;
+                string txt = _pendingApprovalsCount > 99 ? "99+" : _pendingApprovalsCount.ToString();
+                e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+                using (var f = new Font("Segoe UI", 8F, FontStyle.Bold))
+                {
+                    int w = Math.Max(20, (int)e.Graphics.MeasureString(txt, f).Width + 10);
+                    int h = 18;
+                    var rect = new Rectangle(btn.Width - w - 12, (btn.Height - h) / 2, w, h);
+                    using (var path = RoundedRectPath(rect, h / 2))
+                    using (var br = new SolidBrush(AccentRed))
+                        e.Graphics.FillPath(br, path);
+                    using (var tb = new SolidBrush(Color.White))
+                    using (var sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center })
+                        e.Graphics.DrawString(txt, f, tb, rect, sf);
+                }
+            };
+        }
+
+        private static System.Drawing.Drawing2D.GraphicsPath RoundedRectPath(Rectangle r, int radius)
+        {
+            int d = radius * 2;
+            var path = new System.Drawing.Drawing2D.GraphicsPath();
+            path.AddArc(r.X, r.Y, d, d, 180, 90);
+            path.AddArc(r.Right - d, r.Y, d, d, 270, 90);
+            path.AddArc(r.Right - d, r.Bottom - d, d, d, 0, 90);
+            path.AddArc(r.X, r.Bottom - d, d, d, 90, 90);
+            path.CloseFigure();
+            return path;
+        }
+
+        /// <summary>
+        /// Loads the pending-approval count (Accountant only), repaints the nav bubble, and
+        /// shows a one-time sign-in alert when there are admissions awaiting approval.
+        /// </summary>
+        private async System.Threading.Tasks.Task RefreshApprovalNotificationAsync()
+        {
+            if (AuthService.CurrentUser.Role != AuthService.UserRole.Accountant || _approvalsNavBtn == null)
+                return;
+
+            int count;
+            try
+            {
+                var svc = new Services.DraftAdmissionService(
+                    new DraftAdmissionRepository(AppConfig.ConnectionString),
+                    _studentService,
+                    _feeRepository);
+                count = await svc.GetPendingCountAsync();
+            }
+            catch
+            {
+                count = 0;
+            }
+
+            _pendingApprovalsCount = count;
+            if (!_approvalsNavBtn.IsDisposed) _approvalsNavBtn.Invalidate();
+
+            if (count > 0 && !_approvalAlertShown)
+            {
+                _approvalAlertShown = true;
+                MessageBox.Show(
+                    $"{count} admission{(count == 1 ? "" : "s")} awaiting your approval.",
+                    "Admission Approvals", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+        }
 
         private void ApplyRolePermissions()
         {
@@ -294,7 +376,9 @@ public frmDashboard()
             if (role == AuthService.UserRole.Accountant)
             {
                 // Bursar: approve pending admission payments (promotes draft + receipts + SMS).
-                nav.Controls.Add(CreateNavButton("Admission Approvals", () => OpenForm(new frmPendingApprovals())));
+                _approvalsNavBtn = CreateNavButton("Admission Approvals", () => OpenForm(new frmPendingApprovals()));
+                AttachApprovalBadge(_approvalsNavBtn);
+                nav.Controls.Add(_approvalsNavBtn);
             }
             if (role == AuthService.UserRole.Accountant || role == AuthService.UserRole.Director ||
                 role == AuthService.UserRole.Administrator || role == AuthService.UserRole.Headmaster)

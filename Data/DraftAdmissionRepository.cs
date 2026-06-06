@@ -97,6 +97,19 @@ namespace kingdom_Preparatory_School_Management_System.Data
             return list;
         }
 
+        public async Task<int> CountPendingAsync()
+        {
+            using (var c = new OleDbConnection(_connectionString))
+            {
+                await c.OpenAsync();
+                using (var cmd = new OleDbCommand("SELECT COUNT(*) FROM DraftAdmissions", c))
+                {
+                    var result = await cmd.ExecuteScalarAsync();
+                    return result == null || result == DBNull.Value ? 0 : Convert.ToInt32(result);
+                }
+            }
+        }
+
         public async Task<DraftAdmission> GetByIdAsync(int draftId)
         {
             using (var c = new OleDbConnection(_connectionString))
