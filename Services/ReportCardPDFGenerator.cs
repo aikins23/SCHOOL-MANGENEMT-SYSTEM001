@@ -30,11 +30,15 @@ namespace kingdom_Preparatory_School_Management_System.Services
         private const double SignatureHeight = 48;
         private const double BottomLegendHeight = 45;
 
-        private static readonly XColor Navy = XColor.FromArgb(9, 35, 96);
-        private static readonly XColor LightBlue = XColor.FromArgb(189, 214, 238);
-        private static readonly XColor Gold = XColor.FromArgb(210, 190, 36);
+        // Brand colours come from the configurable School Information settings (SchoolProfile),
+        // honouring the transient preview override. Black/white stay fixed.
+        private static XColor Navy      => ToX(Common.SchoolProfile.ReportPrimaryColor);
+        private static XColor LightBlue => ToX(Common.SchoolProfile.ReportSecondaryColor);
+        private static XColor Gold      => ToX(Common.SchoolProfile.ReportAccentColor);
         private static readonly XColor Black = XColors.Black;
         private static readonly XColor White = XColors.White;
+
+        private static XColor ToX(System.Drawing.Color c) => XColor.FromArgb(c.A, c.R, c.G, c.B);
 
         private static XPen Border(double width = 0.7) => new XPen(Black, width);
         private static XSolidBrush Brush(XColor color) => new XSolidBrush(color);
