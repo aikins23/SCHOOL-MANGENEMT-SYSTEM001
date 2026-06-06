@@ -146,6 +146,27 @@ public frmDashboard()
             }
         }
 
+        /// <summary>
+        /// Shuts the application down robustly. Application.Exit() intermittently throws
+        /// (IndexOutOfRangeException / NullReferenceException) from WinForms' thread-context
+        /// teardown — a framework race where the GC finalizer thread mutates the static
+        /// context table while ExitCommon copies it into a fixed-size array. When that
+        /// happens, hard-exit the process so the user gets a clean shutdown instead of an
+        /// unhandled-exception dialog. The graceful path is unchanged when no race occurs.
+        /// </summary>
+        private void ExitApplication()
+        {
+            try
+            {
+                Application.Exit();
+            }
+            catch (Exception ex)
+            {
+                Services.LoggerHelper.LogWarning("Application.Exit teardown race; forcing process exit: " + ex.Message);
+                Environment.Exit(0);
+            }
+        }
+
         private void BuildModernDashboard()
         {
             SuspendLayout();
@@ -290,7 +311,7 @@ public frmDashboard()
             navScroll.Controls.Add(nav);
 
             // ── User info footer ──────────────────────────────────────────────
-            var exitBtn = CreateNavButton("Exit", Application.Exit);
+            var exitBtn = CreateNavButton("Exit", ExitApplication);
             exitBtn.Dock      = DockStyle.Bottom;
             exitBtn.ForeColor = Color.FromArgb(239, 80, 80);
             exitBtn.Margin    = Padding.Empty;
@@ -987,7 +1008,7 @@ public frmDashboard()
             return "GHS " + amount.ToString("#,##0.00");
         }
 
-        private void gunaPictureBox1_Click(object sender, EventArgs e) { Application.Exit(); }
+        private void gunaPictureBox1_Click(object sender, EventArgs e) { ExitApplication(); }
         private void gunaPictureBox2_Click(object sender, EventArgs e) { WindowState = FormWindowState.Minimized; }
         private void gunaPictureBox3_Click(object sender, EventArgs e) { WindowState = WindowState == FormWindowState.Maximized ? FormWindowState.Normal : FormWindowState.Maximized; }
         private void btnAddStudent_Click(object sender, EventArgs e)
