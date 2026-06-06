@@ -130,13 +130,14 @@ namespace kingdom_Preparatory_School_Management_System.Data
                 using (var connection = new OleDbConnection(_connectionString))
                 {
                     await connection.OpenAsync();
-                    // Identify the latest record by the monotonic identity key, not by
-                    // (Date, tm): [Date] is a date (no time) and [tm] is time(0) (second
-                    // resolution), so two rows recorded in the same second — e.g. the two
-                    // admission rows (admission fee + school fee) — tie with no reliable
-                    // tiebreaker and the engine can return the wrong Balance. PaymentRecordID
-                    // increases with every insert, so MAX(PaymentRecordID) is the true latest.
-                    var query = "SELECT TOP 1 [Balance] FROM [payment_record] WHERE [StudentID] = ? ORDER BY [PaymentRecordID] DESC";
+                    // [Date] is a date (no time) and [tm] is time(0) (second resolution),
+                    // so two rows recorded in the same second — e.g. the two admission rows
+                    // (admission fee carrying the full term total, then the school-fee
+                    // payment carrying the smaller remaining) — tie on (Date, tm) with no
+                    // tiebreaker, and the engine could return the wrong Balance. Break the
+                    // tie with [Balance] ASC: among same-second rows the most-paid (latest)
+                    // state always has the lowest balance, so this returns the true latest.
+                    var query = "SELECT TOP 1 [Balance] FROM [payment_record] WHERE [StudentID] = ? ORDER BY [Date] DESC, [tm] DESC, [Balance] ASC";
                     using (var command = new OleDbCommand(query, connection))
                     {
                         command.Parameters.AddWithValue("?", studentId);
@@ -324,21 +325,27 @@ namespace kingdom_Preparatory_School_Management_System.Data
                 using (var connection = new OleDbConnection(_connectionString))
                 {
                     await connection.OpenAsync();
+                    // One row per student = their latest payment. [Date]/[tm] alone can tie
+                    // (date has no time, tm is second-resolution), so rank by
+                    // [Date] DESC, [tm] DESC, [Balance] ASC — among same-second rows the
+                    // most-paid (latest) state has the lowest balance. ROW_NUMBER picks
+                    // exactly one row per student, so a student can't duplicate or vanish.
                     var query = @"
-                        SELECT 
-                            p.StudentID AS [ID], 
-                            p.student_name AS [Student Name], 
-                            p.classID AS [Class], 
-                            p.Balance AS [Balance Owed],
-                            p.[Date] AS [Last Payment]
-                        FROM payment_record p
-                        INNER JOIN (
-                            SELECT StudentID, MAX(PaymentRecordID) AS LastId
-                            FROM payment_record
-                            GROUP BY StudentID
-                        ) latest ON p.StudentID = latest.StudentID AND p.PaymentRecordID = latest.LastId
-                        WHERE p.Balance > 0
-                        ORDER BY p.Balance DESC";
+                        SELECT [ID], [Student Name], [Class], [Balance Owed], [Last Payment]
+                        FROM (
+                            SELECT
+                                p.StudentID    AS [ID],
+                                p.student_name AS [Student Name],
+                                p.classID      AS [Class],
+                                p.Balance      AS [Balance Owed],
+                                p.[Date]       AS [Last Payment],
+                                ROW_NUMBER() OVER (
+                                    PARTITION BY p.StudentID
+                                    ORDER BY p.[Date] DESC, p.tm DESC, p.Balance ASC) AS rn
+                            FROM payment_record p
+                        ) latest
+                        WHERE latest.rn = 1 AND latest.[Balance Owed] > 0
+                        ORDER BY latest.[Balance Owed] DESC";
                     
                     using (var command = new OleDbCommand(query, connection))
                     using (var adapter = new OleDbDataAdapter(command))
