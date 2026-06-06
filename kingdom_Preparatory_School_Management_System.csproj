@@ -164,6 +164,7 @@
     <Compile Include="Common\AdmissionFees.cs" />
     <Compile Include="Common\SchoolProfile.cs" />
     <Compile Include="Common\GradingScheme.cs" />
+    <Compile Include="Common\SubjectCatalog.cs" />
     <Compile Include="Common\StudentId.cs" />
     <Compile Include="Common\ConfirmationHelper.cs" />
     <Compile Include="Common\DraggableForm.cs">
