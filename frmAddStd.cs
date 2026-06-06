@@ -15,6 +15,8 @@ namespace kingdom_Preparatory_School_Management_System
         private Label statusLabel;
         private Panel pageHost;
         private Panel _stepPanel;          // custom-drawn step-dot indicator
+        private RadioButton _rbBusYes, _rbBusNo;
+        private ComboBox _cmbRoute;
         private Button previousPageButton;
         private Button nextPageButton;
         private Button[] stepButtons;
@@ -298,7 +300,7 @@ namespace kingdom_Preparatory_School_Management_System
         private Control BuildGuardianPanel()
         {
             var panel = CreateSurfacePanel(new Padding(24, 20, 24, 22), Padding.Empty);
-            var layout = CreateSectionLayout("Guardian and Admission", 4, 2);
+            var layout = CreateSectionLayout("Guardian and Admission", 5, 2);
 
             layout.Controls.Add(CreateField("Guardian Name", txtGN), 0, 1);
             layout.Controls.Add(CreateField("Guardian Email", txtGE), 1, 1);
@@ -306,6 +308,16 @@ namespace kingdom_Preparatory_School_Management_System
             layout.Controls.Add(CreateField("Admission Date", dateAD), 1, 2);
             layout.Controls.Add(CreateField("Allergies / Medical Notes", txtAG), 0, 3);
             layout.SetColumnSpan(layout.GetControlFromPosition(0, 3), 2);
+
+            var busPanel = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.LeftToRight, WrapContents = false, BackColor = SurfaceColor };
+            _rbBusNo = new RadioButton { Text = "No", Checked = true, AutoSize = true, Margin = new Padding(0, 8, 16, 0), ForeColor = TextColor };
+            _rbBusYes = new RadioButton { Text = "Yes", AutoSize = true, Margin = new Padding(0, 8, 0, 0), ForeColor = TextColor };
+            busPanel.Controls.Add(_rbBusNo);
+            busPanel.Controls.Add(_rbBusYes);
+            _cmbRoute = new ComboBox { Dock = DockStyle.Fill, DropDownStyle = ComboBoxStyle.DropDownList, Enabled = false };
+            _rbBusYes.CheckedChanged += (s, e) => _cmbRoute.Enabled = _rbBusYes.Checked;
+            layout.Controls.Add(CreateField("School Bus?", busPanel), 0, 4);
+            layout.Controls.Add(CreateField("Bus Route", _cmbRoute), 1, 4);
 
             panel.Controls.Add(layout);
             return panel;
@@ -788,6 +800,7 @@ namespace kingdom_Preparatory_School_Management_System
                 LoadClassDropdown();
                 LoadGenderDropdown();
                 SetDateOfBirthRange();
+                await LoadBusRoutesAsync();
                 txtStdID.Focus();
                 LoggerHelper.LogInfo("frmAddStd loaded successfully");
             }
@@ -796,6 +809,28 @@ namespace kingdom_Preparatory_School_Management_System
                 UIHelper.ShowError("Error loading form: " + ex.Message, "Student Registration");
                 LoggerHelper.LogError("frmAddStd_Load failed", ex);
             }
+        }
+
+        private async System.Threading.Tasks.Task LoadBusRoutesAsync()
+        {
+            try
+            {
+                var repo = new Data.TransportRepository(AppConfig.ConnectionString);
+                await repo.EnsureTablesAsync();
+                var routes = await repo.GetRoutesAsync();
+                _cmbRoute.Items.Clear();
+                foreach (var r in routes) _cmbRoute.Items.Add(new RouteItem(r));
+                if (_cmbRoute.Items.Count > 0) _cmbRoute.SelectedIndex = 0;
+            }
+            catch (Exception ex) { LoggerHelper.LogWarning("Could not load bus routes: " + ex.Message); }
+        }
+
+        private sealed class RouteItem
+        {
+            public Models.BusRoute Route { get; }
+            public RouteItem(Models.BusRoute r) { Route = r; }
+            public override string ToString() =>
+                Route.RouteName + " — GHS " + Route.Fee.ToString("N2") + " / " + Route.PaymentTerm;
         }
 
         private void LoadClassDropdown()
@@ -843,6 +878,8 @@ namespace kingdom_Preparatory_School_Management_System
             txtGL.Text = "";
             dateAD.Value = DateTime.Today;
             std_pic.Image = null;
+            if (_rbBusNo != null) _rbBusNo.Checked = true;
+            if (_cmbRoute != null) { _cmbRoute.SelectedIndex = _cmbRoute.Items.Count > 0 ? 0 : -1; _cmbRoute.Enabled = false; }
         }
 
         private async System.Threading.Tasks.Task SetNextStudentId()
@@ -968,6 +1005,9 @@ namespace kingdom_Preparatory_School_Management_System
 
                 if (isNew)
                 {
+                    if (_rbBusYes.Checked && !(_cmbRoute.SelectedItem is RouteItem))
+                    { UIHelper.ShowWarning("Select a bus route, or choose No.", "Student Registration"); return; }
+
                     // New admission: don't save yet. Collect the admission + school-fee
                     // payment, then submit a draft for bursar approval. The student,
                     // receipts, and SMS are created only when the bursar approves.
@@ -990,7 +1030,8 @@ namespace kingdom_Preparatory_School_Management_System
                         ProfilePhoto = student.ProfilePhoto,
                         TermTotal = _studentService.GetFeeForClass(student.ClassID),
                         AdmissionFee = Common.AdmissionFees.Amount,
-                        SubmittedBy = AuthService.CurrentUser.Username
+                        SubmittedBy = AuthService.CurrentUser.Username,
+                        BusRouteId = (_rbBusYes.Checked && _cmbRoute.SelectedItem is RouteItem ri) ? ri.Route.RouteId : (int?)null
                     };
                     using (var pay = new frmFessPayment(draft))
                     {
