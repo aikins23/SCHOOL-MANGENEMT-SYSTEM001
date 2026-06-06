@@ -296,6 +296,12 @@ public frmDashboard()
                 // Bursar: approve pending admission payments (promotes draft + receipts + SMS).
                 nav.Controls.Add(CreateNavButton("Admission Approvals", () => OpenForm(new frmPendingApprovals())));
             }
+            if (role == AuthService.UserRole.Accountant || role == AuthService.UserRole.Director ||
+                role == AuthService.UserRole.Administrator || role == AuthService.UserRole.Headmaster)
+            {
+                // Searchable history of all recorded payments (split out of Fees Payment).
+                nav.Controls.Add(CreateNavButton("Payment History", () => OpenForm(new frmPaymentHistory())));
+            }
             if (role == AuthService.UserRole.Director || role == AuthService.UserRole.Administrator)
             {
                 // Email + SMS notification settings (Arkesel/BulkSMSGh, sender IDs, HR address).
