@@ -41,6 +41,11 @@ namespace kingdom_Preparatory_School_Management_System.Data
                         IssueDate DATETIME NOT NULL, DueDate DATETIME NOT NULL,
                         ReturnDate DATETIME NULL, Status NVARCHAR(20) NOT NULL);";
                 using (var cmd = new OleDbCommand(loans, c)) await cmd.ExecuteNonQueryAsync();
+
+                // Quantity column (Class loans can be many copies) — added idempotently.
+                const string addQty = @"IF COL_LENGTH('BookLoans','Quantity') IS NULL
+                    ALTER TABLE BookLoans ADD Quantity INT NOT NULL CONSTRAINT DF_BookLoans_Qty DEFAULT (1);";
+                using (var cmd = new OleDbCommand(addQty, c)) await cmd.ExecuteNonQueryAsync();
             }
         }
 
@@ -139,8 +144,9 @@ namespace kingdom_Preparatory_School_Management_System.Data
             }
         }
 
-        public async Task<(bool Ok, string Message)> IssueAsync(int bookId, string borrowerType, string borrowerId, string borrowerName, DateTime dueDate)
+        public async Task<(bool Ok, string Message)> IssueAsync(int bookId, string borrowerType, string borrowerId, string borrowerName, DateTime dueDate, int quantity = 1)
         {
+            if (quantity < 1) quantity = 1;
             using (var c = new OleDbConnection(_connectionString))
             {
                 await c.OpenAsync();
@@ -151,10 +157,11 @@ namespace kingdom_Preparatory_School_Management_System.Data
                     var v = await cmd.ExecuteScalarAsync();
                     avail = v == null || v == DBNull.Value ? 0 : Convert.ToInt32(v);
                 }
-                if (avail < 1) return (false, "No copies available for that book.");
+                if (avail < quantity)
+                    return (false, $"Only {avail} cop{(avail == 1 ? "y" : "ies")} available for that book.");
 
-                const string ins = @"INSERT INTO BookLoans (BookId,BorrowerType,BorrowerId,BorrowerName,IssueDate,DueDate,ReturnDate,Status)
-                    VALUES (?,?,?,?,?,?,?,?)";
+                const string ins = @"INSERT INTO BookLoans (BookId,BorrowerType,BorrowerId,BorrowerName,IssueDate,DueDate,ReturnDate,Status,Quantity)
+                    VALUES (?,?,?,?,?,?,?,?,?)";
                 using (var cmd = new OleDbCommand(ins, c))
                 {
                     cmd.Parameters.AddWithValue("?", bookId);
@@ -165,10 +172,12 @@ namespace kingdom_Preparatory_School_Management_System.Data
                     cmd.Parameters.AddWithValue("?", TruncateSeconds(dueDate));
                     cmd.Parameters.Add("?", OleDbType.DBTimeStamp).Value = DBNull.Value;
                     cmd.Parameters.AddWithValue("?", "Active");
+                    cmd.Parameters.AddWithValue("?", quantity);
                     await cmd.ExecuteNonQueryAsync();
                 }
-                using (var cmd = new OleDbCommand("UPDATE Books SET AvailableCopies=AvailableCopies-1 WHERE BookId=?", c))
+                using (var cmd = new OleDbCommand("UPDATE Books SET AvailableCopies=AvailableCopies-? WHERE BookId=?", c))
                 {
+                    cmd.Parameters.AddWithValue("?", quantity);
                     cmd.Parameters.AddWithValue("?", bookId);
                     await cmd.ExecuteNonQueryAsync();
                 }
@@ -181,13 +190,16 @@ namespace kingdom_Preparatory_School_Management_System.Data
             using (var c = new OleDbConnection(_connectionString))
             {
                 await c.OpenAsync();
-                int bookId;
-                using (var cmd = new OleDbCommand("SELECT BookId FROM BookLoans WHERE LoanId=? AND Status='Active'", c))
+                int bookId, qty;
+                using (var cmd = new OleDbCommand("SELECT BookId, Quantity FROM BookLoans WHERE LoanId=? AND Status='Active'", c))
                 {
                     cmd.Parameters.AddWithValue("?", loanId);
-                    var v = await cmd.ExecuteScalarAsync();
-                    if (v == null || v == DBNull.Value) return; // not active / already returned
-                    bookId = Convert.ToInt32(v);
+                    using (var r = await cmd.ExecuteReaderAsync())
+                    {
+                        if (!await r.ReadAsync()) return; // not active / already returned
+                        bookId = Convert.ToInt32(r["BookId"]);
+                        qty = r["Quantity"] == DBNull.Value ? 1 : Convert.ToInt32(r["Quantity"]);
+                    }
                 }
                 using (var cmd = new OleDbCommand("UPDATE BookLoans SET ReturnDate=?, Status='Returned' WHERE LoanId=?", c))
                 {
@@ -195,8 +207,9 @@ namespace kingdom_Preparatory_School_Management_System.Data
                     cmd.Parameters.AddWithValue("?", loanId);
                     await cmd.ExecuteNonQueryAsync();
                 }
-                using (var cmd = new OleDbCommand("UPDATE Books SET AvailableCopies=AvailableCopies+1 WHERE BookId=?", c))
+                using (var cmd = new OleDbCommand("UPDATE Books SET AvailableCopies=AvailableCopies+? WHERE BookId=?", c))
                 {
+                    cmd.Parameters.AddWithValue("?", qty);
                     cmd.Parameters.AddWithValue("?", bookId);
                     await cmd.ExecuteNonQueryAsync();
                 }
@@ -238,7 +251,15 @@ namespace kingdom_Preparatory_School_Management_System.Data
             BorrowerType = S(r["BorrowerType"]), BorrowerId = S(r["BorrowerId"]), BorrowerName = S(r["BorrowerName"]),
             IssueDate = Convert.ToDateTime(r["IssueDate"]), DueDate = Convert.ToDateTime(r["DueDate"]),
             ReturnDate = r["ReturnDate"] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(r["ReturnDate"]),
-            Status = S(r["Status"])
+            Status = S(r["Status"]),
+            Quantity = HasColumn(r, "Quantity") && r["Quantity"] != DBNull.Value ? Convert.ToInt32(r["Quantity"]) : 1
         };
+
+        private static bool HasColumn(IDataRecord r, string name)
+        {
+            for (int i = 0; i < r.FieldCount; i++)
+                if (string.Equals(r.GetName(i), name, StringComparison.OrdinalIgnoreCase)) return true;
+            return false;
+        }
     }
 }

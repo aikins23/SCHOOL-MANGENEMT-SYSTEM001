@@ -24,9 +24,11 @@ namespace kingdom_Preparatory_School_Management_System
 
         private DataGridView _booksGrid, _loansGrid;
         private TextBox _bookSearch, _borrowerId;
-        private Label _borrowerName, _status;
-        private ComboBox _borrowerType, _bookCombo;
+        private Label _borrowerName, _status, _qtyLabel;
+        private ComboBox _borrowerType, _bookCombo, _classCombo;
         private DateTimePicker _dueDate;
+        private NumericUpDown _quantity;
+        private Button _lookupBtn;
 
         public frmLibrary()
         {
@@ -90,19 +92,28 @@ namespace kingdom_Preparatory_School_Management_System
             var tab = new TabPage("Loans") { BackColor = Color.White };
             var issue = new Panel { Dock = DockStyle.Top, Height = 96, Padding = new Padding(8), BackColor = Color.White };
             _borrowerType = new ComboBox { Left = 8, Top = 10, Width = 110, DropDownStyle = ComboBoxStyle.DropDownList };
-            _borrowerType.Items.AddRange(new object[] { "Student", "Staff" }); _borrowerType.SelectedIndex = 0;
+            _borrowerType.Items.AddRange(new object[] { "Student", "Staff", "Class" }); _borrowerType.SelectedIndex = 0;
+            _borrowerType.SelectedIndexChanged += (s, e) => UpdateBorrowerMode();
             _borrowerId = new TextBox { Left = 124, Top = 11, Width = 130, Font = new Font("Segoe UI", 10F) };
-            var lookupBtn = new Button { Left = 260, Top = 9, Width = 80, Height = 26, Text = "Look up", FlatStyle = FlatStyle.Flat };
+            _lookupBtn = new Button { Left = 260, Top = 9, Width = 80, Height = 26, Text = "Look up", FlatStyle = FlatStyle.Flat };
             _borrowerName = new Label { Left = 348, Top = 13, Width = 220, Text = "", ForeColor = AppConfig.Colors.TextColor };
-            lookupBtn.Click += async (s, e) => await LookupBorrowerAsync();
+            _lookupBtn.Click += async (s, e) => await LookupBorrowerAsync();
+
+            // Class borrowing: class picker + quantity (shown only when type == "Class").
+            _classCombo = new ComboBox { Left = 124, Top = 11, Width = 180, DropDownStyle = ComboBoxStyle.DropDownList, Visible = false };
+            _classCombo.Items.AddRange(AppConfig.ClassNames.Cast<object>().ToArray());
+            if (_classCombo.Items.Count > 0) _classCombo.SelectedIndex = 0;
+            _qtyLabel = new Label { Left = 314, Top = 14, Width = 30, Text = "Qty:", Visible = false };
+            _quantity = new NumericUpDown { Left = 346, Top = 10, Width = 70, Minimum = 1, Maximum = 1, Value = 1, Visible = false };
 
             var bookLbl = new Label { Left = 8, Top = 50, Width = 44, Text = "Book:", TextAlign = ContentAlignment.MiddleLeft };
             _bookCombo = new ComboBox { Left = 56, Top = 47, Width = 300, DropDownStyle = ComboBoxStyle.DropDownList };
+            _bookCombo.SelectedIndexChanged += (s, e) => UpdateQuantityMax();
             _dueDate = new DateTimePicker { Left = 364, Top = 47, Width = 130, Format = DateTimePickerFormat.Short, Value = DateTime.Today.AddDays(14) };
             var issueBtn = new Button { Left = 502, Top = 45, Width = 100, Height = 28, Text = "Issue", BackColor = AppConfig.Colors.SuccessColor, ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
             issueBtn.Click += async (s, e) => await IssueAsync();
 
-            issue.Controls.AddRange(new Control[] { _borrowerType, _borrowerId, lookupBtn, _borrowerName, bookLbl, _bookCombo, _dueDate, issueBtn });
+            issue.Controls.AddRange(new Control[] { _borrowerType, _borrowerId, _lookupBtn, _borrowerName, _classCombo, _qtyLabel, _quantity, bookLbl, _bookCombo, _dueDate, issueBtn });
 
             var returnBtn = new Button { Dock = DockStyle.Bottom, Height = 34, Text = "Return Selected", FlatStyle = FlatStyle.Flat };
             returnBtn.Click += async (s, e) => await ReturnSelectedAsync();
@@ -118,6 +129,25 @@ namespace kingdom_Preparatory_School_Management_System
             tab.Controls.Add(returnBtn);
             tab.Controls.Add(issue);
             return tab;
+        }
+
+        private void UpdateBorrowerMode()
+        {
+            bool isClass = _borrowerType.SelectedItem?.ToString() == "Class";
+            _borrowerId.Visible = !isClass;
+            _lookupBtn.Visible = !isClass;
+            _borrowerName.Visible = !isClass;
+            _classCombo.Visible = isClass;
+            _qtyLabel.Visible = isClass;
+            _quantity.Visible = isClass;
+            if (isClass) UpdateQuantityMax();
+        }
+
+        private void UpdateQuantityMax()
+        {
+            int max = (_bookCombo.SelectedItem is Book b) ? Math.Max(1, b.AvailableCopies) : 1;
+            _quantity.Maximum = max;
+            if (_quantity.Value > max) _quantity.Value = max;
         }
 
         private async Task InitAsync()
@@ -152,6 +182,7 @@ namespace kingdom_Preparatory_School_Management_System
             var loans = await _repo.GetActiveLoansAsync();
             _loansGrid.DataSource = loans.Select(l => new {
                 l.LoanId, Book = l.BookTitle, Borrower = l.BorrowerName + " (" + l.BorrowerType + ")",
+                Qty = l.Quantity,
                 Issued = l.IssueDate.ToString("dd/MM/yyyy"), Due = l.DueDate.ToString("dd/MM/yyyy"),
                 Overdue = l.IsOverdue ? "OVERDUE" : ""
             }).ToList();
@@ -186,11 +217,27 @@ namespace kingdom_Preparatory_School_Management_System
         {
             if (!(_bookCombo.SelectedItem is Book book) || book == null)
             { UIHelper.ShowWarning("Pick a book with available copies.", "Library"); return; }
-            string id = StudentId.Parse(_borrowerId.Text);
-            string name = _borrowerName.Text;
-            if (string.IsNullOrWhiteSpace(id) || string.IsNullOrWhiteSpace(name) || name.StartsWith("("))
-            { UIHelper.ShowWarning("Look up a valid borrower first.", "Library"); return; }
-            var res = await _repo.IssueAsync(book.BookId, _borrowerType.SelectedItem.ToString(), id, name, _dueDate.Value.Date);
+
+            string type = _borrowerType.SelectedItem?.ToString() ?? "Student";
+            string id, name;
+            int qty = 1;
+            if (type == "Class")
+            {
+                if (_classCombo.SelectedItem == null)
+                { UIHelper.ShowWarning("Pick a class.", "Library"); return; }
+                name = _classCombo.SelectedItem.ToString();
+                id = name;
+                qty = (int)_quantity.Value;
+            }
+            else
+            {
+                id = StudentId.Parse(_borrowerId.Text);
+                name = _borrowerName.Text;
+                if (string.IsNullOrWhiteSpace(id) || string.IsNullOrWhiteSpace(name) || name.StartsWith("("))
+                { UIHelper.ShowWarning("Look up a valid borrower first.", "Library"); return; }
+            }
+
+            var res = await _repo.IssueAsync(book.BookId, type, id, name, _dueDate.Value.Date, qty);
             if (!res.Ok) { UIHelper.ShowWarning(res.Message, "Library"); return; }
             _borrowerId.Text = ""; _borrowerName.Text = "";
             await LoadBooksAsync(); await LoadBookComboAsync(); await LoadLoansAsync();
