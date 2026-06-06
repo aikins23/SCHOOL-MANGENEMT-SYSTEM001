@@ -42,11 +42,8 @@ namespace kingdom_Preparatory_School_Management_System
         private static readonly Color Primary   = Color.FromArgb(31, 99, 198);
 
         // ── Subject list ──────────────────────────────────────────────────────
-        private readonly string[] subjects =
-        {
-            "MATHEMATICS", "INT. SCIENCE", "ENGLISH LANGUAGE", "SOCIAL STUDIES",
-            "COMPUTING", "REL. & MORAL EDU.", "CARRER TECH.", "CREATIVE ART", "GHANAIAN LANG."
-        };
+        // Current subjects shown in the grid; defaults to the legacy list, replaced per class on lookup.
+        private string[] subjects = Common.SubjectCatalog.LegacySubjects;
 
         // ── Per-subject row controls ──────────────────────────────────────────
         private readonly Dictionary<string, SubjectRows> subjectRows =
@@ -298,9 +295,27 @@ namespace kingdom_Preparatory_School_Management_System
             subjectGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,   13)); // Total
             subjectGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,    9)); // Grade
             subjectGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,   26)); // Remark
+            RebuildSubjectGrid(subjects);
+
+            shell.Controls.Add(subjectGrid, 0, 1);
+            card.Controls.Add(shell);
+            return card;
+        }
+
+        private void RebuildSubjectGrid(IReadOnlyList<string> subjectList)
+        {
+            subjects = new List<string>(subjectList).ToArray();
+
+            subjectGrid.SuspendLayout();
+            subjectGrid.Controls.Clear();
+            subjectGrid.RowStyles.Clear();
+            subjectRows.Clear();
+
+            subjectGrid.RowCount = subjects.Length + 1;
             subjectGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 40));
             for (int i = 0; i < subjects.Length; i++)
-                subjectGrid.RowStyles.Add(new RowStyle(SizeType.Percent, 100F / subjects.Length));
+                subjectGrid.RowStyles.Add(new RowStyle(SizeType.Percent,
+                    subjects.Length == 0 ? 100F : 100F / subjects.Length));
 
             string[] headers = { "Subject", "Test (40)", "Group (10)", "Project (10)", "Exam (100)", "Total", "Grade", "Remark" };
             for (int i = 0; i < headers.Length; i++)
@@ -309,9 +324,10 @@ namespace kingdom_Preparatory_School_Management_System
             for (int i = 0; i < subjects.Length; i++)
                 AddSubjectRow(subjects[i], i + 1);
 
-            shell.Controls.Add(subjectGrid, 0, 1);
-            card.Controls.Add(shell);
-            return card;
+            if (completionLabel != null)
+                completionLabel.Text = "0 of " + subjects.Length + " subjects";
+
+            subjectGrid.ResumeLayout(true);
         }
 
         private Control BuildBottomActions()
@@ -595,6 +611,7 @@ namespace kingdom_Preparatory_School_Management_System
 
                     studentNameBox.Text = student.FullName;
                     classBox.Text       = student.ClassID;
+                    RebuildSubjectGrid(Common.SubjectCatalog.SubjectsForClass(student.ClassID));
                     statusLabel.Text    = "Student loaded. Checking for existing results…";
                     await LoadExistingResults(sid);
                     return;
