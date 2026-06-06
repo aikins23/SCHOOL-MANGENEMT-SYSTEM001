@@ -61,8 +61,8 @@ namespace kingdom_Preparatory_School_Management_System
 
             _addBtn.Click += (s, e) => AddSubject();
             _removeBtn.Click += (s, e) => { if (_subjectList.SelectedIndex >= 0) { _subjectList.Items.RemoveAt(_subjectList.SelectedIndex); _dirty = true; } };
-            _upBtn.Click += (s, e) => Move(-1);
-            _downBtn.Click += (s, e) => Move(1);
+            _upBtn.Click += (s, e) => MoveSelected(-1);
+            _downBtn.Click += (s, e) => MoveSelected(1);
             _saveBtn.Click += async (s, e) => await SaveAsync();
             _cancelBtn.Click += (s, e) => Close();
 
@@ -125,7 +125,7 @@ namespace kingdom_Preparatory_School_Management_System
             _dirty = true;
         }
 
-        private void Move(int delta)
+        private void MoveSelected(int delta)
         {
             int i = _subjectList.SelectedIndex;
             if (i < 0) return;
