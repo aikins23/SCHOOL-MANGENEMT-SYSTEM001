@@ -37,6 +37,17 @@ namespace kingdom_Preparatory_School_Management_System.Data
                         UpdatedDate DATETIME);";
                 using (var cmd = new OleDbCommand(createInfo, c)) await cmd.ExecuteNonQueryAsync();
 
+                // Add report-card colour columns to existing installs (idempotent).
+                var def = new SchoolInformation();
+                string[] colAlters =
+                {
+                    $"IF COL_LENGTH('SchoolInformation','PrimaryColor') IS NULL ALTER TABLE SchoolInformation ADD PrimaryColor INT NOT NULL CONSTRAINT DF_SI_Primary DEFAULT ({def.PrimaryColorArgb})",
+                    $"IF COL_LENGTH('SchoolInformation','AccentColor') IS NULL ALTER TABLE SchoolInformation ADD AccentColor INT NOT NULL CONSTRAINT DF_SI_Accent DEFAULT ({def.AccentColorArgb})",
+                    $"IF COL_LENGTH('SchoolInformation','SecondaryColor') IS NULL ALTER TABLE SchoolInformation ADD SecondaryColor INT NOT NULL CONSTRAINT DF_SI_Secondary DEFAULT ({def.SecondaryColorArgb})"
+                };
+                foreach (var alter in colAlters)
+                    using (var cmd = new OleDbCommand(alter, c)) await cmd.ExecuteNonQueryAsync();
+
                 const string createFees = @"IF OBJECT_ID(N'ClassFees', N'U') IS NULL
                     CREATE TABLE ClassFees (
                         ClassName NVARCHAR(50) NOT NULL PRIMARY KEY,
@@ -111,6 +122,9 @@ namespace kingdom_Preparatory_School_Management_System.Data
                         Email = AsString(r["Email"]),
                         Logo = r["Logo"] as byte[],
                         AdmissionFee = Convert.ToDecimal(r["AdmissionFee"]),
+                        PrimaryColorArgb = AsInt(r, "PrimaryColor", new SchoolInformation().PrimaryColorArgb),
+                        AccentColorArgb = AsInt(r, "AccentColor", new SchoolInformation().AccentColorArgb),
+                        SecondaryColorArgb = AsInt(r, "SecondaryColor", new SchoolInformation().SecondaryColorArgb),
                         UpdatedDate = Convert.ToDateTime(r["UpdatedDate"])
                     };
                 }
@@ -138,7 +152,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
                 await c.OpenAsync();
                 const string sql = @"UPDATE SchoolInformation SET
                     Name=?, Address=?, PoBox=?, GpsAddress=?, Phone1=?, Phone2=?, Email=?,
-                    Logo=?, AdmissionFee=?, UpdatedDate=? WHERE Id = 1";
+                    Logo=?, AdmissionFee=?, PrimaryColor=?, AccentColor=?, SecondaryColor=?, UpdatedDate=? WHERE Id = 1";
                 using (var cmd = new OleDbCommand(sql, c))
                 {
                     cmd.Parameters.AddWithValue("?", info.Name ?? "");
@@ -151,6 +165,9 @@ namespace kingdom_Preparatory_School_Management_System.Data
                     cmd.Parameters.Add("?", OleDbType.VarBinary).Value =
                         (object)info.Logo ?? DBNull.Value;
                     cmd.Parameters.AddWithValue("?", info.AdmissionFee);
+                    cmd.Parameters.AddWithValue("?", info.PrimaryColorArgb);
+                    cmd.Parameters.AddWithValue("?", info.AccentColorArgb);
+                    cmd.Parameters.AddWithValue("?", info.SecondaryColorArgb);
                     cmd.Parameters.AddWithValue("?", TruncateSeconds(DateTime.Now));
                     int rows = await cmd.ExecuteNonQueryAsync();
                     if (rows == 0) // row missing somehow — ensure then retry once
@@ -192,6 +209,12 @@ namespace kingdom_Preparatory_School_Management_System.Data
             new DateTime(t.Year, t.Month, t.Day, t.Hour, t.Minute, t.Second);
 
         private static string AsString(object o) => o == null || o == DBNull.Value ? "" : o.ToString();
+
+        private static int AsInt(System.Data.IDataRecord r, string col, int fallback)
+        {
+            try { var v = r[col]; return v == null || v == DBNull.Value ? fallback : Convert.ToInt32(v); }
+            catch { return fallback; }
+        }
 
         // Mirrors the legacy StudentService.GetFeeForClass switch so the seed matches today.
         public static decimal LegacyFeeForClass(string classId)

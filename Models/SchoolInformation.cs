@@ -1,4 +1,5 @@
 using System;
+using System.Drawing;
 
 namespace kingdom_Preparatory_School_Management_System.Models
 {
@@ -18,6 +19,11 @@ namespace kingdom_Preparatory_School_Management_System.Models
         public byte[] Logo { get; set; }                        // null => fall back to Resources/school_logo.png
         public decimal AdmissionFee { get; set; } = 100m;
         public DateTime UpdatedDate { get; set; } = DateTime.Now;
+
+        // Report card brand colours (ARGB ints). Defaults = the legacy hardcoded colours.
+        public int PrimaryColorArgb { get; set; } = Color.FromArgb(9, 35, 96).ToArgb();    // header / Navy
+        public int AccentColorArgb { get; set; } = Color.FromArgb(210, 190, 36).ToArgb();  // accent / Gold
+        public int SecondaryColorArgb { get; set; } = Color.FromArgb(189, 214, 238).ToArgb(); // row tint / Light Blue
 
         /// <summary>"0548050141 / 0246087609" with blanks dropped.</summary>
         public string Phones
