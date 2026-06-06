@@ -17,6 +17,8 @@ namespace kingdom_Preparatory_School_Management_System
         private readonly StudentService _studentService;
         private readonly DataTable data;
         private Label statusLabel;
+        private Label _busRouteLabel;
+        private int _currentStudentNumericId;
 
         private static readonly Color PageBackColor = UiTheme.Page;
         private static readonly Color SurfaceColor = UiTheme.Surface;
@@ -40,6 +42,15 @@ namespace kingdom_Preparatory_School_Management_System
             _studentService = new StudentService(studentRepo, feeRepo);
 
             BuildModernStudentDetailsView();
+
+            var busBar = new Panel { Dock = DockStyle.Bottom, Height = 40, BackColor = PageBackColor, Padding = new Padding(12, 6, 12, 6) };
+            _busRouteLabel = new Label { Dock = DockStyle.Left, Width = 460, Text = "Bus route: —", TextAlign = ContentAlignment.MiddleLeft, ForeColor = TextColor, Font = new Font("Segoe UI", 10F) };
+            var changeBusBtn = new Button { Dock = DockStyle.Right, Width = 150, Text = "Change Bus Route", FlatStyle = FlatStyle.Flat };
+            changeBusBtn.Click += async (s, e) => await ChangeBusRouteAsync();
+            busBar.Controls.Add(_busRouteLabel);
+            busBar.Controls.Add(changeBusBtn);
+            Controls.Add(busBar);
+
             Load += frmStdDetails_Load;
 
             // Wire events commented-out in designer
@@ -342,6 +353,8 @@ namespace kingdom_Preparatory_School_Management_System
 
             DataRow row = data.Rows[0];
             txtStdID.Text = Common.StudentId.Display(row["ID"]);
+            _currentStudentNumericId = Convert.ToInt32(row["ID"]);
+            _ = LoadBusRouteAsync();
             txtFN.Text = row["FIRST NAME"].ToString();
             txtLN.Text = row["LAST NAME"].ToString();
             dateDOB.Value = SafeDate(row["DATE OF BIRTH"], DateTime.Today.AddYears(-5));
@@ -536,5 +549,50 @@ namespace kingdom_Preparatory_School_Management_System
         private void classToolStripMenuItem1_Click(object sender, EventArgs e) { new EXAMSVIEW().Show(); }
         private void makePaymentToolStripMenuItem_Click(object sender, EventArgs e) { new frmFessPayment().Show(); }
         private void aboutToolStripMenuItem_Click(object sender, EventArgs e) { new frmAbout().Show(); }
+
+        private async System.Threading.Tasks.Task LoadBusRouteAsync()
+        {
+            try
+            {
+                var repo = new TransportRepository(AppConfig.ConnectionString);
+                await repo.EnsureTablesAsync();
+                var route = await repo.GetStudentRouteAsync(_currentStudentNumericId);
+                _busRouteLabel.Text = route == null
+                    ? "Bus route: None"
+                    : "Bus route: " + route.RouteName + " (GHS " + route.Fee.ToString("N2") + " / " + route.PaymentTerm + ")";
+            }
+            catch (Exception ex) { LoggerHelper.LogWarning("Load bus route failed: " + ex.Message); }
+        }
+
+        private async System.Threading.Tasks.Task ChangeBusRouteAsync()
+        {
+            if (_currentStudentNumericId <= 0) { UIHelper.ShowWarning("Load a student first.", "Bus Route"); return; }
+            var repo = new TransportRepository(AppConfig.ConnectionString);
+            await repo.EnsureTablesAsync();
+            var routes = await repo.GetRoutesAsync();
+
+            using (var dlg = new Form { Text = "Change Bus Route", Size = new Size(380, 170), StartPosition = FormStartPosition.CenterParent, FormBorderStyle = FormBorderStyle.FixedDialog, MaximizeBox = false, MinimizeBox = false })
+            {
+                dlg.Controls.Add(new Label { Left = 14, Top = 18, Width = 80, Text = "Route" });
+                var combo = new ComboBox { Left = 100, Top = 15, Width = 250, DropDownStyle = ComboBoxStyle.DropDownList };
+                combo.Items.Add("None");
+                foreach (var r in routes) combo.Items.Add(r.RouteName + " — GHS " + r.Fee.ToString("N2") + " / " + r.PaymentTerm);
+                combo.SelectedIndex = 0;
+                dlg.Controls.Add(combo);
+                var ok = new Button { Left = 100, Top = 70, Width = 100, Height = 30, Text = "Save", DialogResult = DialogResult.OK, BackColor = AppConfig.Colors.SuccessColor, ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
+                var cancel = new Button { Left = 212, Top = 70, Width = 100, Height = 30, Text = "Cancel", DialogResult = DialogResult.Cancel, FlatStyle = FlatStyle.Flat };
+                dlg.Controls.Add(ok); dlg.Controls.Add(cancel); dlg.AcceptButton = ok; dlg.CancelButton = cancel;
+                if (dlg.ShowDialog(this) != DialogResult.OK) return;
+
+                int? routeId = combo.SelectedIndex <= 0 ? (int?)null : routes[combo.SelectedIndex - 1].RouteId;
+                try
+                {
+                    await repo.SetStudentRouteAsync(_currentStudentNumericId, routeId);
+                    await LoadBusRouteAsync();
+                    UIHelper.ShowSuccess("Bus route updated.", "Bus Route");
+                }
+                catch (Exception ex) { UIHelper.ShowError("Could not update bus route: " + ex.Message, "Bus Route"); }
+            }
+        }
     }
 }
