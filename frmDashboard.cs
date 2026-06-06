@@ -394,6 +394,7 @@ public frmDashboard()
                 nav.Controls.Add(CreateNavButton("School Information", () => new frmSchoolInfo().ShowDialog()));
                 nav.Controls.Add(CreateNavButton("Grading Scheme", () => new frmGradingScheme().ShowDialog()));
                 nav.Controls.Add(CreateNavButton("Subjects", () => new frmSubjects().ShowDialog()));
+                nav.Controls.Add(CreateNavButton("Library", () => new frmLibrary().ShowDialog()));
             }
             if (role == AuthService.UserRole.Administrator || role == AuthService.UserRole.Headmaster)
             {
