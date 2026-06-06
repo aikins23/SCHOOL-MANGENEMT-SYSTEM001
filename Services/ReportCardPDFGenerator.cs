@@ -45,14 +45,25 @@ namespace kingdom_Preparatory_School_Management_System.Services
         private static XFont Font(double size, bool bold = false) =>
             new XFont("Arial", size, bold ? XFontStyleEx.Bold : XFontStyleEx.Regular);
 
-        private static readonly GradeLevel[] GradeLevels =
+        // Built from the configurable grading scheme. The displayed score range is derived
+        // from consecutive MinScores: top band "{min}+", middle "{min}-{nextHigherMin-1}",
+        // floor band "0-{nextHigherMin-1}".
+        private static GradeLevel[] GradeLevels => BuildGradeLevels();
+
+        private static GradeLevel[] BuildGradeLevels()
         {
-            new GradeLevel("80+", "1", "Advance(A)"),
-            new GradeLevel("75-79", "2", "Proficiency(P)"),
-            new GradeLevel("70-74", "3", "Approaching\nProficiency(AP)"),
-            new GradeLevel("65-69", "4", "Developing"),
-            new GradeLevel("64% -", "5", "Beginning")
-        };
+            var bands = Common.GradingScheme.Bands; // high -> low
+            var levels = new GradeLevel[bands.Count];
+            for (int i = 0; i < bands.Count; i++)
+            {
+                int min = bands[i].MinScore;
+                string range;
+                if (i == 0) range = min + "+";
+                else range = min + "-" + (bands[i - 1].MinScore - 1);
+                levels[i] = new GradeLevel(range, bands[i].Code, bands[i].Label);
+            }
+            return levels;
+        }
 
         public async Task<byte[]> GeneratePDFAsync(ReportCardData data)
         {
@@ -570,20 +581,12 @@ namespace kingdom_Preparatory_School_Management_System.Services
 
         private string GetGradeForScore(decimal score)
         {
-            if (score >= 80) return "1";
-            if (score >= 75) return "2";
-            if (score >= 70) return "3";
-            if (score >= 65) return "4";
-            return "5";
+            return Common.GradingScheme.CodeForScore(score);
         }
 
         private string GetRemarkForScore(decimal score)
         {
-            if (score >= 80) return "Advance";
-            if (score >= 75) return "Proficiency";
-            if (score >= 70) return "Approaching Proficiency";
-            if (score >= 65) return "Developing";
-            return "Beginning";
+            return Common.GradingScheme.LabelForScore(score);
         }
 
         private sealed class InfoRow
