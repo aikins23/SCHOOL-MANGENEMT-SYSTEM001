@@ -80,6 +80,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
             ["frmGradingScheme"]          = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster },
             ["frmSubjects"]               = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster },
             ["frmLibrary"]                = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster },
+            ["frmTransport"]              = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster },
             ["frmPaymentHistory"]         = new[] { UserRole.Accountant, UserRole.Director, UserRole.Administrator, UserRole.Headmaster },
         };
 
