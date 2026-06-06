@@ -428,6 +428,7 @@
     <Compile Include="frmPaymentHistory.cs" />
     <Compile Include="frmGradingScheme.cs" />
     <Compile Include="frmSubjects.cs" />
+    <Compile Include="frmLibrary.cs" />
     <Compile Include="Services\PhoneNumberGh.cs" />
     <Compile Include="Services\SmsSenderIds.cs" />
     <Compile Include="Services\DatabaseBackupService.cs" />
