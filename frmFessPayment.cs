@@ -1545,7 +1545,7 @@ namespace kingdom_Preparatory_School_Management_System
             decimal.TryParse(balanceBox?.Text, out balance);
             decimal projected = Math.Max(0m, balance - amount);
 
-            _rpStudentIdLbl.Text   = studentIdBox?.Text.Trim() ?? "";
+            _rpStudentIdLbl.Text   = Common.StudentId.Display(Common.StudentId.Parse(studentIdBox?.Text ?? ""));
             _rpClassLbl.Text       = classBox?.Text.Trim() ?? "";
             _rpNameLbl.Text        = studentNameBox?.Text.Trim() ?? "";
             _rpAmountWordsLbl.Text = amountWordsBox?.Text.Trim() ?? "";
@@ -2446,7 +2446,7 @@ namespace kingdom_Preparatory_School_Management_System
 
             try
             {
-                string studentId = studentIdBox.Text.Trim();
+                string studentId = Common.StudentId.Parse(studentIdBox.Text);
                 var student = await _studentService.GetStudentAsync(studentId);
 
                 if (student == null)
@@ -2557,14 +2557,14 @@ namespace kingdom_Preparatory_School_Management_System
                     return;
                 }
 
-                string changeDescription = $"Record payment of GHS {amountPaid:N2} for {studentNameBox.Text} (ID: {studentIdBox.Text.Trim()})?";
+                string changeDescription = $"Record payment of GHS {amountPaid:N2} for {studentNameBox.Text} (ID: {Common.StudentId.Display(Common.StudentId.Parse(studentIdBox.Text))})?";
                 if (!ConfirmationHelper.ConfirmSave(changeDescription)) return;
 
                 statusLabel.Text = "Recording payment...";
 
                 PaymentRecordResult result = await _paymentService.RecordPaymentAsync(new PaymentRecordRequest
                 {
-                    StudentId = studentIdBox.Text,
+                    StudentId = Common.StudentId.Parse(studentIdBox.Text),
                     ClassId = classBox.Text,
                     StudentName = studentNameBox.Text,
                     CurrentBalance = currentBalance,
