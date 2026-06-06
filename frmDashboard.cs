@@ -391,6 +391,7 @@ public frmDashboard()
                 // Email + SMS notification settings (Arkesel/BulkSMSGh, sender IDs, HR address).
                 nav.Controls.Add(CreateNavButton("Settings", () => new frmEmailSettings().ShowDialog()));
                 nav.Controls.Add(CreateNavButton("School Information", () => new frmSchoolInfo().ShowDialog()));
+                nav.Controls.Add(CreateNavButton("Grading Scheme", () => new frmGradingScheme().ShowDialog()));
             }
             if (role == AuthService.UserRole.Administrator || role == AuthService.UserRole.Headmaster)
             {
