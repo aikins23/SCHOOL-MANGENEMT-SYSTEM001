@@ -123,7 +123,7 @@ namespace kingdom_Preparatory_School_Management_System
             _approveBtn.Enabled = false;
             try
             {
-                string bursar = AuthService.CurrentUser.Username;
+                string bursar = AuthService.CurrentUser.DisplayName;
                 var res = await _service.ApproveAsync(d.DraftID, bursar);
                 if (!res.Ok) { UIHelper.ShowError(res.Message, "Approval"); return; }
 

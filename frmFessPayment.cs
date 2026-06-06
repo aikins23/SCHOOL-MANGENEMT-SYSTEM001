@@ -248,7 +248,10 @@ namespace kingdom_Preparatory_School_Management_System
             amountBox      = CreateTextBox();
             amountWordsBox = CreateTextBox(true);
             beingBox       = CreateTextBox();
-            bursarBox      = CreateTextBox();
+            // Bursar/cashier is the signed-in user — auto-filled and read-only so the
+            // receipt always reflects who actually recorded the payment.
+            bursarBox      = CreateTextBox(true);
+            bursarBox.Text = AuthService.CurrentUser.DisplayName;
             cashChequeBox  = CreateTextBox();
 
             paymentModeBox = new ComboBox
@@ -2892,7 +2895,7 @@ namespace kingdom_Preparatory_School_Management_System
             balanceBox.Text = "";
             amountBox.Text = "";
             amountWordsBox.Text = "";
-            bursarBox.Text = "";
+            bursarBox.Text = AuthService.CurrentUser.DisplayName; // keep the signed-in cashier
             cashChequeBox.Text = "";
             paymentModeBox.SelectedIndex = 0;
             paymentDatePicker.Value = DateTime.Today;

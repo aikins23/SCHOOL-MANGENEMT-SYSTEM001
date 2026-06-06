@@ -18,6 +18,12 @@ namespace kingdom_Preparatory_School_Management_System.Services
         public class UserSession
         {
             public string Username { get; set; }
+            /// <summary>Employee full name for this account, resolved at login. May be empty
+            /// (e.g. Director/Parent/unlinked accounts) — use <see cref="DisplayName"/> for UI.</summary>
+            public string FullName { get; set; }
+            /// <summary>Full name when available, otherwise the username. Used for receipts,
+            /// the bursar/cashier field, and any place that displays "who did this".</summary>
+            public string DisplayName => string.IsNullOrWhiteSpace(FullName) ? Username : FullName;
             public UserRole Role { get; set; }
             /// <summary>
             /// Employee record linked to this account (null for Director, Parent,
@@ -208,6 +214,10 @@ namespace kingdom_Preparatory_School_Management_System.Services
                                     EmploymentID = employmentId
                                 };
 
+                                // Resolve the employee full name so the UI (bursar field,
+                                // receipts) shows a real name instead of the login username.
+                                CurrentUser.FullName = await ResolveEmployeeFullNameAsync(employmentId);
+
                                 if (!IsHashedPassword(storedPassword))
                                 {
                                     await TryUpgradePasswordHashAsync(connection, username, password);
@@ -228,6 +238,34 @@ namespace kingdom_Preparatory_School_Management_System.Services
         }
 
         public static void Logout() { CurrentUser = new UserSession { Role = UserRole.Unknown }; }
+
+        /// <summary>
+        /// Looks up the Employee full name for a login's EmploymentID. Returns "" when there
+        /// is no linked employee (Director/Parent/unlinked) or on any error — callers fall
+        /// back to the username via <see cref="UserSession.DisplayName"/>.
+        /// </summary>
+        private static async System.Threading.Tasks.Task<string> ResolveEmployeeFullNameAsync(int? employmentId)
+        {
+            if (!employmentId.HasValue) return "";
+            try
+            {
+                using (var connection = new OleDbConnection(AppConfig.ConnectionString))
+                {
+                    await connection.OpenAsync();
+                    using (var command = new OleDbCommand("SELECT fullName FROM Employee WHERE employmentID = ?", connection))
+                    {
+                        command.Parameters.AddWithValue("?", employmentId.Value);
+                        var result = await command.ExecuteScalarAsync();
+                        return result == null || result == DBNull.Value ? "" : result.ToString();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggerHelper.LogWarning("Could not resolve employee full name for login: " + ex.Message);
+                return "";
+            }
+        }
 
         /// <summary>True if the current logged-in user is a Teacher with an EmploymentID linked.</summary>
         public static bool IsTeacher =>
