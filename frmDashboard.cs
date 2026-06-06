@@ -386,7 +386,8 @@ public frmDashboard()
                 // Searchable history of all recorded payments (split out of Fees Payment).
                 nav.Controls.Add(CreateNavButton("Payment History", () => OpenForm(new frmPaymentHistory())));
             }
-            if (role == AuthService.UserRole.Director || role == AuthService.UserRole.Administrator)
+            if (role == AuthService.UserRole.Director || role == AuthService.UserRole.Administrator ||
+                role == AuthService.UserRole.Headmaster)
             {
                 // Email + SMS notification settings (Arkesel/BulkSMSGh, sender IDs, HR address).
                 nav.Controls.Add(CreateNavButton("Settings", () => new frmEmailSettings().ShowDialog()));

@@ -75,9 +75,9 @@ namespace kingdom_Preparatory_School_Management_System.Services
             // System / Admin
             ["frmRegistration"]           = new[] { UserRole.Director, UserRole.Administrator },
             ["frmBackupManager"]          = new[] { UserRole.Director, UserRole.Administrator },
-            ["frmEmailSettings"]          = new[] { UserRole.Director, UserRole.Administrator },
-            ["frmSchoolInfo"]             = new[] { UserRole.Director, UserRole.Administrator },
-            ["frmGradingScheme"]          = new[] { UserRole.Director, UserRole.Administrator },
+            ["frmEmailSettings"]          = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster },
+            ["frmSchoolInfo"]             = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster },
+            ["frmGradingScheme"]          = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster },
             ["frmPaymentHistory"]         = new[] { UserRole.Accountant, UserRole.Director, UserRole.Administrator, UserRole.Headmaster },
         };
 
