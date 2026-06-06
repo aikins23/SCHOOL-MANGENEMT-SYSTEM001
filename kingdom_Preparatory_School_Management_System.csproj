@@ -199,6 +199,8 @@
     <Compile Include="Data\FeeRepository.cs" />
     <Compile Include="Data\IDraftAdmissionRepository.cs" />
     <Compile Include="Data\DraftAdmissionRepository.cs" />
+    <Compile Include="Data\ISchoolInfoRepository.cs" />
+    <Compile Include="Data\SchoolInfoRepository.cs" />
     <Compile Include="Data\IDashboardRepository.cs" />
     <Compile Include="Data\AttendanceRepository.cs" />
     <Compile Include="Data\IAttendanceRepository.cs" />
