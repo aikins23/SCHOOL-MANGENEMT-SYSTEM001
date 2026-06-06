@@ -16,6 +16,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
         private readonly IDraftAdmissionRepository _drafts;
         private readonly StudentService _students;
         private readonly IFeeRepository _fees;
+        private readonly TransportRepository _transport = new TransportRepository(Common.AppConfig.ConnectionString);
 
         public DraftAdmissionService(IDraftAdmissionRepository drafts, StudentService students, IFeeRepository fees)
         {
@@ -96,6 +97,12 @@ namespace kingdom_Preparatory_School_Management_System.Services
             await _fees.AddPaymentRecordAsync(student.StudentID, student.ClassID, student.FullName,
                 d.SchoolFeePaid, schoolBalanceAfter, string.IsNullOrWhiteSpace(d.PaymentMode) ? "Cash" : d.PaymentMode,
                 bursarName, DateTime.Today);
+
+            if (d.BusRouteId.HasValue && int.TryParse(student.StudentID, out int sidForBus))
+            {
+                try { await _transport.SetStudentRouteAsync(sidForBus, d.BusRouteId); }
+                catch (Exception ex) { LoggerHelper.LogWarning("Transport link not saved for student " + student.StudentID + ": " + ex.Message); }
+            }
 
             await _drafts.DeleteAsync(draftId);
             return (true, "Approved.", student);
