@@ -68,7 +68,13 @@ namespace kingdom_Preparatory_School_Management_System.Services
                     OverallPosition = overallRanking.Position,
                     TotalStudentsInClass = overallRanking.TotalStudents,
                     Remarks = remarks,
-                    SchoolInfo = new SchoolInfo()
+                    SchoolInfo = new SchoolInfo
+                    {
+                        Name = Common.SchoolProfile.Name,
+                        Location = Common.SchoolProfile.Address,
+                        PhoneNumbers = Common.SchoolProfile.Phones,
+                        Logo = Common.SchoolProfile.Logo
+                    }
                 };
             }
             catch (Exception ex)

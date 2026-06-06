@@ -219,32 +219,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
         /// </summary>
         public decimal GetFeeForClass(string classId)
         {
-            if (string.IsNullOrWhiteSpace(classId)) return 1200m;
-
-            switch (classId.Trim().ToUpperInvariant())
-            {
-                case "CRECHE":
-                    return 2000m;
-                case "NURSERY 1":
-                    return 3450m;
-                case "NURSERY 2":
-                    return 3750m;
-                case "KINDERGARTEN 1":
-                    return 3654m;
-                case "KINDERGARTEN 2":
-                case "BASIC 1":
-                case "BASIC 2":
-                case "BASIC 3":
-                case "BASIC 4":
-                case "BASIC 5":
-                case "BASIC 6":
-                case "BASIC 7":
-                case "BASIC 8":
-                case "BASIC 9":
-                    return 2423m;
-                default:
-                    return 1200m;
-            }
+            return Common.SchoolProfile.FeeForClass(classId);
         }
 
         /// <summary>

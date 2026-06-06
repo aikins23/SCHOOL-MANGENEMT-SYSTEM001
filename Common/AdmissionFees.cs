@@ -1,11 +1,11 @@
 namespace kingdom_Preparatory_School_Management_System.Common
 {
     /// <summary>
-    /// Hardcoded one-time admission fee, until the school-info settings feature
-    /// can drive it. Referenced by the admission-payment workflow.
+    /// One-time admission fee. Reads from School Information settings (SchoolProfile),
+    /// falling back to the model default (100) when settings are unavailable.
     /// </summary>
     public static class AdmissionFees
     {
-        public static readonly decimal Amount = 100m;
+        public static decimal Amount => SchoolProfile.AdmissionFee;
     }
 }
