@@ -220,6 +220,7 @@
     <Compile Include="Data\ITransportRepository.cs" />
     <Compile Include="Data\TransportRepository.cs" />
     <Compile Include="Data\SmsOutboxRepository.cs" />
+    <Compile Include="Data\SyncSchema.cs" />
     <Compile Include="Data\IDashboardRepository.cs" />
     <Compile Include="Data\AttendanceRepository.cs" />
     <Compile Include="Data\IAttendanceRepository.cs" />

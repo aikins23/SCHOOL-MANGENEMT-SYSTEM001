@@ -17,6 +17,11 @@ namespace kingdom_Preparatory_School_Management_System
         {
             EnsureLocalDbRunning();
 
+            // Add sync columns (SyncId/UpdatedAt/RowVersion) to syncable tables — idempotent, no-op
+            // once present. Best-effort: never blocks startup.
+            try { Data.SyncSchema.EnsureSyncColumnsAsync().GetAwaiter().GetResult(); }
+            catch (Exception ex) { Services.LoggerHelper.LogWarning("SyncSchema init: " + ex.Message); }
+
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
