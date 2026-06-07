@@ -692,7 +692,10 @@ namespace kingdom_Preparatory_School_Management_System
 
         private int GetStudentPageHeight(int pageIndex)
         {
-            if (pageIndex == 1) return 365;
+            // Guardian page (index 1) has a title row (52) + 4 field rows (78 each) + the surface
+            // panel's vertical padding (20+22) = 406px; the old 365 clipped the School Bus / Bus
+            // Route row. Keep a little slack so the row breathes.
+            if (pageIndex == 1) return 430;
             return pageIndex == 2 ? 520 : 500;
         }
 
