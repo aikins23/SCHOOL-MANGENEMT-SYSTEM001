@@ -401,6 +401,7 @@
     <Compile Include="Models\BookLoan.cs" />
     <Compile Include="Models\Bus.cs" />
     <Compile Include="Models\BusRoute.cs" />
+    <Compile Include="Models\TransportArrear.cs" />
     <Compile Include="Models\Student.cs" />
     <Compile Include="Models\SubjectResult.cs" />
     <Compile Include="Models\StudentTermRemarks.cs" />

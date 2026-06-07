@@ -46,6 +46,21 @@ namespace kingdom_Preparatory_School_Management_System.Data
                         StudentID INT NOT NULL PRIMARY KEY,
                         RouteId INT NOT NULL);";
                 using (var cmd = new OleDbCommand(stTransport, c)) await cmd.ExecuteNonQueryAsync();
+
+                const string tPay = @"IF OBJECT_ID(N'TransportPayment', N'U') IS NULL
+                    CREATE TABLE TransportPayment (
+                        Id INT IDENTITY(1,1) PRIMARY KEY,
+                        StudentID INT NOT NULL, RouteId INT NOT NULL,
+                        Period NVARCHAR(20) NOT NULL, PeriodStart DATETIME NOT NULL, PeriodEnd DATETIME NOT NULL,
+                        AmountPaid MONEY NOT NULL DEFAULT (0), PaymentDate DATETIME NOT NULL,
+                        Cashier NVARCHAR(120), Notes NVARCHAR(255));";
+                using (var cmd = new OleDbCommand(tPay, c)) await cmd.ExecuteNonQueryAsync();
+
+                const string tRem = @"IF OBJECT_ID(N'TransportReminderLog', N'U') IS NULL
+                    CREATE TABLE TransportReminderLog (
+                        StudentID INT NOT NULL, Period NVARCHAR(20) NOT NULL, SentDate DATETIME NOT NULL,
+                        CONSTRAINT PK_TransportReminderLog PRIMARY KEY (StudentID, Period));";
+                using (var cmd = new OleDbCommand(tRem, c)) await cmd.ExecuteNonQueryAsync();
             }
         }
 
@@ -251,6 +266,174 @@ namespace kingdom_Preparatory_School_Management_System.Data
                     cmd.Parameters.AddWithValue("?", studentId);
                     using (var rd = await cmd.ExecuteReaderAsync())
                         return await rd.ReadAsync() ? MapRoute(rd) : null;
+                }
+            }
+        }
+
+        public async Task<bool> AddTransportPaymentAsync(int studentId, int routeId, string periodKey,
+            DateTime periodStart, DateTime periodEnd, decimal amountPaid, DateTime date, string cashier, string notes)
+        {
+            using (var c = new OleDbConnection(_connectionString))
+            {
+                await c.OpenAsync();
+                const string sql = @"INSERT INTO TransportPayment
+                    (StudentID,RouteId,Period,PeriodStart,PeriodEnd,AmountPaid,PaymentDate,Cashier,Notes)
+                    VALUES (?,?,?,?,?,?,?,?,?)";
+                using (var cmd = new OleDbCommand(sql, c))
+                {
+                    cmd.Parameters.AddWithValue("?", studentId);
+                    cmd.Parameters.AddWithValue("?", routeId);
+                    cmd.Parameters.AddWithValue("?", periodKey ?? "");
+                    cmd.Parameters.AddWithValue("?", TruncateSeconds(periodStart));
+                    cmd.Parameters.AddWithValue("?", TruncateSeconds(periodEnd));
+                    cmd.Parameters.AddWithValue("?", amountPaid);
+                    cmd.Parameters.AddWithValue("?", TruncateSeconds(date));
+                    cmd.Parameters.AddWithValue("?", cashier ?? "");
+                    cmd.Parameters.AddWithValue("?", notes ?? "");
+                    return (await cmd.ExecuteNonQueryAsync()) > 0;
+                }
+            }
+        }
+
+        public async Task<decimal> GetPaidForPeriodAsync(int studentId, string periodKey)
+        {
+            using (var c = new OleDbConnection(_connectionString))
+            {
+                await c.OpenAsync();
+                using (var cmd = new OleDbCommand(
+                    "SELECT ISNULL(SUM(AmountPaid),0) FROM TransportPayment WHERE StudentID=? AND Period=?", c))
+                {
+                    cmd.Parameters.AddWithValue("?", studentId);
+                    cmd.Parameters.AddWithValue("?", periodKey ?? "");
+                    var o = await cmd.ExecuteScalarAsync();
+                    return o == null || o == DBNull.Value ? 0m : Convert.ToDecimal(o);
+                }
+            }
+        }
+
+        public async Task<DataTable> GetStudentTransportHistoryAsync(int studentId)
+        {
+            var dt = new DataTable();
+            using (var c = new OleDbConnection(_connectionString))
+            {
+                await c.OpenAsync();
+                const string sql = @"SELECT tp.PaymentDate AS [Date], r.RouteName AS [Route], tp.Period AS [Period],
+                    tp.AmountPaid AS [Amount Paid], tp.Cashier AS [Cashier], tp.Notes AS [Notes]
+                    FROM TransportPayment tp LEFT JOIN BusRoutes r ON tp.RouteId=r.RouteId
+                    WHERE tp.StudentID=? ORDER BY tp.PaymentDate DESC, tp.Id DESC";
+                using (var cmd = new OleDbCommand(sql, c))
+                {
+                    cmd.Parameters.AddWithValue("?", studentId);
+                    using (var rd = await cmd.ExecuteReaderAsync()) dt.Load(rd);
+                }
+            }
+            return dt;
+        }
+
+        // Loads every bus student's route once, then computes period/paid/present-days per row in C#
+        // (avoids fragile term-dependent SQL). Daily routes are included only when includeDaily is true.
+        private async Task<List<TransportArrear>> BuildArrearsAsync(DateTime asOf, bool includeDaily)
+        {
+            var rows = new List<TransportArrear>();
+            var seed = new List<(int StudentId, int RouteId, string Name, string Phone, string Route, string Term, decimal Fee)>();
+
+            using (var c = new OleDbConnection(_connectionString))
+            {
+                await c.OpenAsync();
+                const string sql = @"SELECT st.StudentID, st.RouteId,
+                    (s.FirstName + ' ' + s.LastName) AS StudentName, s.EmergencyContact AS Phone,
+                    r.RouteName, r.PaymentTerm, r.Fee
+                    FROM StudentTransport st
+                    INNER JOIN BusRoutes r ON st.RouteId = r.RouteId
+                    INNER JOIN Students s ON s.StudentID = st.StudentID";
+                using (var cmd = new OleDbCommand(sql, c))
+                using (var rd = await cmd.ExecuteReaderAsync())
+                {
+                    while (await rd.ReadAsync())
+                        seed.Add((I(rd["StudentID"]), I(rd["RouteId"]), S(rd["StudentName"]), S(rd["Phone"]),
+                                  S(rd["RouteName"]), S(rd["PaymentTerm"]),
+                                  rd["Fee"] == DBNull.Value ? 0m : Convert.ToDecimal(rd["Fee"])));
+                }
+
+                foreach (var x in seed)
+                {
+                    bool daily = !Common.TransportPeriod.SupportsReminders(x.Term);
+                    if (daily && !includeDaily) continue;
+
+                    var p = Common.TransportPeriod.Current(x.Term, asOf);
+
+                    decimal paid;
+                    using (var cmd = new OleDbCommand(
+                        "SELECT ISNULL(SUM(AmountPaid),0) FROM TransportPayment WHERE StudentID=? AND Period=?", c))
+                    {
+                        cmd.Parameters.AddWithValue("?", x.StudentId);
+                        cmd.Parameters.AddWithValue("?", p.Key);
+                        var o = await cmd.ExecuteScalarAsync();
+                        paid = o == null || o == DBNull.Value ? 0m : Convert.ToDecimal(o);
+                    }
+
+                    int present;
+                    using (var cmd = new OleDbCommand(
+                        @"SELECT COUNT(*) FROM Attendance WHERE ReferenceID=? AND ReferenceType='STUDENT'
+                          AND [Status]='PRESENT' AND [Date] BETWEEN ? AND ?", c))
+                    {
+                        cmd.Parameters.AddWithValue("?", x.StudentId.ToString());
+                        cmd.Parameters.AddWithValue("?", p.Start.Date);
+                        cmd.Parameters.AddWithValue("?", asOf.Date);
+                        present = Convert.ToInt32(await cmd.ExecuteScalarAsync());
+                    }
+
+                    rows.Add(new TransportArrear
+                    {
+                        StudentID = x.StudentId, StudentName = x.Name, GuardianPhone = x.Phone,
+                        RouteName = x.Route, Term = x.Term, Fee = x.Fee, Paid = paid, PresentDays = present,
+                        Period = p.Key, PeriodStart = p.Start, PeriodEnd = p.End
+                    });
+                }
+            }
+            return rows;
+        }
+
+        public async Task<List<TransportArrear>> GetArrearsAsync(DateTime asOf, bool includeDaily)
+            => await BuildArrearsAsync(asOf, includeDaily);
+
+        public async Task<List<TransportArrear>> GetReminderCandidatesAsync(DateTime asOf)
+        {
+            var candidates = new List<TransportArrear>();
+            foreach (var a in await BuildArrearsAsync(asOf, includeDaily: false))
+            {
+                if (a.Balance <= 0m || a.PresentDays < 2) continue;
+                using (var c = new OleDbConnection(_connectionString))
+                {
+                    await c.OpenAsync();
+                    using (var cmd = new OleDbCommand(
+                        "SELECT COUNT(*) FROM TransportReminderLog WHERE StudentID=? AND Period=?", c))
+                    {
+                        cmd.Parameters.AddWithValue("?", a.StudentID);
+                        cmd.Parameters.AddWithValue("?", a.Period);
+                        if (Convert.ToInt32(await cmd.ExecuteScalarAsync()) > 0) continue;
+                    }
+                }
+                candidates.Add(a);
+            }
+            return candidates;
+        }
+
+        public async Task LogReminderSentAsync(int studentId, string periodKey)
+        {
+            using (var c = new OleDbConnection(_connectionString))
+            {
+                await c.OpenAsync();
+                const string sql = @"IF NOT EXISTS (SELECT 1 FROM TransportReminderLog WHERE StudentID=? AND Period=?)
+                    INSERT INTO TransportReminderLog (StudentID,Period,SentDate) VALUES (?,?,?)";
+                using (var cmd = new OleDbCommand(sql, c))
+                {
+                    cmd.Parameters.AddWithValue("?", studentId);
+                    cmd.Parameters.AddWithValue("?", periodKey ?? "");
+                    cmd.Parameters.AddWithValue("?", studentId);
+                    cmd.Parameters.AddWithValue("?", periodKey ?? "");
+                    cmd.Parameters.AddWithValue("?", TruncateSeconds(DateTime.Now));
+                    await cmd.ExecuteNonQueryAsync();
                 }
             }
         }
