@@ -341,7 +341,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
             {
                 await c.OpenAsync();
                 const string sql = @"SELECT st.StudentID, st.RouteId,
-                    (s.FirstName + ' ' + s.LastName) AS StudentName, s.EmergencyContact AS Phone,
+                    (s.FirstName + ' ' + s.LastName) AS StudentName, s.EmergencyConatct AS Phone,
                     r.RouteName, r.PaymentTerm, r.Fee
                     FROM StudentTransport st
                     INNER JOIN BusRoutes r ON st.RouteId = r.RouteId
