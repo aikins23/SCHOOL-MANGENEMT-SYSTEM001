@@ -14,6 +14,7 @@ namespace kingdom_Preparatory_School_Management_System
     {
         private readonly DashboardService _dashboardService;
         private System.Windows.Forms.Timer _feeReminderTimer;
+        private readonly Data.TransportRepository _transportRepo = new Data.TransportRepository(Common.AppConfig.ConnectionString);
         private StudentService _studentService;
         private FeeRepository _feeRepository;
 
@@ -74,7 +75,7 @@ public frmDashboard()
     // Weekly fee reminder timer — every 60 minutes
     _feeReminderTimer = new System.Windows.Forms.Timer();
     _feeReminderTimer.Interval = 60 * 60 * 1000;
-    _feeReminderTimer.Tick += async (s, e) => await CheckFeeRemindersAsync();
+    _feeReminderTimer.Tick += async (s, e) => { await CheckFeeRemindersAsync(); await CheckTransportRemindersAsync(); };
 
     // Load event is commented-out in designer — wire it manually
     this.Load += frmDashboard_Load;
@@ -203,7 +204,7 @@ public frmDashboard()
             SuspendLayout();
 
             Controls.Clear();
-            Text = "Kingdom Preparatory School Management System";
+            Text = "Nyansapo School ERP";
             BackColor = PageBackColor;
             Font = new Font("Segoe UI", 9.5F, FontStyle.Regular);
             StartPosition = FormStartPosition.CenterScreen;
@@ -348,6 +349,7 @@ public frmDashboard()
             var finance = new System.Collections.Generic.List<Button>();
             Add(finance, isAdmin || isAcct || isHead, "Fees Payment", () => OpenForm(new frmFessPayment()));
             Add(finance, isAcct || isDir || isAdmin || isHead, "Payment History", () => OpenForm(new frmPaymentHistory()));
+            Add(finance, isAcct || isAdmin || isHead, "Transport Payments", () => OpenForm(new frmTransportPayments()));
             if (isAcct)
             {
                 _approvalsNavBtn = CreateNavButton("Admission Approvals", () => OpenForm(new frmPendingApprovals()));
@@ -1391,6 +1393,7 @@ public frmDashboard()
                 // Start weekly fee reminder timer
                 _feeReminderTimer.Start();
                 await CheckFeeRemindersAsync();
+                await CheckTransportRemindersAsync();
             }
             catch (Exception ex)
             {
@@ -1466,6 +1469,35 @@ public frmDashboard()
             {
                 LoggerHelper.LogError("Failed to send weekly fee reminders", ex);
             }
+        }
+
+        private async System.Threading.Tasks.Task CheckTransportRemindersAsync()
+        {
+            try
+            {
+                var role = AuthService.CurrentUser.Role;
+                if (role != AuthService.UserRole.Accountant && role != AuthService.UserRole.Administrator
+                    && role != AuthService.UserRole.Headmaster) return;
+
+                await _transportRepo.EnsureTablesAsync();
+                var candidates = await _transportRepo.GetReminderCandidatesAsync(DateTime.Today);
+                int sent = 0;
+                foreach (var a in candidates)
+                {
+                    try
+                    {
+                        if (!string.IsNullOrWhiteSpace(a.GuardianPhone))
+                        {
+                            _ = SmsService.SendTransportReminderAsync(a.GuardianPhone, a.StudentName, a.RouteName, a.Period, a.Balance);
+                            sent++;
+                        }
+                        await _transportRepo.LogReminderSentAsync(a.StudentID, a.Period);
+                    }
+                    catch (Exception exInner) { LoggerHelper.LogWarning("Transport reminder (row): " + exInner.Message); }
+                }
+                if (sent > 0) LoggerHelper.LogInfo($"Transport overdue reminders sent to {sent} guardian(s)");
+            }
+            catch (Exception ex) { LoggerHelper.LogError("Failed to send transport reminders", ex); }
         }
 
         private async void btnRefresh_Click(object sender, EventArgs e)
