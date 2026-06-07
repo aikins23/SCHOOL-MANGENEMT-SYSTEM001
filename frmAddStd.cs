@@ -692,11 +692,15 @@ namespace kingdom_Preparatory_School_Management_System
 
         private int GetStudentPageHeight(int pageIndex)
         {
-            // Guardian page (index 1) has a title row (52) + 4 field rows (78 each) + the surface
-            // panel's vertical padding (20+22) = 406px; the old 365 clipped the School Bus / Bus
-            // Route row. Keep a little slack so the row breathes.
-            if (pageIndex == 1) return 430;
-            return pageIndex == 2 ? 520 : 500;
+            // Base (96-DPI) heights. The Guardian page (index 1) has a title row (52) + 4 field rows
+            // (78 each) + surface padding (20+22) = 406px of content; 440 gives slack.
+            // IMPORTANT: the inner rows are DPI-scaled by the form's auto-scale, but this height is
+            // applied at runtime and is NOT, so on a high-DPI display a fixed value clips the last
+            // row (the School Bus / Bus Route row). Scale by the device DPI to keep them in sync.
+            int baseHeight = pageIndex == 1 ? 440 : (pageIndex == 2 ? 520 : 500);
+            float scale = DeviceDpi / 96f;
+            if (scale < 1f) scale = 1f;
+            return (int)Math.Ceiling(baseHeight * scale);
         }
 
         private Button CreatePrimaryButton(string text, Action action)
