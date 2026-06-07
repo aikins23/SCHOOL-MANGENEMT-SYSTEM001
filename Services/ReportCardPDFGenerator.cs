@@ -124,9 +124,11 @@ namespace kingdom_Preparatory_School_Management_System.Services
 
             double textX = logoX + logoSize + 18;
             double textW = photoX - textX - 10;
-            string schoolName = data?.SchoolInfo?.Name ?? "KINGDOM PREPARATORY SCHOOL";
-            string location = data?.SchoolInfo?.Location ?? "AKIM ODA- ABENASE";
-            string phone = data?.SchoolInfo?.PhoneNumbers ?? "0548050141/0246087609";
+            // Fall back to the configured School Information (SchoolProfile) rather than a hardcoded
+            // school identity, so an unconfigured (or different) school never shows KPS's details.
+            string schoolName = Coalesce(data?.SchoolInfo?.Name, Common.SchoolProfile.Name);
+            string location   = Coalesce(data?.SchoolInfo?.Location, Common.SchoolProfile.Address);
+            string phone      = Coalesce(data?.SchoolInfo?.PhoneNumbers, Common.SchoolProfile.Phones);
 
             CenterText(gfx, schoolName, textX, y + 30, textW, Font(13, true), White);
             CenterText(gfx, location, textX, y + 48, textW, Font(11, true), White);
@@ -429,6 +431,15 @@ namespace kingdom_Preparatory_School_Management_System.Services
             return y + BottomLegendHeight;
         }
 
+        private static string Coalesce(params string[] values)
+        {
+            if (values != null)
+                foreach (var v in values)
+                    if (!string.IsNullOrWhiteSpace(v))
+                        return v.Trim();
+            return "";
+        }
+
         private void DrawImageOrLogoPlaceholder(XGraphics gfx, byte[] imageBytes, double x, double y, double width, double height)
         {
             if (TryDrawImage(gfx, imageBytes, x, y, width, height))
@@ -438,10 +449,11 @@ namespace kingdom_Preparatory_School_Management_System.Services
             if (!string.IsNullOrEmpty(logoPath) && TryDrawImage(gfx, File.ReadAllBytes(logoPath), x, y, width, height))
                 return;
 
+            // Logo-absent placeholder: show only the configurable abbreviation. The header beside it
+            // already prints the full school name, location and phone from School Information, so we
+            // avoid any hardcoded school motto/town that would be wrong for another school.
             DrawCell(gfx, x, y, width, height, Gold, 1.2);
-            CenterTextInCell(gfx, "KPS", x, y + 22, width, 18, Font(14, true), Gold);
-            CenterTextInCell(gfx, "AKIM ABENASE", x, y + 42, width, 14, Font(5.5), Gold);
-            CenterTextInCell(gfx, "KNOWLEDGE IS POWER", x, y + height - 16, width, 12, Font(4.8), Gold);
+            CenterTextInCell(gfx, Common.StudentId.Abbrev, x, y + (height - 18) / 2, width, 18, Font(16, true), Gold);
         }
 
         private void DrawImageOrPhotoPlaceholder(XGraphics gfx, byte[] imageBytes, double x, double y, double width, double height)
