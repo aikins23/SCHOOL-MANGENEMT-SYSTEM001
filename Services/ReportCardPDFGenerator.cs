@@ -10,7 +10,7 @@ using PdfSharp.Pdf;
 namespace kingdom_Preparatory_School_Management_System.Services
 {
     /// <summary>
-    /// Generates the official Kingdom Preparatory School terminal report layout.
+    /// Generates the official terminal report card layout (school identity from SchoolProfile).
     /// The dimensions are point-based for A4 output and are tuned to match card.png.
     /// </summary>
     public class ReportCardPDFGenerator

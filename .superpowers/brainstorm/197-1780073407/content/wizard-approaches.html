@@ -1,0 +1,145 @@
+<h2>How should the 3-step wizard be structured?</h2>
+<p class="subtitle">Same 3 steps (Lookup → Payment → Receipt) — different visual structure. Pick the one that feels most natural for a cashier.</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="font-family:sans-serif;font-size:11px;padding:10px;background:#f8f9fb;border-radius:6px;height:200px;display:flex;flex-direction:column;gap:6px;">
+        <!-- Header -->
+        <div style="background:#1a2952;color:white;padding:5px 10px;border-radius:4px;font-weight:bold;font-size:11px;">Fees Payment</div>
+        <!-- Step tabs at top -->
+        <div style="display:flex;gap:0;border-radius:4px;overflow:hidden;border:1px solid #dde;">
+          <div style="flex:1;background:#1a2952;color:white;padding:5px;text-align:center;font-size:9px;font-weight:bold;">✓ 1. Lookup</div>
+          <div style="flex:1;background:#3d5a9e;color:white;padding:5px;text-align:center;font-size:9px;font-weight:bold;">● 2. Payment</div>
+          <div style="flex:1;background:#e8eaf2;color:#999;padding:5px;text-align:center;font-size:9px;">3. Receipt</div>
+        </div>
+        <!-- Step content -->
+        <div style="background:white;border:1px solid #dde;border-radius:4px;padding:8px;flex:1;display:flex;flex-direction:column;gap:5px;">
+          <div style="display:flex;gap:6px;">
+            <div style="flex:1;">
+              <div style="font-size:8px;color:#888;margin-bottom:2px;">AMOUNT (GHc)</div>
+              <div style="background:#f0f2f8;border-radius:3px;height:18px;font-size:10px;display:flex;align-items:center;padding:0 6px;font-weight:bold;color:#1a2952;">250.00</div>
+            </div>
+            <div style="flex:1;">
+              <div style="font-size:8px;color:#888;margin-bottom:2px;">PAYMENT MODE</div>
+              <div style="background:#f0f2f8;border-radius:3px;height:18px;font-size:10px;display:flex;align-items:center;padding:0 6px;">Cash</div>
+            </div>
+            <div style="flex:1;">
+              <div style="font-size:8px;color:#888;margin-bottom:2px;">BALANCE</div>
+              <div style="background:#e8f5e9;border-radius:3px;height:18px;font-size:10px;display:flex;align-items:center;padding:0 6px;color:#2e7d32;font-weight:bold;">1,250</div>
+            </div>
+          </div>
+          <div style="flex:1;">
+            <div style="font-size:8px;color:#888;margin-bottom:2px;">BEING (REASON)</div>
+            <div style="background:#f0f2f8;border-radius:3px;height:16px;"></div>
+          </div>
+          <div style="display:flex;gap:4px;margin-top:auto;justify-content:flex-end;">
+            <div style="background:#e8eaf2;border-radius:3px;padding:3px 8px;font-size:8px;">← Back</div>
+            <div style="background:#1a2952;color:white;border-radius:3px;padding:3px 8px;font-size:8px;">Next →</div>
+          </div>
+        </div>
+        <!-- History -->
+        <div style="background:white;border:1px solid #dde;border-radius:3px;padding:4px 8px;font-size:8px;color:#888;">Recent Payments ↓</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — Horizontal Tab Steps</h3>
+      <p>Steps shown as a horizontal tab bar across the top of the panel. Familiar tab navigation — click tabs or use Back/Next buttons. History always visible below.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="font-family:sans-serif;font-size:11px;padding:10px;background:#f8f9fb;border-radius:6px;height:200px;display:flex;flex-direction:column;gap:6px;">
+        <div style="background:#1a2952;color:white;padding:5px 10px;border-radius:4px;font-weight:bold;font-size:11px;">Fees Payment</div>
+        <div style="display:flex;gap:6px;flex:1;">
+          <!-- Left sidebar steps -->
+          <div style="width:90px;background:white;border:1px solid #dde;border-radius:4px;padding:8px;display:flex;flex-direction:column;gap:6px;">
+            <div style="display:flex;align-items:center;gap:5px;">
+              <div style="width:18px;height:18px;border-radius:50%;background:#1a2952;color:white;font-size:8px;display:flex;align-items:center;justify-content:center;font-weight:bold;flex-shrink:0;">✓</div>
+              <div style="font-size:9px;color:#1a2952;font-weight:bold;">Lookup</div>
+            </div>
+            <div style="width:1px;height:10px;background:#dde;margin-left:9px;"></div>
+            <div style="display:flex;align-items:center;gap:5px;">
+              <div style="width:18px;height:18px;border-radius:50%;background:#3d5a9e;color:white;font-size:8px;display:flex;align-items:center;justify-content:center;font-weight:bold;flex-shrink:0;">2</div>
+              <div style="font-size:9px;color:#3d5a9e;font-weight:bold;">Payment</div>
+            </div>
+            <div style="width:1px;height:10px;background:#dde;margin-left:9px;"></div>
+            <div style="display:flex;align-items:center;gap:5px;">
+              <div style="width:18px;height:18px;border-radius:50%;background:#e8eaf2;color:#aaa;font-size:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">3</div>
+              <div style="font-size:9px;color:#aaa;">Receipt</div>
+            </div>
+            <div style="margin-top:auto;background:#e8f0fe;border-radius:3px;padding:4px;font-size:8px;color:#1a2952;">
+              <div style="font-weight:bold;">KWESI BOAKYE</div>
+              <div style="color:#666;">BASIC 7</div>
+              <div style="color:#2e7d32;font-weight:bold;">Bal: 1,500</div>
+            </div>
+          </div>
+          <!-- Main content -->
+          <div style="flex:1;background:white;border:1px solid #dde;border-radius:4px;padding:8px;display:flex;flex-direction:column;gap:5px;">
+            <div style="font-size:10px;font-weight:bold;color:#1a2952;border-bottom:1px solid #eef;padding-bottom:4px;">Payment Details</div>
+            <div style="display:flex;gap:4px;">
+              <div style="flex:1;background:#f0f2f8;border-radius:3px;height:16px;"></div>
+              <div style="flex:1;background:#f0f2f8;border-radius:3px;height:16px;"></div>
+            </div>
+            <div style="background:#f0f2f8;border-radius:3px;height:16px;"></div>
+            <div style="background:#f0f2f8;border-radius:3px;height:16px;"></div>
+            <div style="display:flex;gap:4px;margin-top:auto;justify-content:flex-end;">
+              <div style="background:#1a2952;color:white;border-radius:3px;padding:3px 8px;font-size:8px;">Next →</div>
+            </div>
+          </div>
+        </div>
+        <div style="background:white;border:1px solid #dde;border-radius:3px;padding:4px 8px;font-size:8px;color:#888;">Recent Payments ↓</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Vertical Step Sidebar</h3>
+      <p>Left sidebar shows step list with progress indicators and a summary of what's been entered. Right side shows current step content. Student info stays visible throughout.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="font-family:sans-serif;font-size:11px;padding:10px;background:#f8f9fb;border-radius:6px;height:200px;display:flex;flex-direction:column;gap:6px;">
+        <div style="background:#1a2952;color:white;padding:5px 10px;border-radius:4px;font-weight:bold;font-size:11px;">Fees Payment</div>
+        <!-- Dot progress indicator -->
+        <div style="display:flex;align-items:center;justify-content:center;gap:0;">
+          <div style="width:22px;height:22px;border-radius:50%;background:#1a2952;color:white;font-size:8px;display:flex;align-items:center;justify-content:center;font-weight:bold;">✓</div>
+          <div style="height:2px;width:40px;background:#1a2952;"></div>
+          <div style="width:22px;height:22px;border-radius:50%;background:#3d5a9e;color:white;font-size:8px;display:flex;align-items:center;justify-content:center;font-weight:bold;">2</div>
+          <div style="height:2px;width:40px;background:#dde;"></div>
+          <div style="width:22px;height:22px;border-radius:50%;background:#e8eaf2;color:#aaa;font-size:8px;display:flex;align-items:center;justify-content:center;">3</div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:8px;color:#888;padding:0 6px;">
+          <span style="color:#1a2952;font-weight:bold;">Look Up</span>
+          <span style="color:#3d5a9e;font-weight:bold;">Payment</span>
+          <span>Receipt</span>
+        </div>
+        <!-- Full width step content -->
+        <div style="background:white;border:1px solid #dde;border-radius:4px;padding:10px;flex:1;display:flex;flex-direction:column;gap:5px;">
+          <div style="font-size:10px;font-weight:bold;color:#1a2952;">Enter Payment Details</div>
+          <div style="background:#e8f0fe;border:1px solid #c5d8ff;border-radius:3px;padding:4px 6px;font-size:9px;display:flex;justify-content:space-between;">
+            <span style="font-weight:bold;color:#1a2952;">KWESI BOAKYE · BASIC 7</span>
+            <span style="color:#2e7d32;font-weight:bold;">Bal: GHc 1,500</span>
+          </div>
+          <div style="display:flex;gap:4px;">
+            <div style="flex:1;background:#f0f2f8;border-radius:3px;height:16px;"></div>
+            <div style="flex:1;background:#f0f2f8;border-radius:3px;height:16px;"></div>
+          </div>
+          <div style="background:#f0f2f8;border-radius:3px;height:14px;"></div>
+          <div style="display:flex;gap:4px;margin-top:auto;justify-content:flex-end;">
+            <div style="background:#e8eaf2;border-radius:3px;padding:3px 8px;font-size:8px;">← Back</div>
+            <div style="background:#1a2952;color:white;border-radius:3px;padding:3px 8px;font-size:8px;">Next →</div>
+          </div>
+        </div>
+        <div style="background:white;border:1px solid #dde;border-radius:3px;padding:4px 8px;font-size:8px;color:#888;">Recent Payments ↓</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C — Full-Width Step Cards</h3>
+      <p>Dot-and-line progress indicator at the top, full-width content below. Clearest visual progress, most room for form fields. Student info shown as a summary bar in each step.</p>
+    </div>
+  </div>
+
+</div>

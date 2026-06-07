@@ -1214,7 +1214,7 @@ namespace kingdom_Preparatory_School_Management_System
             schoolText.Controls.Add(new Label
             {
                 Dock = DockStyle.Fill,
-                Text = "KINGDOM PREPARATORY J.H.S",
+                Text = "NYANSAPO SCHOOL ERP",
                 ForeColor = PrimaryColor,
                 Font = new Font("Segoe UI Semibold", 16F, FontStyle.Bold),
                 TextAlign = ContentAlignment.BottomCenter
@@ -1732,18 +1732,18 @@ namespace kingdom_Preparatory_School_Management_System
 
         private string GetSchoolLogoPath()
         {
-            string logoPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources", "school_logo.png");
+            string logoPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources", "app_logo.png");
             if (!File.Exists(logoPath))
             {
-                logoPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources", "school logo.png");
+                logoPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources", "school_logo.png");
+            }
+            if (!File.Exists(logoPath))
+            {
+                logoPath = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "Resources", "app_logo.png"));
             }
             if (!File.Exists(logoPath))
             {
                 logoPath = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "Resources", "school_logo.png"));
-            }
-            if (!File.Exists(logoPath))
-            {
-                logoPath = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "Resources", "school logo.png"));
             }
             return File.Exists(logoPath) ? logoPath : "";
         }
@@ -2054,7 +2054,7 @@ namespace kingdom_Preparatory_School_Management_System
 
                 DrawReceiptLogo(graphics, new RectangleF(28, 8, 112, 125));
 
-                DrawCenteredText(graphics, "KINGDOM PREPARATORY & J.H.S", titleFont, blueBrush, new RectangleF(170, 18, 820, 48));
+                DrawCenteredText(graphics, "NYANSAPO SCHOOL ERP", titleFont, blueBrush, new RectangleF(170, 18, 820, 48));
                 graphics.DrawLine(bluePen, 175, 78, 985, 78);
                 DrawCenteredText(graphics, "P. O. BOX 7 AKIM ODA", subTitleFont, blueBrush, new RectangleF(245, 82, 655, 32));
                 DrawCenteredText(graphics, "Tel: 0548 050 141 | 0200 369 762 | 0201 455 533", contactFont, blueBrush, new RectangleF(215, 113, 720, 30));

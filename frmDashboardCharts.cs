@@ -1,8 +1,12 @@
 using System;
 using System.Data;
 using System.Drawing;
+using System.IO;
+using System.Linq;
 using System.Windows.Forms;
 using System.Windows.Forms.DataVisualization.Charting;
+using PdfSharp.Pdf;
+using PdfSharp.Drawing;
 using kingdom_Preparatory_School_Management_System.Common;
 using kingdom_Preparatory_School_Management_System.Data;
 using kingdom_Preparatory_School_Management_System.Services;
@@ -54,11 +58,18 @@ namespace kingdom_Preparatory_School_Management_System
         private Chart chartActiveRollout;
         private Chart chartSalaryDept;
         private Chart chartSubjectPassFail;
+        private TableLayoutPanel _chartGrid;
         private bool chartsLoaded;
 
         public frmDashboardCharts()
         {
             if (!AuthService.RequireAccess("frmDashboardCharts", this)) return;
+
+            // Register FontResolver for PdfSharp if not already registered
+            if (PdfSharp.Fonts.GlobalFontSettings.FontResolver == null)
+            {
+                PdfSharp.Fonts.GlobalFontSettings.FontResolver = new WindowsFontResolver();
+            }
 
             // Initialize modern architecture
             var repository = new DashboardRepository(AppConfig.ConnectionString);
@@ -79,7 +90,7 @@ namespace kingdom_Preparatory_School_Management_System
 
         private void InitializeForm()
         {
-            Text            = "Analytics Dashboard - Kingdom Preparatory School";
+            Text            = $"Analytics Dashboard - {Common.AppConfig.ProductName}";
             BackColor       = PageBackColor;
             Font            = new Font("Segoe UI", 9.5F);
             StartPosition   = FormStartPosition.CenterScreen;
@@ -113,6 +124,8 @@ namespace kingdom_Preparatory_School_Management_System
             var actions = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.RightToLeft, BackColor = PageBackColor, Padding = new Padding(0, 14, 0, 0) };
             var refreshBtn = MakePrimaryButton("Refresh Charts");
             refreshBtn.Click += async (s, e) => await LoadAllCharts();
+            var exportBtn = MakeSecondaryButton("Export Image");
+            exportBtn.Click += ExportBtn_Click;
             var resultsBtn = MakeSecondaryButton("Exam Results");
             resultsBtn.Click += (s, e) => new EXAMSVIEW().Show();
             var entryBtn = MakeSecondaryButton("Enter Scores");
@@ -123,6 +136,7 @@ namespace kingdom_Preparatory_School_Management_System
             statusLabel = new Label { AutoSize = false, Width = 220, Height = 36, ForeColor = MutedColor, Font = new Font("Segoe UI", 9F), TextAlign = ContentAlignment.MiddleRight, Margin = new Padding(0, 4, 8, 0) };
 
             actions.Controls.Add(refreshBtn);
+            actions.Controls.Add(exportBtn);
             actions.Controls.Add(resultsBtn);
             actions.Controls.Add(entryBtn);
             actions.Controls.Add(dashboardBtn);
@@ -137,60 +151,60 @@ namespace kingdom_Preparatory_School_Management_System
         {
             var scrollHost = new Panel { Dock = DockStyle.Fill, AutoScroll = true, BackColor = PageBackColor };
 
-            var grid = new TableLayoutPanel { Dock = DockStyle.Top, RowCount = 11, ColumnCount = 2, BackColor = PageBackColor, AutoSize = true };
-            grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
-            grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
-            for (int i = 0; i < 11; i++) grid.RowStyles.Add(new RowStyle(SizeType.Absolute, 320));
+            _chartGrid = new TableLayoutPanel { Dock = DockStyle.Top, RowCount = 11, ColumnCount = 2, BackColor = PageBackColor, AutoSize = true };
+            _chartGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+            _chartGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+            for (int i = 0; i < 11; i++) _chartGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 320));
 
             chartFees = CreateChart();
-            grid.Controls.Add(WrapInCard("Fees — Collected vs Outstanding", chartFees), 0, 0);
+            _chartGrid.Controls.Add(WrapInCard("Fees — Collected vs Outstanding", chartFees), 0, 0);
             chartEnrollment = CreateChart();
-            grid.Controls.Add(WrapInCard("Student Enrollment by Class", chartEnrollment), 1, 0);
+            _chartGrid.Controls.Add(WrapInCard("Student Enrollment by Class", chartEnrollment), 1, 0);
             chartExams = CreateChart();
-            grid.Controls.Add(WrapInCard("Average Exam Score by Subject", chartExams), 0, 1);
+            _chartGrid.Controls.Add(WrapInCard("Average Exam Score by Subject", chartExams), 0, 1);
             chartTrend = CreateChart();
-            grid.Controls.Add(WrapInCard("Monthly Fee Collection Trend", chartTrend), 1, 1);
+            _chartGrid.Controls.Add(WrapInCard("Monthly Fee Collection Trend", chartTrend), 1, 1);
             chartAttendance = CreateChart();
-            grid.Controls.Add(WrapInCard("Monthly Attendance Rate (%)", chartAttendance), 0, 2);
+            _chartGrid.Controls.Add(WrapInCard("Monthly Attendance Rate (%)", chartAttendance), 0, 2);
             chartIncomeExpense = CreateChart();
-            grid.Controls.Add(WrapInCard("Income vs Expenses (Monthly)", chartIncomeExpense), 1, 2);
+            _chartGrid.Controls.Add(WrapInCard("Income vs Expenses (Monthly)", chartIncomeExpense), 1, 2);
             chartLeave = CreateChart();
-            grid.Controls.Add(WrapInCard("Staff Leave Status", chartLeave), 0, 3);
+            _chartGrid.Controls.Add(WrapInCard("Staff Leave Status", chartLeave), 0, 3);
             chartGrade = CreateChart();
-            grid.Controls.Add(WrapInCard("Exam Grade Distribution", chartGrade), 1, 3);
+            _chartGrid.Controls.Add(WrapInCard("Exam Grade Distribution", chartGrade), 1, 3);
             chartAttendanceByClass = CreateChart();
-            grid.Controls.Add(WrapInCard("Attendance Rate by Class (%)", chartAttendanceByClass), 0, 4);
+            _chartGrid.Controls.Add(WrapInCard("Attendance Rate by Class (%)", chartAttendanceByClass), 0, 4);
             chartOutstandingByClass = CreateChart();
-            grid.Controls.Add(WrapInCard("Outstanding Fees by Class", chartOutstandingByClass), 1, 4);
+            _chartGrid.Controls.Add(WrapInCard("Outstanding Fees by Class", chartOutstandingByClass), 1, 4);
             chartPaymentMode = CreateChart();
-            grid.Controls.Add(WrapInCard("Payment Method Breakdown", chartPaymentMode), 0, 5);
+            _chartGrid.Controls.Add(WrapInCard("Payment Method Breakdown", chartPaymentMode), 0, 5);
             chartStaffDept = CreateChart();
-            grid.Controls.Add(WrapInCard("Staff by Department", chartStaffDept), 1, 5);
+            _chartGrid.Controls.Add(WrapInCard("Staff by Department", chartStaffDept), 1, 5);
             chartExpenseCategory = CreateChart();
-            grid.Controls.Add(WrapInCard("Expense Breakdown by Category", chartExpenseCategory), 0, 6);
+            _chartGrid.Controls.Add(WrapInCard("Expense Breakdown by Category", chartExpenseCategory), 0, 6);
             chartTopAbsent = CreateChart();
-            grid.Controls.Add(WrapInCard("Top 10 Most-Absent Students", chartTopAbsent), 1, 6);
+            _chartGrid.Controls.Add(WrapInCard("Top 10 Most-Absent Students", chartTopAbsent), 1, 6);
             chartClassAvg = CreateChart();
-            grid.Controls.Add(WrapInCard("Class Average Score Comparison", chartClassAvg), 0, 7);
+            _chartGrid.Controls.Add(WrapInCard("Class Average Score Comparison", chartClassAvg), 0, 7);
             chartGender = CreateChart();
-            grid.Controls.Add(WrapInCard("Student Gender Distribution", chartGender), 1, 7);
+            _chartGrid.Controls.Add(WrapInCard("Student Gender Distribution", chartGender), 1, 7);
             chartTermPerf = CreateChart();
-            grid.Controls.Add(WrapInCard("Term-over-Term Performance Trend", chartTermPerf), 0, 8);
+            _chartGrid.Controls.Add(WrapInCard("Term-over-Term Performance Trend", chartTermPerf), 0, 8);
             chartAdmissions = CreateChart();
-            grid.Controls.Add(WrapInCard("Admissions per Year", chartAdmissions), 1, 8);
+            _chartGrid.Controls.Add(WrapInCard("Admissions per Year", chartAdmissions), 1, 8);
             chartActiveRollout = CreateChart();
-            grid.Controls.Add(WrapInCard("Active vs Rolled-out Students", chartActiveRollout), 0, 9);
+            _chartGrid.Controls.Add(WrapInCard("Active vs Rolled-out Students", chartActiveRollout), 0, 9);
             chartSalaryDept = CreateChart();
-            grid.Controls.Add(WrapInCard("Salary Spend by Department", chartSalaryDept), 1, 9);
+            _chartGrid.Controls.Add(WrapInCard("Salary Spend by Department", chartSalaryDept), 1, 9);
             chartSubjectPassFail = CreateChart();
             var passFailCard = WrapInCard("Subject Pass/Fail Rate (Pass ≥ 50)", chartSubjectPassFail);
-            grid.Controls.Add(passFailCard, 0, 10);
-            grid.SetColumnSpan(passFailCard, 2);
+            _chartGrid.Controls.Add(passFailCard, 0, 10);
+            _chartGrid.SetColumnSpan(passFailCard, 2);
 
             // Make every wrapper card fill its cell.
-            foreach (Control c in grid.Controls) c.Dock = DockStyle.Fill;
+            foreach (Control c in _chartGrid.Controls) c.Dock = DockStyle.Fill;
 
-            scrollHost.Controls.Add(grid);
+            scrollHost.Controls.Add(_chartGrid);
             return scrollHost;
         }
 
@@ -215,6 +229,101 @@ namespace kingdom_Preparatory_School_Management_System
             });
             chart.Legends.Add(new Legend { Docking = Docking.Bottom, Alignment = StringAlignment.Center, BackColor = SurfaceColor, BorderColor = Color.Transparent, Font = new Font("Segoe UI", 8.5F) });
             return chart;
+        }
+
+        private void ExportBtn_Click(object sender, EventArgs e)
+        {
+            using (var sfd = new SaveFileDialog { Filter = "PDF Document|*.pdf", Title = "Export Dashboard", FileName = "Dashboard_Analytics.pdf" })
+            {
+                if (sfd.ShowDialog() == DialogResult.OK)
+                {
+                    try
+                    {
+                        if (_chartGrid != null)
+                        {
+                            ExportToPdf(sfd.FileName);
+                            MessageBox.Show("Dashboard PDF exported successfully!", "Export Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show("Error exporting dashboard: " + ex.Message, "Export Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+                }
+            }
+        }
+
+        private void ExportToPdf(string filePath)
+        {
+            PdfDocument document = new PdfDocument();
+            document.Info.Title = "Analytics Dashboard";
+
+            var cards = new System.Collections.Generic.List<Panel>();
+            foreach (Control c in _chartGrid.Controls)
+            {
+                if (c is Panel p) cards.Add(p);
+            }
+
+            int chartsPerPage = 2; // Landscape, 2 charts side by side
+            int chartIndex = 0;
+            PdfPage page = null;
+            XGraphics gfx = null;
+
+            double margin = 40;
+            double topMargin = 80;
+            double pageWidth = 842; // A4 Landscape
+            double pageHeight = 595;
+            
+            double chartWidth = (pageWidth - (margin * 3)) / 2;
+            double chartHeight = pageHeight - topMargin - margin;
+
+            XFont fontTitle = new XFont("Segoe UI", 18, XFontStyleEx.Bold);
+            XFont fontDate = new XFont("Segoe UI", 10, XFontStyleEx.Regular);
+
+            foreach (var card in cards)
+            {
+                if (chartIndex % chartsPerPage == 0)
+                {
+                    page = document.AddPage();
+                    page.Orientation = PdfSharp.PageOrientation.Landscape;
+                    page.Size = PdfSharp.PageSize.A4;
+                    gfx = XGraphics.FromPdfPage(page);
+
+                    gfx.DrawString($"{Common.AppConfig.ProductName} - Analytics Dashboard", fontTitle, XBrushes.DarkBlue, new XRect(margin, margin, pageWidth - margin*2, 30), XStringFormats.TopLeft);
+                    gfx.DrawString($"Generated on: {DateTime.Now:MMMM dd, yyyy h:mm tt}", fontDate, XBrushes.Gray, new XRect(margin, margin + 25, pageWidth - margin*2, 20), XStringFormats.TopLeft);
+                    gfx.DrawLine(new XPen(XColors.LightGray, 1), margin, topMargin - 10, pageWidth - margin, topMargin - 10);
+                }
+
+                using (Bitmap bmp = new Bitmap(card.Width, card.Height))
+                {
+                    card.DrawToBitmap(bmp, new Rectangle(0, 0, card.Width, card.Height));
+                    using (MemoryStream ms = new MemoryStream())
+                    {
+                        bmp.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
+                        ms.Position = 0;
+                        using (XImage xImage = XImage.FromStream(ms))
+                        {
+                            int col = chartIndex % chartsPerPage;
+                            double xPos = margin + (col * (chartWidth + margin));
+                            double yPos = topMargin;
+                            
+                            double ratioX = chartWidth / xImage.PixelWidth;
+                            double ratioY = chartHeight / xImage.PixelHeight;
+                            double ratio = Math.Min(ratioX, ratioY);
+                            
+                            double drawWidth = xImage.PixelWidth * ratio;
+                            double drawHeight = xImage.PixelHeight * ratio;
+                            double yOffset = (chartHeight - drawHeight) / 2;
+
+                            gfx.DrawImage(xImage, xPos, yPos + yOffset, drawWidth, drawHeight);
+                        }
+                    }
+                }
+                chartIndex++;
+            }
+
+            document.Save(filePath);
+            document.Close();
         }
 
         private async System.Threading.Tasks.Task LoadAllCharts()

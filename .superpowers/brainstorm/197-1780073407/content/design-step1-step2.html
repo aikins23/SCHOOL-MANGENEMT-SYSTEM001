@@ -1,0 +1,153 @@
+<h2>Design Preview: Steps 1 & 2</h2>
+<p class="subtitle">Full-width stepped wizard with dot progress indicator. Review both steps — let me know if anything looks off.</p>
+
+<div class="split">
+
+  <!-- STEP 1 -->
+  <div class="mockup">
+    <div class="mockup-header">Step 1 — Student Lookup</div>
+    <div class="mockup-body" style="font-family:'Segoe UI',sans-serif;background:#f4f5f8;padding:16px;border-radius:6px;min-height:340px;display:flex;flex-direction:column;gap:10px;">
+
+      <!-- Page title -->
+      <div style="font-size:18px;font-weight:700;color:#1a2952;">Fees Payment</div>
+      <div style="font-size:11px;color:#888;margin-top:-6px;">Look up a student, record payment, and review history</div>
+
+      <!-- Progress indicator -->
+      <div style="display:flex;align-items:center;justify-content:center;gap:0;margin:6px 0 2px;">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:3px;">
+          <div style="width:28px;height:28px;border-radius:50%;background:#1a2952;color:white;font-size:11px;display:flex;align-items:center;justify-content:center;font-weight:700;">1</div>
+          <span style="font-size:9px;color:#1a2952;font-weight:600;">LOOK UP</span>
+        </div>
+        <div style="height:2px;width:60px;background:#dde;margin-bottom:14px;"></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:3px;">
+          <div style="width:28px;height:28px;border-radius:50%;background:#e8eaf2;color:#aaa;font-size:11px;display:flex;align-items:center;justify-content:center;">2</div>
+          <span style="font-size:9px;color:#aaa;">PAYMENT</span>
+        </div>
+        <div style="height:2px;width:60px;background:#dde;margin-bottom:14px;"></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:3px;">
+          <div style="width:28px;height:28px;border-radius:50%;background:#e8eaf2;color:#aaa;font-size:11px;display:flex;align-items:center;justify-content:center;">3</div>
+          <span style="font-size:9px;color:#aaa;">RECEIPT</span>
+        </div>
+      </div>
+
+      <!-- Step 1 card -->
+      <div style="background:white;border-radius:8px;border:1px solid #dde;padding:18px;display:flex;flex-direction:column;gap:12px;">
+        <div style="font-size:13px;font-weight:600;color:#1a2952;">Enter Student ID</div>
+        <div style="display:flex;gap:8px;align-items:flex-end;">
+          <div style="flex:1;">
+            <div style="font-size:10px;color:#555;font-weight:600;margin-bottom:4px;">STUDENT ID</div>
+            <div style="border:1.5px solid #1a2952;border-radius:5px;padding:8px 12px;font-size:13px;color:#333;background:white;">9011</div>
+          </div>
+          <div style="background:#1a2952;color:white;border-radius:5px;padding:9px 18px;font-size:12px;font-weight:600;white-space:nowrap;">Look Up</div>
+        </div>
+
+        <!-- Found student card -->
+        <div style="background:#eef2fb;border:1.5px solid #c5d0f0;border-radius:6px;padding:12px;display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div style="font-size:13px;font-weight:700;color:#1a2952;">KWESI BOAKYE</div>
+            <div style="font-size:11px;color:#666;margin-top:2px;">Class: BASIC 7 &nbsp;·&nbsp; ID: 9011</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:10px;color:#888;">Outstanding Balance</div>
+            <div style="font-size:16px;font-weight:700;color:#c0392b;">GHc 1,500.00</div>
+          </div>
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;margin-top:4px;">
+          <div style="background:#1a2952;color:white;border-radius:5px;padding:9px 22px;font-size:12px;font-weight:600;">Continue to Payment →</div>
+        </div>
+      </div>
+
+      <!-- History grid hint -->
+      <div style="background:white;border:1px solid #dde;border-radius:6px;padding:10px 14px;font-size:11px;color:#888;display:flex;align-items:center;justify-content:space-between;">
+        <span>Payment History</span>
+        <span style="background:#e8eaf2;border-radius:3px;padding:2px 8px;font-size:10px;color:#555;">4 records</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 2 -->
+  <div class="mockup">
+    <div class="mockup-header">Step 2 — Payment Details</div>
+    <div class="mockup-body" style="font-family:'Segoe UI',sans-serif;background:#f4f5f8;padding:16px;border-radius:6px;min-height:340px;display:flex;flex-direction:column;gap:10px;">
+
+      <!-- Page title -->
+      <div style="font-size:18px;font-weight:700;color:#1a2952;">Fees Payment</div>
+      <div style="font-size:11px;color:#888;margin-top:-6px;">Look up a student, record payment, and review history</div>
+
+      <!-- Progress indicator -->
+      <div style="display:flex;align-items:center;justify-content:center;gap:0;margin:6px 0 2px;">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:3px;">
+          <div style="width:28px;height:28px;border-radius:50%;background:#4caf50;color:white;font-size:12px;display:flex;align-items:center;justify-content:center;font-weight:700;">✓</div>
+          <span style="font-size:9px;color:#4caf50;font-weight:600;">LOOK UP</span>
+        </div>
+        <div style="height:2px;width:60px;background:#1a2952;margin-bottom:14px;"></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:3px;">
+          <div style="width:28px;height:28px;border-radius:50%;background:#1a2952;color:white;font-size:11px;display:flex;align-items:center;justify-content:center;font-weight:700;">2</div>
+          <span style="font-size:9px;color:#1a2952;font-weight:600;">PAYMENT</span>
+        </div>
+        <div style="height:2px;width:60px;background:#dde;margin-bottom:14px;"></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:3px;">
+          <div style="width:28px;height:28px;border-radius:50%;background:#e8eaf2;color:#aaa;font-size:11px;display:flex;align-items:center;justify-content:center;">3</div>
+          <span style="font-size:9px;color:#aaa;">RECEIPT</span>
+        </div>
+      </div>
+
+      <!-- Step 2 card -->
+      <div style="background:white;border-radius:8px;border:1px solid #dde;padding:16px;display:flex;flex-direction:column;gap:10px;">
+        <!-- Student summary bar -->
+        <div style="background:#eef2fb;border-radius:5px;padding:8px 12px;display:flex;justify-content:space-between;align-items:center;font-size:11px;">
+          <span style="font-weight:700;color:#1a2952;">KWESI BOAKYE &nbsp;·&nbsp; BASIC 7</span>
+          <span style="color:#c0392b;font-weight:600;">Balance: GHc 1,500.00</span>
+        </div>
+
+        <!-- Amount row -->
+        <div style="display:flex;gap:8px;">
+          <div style="flex:1;">
+            <div style="font-size:10px;color:#555;font-weight:600;margin-bottom:4px;">AMOUNT (GHc)</div>
+            <div style="border:1.5px solid #1a2952;border-radius:5px;padding:8px 12px;font-size:15px;font-weight:700;color:#1a2952;text-align:right;">250.00</div>
+          </div>
+          <div style="flex:1;">
+            <div style="font-size:10px;color:#555;font-weight:600;margin-bottom:4px;">PAYMENT MODE</div>
+            <div style="border:1px solid #dde;border-radius:5px;padding:8px 12px;font-size:12px;color:#333;">Cash ▾</div>
+          </div>
+          <div style="flex:1;">
+            <div style="font-size:10px;color:#555;font-weight:600;margin-bottom:4px;">CHEQUE / REF NO.</div>
+            <div style="border:1px solid #dde;border-radius:5px;padding:8px 12px;font-size:12px;color:#aaa;">optional</div>
+          </div>
+        </div>
+
+        <!-- Amount words -->
+        <div>
+          <div style="font-size:10px;color:#555;font-weight:600;margin-bottom:4px;">AMOUNT IN WORDS</div>
+          <div style="border:1px solid #dde;border-radius:5px;padding:8px 12px;font-size:11px;color:#666;background:#fafafa;">two hundred fifty Ghana cedis</div>
+        </div>
+
+        <!-- Being + Bursar -->
+        <div style="display:flex;gap:8px;">
+          <div style="flex:2;">
+            <div style="font-size:10px;color:#555;font-weight:600;margin-bottom:4px;">BEING (REASON)</div>
+            <div style="border:1px solid #dde;border-radius:5px;padding:8px 12px;font-size:12px;color:#333;">School fees payment</div>
+          </div>
+          <div style="flex:1;">
+            <div style="font-size:10px;color:#555;font-weight:600;margin-bottom:4px;">BURSAR / CASHIER</div>
+            <div style="border:1px solid #dde;border-radius:5px;padding:8px 12px;font-size:12px;color:#aaa;">name...</div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:8px;justify-content:space-between;align-items:center;margin-top:4px;">
+          <div style="background:#e8eaf2;border-radius:5px;padding:8px 16px;font-size:11px;color:#555;cursor:pointer;">← Back</div>
+          <div style="background:#1a2952;color:white;border-radius:5px;padding:9px 22px;font-size:12px;font-weight:600;">Preview Receipt →</div>
+        </div>
+      </div>
+
+      <div style="background:white;border:1px solid #dde;border-radius:6px;padding:10px 14px;font-size:11px;color:#888;display:flex;align-items:center;justify-content:space-between;">
+        <span>Payment History</span>
+        <span style="background:#e8eaf2;border-radius:3px;padding:2px 8px;font-size:10px;color:#555;">4 records</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<p class="subtitle" style="margin-top:16px;">Does this look right so far? Let me know before I show Step 3 (Receipt Preview).</p>

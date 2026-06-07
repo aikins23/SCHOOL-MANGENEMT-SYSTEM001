@@ -36,7 +36,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
                     // Send registration notifications (fire-and-forget)
                     if (!string.IsNullOrWhiteSpace(employee.Email))
                     {
-                        string subject = "Employment Confirmation - Kingdom Preparatory School";
+                        string subject = $"Employment Confirmation - {SchoolProfile.DisplayName}";
                         string body = SmsService.BuildEmployeeAdmissionMessage(employee);
                         _ = NotificationService.SendEmailAsync(employee.Email, subject, body, NotificationService.NotificationType.GeneralAnnouncement);
                     }

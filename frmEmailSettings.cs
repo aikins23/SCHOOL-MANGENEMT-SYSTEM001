@@ -151,7 +151,7 @@ namespace kingdom_Preparatory_School_Management_System
             txtFromEmail = new TextBox();
             txtFromEmail.Location = new System.Drawing.Point(15 + labelWidth + 10, gy);
             txtFromEmail.Size = new System.Drawing.Size(controlWidth, controlHeight);
-            txtFromEmail.Text = "noreply@kingdomprep.edu.gh";
+            txtFromEmail.Text = Common.AppConfig.Email.FromEmail;
             grpSmtpSettings.Controls.Add(txtFromEmail);
             gy += controlHeight + 12;
 

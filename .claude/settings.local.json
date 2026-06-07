@@ -86,7 +86,24 @@
       "Bash(\"C:\\\\Program Files\\\\Microsoft Visual Studio\\\\18\\\\Community\\\\MSBuild\\\\Current\\\\Bin\\\\MSBuild.exe\" -p:Configuration=Debug \"C:\\\\Users\\\\DELL\\\\Downloads\\\\New folder \\(2\\)\\\\IPMC PROJECT BUABENG EMMANUEL AIKINS \\(1\\)\\\\BUABENG EMMANUEL AIKINS - Copy\\\\kingdom_Preparatory_School_Management_System.sln\")",
       "Bash(cat > *)",
       "Bash(git stash *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(bash \"C:/Users/DELL/.claude/plugins/cache/superpowers-dev/superpowers/5.0.7/skills/brainstorming/scripts/start-server.sh\" --project-dir \"C:/Users/DELL/Downloads/New folder \\(2\\)/IPMC PROJECT BUABENG EMMANUEL AIKINS \\(1\\)/BUABENG EMMANUEL AIKINS - Copy\")",
+      "Bash(grep -i \"worktree.*director\" CLAUDE.md)",
+      "Bash(git check-ignore *)",
+      "Bash(Select-String -Pattern \"_progressPanel|_currentStep|PrimaryColor|SurfaceColor\")",
+      "Bash(Select-Object -First 40)",
+      "PowerShell(cd \"C:\\\\Users\\\\DELL\\\\Downloads\\\\New folder \\(2\\)\\\\IPMC PROJECT BUABENG EMMANUEL AIKINS \\(1\\)\\\\BUABENG EMMANUEL AIKINS - Copy\\\\.worktrees\\\\fees-wizard\"; $content = git show ce1f440:frmFessPayment.cs; $lines = $content -split \"`n\"; for \\($i = 0; $i -lt $lines.Count; $i++\\) { if \\($lines[$i] -match \"_currentStep|BuildProgressIndicator|RefreshProgressIndicator|ProgressPanel_Paint\"\\) { Write-Host \"$\\($i+1\\): $\\($lines[$i]\\)\" } })",
+      "Bash(cd \"C:\\\\Users\\\\DELL\\\\Downloads\\\\New folder \\(2\\)\\\\IPMC PROJECT BUABENG EMMANUEL AIKINS \\(1\\)\\\\BUABENG EMMANUEL AIKINS - Copy\\\\.worktrees\\\\fees-wizard\" && git show 909c51e:frmFessPayment.cs > /tmp/frmFessPayment_909c51e.cs && echo \"done\")",
+      "Bash(grep -v \"^\\\\s*//\")",
+      "Bash(git restore *)",
+      "Bash(dotnet nuget *)",
+      "Bash(where nuget.exe)",
+      "Bash(dir /s \"C:\\\\Program Files\\\\Microsoft Visual Studio\\\\2022\\\\*nuget.exe\")",
+      "Bash(\"C:\\\\Windows\\\\Microsoft.NET\\\\Framework\\\\v4.0.30319\\\\MSBuild.exe\" \"kingdom_Preparatory_School_Management_System.sln\" /p:Configuration=Debug /nologo /verbosity:minimal)",
+      "Bash(\"C:\\\\Windows\\\\Microsoft.NET\\\\Framework\\\\v4.0.30319\\\\MSBuild.exe\" kingdom_Preparatory_School_Management_System.sln /p:Configuration=Debug /nologo /verbosity:minimal)",
+      "Bash(cmd /c \"\\\\\"C:\\\\Windows\\\\Microsoft.NET\\\\Framework\\\\v4.0.30319\\\\MSBuild.exe\\\\\" kingdom_Preparatory_School_Management_System.sln /nologo /verbosity:minimal 2>&1 | tail -20\")",
+      "Bash(\"C:\\\\Windows\\\\Microsoft.NET\\\\Framework\\\\v4.0.30319\\\\MSBuild.exe\" 'kingdom_Preparatory_School_Management_System.sln' /nologo /verbosity:minimal)",
+      "Bash(Select-Object -Last 20)"
     ]
   }
 }

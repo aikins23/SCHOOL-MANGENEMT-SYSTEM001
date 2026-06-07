@@ -28,6 +28,7 @@ namespace Kingdom.Tests
                 new TestCase("StudentId formats numeric IDs as prefixed display", StudentId_FormatsDisplayIds),
                 new TestCase("StudentId parses display IDs back to numeric", StudentId_ParsesDisplayIds),
                 new TestCase("TransportPeriod maps route terms to current period", TransportPeriod_MapsTermsToPeriod),
+                new TestCase("SmsOutboxKey is deterministic and content-sensitive", SmsOutboxKey_IsDeterministic),
                 new TestCase("SecretStorage protects and restores local secrets", SecretStorage_ProtectsAndRestoresSecrets),
                 new TestCase("SecretStorage preserves legacy plaintext values", SecretStorage_PreservesLegacyPlaintextValues),
                 new TestCase("FeeBalanceCalculator calculates remaining balances", FeeBalanceCalculator_CalculatesRemainingBalances),
@@ -178,6 +179,16 @@ namespace Kingdom.Tests
             AssertEx.True(TransportPeriod.SupportsReminders("Monthly"));
             AssertEx.True(TransportPeriod.SupportsReminders("Weekly"));
             AssertEx.False(TransportPeriod.SupportsReminders("Daily"));
+        }
+
+        private static void SmsOutboxKey_IsDeterministic()
+        {
+            string a = SmsOutboxKey.Compute("233241234567", "KPSFEES.", "Hello");
+            string b = SmsOutboxKey.Compute("233241234567", "KPSFEES.", "Hello");
+            AssertEx.Equal(a, b);
+            AssertEx.Equal(64, a.Length);
+            AssertEx.NotEqual(a, SmsOutboxKey.Compute("233241234567", "KPSFEES.", "Hello world"));
+            AssertEx.NotEqual(a, SmsOutboxKey.Compute("233240000000", "KPSFEES.", "Hello"));
         }
 
         private static void SecretStorage_ProtectsAndRestoresSecrets()

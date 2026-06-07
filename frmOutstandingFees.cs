@@ -73,7 +73,7 @@ namespace kingdom_Preparatory_School_Management_System
             SuspendLayout();
             Controls.Clear();
 
-            Text          = "Outstanding Fees — Kingdom Preparatory School";
+            Text          = $"Outstanding Fees — {Common.AppConfig.ProductName}";
             BackColor     = PageBack;
             Font          = new Font("Segoe UI", 9.5F, FontStyle.Regular);
             StartPosition = FormStartPosition.CenterScreen;

@@ -64,7 +64,7 @@ namespace kingdom_Preparatory_School_Management_System
 
         private void InitializeForm()
         {
-            Text = "Teacher Dashboard — Kingdom Preparatory School";
+            Text = $"Teacher Dashboard — {Common.AppConfig.ProductName}";
             BackColor = PageBackColor;
             Font = new Font("Segoe UI", 9.5F);
             StartPosition = FormStartPosition.CenterScreen;

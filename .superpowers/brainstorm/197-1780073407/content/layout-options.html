@@ -1,0 +1,117 @@
+<h2>How should the form be laid out?</h2>
+<p class="subtitle">All three keep the paper-receipt for printing — this is about the on-screen experience.</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="font-family:sans-serif;font-size:11px;padding:10px;background:#f8f9fb;border-radius:6px;height:180px;display:flex;flex-direction:column;gap:6px;">
+        <div style="background:#1a2952;color:white;padding:6px 10px;border-radius:4px;font-weight:bold;font-size:12px;">Fees Payment</div>
+        <div style="display:flex;gap:6px;flex:1;">
+          <div style="flex:1;background:white;border:1px solid #dde;border-radius:4px;padding:8px;display:flex;flex-direction:column;gap:4px;">
+            <div style="font-weight:bold;color:#1a2952;font-size:10px;border-bottom:1px solid #eef;padding-bottom:3px;">Student Lookup</div>
+            <div style="background:#f0f2f8;border-radius:3px;height:14px;width:80%;"></div>
+            <div style="background:#f0f2f8;border-radius:3px;height:14px;width:60%;"></div>
+            <div style="font-weight:bold;color:#1a2952;font-size:10px;border-bottom:1px solid #eef;padding-bottom:3px;margin-top:6px;">Payment Details</div>
+            <div style="background:#f0f2f8;border-radius:3px;height:14px;width:90%;"></div>
+            <div style="background:#f0f2f8;border-radius:3px;height:14px;width:70%;"></div>
+            <div style="background:#f0f2f8;border-radius:3px;height:14px;width:80%;"></div>
+            <div style="display:flex;gap:4px;margin-top:auto;">
+              <div style="background:#1a2952;color:white;border-radius:3px;padding:3px 8px;font-size:9px;">Record</div>
+              <div style="background:#e8eaf2;border-radius:3px;padding:3px 8px;font-size:9px;">Print</div>
+            </div>
+          </div>
+          <div style="flex:1;background:white;border:1px solid #dde;border-radius:4px;padding:8px;display:flex;flex-direction:column;gap:3px;">
+            <div style="font-weight:bold;color:#1a2952;font-size:10px;text-align:center;border-bottom:1px solid #eef;padding-bottom:3px;">Receipt Preview</div>
+            <div style="background:#f7f9ff;border:1px solid #dde;border-radius:3px;flex:1;padding:6px;display:flex;flex-direction:column;gap:3px;align-items:center;">
+              <div style="background:#1a2952;color:white;border-radius:2px;padding:2px 10px;font-size:8px;font-weight:bold;">KINGDOM PREP J.H.S</div>
+              <div style="font-size:8px;color:#666;">Official Receipt</div>
+              <div style="font-size:8px;color:#333;margin-top:2px;">KWESI BOAKYE · BASIC 7</div>
+              <div style="font-size:11px;font-weight:bold;color:#1a2952;margin:4px 0;">GHC 250.00</div>
+              <div style="font-size:7px;color:#888;text-align:center;">two hundred fifty Ghana cedis</div>
+              <div style="font-size:7px;color:#888;">School fees payment</div>
+            </div>
+          </div>
+        </div>
+        <div style="background:white;border:1px solid #dde;border-radius:4px;padding:5px 8px;font-size:9px;color:#666;">Payment History Grid</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — Split Panel</h3>
+      <p>Form on the left, live receipt preview on the right. History grid below. You fill in the form and instantly see the receipt update in real-time.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="font-family:sans-serif;font-size:11px;padding:10px;background:#f8f9fb;border-radius:6px;height:180px;display:flex;flex-direction:column;gap:6px;">
+        <div style="background:#1a2952;color:white;padding:6px 10px;border-radius:4px;font-weight:bold;font-size:12px;">Fees Payment</div>
+        <div style="display:flex;align-items:center;justify-content:center;gap:0;margin:2px 0;">
+          <div style="background:#1a2952;color:white;border-radius:3px;padding:3px 10px;font-size:9px;font-weight:bold;">1. Lookup</div>
+          <div style="width:20px;height:1px;background:#ccc;"></div>
+          <div style="background:#e8eaf2;color:#666;border-radius:3px;padding:3px 10px;font-size:9px;">2. Payment</div>
+          <div style="width:20px;height:1px;background:#ccc;"></div>
+          <div style="background:#e8eaf2;color:#666;border-radius:3px;padding:3px 10px;font-size:9px;">3. Confirm</div>
+        </div>
+        <div style="background:white;border:1px solid #dde;border-radius:4px;padding:8px;flex:1;display:flex;flex-direction:column;gap:4px;">
+          <div style="font-size:10px;color:#1a2952;font-weight:bold;">Enter Student ID</div>
+          <div style="background:#f0f2f8;border-radius:3px;height:16px;width:50%;"></div>
+          <div style="background:#e8f0fe;border:1px solid #c5d8ff;border-radius:3px;padding:4px 6px;font-size:9px;color:#1a2952;margin-top:4px;">
+            <span style="font-weight:bold;">KWESI BOAKYE</span> · BASIC 7 · Balance: GHc 1,500
+          </div>
+          <div style="display:flex;gap:4px;margin-top:auto;">
+            <div style="background:#1a2952;color:white;border-radius:3px;padding:3px 10px;font-size:9px;margin-left:auto;">Next →</div>
+          </div>
+        </div>
+        <div style="background:white;border:1px solid #dde;border-radius:4px;padding:5px 8px;font-size:9px;color:#666;">Payment History Grid</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Stepped Wizard</h3>
+      <p>3-step flow: (1) look up student, (2) enter payment details, (3) confirm and print. Cleaner focus at each step, less visual clutter overall.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="font-family:sans-serif;font-size:11px;padding:10px;background:#f8f9fb;border-radius:6px;height:180px;display:flex;flex-direction:column;gap:6px;">
+        <div style="background:#1a2952;color:white;padding:6px 10px;border-radius:4px;font-weight:bold;font-size:12px;">Fees Payment</div>
+        <div style="background:white;border:1px solid #dde;border-radius:4px;padding:8px;display:flex;flex-direction:column;gap:4px;">
+          <div style="display:flex;gap:8px;align-items:flex-start;">
+            <div style="flex:1;">
+              <div style="font-size:9px;color:#888;font-weight:bold;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;">Student</div>
+              <div style="display:flex;gap:4px;">
+                <div style="background:#f0f2f8;border-radius:3px;height:14px;width:50px;"></div>
+                <div style="background:#f0f2f8;border-radius:3px;height:14px;flex:1;"></div>
+              </div>
+            </div>
+            <div style="flex:1;">
+              <div style="font-size:9px;color:#888;font-weight:bold;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;">Amount</div>
+              <div style="background:#f0f2f8;border-radius:3px;height:14px;"></div>
+            </div>
+            <div style="flex:1;">
+              <div style="font-size:9px;color:#888;font-weight:bold;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;">Mode</div>
+              <div style="background:#f0f2f8;border-radius:3px;height:14px;"></div>
+            </div>
+          </div>
+          <div style="display:flex;gap:4px;margin-top:2px;">
+            <div style="background:#f0f2f8;border-radius:3px;height:14px;flex:2;"></div>
+            <div style="background:#f0f2f8;border-radius:3px;height:14px;flex:1;"></div>
+          </div>
+          <div style="display:flex;gap:4px;margin-top:auto;align-items:center;">
+            <div style="font-size:8px;color:#888;flex:1;">Balance: GHc 1,500.00</div>
+            <div style="background:#e8eaf2;border-radius:3px;padding:2px 7px;font-size:8px;">Print</div>
+            <div style="background:#1a2952;color:white;border-radius:3px;padding:2px 7px;font-size:8px;">Record</div>
+            <div style="background:#e8eaf2;border-radius:3px;padding:2px 7px;font-size:8px;">Clear</div>
+          </div>
+        </div>
+        <div style="background:white;border:1px solid #dde;border-radius:4px;padding:5px 8px;font-size:9px;color:#666;">Payment History Grid (larger, more room)</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C — Compact Horizontal Form</h3>
+      <p>Collapse the receipt into a clean horizontal form bar. More screen space for the payment history. Receipt is only shown when printing.</p>
+    </div>
+  </div>
+
+</div>

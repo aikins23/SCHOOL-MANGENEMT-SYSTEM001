@@ -92,7 +92,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
             if (string.IsNullOrWhiteSpace(guardianEmail) || balance <= 0)
                 return (false, "Invalid email or balance");
 
-            string subject = "Fee Payment Reminder - Kingdom Preparatory School";
+            string subject = $"Fee Payment Reminder - {SchoolProfile.DisplayName}";
             string body = $@"Dear Guardian,
 
 This is a friendly reminder that {studentName}{(string.IsNullOrWhiteSpace(studentClass) ? "" : $" ({studentClass})")} has an outstanding balance of GHS {balance:N2}.
@@ -104,7 +104,7 @@ For payment inquiries, please contact the accounts office.
 Thank you for your cooperation.
 
 Best regards,
-Kingdom Preparatory School
+{SchoolProfile.DisplayName}
 Accounts Department";
 
             return await SendEmailAsync(guardianEmail, subject, body, NotificationType.FeeReminder);
@@ -132,7 +132,7 @@ If you have any questions regarding your results, please speak with your form tu
 
 Best regards,
 Academic Office
-Kingdom Preparatory School";
+{SchoolProfile.DisplayName}";
 
             return await SendEmailAsync(studentEmail, subject, body, NotificationType.ExamResult);
         }
@@ -150,7 +150,7 @@ Kingdom Preparatory School";
             int duration = (endDate.Date - startDate.Date).Days + 1;
             string statusText = status.ToUpper();
 
-            string subject = $"Leave Request {statusText} - Kingdom Preparatory School";
+            string subject = $"Leave Request {statusText} - {SchoolProfile.DisplayName}";
             string body = $@"Dear {employeeName},
 
 Your leave application has been {statusText.ToLower()}.
@@ -166,7 +166,7 @@ If you have any questions or concerns regarding this decision, please contact th
 
 Best regards,
 Human Resources Department
-Kingdom Preparatory School";
+{SchoolProfile.DisplayName}";
 
             return await SendEmailAsync(employeeEmail, subject, body, NotificationType.LeaveApproval);
         }
@@ -179,7 +179,7 @@ Kingdom Preparatory School";
                 return (false, "Employee email is required");
 
             int duration = (endDate.Date - startDate.Date).Days + 1;
-            string subject = "Leave Request Received - Kingdom Preparatory School";
+            string subject = $"Leave Request Received - {SchoolProfile.DisplayName}";
             string body = $@"Dear {employeeName},
 
 Your leave application has been received and is pending approval.
@@ -193,7 +193,7 @@ You will be notified once a decision has been made.
 
 Best regards,
 Human Resources Department
-Kingdom Preparatory School";
+{SchoolProfile.DisplayName}";
 
             return await SendEmailAsync(employeeEmail, subject, body, NotificationType.LeaveApproval);
         }
@@ -217,7 +217,7 @@ Kingdom Preparatory School";
 
 Please review it in the Leave Approval screen.
 
-Kingdom Preparatory School";
+{SchoolProfile.DisplayName}";
 
             return await SendEmailAsync(hrEmail, subject, body, NotificationType.LeaveApproval);
         }
@@ -236,7 +236,7 @@ Kingdom Preparatory School";
                 ? $"Remaining Balance: GHS {newBalance:N2}"
                 : "Status: Balance Cleared ✓";
 
-            string subject = "Payment Received - Kingdom Preparatory School";
+            string subject = $"Payment Received - {SchoolProfile.DisplayName}";
             string body = $@"Dear Guardian,
 
 We confirm receipt of your payment for {studentName}{(string.IsNullOrWhiteSpace(studentClass) ? "" : $" ({studentClass})")}.
@@ -252,7 +252,7 @@ For any payment inquiries, please contact the Accounts Office.
 
 Best regards,
 Accounts Department
-Kingdom Preparatory School";
+{SchoolProfile.DisplayName}";
 
             return await SendEmailAsync(guardianEmail, subject, body, NotificationType.PaymentReceived);
         }
@@ -277,7 +277,7 @@ Kingdom Preparatory School";
             if (string.IsNullOrWhiteSpace(testEmail))
                 return (false, "Test email address is required");
 
-            string subject = "Test Email - Kingdom Preparatory School";
+            string subject = $"Test Email - {SchoolProfile.DisplayName}";
             string body = $@"This is a test email to verify your email configuration.
 
 If you received this email, your email settings are working correctly.
@@ -285,7 +285,7 @@ If you received this email, your email settings are working correctly.
 Sent: {DateTime.Now:yyyy-MM-dd HH:mm:ss}
 
 ---
-Kingdom Preparatory School";
+{SchoolProfile.DisplayName}";
 
             return await SendEmailAsync(testEmail, subject, body, NotificationType.GeneralAnnouncement);
         }

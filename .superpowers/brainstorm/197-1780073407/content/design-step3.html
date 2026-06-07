@@ -1,0 +1,169 @@
+<h2>Design Preview: Step 3 — Receipt & Confirm</h2>
+<p class="subtitle">The cashier sees the final receipt before committing. After recording, the receipt stays visible with Print and New Payment options.</p>
+
+<div class="split">
+
+  <!-- STEP 3 - BEFORE RECORDING -->
+  <div class="mockup">
+    <div class="mockup-header">Step 3 — Before "Record Payment"</div>
+    <div class="mockup-body" style="font-family:'Segoe UI',sans-serif;background:#f4f5f8;padding:16px;border-radius:6px;display:flex;flex-direction:column;gap:10px;">
+
+      <div style="font-size:18px;font-weight:700;color:#1a2952;">Fees Payment</div>
+      <div style="font-size:11px;color:#888;margin-top:-6px;">Look up a student, record payment, and review history</div>
+
+      <!-- Progress indicator -->
+      <div style="display:flex;align-items:center;justify-content:center;gap:0;margin:4px 0 0;">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:3px;">
+          <div style="width:26px;height:26px;border-radius:50%;background:#4caf50;color:white;font-size:11px;display:flex;align-items:center;justify-content:center;font-weight:700;">✓</div>
+          <span style="font-size:8px;color:#4caf50;font-weight:600;">LOOK UP</span>
+        </div>
+        <div style="height:2px;width:50px;background:#4caf50;margin-bottom:14px;"></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:3px;">
+          <div style="width:26px;height:26px;border-radius:50%;background:#4caf50;color:white;font-size:11px;display:flex;align-items:center;justify-content:center;font-weight:700;">✓</div>
+          <span style="font-size:8px;color:#4caf50;font-weight:600;">PAYMENT</span>
+        </div>
+        <div style="height:2px;width:50px;background:#1a2952;margin-bottom:14px;"></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:3px;">
+          <div style="width:26px;height:26px;border-radius:50%;background:#1a2952;color:white;font-size:11px;display:flex;align-items:center;justify-content:center;font-weight:700;">3</div>
+          <span style="font-size:8px;color:#1a2952;font-weight:600;">RECEIPT</span>
+        </div>
+      </div>
+
+      <!-- Receipt card -->
+      <div style="background:white;border-radius:8px;border:1px solid #dde;padding:16px;display:flex;flex-direction:column;gap:8px;">
+
+        <!-- School header -->
+        <div style="text-align:center;border-bottom:2px solid #1a2952;padding-bottom:8px;">
+          <div style="font-size:14px;font-weight:800;color:#1a2952;letter-spacing:0.5px;">KINGDOM PREPARATORY J.H.S</div>
+          <div style="font-size:10px;color:#1a2952;font-weight:600;">P. O. BOX 7 AKIM ODA</div>
+          <div style="font-size:9px;color:#666;">Tel: 0548 050 141 | 0200 369 762 | 0201 455 533</div>
+        </div>
+
+        <!-- Receipt title + number + date -->
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div style="border:1.5px solid #1a2952;border-radius:4px;padding:4px 14px;font-size:12px;font-weight:700;color:#1a2952;">Official Receipt</div>
+          <div style="text-align:right;">
+            <div style="font-size:9px;color:#888;">No. 0529164230</div>
+            <div style="font-size:9px;color:#888;">29/05/2026</div>
+          </div>
+        </div>
+
+        <!-- Student row -->
+        <div style="display:flex;gap:8px;">
+          <div style="flex:1;background:#f7f9ff;border-radius:4px;padding:5px 8px;">
+            <div style="font-size:8px;color:#888;font-weight:600;">STUDENT ID</div>
+            <div style="font-size:11px;font-weight:700;color:#1a2952;">9011</div>
+          </div>
+          <div style="flex:1;background:#f7f9ff;border-radius:4px;padding:5px 8px;">
+            <div style="font-size:8px;color:#888;font-weight:600;">CLASS</div>
+            <div style="font-size:11px;font-weight:700;color:#1a2952;">BASIC 7</div>
+          </div>
+          <div style="flex:2;background:#f7f9ff;border-radius:4px;padding:5px 8px;">
+            <div style="font-size:8px;color:#888;font-weight:600;">RECEIVED FROM</div>
+            <div style="font-size:11px;font-weight:700;color:#1a2952;">KWESI BOAKYE</div>
+          </div>
+        </div>
+
+        <!-- Amount -->
+        <div style="background:#f7f9ff;border-radius:4px;padding:5px 8px;">
+          <div style="font-size:8px;color:#888;font-weight:600;">THE SUM OF</div>
+          <div style="font-size:11px;color:#333;font-style:italic;">two hundred fifty Ghana cedis</div>
+        </div>
+
+        <!-- Being + Mode + Balance -->
+        <div style="display:flex;gap:8px;">
+          <div style="flex:2;background:#f7f9ff;border-radius:4px;padding:5px 8px;">
+            <div style="font-size:8px;color:#888;font-weight:600;">BEING</div>
+            <div style="font-size:11px;color:#333;">School fees payment</div>
+          </div>
+          <div style="flex:1;background:#f7f9ff;border-radius:4px;padding:5px 8px;">
+            <div style="font-size:8px;color:#888;font-weight:600;">MODE</div>
+            <div style="font-size:11px;color:#333;">Cash</div>
+          </div>
+          <div style="flex:1;background:#e8f5e9;border-radius:4px;padding:5px 8px;border:1px solid #c8e6c9;">
+            <div style="font-size:8px;color:#2e7d32;font-weight:600;">BALANCE</div>
+            <div style="font-size:11px;font-weight:700;color:#2e7d32;">GHc 1,250.00</div>
+          </div>
+        </div>
+
+        <!-- Amount box -->
+        <div style="border:2px solid #1a2952;border-radius:5px;display:flex;align-items:center;padding:8px 12px;gap:8px;">
+          <div style="font-size:14px;font-weight:800;color:#1a2952;">GHc</div>
+          <div style="flex:1;font-size:20px;font-weight:800;color:#1a2952;text-align:right;">250</div>
+          <div style="font-size:14px;font-weight:800;color:#1a2952;">.00</div>
+        </div>
+
+        <!-- Bursar + Signature -->
+        <div style="display:flex;gap:8px;align-items:flex-end;">
+          <div style="flex:2;background:#f7f9ff;border-radius:4px;padding:5px 8px;">
+            <div style="font-size:8px;color:#888;font-weight:600;">BURSAR / CASHIER</div>
+            <div style="font-size:11px;color:#333;">BURSAR JANE</div>
+          </div>
+          <div style="flex:1;text-align:center;border-top:1px dashed #aaa;padding-top:4px;font-size:9px;color:#aaa;">Signature</div>
+        </div>
+
+        <!-- Action buttons -->
+        <div style="display:flex;gap:8px;margin-top:6px;padding-top:8px;border-top:1px solid #eee;">
+          <div style="background:#e8eaf2;border-radius:5px;padding:8px 14px;font-size:11px;color:#555;cursor:pointer;">← Back</div>
+          <div style="flex:1;background:#1a2952;color:white;border-radius:5px;padding:9px;font-size:12px;font-weight:700;text-align:center;cursor:pointer;">Record Payment</div>
+          <div style="background:#e8eaf2;border-radius:5px;padding:8px 14px;font-size:11px;color:#555;cursor:pointer;">Clear</div>
+        </div>
+      </div>
+
+      <div style="background:white;border:1px solid #dde;border-radius:6px;padding:8px 14px;font-size:11px;color:#888;">Payment History ↓</div>
+    </div>
+  </div>
+
+  <!-- STEP 3 - AFTER RECORDING -->
+  <div class="mockup">
+    <div class="mockup-header">Step 3 — After "Record Payment" (success state)</div>
+    <div class="mockup-body" style="font-family:'Segoe UI',sans-serif;background:#f4f5f8;padding:16px;border-radius:6px;display:flex;flex-direction:column;gap:10px;">
+
+      <div style="font-size:18px;font-weight:700;color:#1a2952;">Fees Payment</div>
+      <div style="font-size:11px;color:#888;margin-top:-6px;">Look up a student, record payment, and review history</div>
+
+      <!-- Success banner -->
+      <div style="background:#e8f5e9;border:1.5px solid #a5d6a7;border-radius:6px;padding:10px 14px;display:flex;align-items:center;gap:10px;">
+        <div style="width:22px;height:22px;border-radius:50%;background:#4caf50;color:white;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;">✓</div>
+        <div>
+          <div style="font-size:12px;font-weight:700;color:#2e7d32;">Payment Recorded Successfully</div>
+          <div style="font-size:10px;color:#388e3c;">GHc 250.00 received from KWESI BOAKYE · New balance: GHc 1,250.00</div>
+        </div>
+      </div>
+
+      <!-- Same receipt - now read-only -->
+      <div style="background:white;border-radius:8px;border:1.5px solid #a5d6a7;padding:16px;display:flex;flex-direction:column;gap:8px;opacity:0.9;">
+        <div style="text-align:center;border-bottom:2px solid #1a2952;padding-bottom:8px;">
+          <div style="font-size:14px;font-weight:800;color:#1a2952;">KINGDOM PREPARATORY J.H.S</div>
+          <div style="font-size:10px;color:#1a2952;font-weight:600;">P. O. BOX 7 AKIM ODA</div>
+          <div style="font-size:9px;color:#666;">Tel: 0548 050 141 | 0200 369 762 | 0201 455 533</div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div style="border:1.5px solid #1a2952;border-radius:4px;padding:4px 14px;font-size:12px;font-weight:700;color:#1a2952;">Official Receipt</div>
+          <div style="text-align:right;font-size:9px;color:#888;"><div>No. 0529164230</div><div>29/05/2026</div></div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <div style="flex:1;background:#f7f9ff;border-radius:4px;padding:5px 8px;"><div style="font-size:8px;color:#888;font-weight:600;">STUDENT ID</div><div style="font-size:11px;font-weight:700;color:#1a2952;">9011</div></div>
+          <div style="flex:1;background:#f7f9ff;border-radius:4px;padding:5px 8px;"><div style="font-size:8px;color:#888;font-weight:600;">CLASS</div><div style="font-size:11px;font-weight:700;color:#1a2952;">BASIC 7</div></div>
+          <div style="flex:2;background:#f7f9ff;border-radius:4px;padding:5px 8px;"><div style="font-size:8px;color:#888;font-weight:600;">RECEIVED FROM</div><div style="font-size:11px;font-weight:700;color:#1a2952;">KWESI BOAKYE</div></div>
+        </div>
+        <div style="border:2px solid #1a2952;border-radius:5px;display:flex;align-items:center;padding:8px 12px;gap:8px;">
+          <div style="font-size:14px;font-weight:800;color:#1a2952;">GHc</div>
+          <div style="flex:1;font-size:20px;font-weight:800;color:#1a2952;text-align:right;">250</div>
+          <div style="font-size:14px;font-weight:800;color:#1a2952;">.00</div>
+        </div>
+
+        <!-- Post-record buttons -->
+        <div style="display:flex;gap:8px;margin-top:6px;padding-top:8px;border-top:1px solid #eee;">
+          <div style="flex:1;background:#1a2952;color:white;border-radius:5px;padding:9px;font-size:12px;font-weight:700;text-align:center;cursor:pointer;">🖨 Print Receipt</div>
+          <div style="flex:1;background:#e8f5e9;color:#2e7d32;border:1.5px solid #a5d6a7;border-radius:5px;padding:9px;font-size:12px;font-weight:700;text-align:center;cursor:pointer;">+ New Payment</div>
+        </div>
+      </div>
+
+      <div style="background:white;border:1px solid #a5d6a7;border-radius:6px;padding:8px 14px;font-size:11px;color:#555;display:flex;justify-content:space-between;"><span>Payment History</span><span style="color:#2e7d32;font-size:10px;font-weight:600;">↑ just updated</span></div>
+    </div>
+  </div>
+
+</div>
+
+<p class="subtitle" style="margin-top:16px;">Does Step 3 look right? Any changes before I write the spec?</p>

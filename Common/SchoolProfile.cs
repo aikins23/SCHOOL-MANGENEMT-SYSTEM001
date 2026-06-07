@@ -49,6 +49,9 @@ namespace kingdom_Preparatory_School_Management_System.Common
         private static SchoolInformation Info { get { EnsureLoaded(); return _info; } }
 
         public static string Name => Info.Name;
+        /// <summary>The buyer's school name for all customer/parent-facing text (SMS, email,
+        /// report cards, receipts). Falls back to the product name only when unconfigured.</summary>
+        public static string DisplayName => string.IsNullOrWhiteSpace(Info.Name) ? AppConfig.ProductName : Info.Name;
         public static string Address => Info.Address;
         public static string PoBox => Info.PoBox;
         public static string GpsAddress => Info.GpsAddress;

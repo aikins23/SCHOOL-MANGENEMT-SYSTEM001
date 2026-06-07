@@ -133,7 +133,7 @@ namespace kingdom_Preparatory_School_Management_System
                     _ = SmsService.SendStudentAdmissionAsync(res.Student.EmergencyContact, res.Student, d.AdmissionFee, d.SchoolFeePaid, d.TermTotal);
                 if (!string.IsNullOrWhiteSpace(res.Student.GuardianEmail))
                     _ = NotificationService.SendEmailAsync(res.Student.GuardianEmail,
-                        "Admission Confirmation - Kingdom Preparatory School",
+                        $"Admission Confirmation - {Common.SchoolProfile.DisplayName}",
                         SmsService.BuildStudentAdmissionMessage(res.Student, d.AdmissionFee, d.SchoolFeePaid, d.TermTotal),
                         NotificationService.NotificationType.GeneralAnnouncement);
 
@@ -188,7 +188,7 @@ namespace kingdom_Preparatory_School_Management_System
             using (var f = new Font("Segoe UI", 11F))
             {
                 int x = b.Left + 10, y = b.Top + 10;
-                g.DrawString("KINGDOM PREPARATORY SCHOOL", h1, navy, x, y); y += 30;
+                g.DrawString("NYANSAPO SCHOOL ERP", h1, navy, x, y); y += 30;
                 g.DrawString("P. O. BOX 7 AKIM ODA", f, black, x, y); y += 22;
                 g.DrawString("OFFICIAL RECEIPT - " + r.Title, h2, navy, x, y); y += 30;
                 g.DrawLine(Pens.Gray, x, y, b.Right - 10, y); y += 14;

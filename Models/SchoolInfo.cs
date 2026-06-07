@@ -5,7 +5,7 @@ namespace kingdom_Preparatory_School_Management_System.Models
     /// </summary>
     public class SchoolInfo
     {
-        public string Name { get; set; } = "KINGDOM PREPARATORY SCHOOL";
+        public string Name { get; set; } = "NYANSAPO SCHOOL ERP";
         public string Location { get; set; } = "AKIM ODA- ABENASE";
         public string PhoneNumbers { get; set; } = "0548050141/0246087609";
         public byte[] Logo { get; set; }               // School logo image bytes

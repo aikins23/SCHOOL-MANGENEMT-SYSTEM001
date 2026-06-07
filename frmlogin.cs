@@ -45,7 +45,7 @@ namespace kingdom_Preparatory_School_Management_System
             SuspendLayout();
 
             Controls.Clear();
-            Text = "Kingdom Preparatory School - Login";
+            Text = $"{Common.AppConfig.ProductName} - Login";
             BackColor = PageBackColor;
             Font = new Font("Segoe UI", 9.5F, FontStyle.Regular);
             StartPosition = FormStartPosition.CenterScreen;
@@ -87,7 +87,7 @@ namespace kingdom_Preparatory_School_Management_System
             
             try
             {
-                string logoPath = System.IO.Path.Combine(Application.StartupPath, "Resources", "school_logo.png");
+                string logoPath = System.IO.Path.Combine(Application.StartupPath, "Resources", "app_logo.png");
                 if (System.IO.File.Exists(logoPath))
                 {
                     pictureBox1.Image = Image.FromFile(logoPath);
@@ -95,7 +95,7 @@ namespace kingdom_Preparatory_School_Management_System
                 else
                 {
                     // Fallback to searching for the file in the project structure if not in bin
-                    string projectLogoPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "Resources", "school_logo.png");
+                    string projectLogoPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "Resources", "app_logo.png");
                     if (System.IO.File.Exists(projectLogoPath))
                     {
                         pictureBox1.Image = Image.FromFile(projectLogoPath);
@@ -131,7 +131,7 @@ namespace kingdom_Preparatory_School_Management_System
             {
                 Dock = DockStyle.Top,
                 Height = 96,
-                Text = "Kingdom Preparatory School",
+                Text = Common.AppConfig.ProductName,
                 ForeColor = Color.White,
                 Font = new Font("Georgia", 22F, FontStyle.Bold),
                 TextAlign = ContentAlignment.BottomLeft
@@ -287,6 +287,47 @@ namespace kingdom_Preparatory_School_Management_System
             textBox.BorderThickness = 1;
             textBox.FocusedState.BorderColor = GoldColor;
             textBox.HoverState.BorderColor = GoldColor;
+            
+            // Add modern icons using in-memory generation
+            textBox.IconLeftSize = new Size(20, 20);
+            textBox.IconLeftOffset = new Point(10, 0);
+            textBox.TextOffset = new Point(10, 0);
+            
+            if (placeholder.ToLower().Contains("user"))
+                textBox.IconLeft = CreateModernIcon(IconType.User);
+            else if (placeholder.ToLower().Contains("pass"))
+                textBox.IconLeft = CreateModernIcon(IconType.Lock);
+        }
+
+        private enum IconType { User, Lock }
+
+        private Image CreateModernIcon(IconType type)
+        {
+            Bitmap bmp = new Bitmap(32, 32);
+            using (Graphics g = Graphics.FromImage(bmp))
+            {
+                g.SmoothingMode = SmoothingMode.AntiAlias;
+                using (Pen pen = new Pen(MutedTextColor, 2F))
+                {
+                    if (type == IconType.User)
+                    {
+                        // Head
+                        g.DrawEllipse(pen, 10, 6, 12, 12);
+                        // Shoulders
+                        g.DrawArc(pen, 4, 20, 24, 16, 180, 180);
+                    }
+                    else if (type == IconType.Lock)
+                    {
+                        // Shackle
+                        g.DrawArc(pen, 9, 6, 14, 14, 180, 180);
+                        // Body
+                        g.DrawRectangle(pen, 8, 16, 16, 10);
+                        // Keyhole
+                        g.FillEllipse(new SolidBrush(MutedTextColor), 14, 19, 4, 4);
+                    }
+                }
+            }
+            return bmp;
         }
         private void frmlogin_Load(object sender, EventArgs e)
         {
@@ -439,32 +480,28 @@ namespace kingdom_Preparatory_School_Management_System
 
         private sealed class LoginSuccessDialog : Form
         {
-            private static readonly Color DialogBackColor = Color.FromArgb(255, 253, 247);
-            private static readonly Color DialogBorderColor = Color.FromArgb(218, 210, 187);
-            private static readonly Color DialogTextColor = Color.FromArgb(28, 36, 52);
-            private static readonly Color DialogMutedColor = Color.FromArgb(102, 112, 133);
-            private static readonly Color DialogSuccessColor = Color.FromArgb(34, 139, 88);
+            private static readonly Color DialogBackColor = Color.White;
+            private static readonly Color DialogBorderColor = Color.FromArgb(235, 239, 245);
+            private static readonly Color DialogTextColor = Color.FromArgb(11, 31, 73);
+            private static readonly Color DialogMutedColor = Color.FromArgb(93, 108, 123);
+            private static readonly Color DialogSuccessColor = Color.FromArgb(46, 125, 50);
+
+            private readonly Timer _autoCloseTimer;
+            private int _secondsRemaining = 3;
+            private readonly Button _continueButton;
 
             public LoginSuccessDialog(string username, string roleName)
             {
                 Text = "Login Successful";
-                Width = 460;
-                Height = 320;
+                Width = 340;  // Reduced from 400
+                Height = 250; // Reduced from 300
                 BackColor = DialogBackColor;
                 FormBorderStyle = FormBorderStyle.None;
                 StartPosition = FormStartPosition.CenterParent;
                 ShowInTaskbar = false;
-                Font = new Font("Segoe UI", 9.5F, FontStyle.Regular);
+                Font = new Font("Segoe UI", 9F, FontStyle.Regular);
                 KeyPreview = true;
-                Padding = new Padding(1);
-
-                var accent = new Panel
-                {
-                    Dock = DockStyle.Top,
-                    Height = 5,
-                    BackColor = GoldColor
-                };
-                Controls.Add(accent);
+                Opacity = 0; // For fade-in animation
 
                 var content = new TableLayoutPanel
                 {
@@ -472,74 +509,105 @@ namespace kingdom_Preparatory_School_Management_System
                     BackColor = DialogBackColor,
                     ColumnCount = 1,
                     RowCount = 6,
-                    Padding = new Padding(36, 28, 36, 28)
+                    Padding = new Padding(24, 18, 24, 18)
                 };
-                content.RowStyles.Add(new RowStyle(SizeType.Absolute, 72));
-                content.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
-                content.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
-                content.RowStyles.Add(new RowStyle(SizeType.Absolute, 40));
-                content.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-                content.RowStyles.Add(new RowStyle(SizeType.Absolute, 46));
+                content.RowStyles.Add(new RowStyle(SizeType.Absolute, 54)); // Icon
+                content.RowStyles.Add(new RowStyle(SizeType.Absolute, 36)); // Title
+                content.RowStyles.Add(new RowStyle(SizeType.Absolute, 28)); // Welcome message
+                content.RowStyles.Add(new RowStyle(SizeType.Absolute, 24)); // Role info
+                content.RowStyles.Add(new RowStyle(SizeType.Percent, 100)); // Spacer
+                content.RowStyles.Add(new RowStyle(SizeType.Absolute, 38)); // Button
                 Controls.Add(content);
 
-                var icon = new Panel
+                var iconContainer = new Panel
                 {
-                    Width = 64,
-                    Height = 64,
+                    Width = 48, // Reduced from 64
+                    Height = 48,
                     Anchor = AnchorStyles.None,
-                    BackColor = DialogBackColor
+                    BackColor = Color.Transparent
                 };
-                icon.Paint += PaintSuccessIcon;
-                content.Controls.Add(icon, 0, 0);
+                iconContainer.Paint += PaintSuccessIcon;
+                content.Controls.Add(iconContainer, 0, 0);
 
                 content.Controls.Add(new Label
                 {
                     Dock = DockStyle.Fill,
-                    Text = "Access Granted",
+                    Text = "Login Successful",
                     ForeColor = DialogTextColor,
-                    Font = new Font("Georgia", 20F, FontStyle.Bold),
+                    Font = new Font("Segoe UI Semibold", 16F, FontStyle.Bold), // Reduced from 18
                     TextAlign = ContentAlignment.MiddleCenter
                 }, 0, 1);
 
                 content.Controls.Add(new Label
                 {
                     Dock = DockStyle.Fill,
-                    Text = $"Welcome back, {username}.",
-                    ForeColor = DialogTextColor,
-                    Font = new Font("Segoe UI Semibold", 11F, FontStyle.Bold),
+                    Text = $"Welcome back, {username}",
+                    ForeColor = TextColor,
+                    Font = new Font("Segoe UI", 10F), // Reduced from 10.5
                     TextAlign = ContentAlignment.MiddleCenter
                 }, 0, 2);
 
                 content.Controls.Add(new Label
                 {
                     Dock = DockStyle.Fill,
-                    Text = $"Signed in as {roleName}. Your dashboard is ready.",
+                    Text = $"Authorized as {roleName}",
                     ForeColor = DialogMutedColor,
-                    Font = new Font("Segoe UI", 9.5F),
+                    Font = new Font("Segoe UI", 8.5F), // Reduced from 9
                     TextAlign = ContentAlignment.MiddleCenter
                 }, 0, 3);
 
-                var continueButton = new Button
+                _continueButton = new Button
                 {
-                    Width = 158,
-                    Height = 40,
+                    Width = 160, // Reduced from 180
+                    Height = 36,  // Reduced from 38
                     Anchor = AnchorStyles.None,
-                    Text = "Continue",
+                    Text = $"Continue ({_secondsRemaining}s)",
                     BackColor = PrimaryColor,
                     ForeColor = Color.White,
                     FlatStyle = FlatStyle.Flat,
-                    Font = new Font("Segoe UI Semibold", 10F, FontStyle.Bold),
+                    Font = new Font("Segoe UI Semibold", 9F, FontStyle.Bold),
                     Cursor = Cursors.Hand,
                     DialogResult = DialogResult.OK
                 };
-                continueButton.FlatAppearance.BorderSize = 0;
-                content.Controls.Add(continueButton, 0, 5);
+                _continueButton.FlatAppearance.BorderSize = 0;
+                content.Controls.Add(_continueButton, 0, 5);
 
-                AcceptButton = continueButton;
+                // Animations & Timers
+                var fadeInTimer = new Timer { Interval = 15 };
+                fadeInTimer.Tick += (s, e) =>
+                {
+                    if (Opacity < 1) Opacity += 0.1;
+                    else fadeInTimer.Stop();
+                };
+
+                _autoCloseTimer = new Timer { Interval = 1000 };
+                _autoCloseTimer.Tick += (s, e) =>
+                {
+                    _secondsRemaining--;
+                    if (_secondsRemaining <= 0)
+                    {
+                        _autoCloseTimer.Stop();
+                        DialogResult = DialogResult.OK;
+                        Close();
+                    }
+                    else
+                    {
+                        _continueButton.Text = $"Continue ({_secondsRemaining}s)";
+                    }
+                };
+
+                Load += (s, e) =>
+                {
+                    fadeInTimer.Start();
+                    _autoCloseTimer.Start();
+                };
+
+                AcceptButton = _continueButton;
                 KeyDown += (s, e) =>
                 {
                     if (e.KeyCode == Keys.Escape || e.KeyCode == Keys.Enter)
                     {
+                        _autoCloseTimer.Stop();
                         DialogResult = DialogResult.OK;
                         Close();
                     }
@@ -557,69 +625,45 @@ namespace kingdom_Preparatory_School_Management_System
                 }
             }
 
-            protected override void OnShown(EventArgs e)
-            {
-                base.OnShown(e);
-                ApplyRoundedRegion();
-            }
-
-            protected override void OnResize(EventArgs e)
-            {
-                base.OnResize(e);
-                ApplyRoundedRegion();
-            }
-
             protected override void OnPaint(PaintEventArgs e)
             {
                 base.OnPaint(e);
-                using (var path = CreateRoundedRectangle(new Rectangle(0, 0, Width - 1, Height - 1), 18))
-                using (var pen = new Pen(DialogBorderColor))
+                // Subtle border
+                using (var pen = new Pen(DialogBorderColor, 1))
                 {
                     e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
-                    e.Graphics.DrawPath(pen, path);
-                }
-            }
-
-            private void ApplyRoundedRegion()
-            {
-                if (Width <= 0 || Height <= 0) return;
-                using (var path = CreateRoundedRectangle(new Rectangle(0, 0, Width, Height), 18))
-                {
-                    Region = new Region(path);
+                    e.Graphics.DrawRectangle(pen, 0, 0, Width - 1, Height - 1);
                 }
             }
 
             private void PaintSuccessIcon(object sender, PaintEventArgs e)
             {
                 e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
-
-                using (var softBrush = new SolidBrush(Color.FromArgb(224, 246, 235)))
-                using (var mainBrush = new SolidBrush(DialogSuccessColor))
-                using (var checkPen = new Pen(Color.White, 5F))
+                int size = 48; // Reduced from 64
+                
+                using (var pen = new Pen(DialogSuccessColor, 2.5F))
+                using (var bgBrush = new SolidBrush(Color.FromArgb(240, 250, 243)))
                 {
-                    e.Graphics.FillEllipse(softBrush, 0, 0, 64, 64);
-                    e.Graphics.FillEllipse(mainBrush, 10, 10, 44, 44);
-                    checkPen.StartCap = LineCap.Round;
-                    checkPen.EndCap = LineCap.Round;
-                    e.Graphics.DrawLines(checkPen, new[]
+                    // Draw a subtle soft background circle
+                    e.Graphics.FillEllipse(bgBrush, 2, 2, size - 4, size - 4);
+                    
+                    // Draw a thin, modern outer circle
+                    e.Graphics.DrawEllipse(pen, 2, 2, size - 4, size - 4);
+                    
+                    // Draw a sleek, thin modern checkmark
+                    pen.Width = 3F;
+                    pen.StartCap = LineCap.Round;
+                    pen.EndCap = LineCap.Round;
+                    pen.LineJoin = LineJoin.Round;
+                    
+                    PointF[] points = 
                     {
-                        new Point(24, 33),
-                        new Point(31, 40),
-                        new Point(43, 26)
-                    });
+                        new PointF(size * 0.30f, size * 0.52f),
+                        new PointF(size * 0.45f, size * 0.67f),
+                        new PointF(size * 0.70f, size * 0.35f)
+                    };
+                    e.Graphics.DrawLines(pen, points);
                 }
-            }
-
-            private static GraphicsPath CreateRoundedRectangle(Rectangle bounds, int radius)
-            {
-                int diameter = radius * 2;
-                var path = new GraphicsPath();
-                path.AddArc(bounds.Left, bounds.Top, diameter, diameter, 180, 90);
-                path.AddArc(bounds.Right - diameter, bounds.Top, diameter, diameter, 270, 90);
-                path.AddArc(bounds.Right - diameter, bounds.Bottom - diameter, diameter, diameter, 0, 90);
-                path.AddArc(bounds.Left, bounds.Bottom - diameter, diameter, diameter, 90, 90);
-                path.CloseFigure();
-                return path;
             }
         }
     }

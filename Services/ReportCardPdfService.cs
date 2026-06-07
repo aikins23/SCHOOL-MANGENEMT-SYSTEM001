@@ -10,8 +10,8 @@ using PdfSharp.Pdf;
 namespace kingdom_Preparatory_School_Management_System.Services
 {
     /// <summary>
-    /// Generates a Student Terminal Report PDF that exactly matches the
-    /// Kingdom Preparatory School official report card design:
+    /// Generates a Student Terminal Report PDF that matches the configured school's
+    /// official report card design (school identity from SchoolProfile):
     ///   - Navy header with logo placeholder, school name block and photo box
     ///   - 6-row × 2-column student info table
     ///   - Subjects table: Class Score (50%) | Exams Score (50%) | Total (100%) | Grade | Position | Remarks
@@ -217,7 +217,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
             // ── Centre text block ──
             double tx = ML + LW + 8;
             double tw = BW - LW - 8 - 82;
-            CentreText(g, "KINGDOM PREPARATORY SCHOOL", tx, y + H - 27, tw, FB(14), White);
+            CentreText(g, "NYANSAPO SCHOOL ERP", tx, y + H - 27, tw, FB(14), White);
             CentreText(g, "AKIM ODA- ABENASE",          tx, y + H - 43, tw, FB(10), White);
             CentreText(g, "0548050141/0246087609",       tx, y + H - 57, tw, F(9),   White);
             CentreText(g, "STUDENT TERMINAL REPORT",    tx, y + H - 73, tw, FB(11), White);

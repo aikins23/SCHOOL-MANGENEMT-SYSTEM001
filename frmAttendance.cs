@@ -79,7 +79,7 @@ namespace kingdom_Preparatory_School_Management_System
             SuspendLayout();
             Controls.Clear();
 
-            Text            = "Attendance — Kingdom Preparatory School";
+            Text            = $"Attendance — {Common.AppConfig.ProductName}";
             BackColor       = PageBack;
             Font            = new Font("Segoe UI", 9.5F, FontStyle.Regular);
             StartPosition   = FormStartPosition.CenterScreen;
@@ -431,7 +431,7 @@ namespace kingdom_Preparatory_School_Management_System
                 btnAnalysis.BackColor = Surface;
                 btnAnalysis.ForeColor = TextCol;
                 btnAnalysis.FlatAppearance.BorderSize = 1;
-                Text = "Attendance — Kingdom Preparatory School";
+                Text = $"Attendance — {Common.AppConfig.ProductName}";
                 await LoadTargetList();
             }
         }

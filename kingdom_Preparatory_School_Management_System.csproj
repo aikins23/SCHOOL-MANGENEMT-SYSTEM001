@@ -177,6 +177,8 @@
     <Compile Include="Common\NavigationSidebar.cs" />
     <Compile Include="Common\SessionUi.cs" />
     <Compile Include="Common\TransportPeriod.cs" />
+    <Compile Include="Common\Branding.cs" />
+    <Compile Include="Common\SmsOutboxKey.cs" />
     <Compile Include="Common\SecretStorage.cs" />
     <Compile Include="Common\UIHelper.cs" />
     <Compile Include="Common\ValidationHelper.cs" />
@@ -217,6 +219,7 @@
     <Compile Include="Data\LibraryRepository.cs" />
     <Compile Include="Data\ITransportRepository.cs" />
     <Compile Include="Data\TransportRepository.cs" />
+    <Compile Include="Data\SmsOutboxRepository.cs" />
     <Compile Include="Data\IDashboardRepository.cs" />
     <Compile Include="Data\AttendanceRepository.cs" />
     <Compile Include="Data\IAttendanceRepository.cs" />
@@ -402,6 +405,7 @@
     <Compile Include="Models\Bus.cs" />
     <Compile Include="Models\BusRoute.cs" />
     <Compile Include="Models\TransportArrear.cs" />
+    <Compile Include="Models\SmsOutboxItem.cs" />
     <Compile Include="Models\Student.cs" />
     <Compile Include="Models\SubjectResult.cs" />
     <Compile Include="Models\StudentTermRemarks.cs" />
@@ -425,6 +429,7 @@
     <Compile Include="Services\StudentService.cs" />
     <Compile Include="Services\NotificationService.cs" />
     <Compile Include="Services\SmsService.cs" />
+    <Compile Include="Services\SmsOutboxService.cs" />
     <Compile Include="Services\DraftAdmissionService.cs" />
     <Compile Include="frmPendingApprovals.cs">
       <SubType>Form</SubType>
@@ -607,8 +612,26 @@
     <Content Include="features to work.txt" />
     <Content Include="Resources\11639128559275-beb32281-19b0-4e5f-9960-8ff17fb91d6d-removebg-preview.png" />
     <Content Include="Resources\1639128559275-beb32281-19b0-4e5f-9960-8ff17fb91d6d-removebg-preview.png" />
+    <Content Include="Resources\icon.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Resources\app_icon.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Resources\app_logo.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Resources\icon_bg.png" />
+    <Content Include="Resources\logo2.png" />
+    <Content Include="Resources\logo.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Resources\logo1.png" />
+    <Content Include="Resources\logo_bg.png" />
     <Content Include="Resources\school_background.png" />
-    <Content Include="Resources\school_logo.png" />
+    <Content Include="Resources\school_logo.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="Resources\1money.png" />
     <Content Include="Resources\1money1.png" />
     <Content Include="Resources\1user-graduate.png" />

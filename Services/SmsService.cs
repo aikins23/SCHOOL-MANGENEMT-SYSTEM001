@@ -28,8 +28,48 @@ namespace kingdom_Preparatory_School_Management_System.Services
             return new LogSmsProvider();
         }
 
-        /// <summary>Low-level send with an explicit sender ID. Normalizes the GH number first.</summary>
+        /// <summary>
+        /// Durable send: persists the message to the local SmsOutbox first, attempts to send it now,
+        /// and marks the row Sent/Failed. If offline (or the provider fails) the row stays Pending and
+        /// is retried by SmsOutboxService.FlushPendingAsync. Returns the immediate attempt's result.
+        /// </summary>
         public static async Task<(bool Success, string Message)> SendSmsAsync(
+            string recipient, string message, string senderId)
+        {
+            if (string.IsNullOrWhiteSpace(message))
+                return (false, "Message body is required.");
+
+            string normalized = PhoneNumberGh.NormalizeGh(recipient);
+            if (normalized == null)
+            {
+                Log("SKIPPED", recipient, senderId, "Invalid/blank phone number");
+                return (false, "Invalid recipient phone number.");
+            }
+
+            int outboxId = 0;
+            var outbox = new Data.SmsOutboxRepository(AppConfig.ConnectionString);
+            try { outboxId = await outbox.EnqueueAsync(normalized, senderId, message); }
+            catch (Exception ex) { Log("ERROR", normalized, senderId, "Outbox enqueue: " + ex.Message); }
+
+            var result = await SendDirectAsync(normalized, message, senderId);
+
+            if (outboxId > 0)
+            {
+                try
+                {
+                    if (result.Success) await outbox.MarkSentAsync(outboxId);
+                    else await outbox.MarkAttemptFailedAsync(outboxId, result.Message, 5);
+                }
+                catch { /* flusher will reconcile */ }
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// Low-level send with an explicit sender ID (no outbox). Normalizes the GH number first.
+        /// Used by SendSmsAsync, the outbox flusher, and the settings Test button.
+        /// </summary>
+        internal static async Task<(bool Success, string Message)> SendDirectAsync(
             string recipient, string message, string senderId)
         {
             try
@@ -72,7 +112,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
         {
             string guardian = string.IsNullOrWhiteSpace(s.GuardianName) ? "Guardian" : s.GuardianName.Trim();
             return
-$@"Dear {guardian}, your ward {s.FirstName} has been admitted to Nyansapo School ERP with the following details:
+$@"Dear {guardian}, your ward {s.FirstName} has been admitted to {SchoolProfile.DisplayName} with the following details:
 - Student ID: {Common.StudentId.Display(s.StudentID)}
 - Name: {s.FullName}
 - Class: {s.ClassID}
@@ -93,7 +133,7 @@ To rectify any details or information, kindly visit or contact the school admini
         {
             string guardian = string.IsNullOrWhiteSpace(s.GuardianName) ? "Guardian" : s.GuardianName.Trim();
             return
-$@"Dear {guardian}, your ward {s.FirstName} has been admitted to Nyansapo School ERP with the following details:
+$@"Dear {guardian}, your ward {s.FirstName} has been admitted to {SchoolProfile.DisplayName} with the following details:
 - Student ID: {Common.StudentId.Display(s.StudentID)}
 - Name: {s.FullName}
 - Class: {s.ClassID}
@@ -128,7 +168,7 @@ To rectify any details or information, kindly visit or contact the school admini
         public static string BuildEmployeeAdmissionMessage(Models.Employee e)
         {
             return
-$@"Dear {e.FullName}, you have been registered as an employee at Nyansapo School ERP with the following details:
+$@"Dear {e.FullName}, you have been registered as an employee at {SchoolProfile.DisplayName} with the following details:
 - Employee ID: {e.EmployeeID}
 - Name: {e.FullName}
 - Department: {e.Department}
@@ -149,7 +189,7 @@ This is a reminder that {studentName} has an outstanding balance of GHS {balance
 
 Please pay at your earliest convenience.
 
-- Nyansapo School ERP Accounts";
+- {SchoolProfile.DisplayName} Accounts";
             return SendSmsAsync(recipient, message, SmsSenderIds.FeeReminder);
         }
 
@@ -167,11 +207,12 @@ Please settle it at your earliest convenience.
             return SendSmsAsync(recipient, message, SmsSenderIds.FeeReminder);
         }
 
-        /// <summary>Used by the settings Test button. Uses the student-admission sender ID.</summary>
+        /// <summary>Used by the settings Test button. Bypasses the outbox so it reflects live
+        /// connectivity (a "queued" result would be misleading on the test screen).</summary>
         public static Task<(bool Success, string Message)> SendTestAsync(string recipient)
         {
-            return SendSmsAsync(recipient,
-                "Test SMS from Nyansapo School ERP. Your SMS settings are working.",
+            return SendDirectAsync(recipient,
+                $"Test SMS from {SchoolProfile.DisplayName}. Your SMS settings are working.",
                 SmsSenderIds.StudentAdmission);
         }
 
@@ -183,7 +224,7 @@ Please settle it at your earliest convenience.
                 : "Balance fully cleared.";
             string message =
                 $"Dear Guardian, payment of GHS {amountPaid:N2} received for {studentName}. " +
-                $"{balanceLine} Thank you. - Nyansapo School ERP Accounts";
+                $"{balanceLine} Thank you. - {SchoolProfile.DisplayName} Accounts";
             return SendSmsAsync(recipient, message, SmsSenderIds.FeeReminder);
         }
 
@@ -192,7 +233,7 @@ Please settle it at your earliest convenience.
         {
             string message =
                 $"Dear {employeeName}, your leave request has been submitted and is pending approval. " +
-                "- Nyansapo School ERP HR";
+                $"- {SchoolProfile.DisplayName} HR";
             return SendSmsAsync(recipient, message, SmsSenderIds.EmployeeAdmission);
         }
 
@@ -201,7 +242,7 @@ Please settle it at your earliest convenience.
         {
             string message =
                 $"Dear {employeeName}, your leave ({startDate:dd/MM/yyyy} - {endDate:dd/MM/yyyy}) " +
-                $"has been {status.ToUpperInvariant()}. - Nyansapo School ERP HR";
+                $"has been {status.ToUpperInvariant()}. - {SchoolProfile.DisplayName} HR";
             return SendSmsAsync(recipient, message, SmsSenderIds.EmployeeAdmission);
         }
 
@@ -210,7 +251,7 @@ Please settle it at your earliest convenience.
         {
             string message =
                 $"Leave request from {employeeName} ({startDate:dd/MM/yyyy} - {endDate:dd/MM/yyyy}) " +
-                "is pending review. - Nyansapo School ERP";
+                $"is pending review. - {SchoolProfile.DisplayName}";
             return SendSmsAsync(hrPhone, message, SmsSenderIds.EmployeeAdmission);
         }
 

@@ -75,7 +75,7 @@ public frmDashboard()
     // Weekly fee reminder timer — every 60 minutes
     _feeReminderTimer = new System.Windows.Forms.Timer();
     _feeReminderTimer.Interval = 60 * 60 * 1000;
-    _feeReminderTimer.Tick += async (s, e) => { await CheckFeeRemindersAsync(); await CheckTransportRemindersAsync(); };
+    _feeReminderTimer.Tick += async (s, e) => { await CheckFeeRemindersAsync(); await CheckTransportRemindersAsync(); await Services.SmsOutboxService.FlushPendingAsync(); };
 
     // Load event is commented-out in designer — wire it manually
     this.Load += frmDashboard_Load;
@@ -204,7 +204,8 @@ public frmDashboard()
             SuspendLayout();
 
             Controls.Clear();
-            Text = "Nyansapo School ERP";
+            Text = Common.AppConfig.ProductName;
+            var _brandIcon = Common.Branding.AppIcon; if (_brandIcon != null) Icon = _brandIcon;
             BackColor = PageBackColor;
             Font = new Font("Segoe UI", 9.5F, FontStyle.Regular);
             StartPosition = FormStartPosition.CenterScreen;
@@ -248,30 +249,47 @@ public frmDashboard()
                 Padding   = new Padding(16, 18, 16, 10)
             };
 
-            // Gold circular badge with "K"
-            var badge = new Panel { Size = new Size(42, 42), Location = new Point(16, 21), BackColor = Color.Transparent };
-            badge.Paint += (s, e) =>
+            // School/product logo (configured School Information logo, else bundled brand logo).
+            // Falls back to a painted gold badge only if no logo asset is available.
+            var logoImage = Common.Branding.Logo;
+            if (logoImage != null)
             {
-                var g = e.Graphics;
-                g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-                using (var br = new SolidBrush(AccentGold))
-                    g.FillEllipse(br, 0, 0, 41, 41);
-                using (var f  = new Font("Georgia", 16F, FontStyle.Bold))
-                using (var tb = new SolidBrush(Color.FromArgb(8, 14, 52)))
+                brand.Controls.Add(new PictureBox
                 {
-                    var sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
-                    g.DrawString("K", f, tb, new RectangleF(0, 0, 42, 42), sf);
-                }
-            };
+                    Size     = new Size(42, 42),
+                    Location = new Point(16, 21),
+                    SizeMode = PictureBoxSizeMode.Zoom,
+                    BackColor = Color.Transparent,
+                    Image    = logoImage
+                });
+            }
+            else
+            {
+                var badge = new Panel { Size = new Size(42, 42), Location = new Point(16, 21), BackColor = Color.Transparent };
+                badge.Paint += (s, e) =>
+                {
+                    var g = e.Graphics;
+                    g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+                    using (var br = new SolidBrush(AccentGold))
+                        g.FillEllipse(br, 0, 0, 41, 41);
+                    using (var f  = new Font("Georgia", 16F, FontStyle.Bold))
+                    using (var tb = new SolidBrush(Color.FromArgb(8, 14, 52)))
+                    {
+                        var sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
+                        g.DrawString("K", f, tb, new RectangleF(0, 0, 42, 42), sf);
+                    }
+                };
+                brand.Controls.Add(badge);
+            }
 
-            brand.Controls.Add(badge);
             brand.Controls.Add(new Label
             {
-                Text      = "KPS Admin",
-                ForeColor = Color.White,
-                Font      = new Font("Segoe UI Semibold", 13F, FontStyle.Bold),
-                Bounds    = new Rectangle(66, 22, 150, 22),
-                TextAlign = ContentAlignment.MiddleLeft
+                Text       = Common.SchoolProfile.DisplayName,
+                ForeColor  = Color.White,
+                Font       = new Font("Segoe UI Semibold", 13F, FontStyle.Bold),
+                Bounds     = new Rectangle(66, 22, 150, 22),
+                AutoEllipsis = true,
+                TextAlign  = ContentAlignment.MiddleLeft
             });
             brand.Controls.Add(new Label
             {
@@ -1394,6 +1412,7 @@ public frmDashboard()
                 _feeReminderTimer.Start();
                 await CheckFeeRemindersAsync();
                 await CheckTransportRemindersAsync();
+                await Services.SmsOutboxService.FlushPendingAsync();
             }
             catch (Exception ex)
             {

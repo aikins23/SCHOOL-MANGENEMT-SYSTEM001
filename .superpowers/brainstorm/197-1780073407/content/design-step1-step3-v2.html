@@ -1,0 +1,198 @@
+<h2>Updated Design: Step 1 + Step 3 Receipt</h2>
+<p class="subtitle">Step 1 now includes a fee type selector (editable — type freely if not in the list). Step 3 receipt now shows the school logo.</p>
+
+<div class="split">
+
+  <!-- STEP 1 UPDATED -->
+  <div class="mockup">
+    <div class="mockup-header">Step 1 — Student Lookup (updated)</div>
+    <div class="mockup-body" style="font-family:'Segoe UI',sans-serif;background:#f4f5f8;padding:16px;border-radius:6px;display:flex;flex-direction:column;gap:10px;">
+
+      <div style="font-size:18px;font-weight:700;color:#1a2952;">Fees Payment</div>
+      <div style="font-size:11px;color:#888;margin-top:-6px;">Look up a student, record payment, and review history</div>
+
+      <!-- Progress -->
+      <div style="display:flex;align-items:center;justify-content:center;gap:0;margin:4px 0 0;">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:3px;">
+          <div style="width:26px;height:26px;border-radius:50%;background:#1a2952;color:white;font-size:11px;display:flex;align-items:center;justify-content:center;font-weight:700;">1</div>
+          <span style="font-size:8px;color:#1a2952;font-weight:600;">LOOK UP</span>
+        </div>
+        <div style="height:2px;width:50px;background:#dde;margin-bottom:14px;"></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:3px;">
+          <div style="width:26px;height:26px;border-radius:50%;background:#e8eaf2;color:#aaa;font-size:11px;display:flex;align-items:center;justify-content:center;">2</div>
+          <span style="font-size:8px;color:#aaa;">PAYMENT</span>
+        </div>
+        <div style="height:2px;width:50px;background:#dde;margin-bottom:14px;"></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:3px;">
+          <div style="width:26px;height:26px;border-radius:50%;background:#e8eaf2;color:#aaa;font-size:11px;display:flex;align-items:center;justify-content:center;">3</div>
+          <span style="font-size:8px;color:#aaa;">RECEIPT</span>
+        </div>
+      </div>
+
+      <!-- Step 1 card -->
+      <div style="background:white;border-radius:8px;border:1px solid #dde;padding:16px;display:flex;flex-direction:column;gap:12px;">
+
+        <!-- Student ID row -->
+        <div style="display:flex;gap:8px;align-items:flex-end;">
+          <div style="flex:1;">
+            <div style="font-size:10px;color:#555;font-weight:600;margin-bottom:4px;">STUDENT ID</div>
+            <div style="border:1.5px solid #1a2952;border-radius:5px;padding:8px 12px;font-size:13px;color:#333;background:white;">9011</div>
+          </div>
+          <div style="background:#1a2952;color:white;border-radius:5px;padding:9px 18px;font-size:12px;font-weight:600;white-space:nowrap;cursor:pointer;">Look Up</div>
+        </div>
+
+        <!-- Found student card -->
+        <div style="background:#eef2fb;border:1.5px solid #c5d0f0;border-radius:6px;padding:10px 12px;display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div style="font-size:13px;font-weight:700;color:#1a2952;">KWESI BOAKYE</div>
+            <div style="font-size:11px;color:#666;margin-top:2px;">Class: BASIC 7 &nbsp;·&nbsp; ID: 9011</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:10px;color:#888;">Outstanding Balance</div>
+            <div style="font-size:16px;font-weight:700;color:#c0392b;">GHc 1,500.00</div>
+          </div>
+        </div>
+
+        <!-- Fee Type selector -->
+        <div>
+          <div style="font-size:10px;color:#555;font-weight:600;margin-bottom:4px;">FEE TYPE</div>
+          <!-- Editable combo box mockup -->
+          <div style="position:relative;">
+            <div style="border:1.5px solid #1a2952;border-radius:5px;padding:8px 36px 8px 12px;font-size:12px;color:#333;background:white;display:flex;align-items:center;">
+              School Fees
+            </div>
+            <div style="position:absolute;right:0;top:0;bottom:0;width:32px;display:flex;align-items:center;justify-content:center;background:#f0f2f8;border-radius:0 5px 5px 0;border-left:1px solid #dde;font-size:10px;color:#555;">▾</div>
+          </div>
+          <!-- Dropdown hint -->
+          <div style="background:white;border:1px solid #dde;border-radius:0 0 5px 5px;box-shadow:0 3px 8px rgba(0,0,0,0.08);margin-top:-1px;overflow:hidden;">
+            <div style="padding:6px 12px;font-size:11px;color:#1a2952;background:#eef2fb;font-weight:600;border-left:3px solid #1a2952;">School Fees</div>
+            <div style="padding:6px 12px;font-size:11px;color:#333;">Examination Fees</div>
+            <div style="padding:6px 12px;font-size:11px;color:#333;">PTA Levy</div>
+            <div style="padding:6px 12px;font-size:11px;color:#333;">Uniform / Clothing</div>
+            <div style="padding:6px 12px;font-size:11px;color:#333;">Sports / Activity Fees</div>
+            <div style="padding:6px 12px;font-size:11px;color:#333;">Registration Fees</div>
+            <div style="padding:6px 12px;font-size:11px;color:#888;font-style:italic;border-top:1px solid #eee;">Or type your own above ↑</div>
+          </div>
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;margin-top:4px;">
+          <div style="background:#1a2952;color:white;border-radius:5px;padding:9px 22px;font-size:12px;font-weight:600;cursor:pointer;">Continue to Payment →</div>
+        </div>
+      </div>
+
+      <div style="background:white;border:1px solid #dde;border-radius:6px;padding:8px 14px;font-size:11px;color:#888;display:flex;justify-content:space-between;">
+        <span>Payment History</span>
+        <span style="background:#e8eaf2;border-radius:3px;padding:2px 8px;font-size:10px;color:#555;">4 records</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 3 RECEIPT WITH LOGO -->
+  <div class="mockup">
+    <div class="mockup-header">Step 3 — Receipt with School Logo</div>
+    <div class="mockup-body" style="font-family:'Segoe UI',sans-serif;background:#f4f5f8;padding:16px;border-radius:6px;display:flex;flex-direction:column;gap:10px;">
+
+      <div style="font-size:18px;font-weight:700;color:#1a2952;">Fees Payment</div>
+      <div style="font-size:11px;color:#888;margin-top:-6px;">Look up a student, record payment, and review history</div>
+
+      <!-- Progress - all complete -->
+      <div style="display:flex;align-items:center;justify-content:center;gap:0;margin:4px 0 0;">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:3px;">
+          <div style="width:26px;height:26px;border-radius:50%;background:#4caf50;color:white;font-size:11px;display:flex;align-items:center;justify-content:center;font-weight:700;">✓</div>
+          <span style="font-size:8px;color:#4caf50;font-weight:600;">LOOK UP</span>
+        </div>
+        <div style="height:2px;width:50px;background:#4caf50;margin-bottom:14px;"></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:3px;">
+          <div style="width:26px;height:26px;border-radius:50%;background:#4caf50;color:white;font-size:11px;display:flex;align-items:center;justify-content:center;font-weight:700;">✓</div>
+          <span style="font-size:8px;color:#4caf50;font-weight:600;">PAYMENT</span>
+        </div>
+        <div style="height:2px;width:50px;background:#1a2952;margin-bottom:14px;"></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:3px;">
+          <div style="width:26px;height:26px;border-radius:50%;background:#1a2952;color:white;font-size:11px;display:flex;align-items:center;justify-content:center;font-weight:700;">3</div>
+          <span style="font-size:8px;color:#1a2952;font-weight:600;">RECEIPT</span>
+        </div>
+      </div>
+
+      <!-- Receipt card with logo -->
+      <div style="background:white;border-radius:8px;border:1px solid #dde;padding:14px;display:flex;flex-direction:column;gap:7px;">
+
+        <!-- School header WITH LOGO -->
+        <div style="display:flex;align-items:center;gap:12px;border-bottom:2px solid #1a2952;padding-bottom:8px;">
+          <img src="file:///C:/Users/DELL/Downloads/New%20folder%20(2)/IPMC%20PROJECT%20BUABENG%20EMMANUEL%20AIKINS%20(1)/BUABENG%20EMMANUEL%20AIKINS%20-%20Copy/Resources/school_logo.png"
+               style="width:52px;height:52px;object-fit:contain;flex-shrink:0;" alt="School Logo" />
+          <div style="flex:1;text-align:center;">
+            <div style="font-size:13px;font-weight:800;color:#1a2952;letter-spacing:0.5px;">KINGDOM PREPARATORY J.H.S</div>
+            <div style="font-size:10px;color:#1a2952;font-weight:600;">P. O. BOX 7 AKIM ODA</div>
+            <div style="font-size:9px;color:#666;">Tel: 0548 050 141 | 0200 369 762 | 0201 455 533</div>
+          </div>
+        </div>
+
+        <!-- Receipt title + number + date -->
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div style="border:1.5px solid #1a2952;border-radius:4px;padding:3px 12px;font-size:12px;font-weight:700;color:#1a2952;">Official Receipt</div>
+          <div style="text-align:right;font-size:9px;color:#888;"><div>No. 0529164230</div><div>29/05/2026</div></div>
+        </div>
+
+        <!-- Student row -->
+        <div style="display:flex;gap:6px;">
+          <div style="flex:1;background:#f7f9ff;border-radius:4px;padding:5px 8px;"><div style="font-size:8px;color:#888;font-weight:600;">STUDENT ID</div><div style="font-size:11px;font-weight:700;color:#1a2952;">9011</div></div>
+          <div style="flex:1;background:#f7f9ff;border-radius:4px;padding:5px 8px;"><div style="font-size:8px;color:#888;font-weight:600;">CLASS</div><div style="font-size:11px;font-weight:700;color:#1a2952;">BASIC 7</div></div>
+          <div style="flex:2;background:#f7f9ff;border-radius:4px;padding:5px 8px;"><div style="font-size:8px;color:#888;font-weight:600;">RECEIVED FROM</div><div style="font-size:11px;font-weight:700;color:#1a2952;">KWESI BOAKYE</div></div>
+        </div>
+
+        <!-- THE SUM OF -->
+        <div style="background:#f7f9ff;border-radius:4px;padding:6px 8px;border-left:3px solid #1a2952;">
+          <div style="font-size:8px;color:#888;font-weight:600;">THE SUM OF</div>
+          <div style="font-size:12px;color:#1a2952;font-style:italic;font-weight:600;">two hundred fifty Ghana cedis</div>
+        </div>
+
+        <!-- Being (auto-filled from fee type) + Mode -->
+        <div style="display:flex;gap:6px;">
+          <div style="flex:2;background:#f7f9ff;border-radius:4px;padding:5px 8px;"><div style="font-size:8px;color:#888;font-weight:600;">BEING</div><div style="font-size:11px;color:#333;">School Fees</div></div>
+          <div style="flex:1;background:#f7f9ff;border-radius:4px;padding:5px 8px;"><div style="font-size:8px;color:#888;font-weight:600;">PAYMENT MODE</div><div style="font-size:11px;color:#333;">Cash</div></div>
+        </div>
+
+        <!-- Amount + Balance -->
+        <div style="display:flex;gap:6px;align-items:stretch;">
+          <div style="flex:2;border:2px solid #1a2952;border-radius:5px;display:flex;align-items:center;padding:7px 10px;gap:6px;">
+            <div style="font-size:13px;font-weight:800;color:#1a2952;">GHc</div>
+            <div style="flex:1;font-size:20px;font-weight:800;color:#1a2952;text-align:right;">250</div>
+            <div style="font-size:13px;font-weight:800;color:#1a2952;">.00</div>
+          </div>
+          <div style="flex:1;background:#e8f5e9;border:1.5px solid #a5d6a7;border-radius:5px;padding:5px 10px;display:flex;flex-direction:column;justify-content:center;">
+            <div style="font-size:8px;color:#2e7d32;font-weight:600;">BALANCE AFTER</div>
+            <div style="font-size:14px;font-weight:800;color:#2e7d32;">GHc 1,250.00</div>
+          </div>
+        </div>
+
+        <!-- Bursar + Signature -->
+        <div style="display:flex;gap:6px;align-items:flex-end;">
+          <div style="flex:2;background:#f7f9ff;border-radius:4px;padding:5px 8px;"><div style="font-size:8px;color:#888;font-weight:600;">BURSAR / CASHIER</div><div style="font-size:11px;color:#333;">BURSAR JANE</div></div>
+          <div style="flex:1;text-align:center;border-top:1px dashed #aaa;padding-top:4px;font-size:9px;color:#aaa;">Signature</div>
+        </div>
+
+        <!-- Actions -->
+        <div style="display:flex;gap:8px;padding-top:8px;border-top:1px solid #eee;">
+          <div style="background:#e8eaf2;border-radius:5px;padding:8px 14px;font-size:11px;color:#555;">← Back</div>
+          <div style="flex:1;background:#1a2952;color:white;border-radius:5px;padding:9px;font-size:12px;font-weight:700;text-align:center;">Record Payment</div>
+          <div style="background:#e8eaf2;border-radius:5px;padding:8px 14px;font-size:11px;color:#555;">Clear</div>
+        </div>
+      </div>
+
+      <div style="background:white;border:1px solid #dde;border-radius:6px;padding:8px 14px;font-size:11px;color:#888;">Payment History ↓</div>
+    </div>
+  </div>
+
+</div>
+
+<div class="section" style="margin-top:16px;background:#f0f4ff;border:1px solid #c5d0f0;border-radius:6px;padding:12px 16px;">
+  <div style="font-weight:600;color:#1a2952;margin-bottom:6px;">Note on Fee Type behaviour</div>
+  <ul style="margin:0;padding-left:18px;font-size:12px;color:#444;line-height:1.8;">
+    <li>Preset options: School Fees, Examination Fees, PTA Levy, Uniform / Clothing, Sports / Activity Fees, Registration Fees</li>
+    <li>Cashier can type freely — any custom text is accepted</li>
+    <li>The selected fee type auto-populates the <strong>"Being"</strong> field on the receipt</li>
+    <li>Fee Type is required before "Continue to Payment" is enabled</li>
+  </ul>
+</div>
+
+<p class="subtitle" style="margin-top:12px;">Does this look good? Approve to move to the spec.</p>

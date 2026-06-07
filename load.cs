@@ -94,21 +94,21 @@ namespace kingdom_Preparatory_School_Management_System
             Controls.Add(pictureBoxLogo);
 
             Controls.Add(CreateLabel(
-                "KINGDOM PREP.",
+                "NYANSAPO ERP",
                 new Font("Georgia", 14F, FontStyle.Bold),
                 Color.White,
                 new Rectangle(32, 222, BrandW - 64, 28),
                 ContentAlignment.MiddleCenter));
 
             Controls.Add(CreateLabel(
-                "AKIM ODA - ABENASE",
+                "SMART SCHOOL SOLUTIONS",
                 new Font("Segoe UI Semibold", 8.5F, FontStyle.Bold),
                 GoldSoft,
                 new Rectangle(32, 252, BrandW - 64, 22),
                 ContentAlignment.MiddleCenter));
 
             Controls.Add(CreateLabel(
-                "Knowledge is Power",
+                "Untangling Complexity",
                 new Font("Georgia", 10F, FontStyle.Italic),
                 Color.FromArgb(225, 231, 245),
                 new Rectangle(32, 298, BrandW - 64, 28),
@@ -135,7 +135,7 @@ namespace kingdom_Preparatory_School_Management_System
                 ContentAlignment.MiddleLeft));
 
             Controls.Add(CreateLabel(
-                "Kingdom Preparatory School",
+                Common.AppConfig.ProductName,
                 new Font("Georgia", 25F, FontStyle.Bold),
                 Ink,
                 new Rectangle(contentX, 100, contentW, 48),
@@ -262,7 +262,7 @@ namespace kingdom_Preparatory_School_Management_System
             using (var brush = new SolidBrush(Navy))
             using (var format = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center })
             {
-                g.DrawString("KPS", font, brush, bounds, format);
+                g.DrawString("NS", font, brush, bounds, format);
             }
         }
 
@@ -271,9 +271,9 @@ namespace kingdom_Preparatory_School_Management_System
             string baseDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
             string[] candidates =
             {
-                Path.Combine(baseDir ?? "", "Resources", "school_logo.png"),
-                Path.Combine(baseDir ?? "", "..", "..", "Resources", "school_logo.png"),
-                Path.Combine(Directory.GetCurrentDirectory(), "Resources", "school_logo.png")
+                Path.Combine(baseDir ?? "", "Resources", "app_logo.png"),
+                Path.Combine(baseDir ?? "", "..", "..", "Resources", "app_logo.png"),
+                Path.Combine(Directory.GetCurrentDirectory(), "Resources", "app_logo.png")
             };
 
             foreach (string candidate in candidates)

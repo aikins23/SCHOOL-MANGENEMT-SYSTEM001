@@ -11,6 +11,13 @@ namespace kingdom_Preparatory_School_Management_System.Common
     {
         public static string ConnectionString => Properties.Settings.Default.ConnectionString;
 
+        /// <summary>
+        /// The product (software) brand — shown in app chrome only (window titles, login, splash).
+        /// Customer/parent-facing text (SMS, email, report cards, receipts) should use the buyer's
+        /// configured school name via <see cref="SchoolProfile.DisplayName"/>, NOT this.
+        /// </summary>
+        public const string ProductName = "Nyansapo School ERP";
+
         // Class names
         public static readonly string[] ClassNames = new[]
         {
@@ -122,16 +129,13 @@ namespace kingdom_Preparatory_School_Management_System.Common
                 {
                     try
                     {
-                        return Properties.Settings.Default.FromEmail ?? "noreply@kingdomprep.edu.gh";
-                    }
-                    catch
-                    {
-                        return "noreply@kingdomprep.edu.gh";
-                    }
-                }
-            }
+                        return Properties.Settings.Default.FromEmail ?? "noreply@nyansapoerp.edu.gh";
+                        }
+                        catch { return "noreply@nyansapoerp.edu.gh"; }
+                        }
+                        }
 
-            public static string FromName => "Kingdom Preparatory School";
+                        public static string FromName => SchoolProfile.DisplayName;
 
             public static bool UseSSL
             {
@@ -194,8 +198,8 @@ namespace kingdom_Preparatory_School_Management_System.Common
             {
                 get
                 {
-                    try { return Properties.Settings.Default.SmsFromNumber ?? "KPSchool"; }
-                    catch { return "KPSchool"; }
+                    try { return Properties.Settings.Default.SmsFromNumber ?? "NYANSAPO"; }
+                    catch { return "NYANSAPO"; }
                 }
                 set
                 {
@@ -229,9 +233,9 @@ namespace kingdom_Preparatory_School_Management_System.Common
                     try
                     {
                         string v = Properties.Settings.Default.SmsSchoolAbbreviation;
-                        return string.IsNullOrWhiteSpace(v) ? "KPS" : v.Trim().ToUpperInvariant();
+                        return string.IsNullOrWhiteSpace(v) ? "NS" : v.Trim().ToUpperInvariant();
                     }
-                    catch { return "KPS"; }
+                    catch { return "NS"; }
                 }
                 set
                 {

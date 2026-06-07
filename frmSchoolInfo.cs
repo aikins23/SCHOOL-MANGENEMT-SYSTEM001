@@ -182,7 +182,7 @@ namespace kingdom_Preparatory_School_Management_System
                     using (var ms = new MemoryStream(bytes)) _logo.Image = Image.FromStream(ms);
                     return;
                 }
-                string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources", "school_logo.png");
+                string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources", "app_logo.png");
                 if (File.Exists(path)) _logo.Image = Image.FromFile(path);
             }
             catch { /* preview is best-effort */ }

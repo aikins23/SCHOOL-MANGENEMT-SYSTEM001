@@ -83,7 +83,7 @@ namespace kingdom_Preparatory_School_Management_System.Properties {
 
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("noreply@kingdomprep.edu.gh")]
+        [global::System.Configuration.DefaultSettingValueAttribute("noreply@nyansapoerp.edu.gh")]
         public string FromEmail {
             get {
                 return ((string)(this["FromEmail"]));
