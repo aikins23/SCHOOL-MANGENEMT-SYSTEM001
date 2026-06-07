@@ -25,10 +25,16 @@ namespace Kingdom.Tests
                 new TestCase("PhoneNumberGh rejects invalid numbers", PhoneNumberGh_RejectsInvalidNumbers),
                 new TestCase("SmsSenderIds builds expected sender IDs", SmsSenderIds_BuildsExpectedIds),
                 new TestCase("SmsSenderIds detects names over gateway limit", SmsSenderIds_DetectsGatewayLimit),
+                new TestCase("StudentId formats numeric IDs as prefixed display", StudentId_FormatsDisplayIds),
+                new TestCase("StudentId parses display IDs back to numeric", StudentId_ParsesDisplayIds),
                 new TestCase("SecretStorage protects and restores local secrets", SecretStorage_ProtectsAndRestoresSecrets),
                 new TestCase("SecretStorage preserves legacy plaintext values", SecretStorage_PreservesLegacyPlaintextValues),
                 new TestCase("FeeBalanceCalculator calculates remaining balances", FeeBalanceCalculator_CalculatesRemainingBalances),
                 new TestCase("FeeBalanceCalculator rejects invalid values", FeeBalanceCalculator_RejectsInvalidValues),
+                new TestCase("PaymentService records calculated payment balances", PaymentService_RecordsCalculatedPaymentBalancesAsync),
+                new TestCase("PaymentService records overpayments as zero balance", PaymentService_RecordsOverpaymentsAsZeroBalanceAsync),
+                new TestCase("PaymentService validates required payment fields", PaymentService_ValidatesRequiredPaymentFieldsAsync),
+                new TestCase("PaymentService reports repository save failures", PaymentService_ReportsRepositorySaveFailuresAsync),
                 new TestCase("StudentService maps tuition fees by class", StudentService_MapsTuitionFeesByClass),
                 new TestCase("StudentService maps every configured class to a non-default fee", StudentService_MapsEveryConfiguredClass),
                 new TestCase("StudentService creates opening fee records on add", StudentService_CreatesOpeningFeeRecordsOnAddAsync),
@@ -114,13 +120,40 @@ namespace Kingdom.Tests
         {
             AssertEx.Equal("KPSSTDADM", SmsSenderIds.Build("kps", SmsSenderIds.StudentSuffix));
             AssertEx.Equal("KPSEMPADM", SmsSenderIds.Build("KPS", SmsSenderIds.EmployeeSuffix));
-            AssertEx.Equal("KPSFEES", SmsSenderIds.Build("  kps ", SmsSenderIds.FeeSuffix));
+            // The Fee sender ID intentionally carries a trailing dot ("KPSFEES.") — that is the
+            // value approved on BulkSMSGh (see SmsSenderIds.FeeSuffix). Pin it so it isn't lost.
+            AssertEx.Equal("KPSFEES.", SmsSenderIds.Build("  kps ", SmsSenderIds.FeeSuffix));
         }
 
         private static void SmsSenderIds_DetectsGatewayLimit()
         {
             AssertEx.False(SmsSenderIds.ExceedsMaxLength("KPS"));
             AssertEx.True(SmsSenderIds.ExceedsMaxLength("KINGDOM"));
+        }
+
+        private static void StudentId_FormatsDisplayIds()
+        {
+            string ab = StudentId.Abbrev;
+            AssertEx.Equal(ab + "9016", StudentId.Display("9016"));
+            AssertEx.Equal(ab + "9016", StudentId.Display(9016));            // non-string ids accepted
+            AssertEx.Equal(ab + "9016", StudentId.Display("  9016  "));      // trims whitespace
+            AssertEx.Equal("", StudentId.Display(null));
+            AssertEx.Equal("", StudentId.Display(""));
+            AssertEx.Equal("", StudentId.Display("   "));
+            // Idempotent: an already-prefixed value is returned unchanged (case-insensitive match).
+            AssertEx.Equal(ab + "9016", StudentId.Display(ab + "9016"));
+            AssertEx.Equal(ab.ToLowerInvariant() + "9016", StudentId.Display(ab.ToLowerInvariant() + "9016"));
+        }
+
+        private static void StudentId_ParsesDisplayIds()
+        {
+            string ab = StudentId.Abbrev;
+            AssertEx.Equal("9016", StudentId.Parse(ab + "9016"));
+            AssertEx.Equal("9016", StudentId.Parse("  " + ab.ToLowerInvariant() + "9016  ")); // trims + case-insensitive
+            AssertEx.Equal("9016", StudentId.Parse("9016"));                                   // already numeric
+            AssertEx.Equal("", StudentId.Parse(null));
+            AssertEx.Equal("", StudentId.Parse(""));
+            AssertEx.Equal("9016", StudentId.Parse(StudentId.Display("9016")));                // round-trips with Display
         }
 
         private static void SecretStorage_ProtectsAndRestoresSecrets()
@@ -156,6 +189,86 @@ namespace Kingdom.Tests
             AssertEx.Throws<ArgumentOutOfRangeException>(() => FeeBalanceCalculator.CalculateNewBalance(-1m, 10m));
             AssertEx.Throws<ArgumentOutOfRangeException>(() => FeeBalanceCalculator.CalculateNewBalance(100m, 0m));
             AssertEx.Throws<ArgumentOutOfRangeException>(() => FeeBalanceCalculator.CalculateNewBalance(100m, -5m));
+        }
+
+        private static async Task PaymentService_RecordsCalculatedPaymentBalancesAsync()
+        {
+            var repository = new FakeFeeRepository { AddPaymentRecordResult = true };
+            var service = new PaymentService(repository);
+            var request = CreatePaymentRecordRequest();
+            request.StudentId = "  501  ";
+            request.StudentName = "  Ama Mensah  ";
+            request.ClassId = "  BASIC 9  ";
+            request.PaymentMode = "  Cash  ";
+            request.BursarName = "  Mr Accounts  ";
+            request.CurrentBalance = 1000m;
+            request.AmountPaid = 250m;
+
+            PaymentRecordResult result = await service.RecordPaymentAsync(request);
+
+            AssertEx.True(result.Success, result.Message);
+            AssertEx.Equal(750m, result.NewBalance);
+            AssertEx.Equal(1, repository.AddPaymentRecordCallCount);
+            AssertEx.Equal("501", repository.LastPaymentStudentId);
+            AssertEx.Equal("BASIC 9", repository.LastPaymentClassId);
+            AssertEx.Equal("Ama Mensah", repository.LastPaymentStudentName);
+            AssertEx.Equal(250m, repository.LastPaymentAmountPaid);
+            AssertEx.Equal(750m, repository.LastPaymentNewBalance);
+            AssertEx.Equal("Cash", repository.LastPaymentMode);
+            AssertEx.Equal("Mr Accounts", repository.LastPaymentBursarName);
+            AssertEx.Equal(request.PaymentDate.Date, repository.LastPaymentDate);
+        }
+
+        private static async Task PaymentService_RecordsOverpaymentsAsZeroBalanceAsync()
+        {
+            var repository = new FakeFeeRepository { AddPaymentRecordResult = true };
+            var service = new PaymentService(repository);
+            var request = CreatePaymentRecordRequest();
+            request.CurrentBalance = 100m;
+            request.AmountPaid = 150m;
+
+            PaymentRecordResult result = await service.RecordPaymentAsync(request);
+
+            AssertEx.True(result.Success, result.Message);
+            AssertEx.Equal(0m, result.NewBalance);
+            AssertEx.Equal(0m, repository.LastPaymentNewBalance);
+        }
+
+        private static async Task PaymentService_ValidatesRequiredPaymentFieldsAsync()
+        {
+            var repository = new FakeFeeRepository { AddPaymentRecordResult = true };
+            var service = new PaymentService(repository);
+
+            PaymentRecordResult missingStudentId = await service.RecordPaymentAsync(CreatePaymentRecordRequest(studentId: ""));
+            PaymentRecordResult missingName = await service.RecordPaymentAsync(CreatePaymentRecordRequest(studentName: ""));
+            PaymentRecordResult missingClass = await service.RecordPaymentAsync(CreatePaymentRecordRequest(classId: ""));
+            PaymentRecordResult missingBursar = await service.RecordPaymentAsync(CreatePaymentRecordRequest(bursarName: ""));
+            PaymentRecordResult invalidAmount = await service.RecordPaymentAsync(CreatePaymentRecordRequest(amountPaid: 0m));
+
+            AssertEx.False(missingStudentId.Success);
+            AssertEx.Contains("Student ID is required", missingStudentId.Message);
+            AssertEx.False(missingName.Success);
+            AssertEx.Contains("Student name is required", missingName.Message);
+            AssertEx.False(missingClass.Success);
+            AssertEx.Contains("Class is required", missingClass.Message);
+            AssertEx.False(missingBursar.Success);
+            AssertEx.Contains("Bursar name is required", missingBursar.Message);
+            AssertEx.False(invalidAmount.Success);
+            AssertEx.Contains("Payment amount must be greater than zero", invalidAmount.Message);
+            AssertEx.Equal(0, repository.AddPaymentRecordCallCount);
+        }
+
+        private static async Task PaymentService_ReportsRepositorySaveFailuresAsync()
+        {
+            var repository = new FakeFeeRepository { AddPaymentRecordResult = false };
+            var service = new PaymentService(repository);
+
+            PaymentRecordResult result = await service.RecordPaymentAsync(CreatePaymentRecordRequest());
+
+            AssertEx.False(result.Success);
+            AssertEx.Equal(750m, result.NewBalance);
+            AssertEx.Contains("Could not save payment record", result.Message);
+            AssertEx.Equal(1, repository.AddPaymentRecordCallCount);
         }
 
         private static void StudentService_MapsTuitionFeesByClass()
@@ -638,6 +751,28 @@ namespace Kingdom.Tests
             };
         }
 
+        private static PaymentRecordRequest CreatePaymentRecordRequest(
+            string studentId = "501",
+            string classId = "BASIC 9",
+            string studentName = "Ama Mensah",
+            decimal currentBalance = 1000m,
+            decimal amountPaid = 250m,
+            string paymentMode = "Cash",
+            string bursarName = "Mr Accounts")
+        {
+            return new PaymentRecordRequest
+            {
+                StudentId = studentId,
+                ClassId = classId,
+                StudentName = studentName,
+                CurrentBalance = currentBalance,
+                AmountPaid = amountPaid,
+                PaymentMode = paymentMode,
+                BursarName = bursarName,
+                PaymentDate = new DateTime(2026, 6, 4)
+            };
+        }
+
         private static ExamResult CreateExamResult(
             decimal category1 = 30m,
             decimal category2 = 10m,
@@ -782,6 +917,16 @@ namespace Kingdom.Tests
             public string LastUpdatedFeeClassId { get; private set; }
             public decimal LastUpdatedFeeAmount { get; private set; }
             public decimal LastUpdatedPaymentBalance { get; private set; }
+            public bool AddPaymentRecordResult { get; set; }
+            public int AddPaymentRecordCallCount { get; private set; }
+            public string LastPaymentStudentId { get; private set; }
+            public string LastPaymentClassId { get; private set; }
+            public string LastPaymentStudentName { get; private set; }
+            public decimal LastPaymentAmountPaid { get; private set; }
+            public decimal LastPaymentNewBalance { get; private set; }
+            public string LastPaymentMode { get; private set; }
+            public string LastPaymentBursarName { get; private set; }
+            public DateTime LastPaymentDate { get; private set; }
 
             public Task<bool> AddInitialFeeRecordAsync(string studentId, string classId, decimal amount)
             {
@@ -817,7 +962,21 @@ namespace Kingdom.Tests
 
             public Task<decimal?> GetLatestBalanceAsync(string studentId) => Task.FromResult<decimal?>(null);
             public Task<decimal?> GetDefaultBalanceAsync(string studentId, string classId) => Task.FromResult<decimal?>(null);
-            public Task<bool> AddPaymentRecordAsync(string studentId, string classId, string studentName, decimal amountPaid, decimal newBalance, string paymentMode, string bursarName, DateTime date) => Task.FromResult(false);
+
+            public Task<bool> AddPaymentRecordAsync(string studentId, string classId, string studentName, decimal amountPaid, decimal newBalance, string paymentMode, string bursarName, DateTime date)
+            {
+                AddPaymentRecordCallCount++;
+                LastPaymentStudentId = studentId;
+                LastPaymentClassId = classId;
+                LastPaymentStudentName = studentName;
+                LastPaymentAmountPaid = amountPaid;
+                LastPaymentNewBalance = newBalance;
+                LastPaymentMode = paymentMode;
+                LastPaymentBursarName = bursarName;
+                LastPaymentDate = date;
+                return Task.FromResult(AddPaymentRecordResult);
+            }
+
             public Task<DataTable> GetPaymentHistoryTableAsync() => Task.FromResult(new DataTable());
             public Task<DataTable> GetOutstandingBalancesTableAsync() => Task.FromResult(new DataTable());
             public Task<DataTable> GetFeesTableAsync() => Task.FromResult(new DataTable());

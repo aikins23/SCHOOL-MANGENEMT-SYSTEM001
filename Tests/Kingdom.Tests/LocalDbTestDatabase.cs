@@ -8,6 +8,7 @@ namespace Kingdom.Tests
     internal sealed class LocalDbTestDatabase : IDisposable
     {
         private const string InstanceName = "KingdomTests";
+        private const string MasterConnectionStringEnvironmentVariable = "KINGDOM_TEST_SQL_MASTER_CONNECTION_STRING";
         private readonly string _databaseName;
         private bool _disposed;
 
@@ -21,7 +22,8 @@ namespace Kingdom.Tests
 
         public static async Task<LocalDbTestDatabase> CreateAsync()
         {
-            EnsureLocalDbInstanceStarted();
+            if (!HasConfiguredMasterConnectionString())
+                EnsureLocalDbInstanceStarted();
 
             string databaseName = "Kingdom_Test_" + Guid.NewGuid().ToString("N");
             var database = new LocalDbTestDatabase(databaseName);
@@ -35,7 +37,11 @@ namespace Kingdom.Tests
             catch (Exception ex)
             {
                 database.Dispose();
-                throw new InvalidOperationException("LocalDB integration test database could not be created: " + ex.Message, ex);
+                throw new InvalidOperationException(
+                    "SQL integration test database could not be created. " +
+                    $"Set {MasterConnectionStringEnvironmentVariable} to a working OLE DB master connection string " +
+                    "if LocalDB is unavailable. " + ex.Message,
+                    ex);
             }
         }
 
@@ -109,11 +115,27 @@ namespace Kingdom.Tests
 
         private static string BuildConnectionString(string databaseName)
         {
-            return $"Provider=MSOLEDBSQL;Data Source=(localdb)\\{InstanceName};Integrated Security=SSPI;Initial Catalog={databaseName};Encrypt=False;TrustServerCertificate=True";
+            var builder = new OleDbConnectionStringBuilder(MasterConnectionString);
+            builder["Initial Catalog"] = databaseName;
+            return builder.ConnectionString;
         }
 
         private static string MasterConnectionString =>
-            $"Provider=MSOLEDBSQL;Data Source=(localdb)\\{InstanceName};Integrated Security=SSPI;Initial Catalog=master;Encrypt=False;TrustServerCertificate=True";
+            GetMasterConnectionString();
+
+        private static string GetMasterConnectionString()
+        {
+            string configured = Environment.GetEnvironmentVariable(MasterConnectionStringEnvironmentVariable);
+            if (!string.IsNullOrWhiteSpace(configured))
+                return configured;
+
+            return $"Provider=MSOLEDBSQL;Data Source=(localdb)\\{InstanceName};Integrated Security=SSPI;Initial Catalog=master;Encrypt=False;TrustServerCertificate=True";
+        }
+
+        private static bool HasConfiguredMasterConnectionString()
+        {
+            return !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(MasterConnectionStringEnvironmentVariable));
+        }
 
         private static void EnsureLocalDbInstanceStarted()
         {
