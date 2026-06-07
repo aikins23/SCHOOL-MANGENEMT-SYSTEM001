@@ -72,7 +72,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
         {
             string guardian = string.IsNullOrWhiteSpace(s.GuardianName) ? "Guardian" : s.GuardianName.Trim();
             return
-$@"Dear {guardian}, your ward {s.FirstName} has been admitted to Kingdom Preparatory School with the following details:
+$@"Dear {guardian}, your ward {s.FirstName} has been admitted to Nyansapo School ERP with the following details:
 - Student ID: {Common.StudentId.Display(s.StudentID)}
 - Name: {s.FullName}
 - Class: {s.ClassID}
@@ -93,7 +93,7 @@ To rectify any details or information, kindly visit or contact the school admini
         {
             string guardian = string.IsNullOrWhiteSpace(s.GuardianName) ? "Guardian" : s.GuardianName.Trim();
             return
-$@"Dear {guardian}, your ward {s.FirstName} has been admitted to Kingdom Preparatory School with the following details:
+$@"Dear {guardian}, your ward {s.FirstName} has been admitted to Nyansapo School ERP with the following details:
 - Student ID: {Common.StudentId.Display(s.StudentID)}
 - Name: {s.FullName}
 - Class: {s.ClassID}
@@ -128,7 +128,7 @@ To rectify any details or information, kindly visit or contact the school admini
         public static string BuildEmployeeAdmissionMessage(Models.Employee e)
         {
             return
-$@"Dear {e.FullName}, you have been registered as an employee at Kingdom Preparatory School with the following details:
+$@"Dear {e.FullName}, you have been registered as an employee at Nyansapo School ERP with the following details:
 - Employee ID: {e.EmployeeID}
 - Name: {e.FullName}
 - Department: {e.Department}
@@ -149,7 +149,21 @@ This is a reminder that {studentName} has an outstanding balance of GHS {balance
 
 Please pay at your earliest convenience.
 
-- Kingdom Preparatory School Accounts";
+- Nyansapo School ERP Accounts";
+            return SendSmsAsync(recipient, message, SmsSenderIds.FeeReminder);
+        }
+
+        public static Task<(bool Success, string Message)> SendTransportReminderAsync(
+            string recipient, string studentName, string routeName, string period, decimal balance)
+        {
+            string message =
+$@"Dear Guardian,
+
+{studentName} uses the school bus ({routeName}) and has an outstanding transport fee of GHS {balance:N2} for {period}.
+
+Please settle it at your earliest convenience.
+
+- Accounts";
             return SendSmsAsync(recipient, message, SmsSenderIds.FeeReminder);
         }
 
@@ -157,7 +171,7 @@ Please pay at your earliest convenience.
         public static Task<(bool Success, string Message)> SendTestAsync(string recipient)
         {
             return SendSmsAsync(recipient,
-                "Test SMS from Kingdom Preparatory School. Your SMS settings are working.",
+                "Test SMS from Nyansapo School ERP. Your SMS settings are working.",
                 SmsSenderIds.StudentAdmission);
         }
 
@@ -169,7 +183,7 @@ Please pay at your earliest convenience.
                 : "Balance fully cleared.";
             string message =
                 $"Dear Guardian, payment of GHS {amountPaid:N2} received for {studentName}. " +
-                $"{balanceLine} Thank you. - Kingdom Preparatory School Accounts";
+                $"{balanceLine} Thank you. - Nyansapo School ERP Accounts";
             return SendSmsAsync(recipient, message, SmsSenderIds.FeeReminder);
         }
 
@@ -178,7 +192,7 @@ Please pay at your earliest convenience.
         {
             string message =
                 $"Dear {employeeName}, your leave request has been submitted and is pending approval. " +
-                "- Kingdom Preparatory School HR";
+                "- Nyansapo School ERP HR";
             return SendSmsAsync(recipient, message, SmsSenderIds.EmployeeAdmission);
         }
 
@@ -187,7 +201,7 @@ Please pay at your earliest convenience.
         {
             string message =
                 $"Dear {employeeName}, your leave ({startDate:dd/MM/yyyy} - {endDate:dd/MM/yyyy}) " +
-                $"has been {status.ToUpperInvariant()}. - Kingdom Preparatory School HR";
+                $"has been {status.ToUpperInvariant()}. - Nyansapo School ERP HR";
             return SendSmsAsync(recipient, message, SmsSenderIds.EmployeeAdmission);
         }
 
@@ -196,7 +210,7 @@ Please pay at your earliest convenience.
         {
             string message =
                 $"Leave request from {employeeName} ({startDate:dd/MM/yyyy} - {endDate:dd/MM/yyyy}) " +
-                "is pending review. - Kingdom Preparatory School";
+                "is pending review. - Nyansapo School ERP";
             return SendSmsAsync(hrPhone, message, SmsSenderIds.EmployeeAdmission);
         }
 

@@ -82,6 +82,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
             ["frmLibrary"]                = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster },
             ["frmTransport"]              = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster },
             ["frmPaymentHistory"]         = new[] { UserRole.Accountant, UserRole.Director, UserRole.Administrator, UserRole.Headmaster },
+            ["frmTransportPayments"]      = new[] { UserRole.Accountant, UserRole.Administrator, UserRole.Headmaster },
         };
 
         /// <summary>
