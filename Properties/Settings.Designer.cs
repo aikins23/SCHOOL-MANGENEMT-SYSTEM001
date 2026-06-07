@@ -143,7 +143,7 @@ namespace kingdom_Preparatory_School_Management_System.Properties {
 
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("KPSchool")]
+        [global::System.Configuration.DefaultSettingValueAttribute("NYANSAPO")]
         public string SmsFromNumber {
             get {
                 return ((string)(this["SmsFromNumber"]));
@@ -167,7 +167,7 @@ namespace kingdom_Preparatory_School_Management_System.Properties {
 
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("KPS")]
+        [global::System.Configuration.DefaultSettingValueAttribute("NS")]
         public string SmsSchoolAbbreviation {
             get {
                 return ((string)(this["SmsSchoolAbbreviation"]));
