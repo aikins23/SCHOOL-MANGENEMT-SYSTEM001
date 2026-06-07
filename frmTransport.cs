@@ -24,6 +24,7 @@ namespace kingdom_Preparatory_School_Management_System
         public frmTransport()
         {
             BuildUi();
+            Common.SessionUi.AttachSignOut(this);
             if (!AuthService.RequireAccess("frmTransport", this)) return;
             Load += async (s, e) => await InitAsync();
         }

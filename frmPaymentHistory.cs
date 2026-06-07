@@ -25,6 +25,7 @@ namespace kingdom_Preparatory_School_Management_System
         public frmPaymentHistory()
         {
             BuildUi();
+            Common.SessionUi.AttachSignOut(this);
             if (!AuthService.RequireAccess("frmPaymentHistory", this)) return;
             Load += async (s, e) => await LoadAsync();
         }

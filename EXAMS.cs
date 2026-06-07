@@ -59,6 +59,7 @@ namespace kingdom_Preparatory_School_Management_System
         public EXAMS()
         {
             InitializeComponent();
+            Common.SessionUi.AttachSignOut(this);
             if (!AuthService.RequireAccess("EXAMS", this)) return;
 
             var examRepo    = new ExamRepository(AppConfig.ConnectionString);

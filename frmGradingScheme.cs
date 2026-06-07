@@ -25,6 +25,7 @@ namespace kingdom_Preparatory_School_Management_System
         public frmGradingScheme()
         {
             BuildUi();
+            Common.SessionUi.AttachSignOut(this);
             if (!AuthService.RequireAccess("frmGradingScheme", this)) return;
             Load += async (s, e) => await LoadAsync();
         }

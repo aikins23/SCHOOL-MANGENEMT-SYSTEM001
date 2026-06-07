@@ -25,6 +25,7 @@ namespace kingdom_Preparatory_School_Management_System
         public frmEmpLeave()
         {
             InitializeComponent();
+            Common.SessionUi.AttachSignOut(this);
             if (!AuthService.RequireAccess("frmEmpLeave", this)) return;
 
             // Initialize modern architecture

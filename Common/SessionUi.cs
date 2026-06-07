@@ -7,7 +7,9 @@ namespace kingdom_Preparatory_School_Management_System.Common
 {
     /// <summary>
     /// Drops a consistent, self-contained "Sign Out" chip into the top-right of any top-level
-    /// form, wired to the existing FormManager.SignOut() flow. Auth-gated and idempotent.
+    /// form, wired to the existing FormManager.SignOut() flow. Auth-gated and idempotent, and
+    /// self-healing: it re-asserts itself when the form is shown, so a constructor/Load rebuild
+    /// of the control tree (some forms clear and rebuild Controls) can't leave it missing.
     /// </summary>
     public static class SessionUi
     {
@@ -20,8 +22,29 @@ namespace kingdom_Preparatory_School_Management_System.Common
             {
                 // Only for a signed-in session — never on login/splash.
                 if (!AuthService.CurrentUser.IsAuthenticated) return;
-                // Idempotent: don't add a second chip.
-                if (form.Controls.Find(SignOutName, true).Length > 0) return;
+
+                Ensure(form);                          // add now (covers forms shown immediately)
+                form.Shown += (s, e) => Ensure(form);  // and re-assert after all UI is built
+            }
+            catch (Exception ex)
+            {
+                LoggerHelper.LogWarning($"SessionUi.AttachSignOut({form.Name}): {ex.Message}");
+            }
+        }
+
+        private static void Ensure(Form form)
+        {
+            try
+            {
+                if (form == null || form.IsDisposed) return;
+
+                // Already present → just keep it on top (a later docked panel may have covered it).
+                var existing = form.Controls.Find(SignOutName, true);
+                if (existing.Length > 0)
+                {
+                    if (!existing[0].IsDisposed) existing[0].BringToFront();
+                    return;
+                }
 
                 var btn = new Button
                 {
@@ -49,7 +72,7 @@ namespace kingdom_Preparatory_School_Management_System.Common
             }
             catch (Exception ex)
             {
-                LoggerHelper.LogWarning($"SessionUi.AttachSignOut({form.Name}): {ex.Message}");
+                LoggerHelper.LogWarning($"SessionUi.Ensure({form?.Name}): {ex.Message}");
             }
         }
     }

@@ -50,6 +50,7 @@ namespace kingdom_Preparatory_School_Management_System
         public frmEmployee()
         {
             InitializeComponent();
+            Common.SessionUi.AttachSignOut(this);
             if (!AuthService.RequireAccess("frmEmployee", this)) return;
 
             // Initialize modern architecture

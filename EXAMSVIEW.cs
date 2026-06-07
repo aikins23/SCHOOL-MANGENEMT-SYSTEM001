@@ -42,6 +42,7 @@ namespace kingdom_Preparatory_School_Management_System
         public EXAMSVIEW()
         {
             InitializeComponent();
+            Common.SessionUi.AttachSignOut(this);
             if (!AuthService.RequireAccess("EXAMSVIEW", this)) return;
 
             // Initialize modern architecture

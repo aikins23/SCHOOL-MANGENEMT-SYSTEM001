@@ -40,7 +40,7 @@ namespace kingdom_Preparatory_School_Management_System
 
         // Placeholder shown in the "Being" field before a fee type is chosen.
         // Treated as an auto-filled value so the selected fee type can replace it.
-        private const string DefaultBeingText = "School fees payment";
+        private static string DefaultBeingText => $"School fees payment for {AppConfig.Leave.CurrentTerm.TermName}";
 
         // Overpayment: set only when the cashier approves an amount over the balance.
         // Reset whenever the amount changes so a new figure must be re-approved.
@@ -109,6 +109,7 @@ namespace kingdom_Preparatory_School_Management_System
             public string AmountPaid { get; set; }
             public string Pesewas { get; set; }
             public string Being { get; set; }
+            public string PaymentMode { get; set; }
             public string CashChequeNo { get; set; }
             public string Balance { get; set; }
             public string BursarName { get; set; }
@@ -150,6 +151,10 @@ namespace kingdom_Preparatory_School_Management_System
             gunaPictureBox1.Click     += gunaPictureBox1_Click_1;
 
             if (enforceAccess) AuthService.RequireAccess("frmFessPayment", this);
+
+            // Add the Sign Out chip LAST: BuildModernPaymentView() above does a Controls.Clear(),
+            // so an earlier call would be wiped. (SessionUi also re-asserts on Shown.)
+            Common.SessionUi.AttachSignOut(this);
         }
 
         private void BuildModernPaymentView()
@@ -781,8 +786,9 @@ namespace kingdom_Preparatory_School_Management_System
                  || beingBox.Text == _lastFeeTypeAutoFilled
                  || beingBox.Text == DefaultBeingText))
             {
-                beingBox.Text = feeType;
-                _lastFeeTypeAutoFilled = feeType;
+                string termInfo = AppConfig.Leave.CurrentTerm.TermName;
+                beingBox.Text = $"{feeType} for {termInfo}";
+                _lastFeeTypeAutoFilled = beingBox.Text;
             }
             ShowStep(2);
         }
@@ -834,11 +840,11 @@ namespace kingdom_Preparatory_School_Management_System
             layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
 
             layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 60));   // Student summary bar
-            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 95));   // Amount | Payment Mode
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 105));  // Amount | Payment Mode
             layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 45));   // Quick buttons row
-            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 95));   // Cheque Ref | Bursar
-            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 95));   // Amount in words
-            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 95));   // Being | Date
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 105));  // Cheque Ref | Bursar
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 105));  // Amount in words
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 105));  // Being | Date
             layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));   // Filler
 
             // Row 0: Student summary bar
@@ -1154,11 +1160,11 @@ namespace kingdom_Preparatory_School_Management_System
             layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 10));   // Spacer
             layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 60));   // Receipt title + number + date
             layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 12));   // Spacer
-            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 76));   // Student row
-            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 54));   // Sum of (amount in words)
-            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 54));   // Being + mode
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 85));   // Student row (increased from 76)
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 65));   // Sum of (amount in words) (increased from 54)
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 65));   // Being + mode (increased from 54)
             layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 86));   // Amount box + balance
-            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 54));   // Bursar + signature
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 65));   // Bursar + signature (increased from 54)
 
             // ── Row 0: School header (logo + name/address) ──────────────────────────
             var schoolRow = new TableLayoutPanel
@@ -1338,8 +1344,8 @@ namespace kingdom_Preparatory_School_Management_System
             beingRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 40));
             beingRow.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
             Panel beiTile, modTile;
-            _rpBeingLbl = CreateReceiptTile("BEING",        out beiTile);
-            _rpModeLbl  = CreateReceiptTile("PAYMENT MODE", out modTile);
+            _rpBeingLbl = CreateReceiptTile("BEING:",        out beiTile);
+            _rpModeLbl  = CreateReceiptTile("PAYMENT MODE:", out modTile);
             beiTile.BackColor = Color.FromArgb(248, 249, 251);
             modTile.BackColor = Color.FromArgb(248, 249, 251);
             beingRow.Controls.Add(beiTile, 0, 0);
@@ -1545,25 +1551,25 @@ namespace kingdom_Preparatory_School_Management_System
             decimal.TryParse(balanceBox?.Text, out balance);
             decimal projected = Math.Max(0m, balance - amount);
 
-            _rpStudentIdLbl.Text   = Common.StudentId.Display(Common.StudentId.Parse(studentIdBox?.Text ?? ""));
-            _rpClassLbl.Text       = classBox?.Text.Trim() ?? "";
-            _rpNameLbl.Text        = studentNameBox?.Text.Trim() ?? "";
-            _rpAmountWordsLbl.Text = amountWordsBox?.Text.Trim() ?? "";
+            _rpStudentIdLbl.Text   = Common.StudentId.Display(Common.StudentId.Parse(studentIdBox?.Text ?? "")).ToUpperInvariant();
+            _rpClassLbl.Text       = (classBox?.Text.Trim() ?? "").ToUpperInvariant();
+            _rpNameLbl.Text        = (studentNameBox?.Text.Trim() ?? "").ToUpperInvariant();
+            _rpAmountWordsLbl.Text = (amountWordsBox?.Text.Trim() ?? "").ToUpperInvariant();
 
             // Being: prefer the typed/auto value, but fall back to the fee type
             // chosen in Step 1 so the receipt is never blank.
             string being = beingBox?.Text.Trim() ?? "";
             if (being.Length == 0) being = feeTypeBox?.Text.Trim() ?? "";
-            _rpBeingLbl.Text       = being;
+            _rpBeingLbl.Text       = being.ToUpperInvariant();
 
             // Payment mode: a DropDownList combo can read blank before its handle
             // exists — fall back to the selected item, then to "Cash".
             string mode = paymentModeBox?.Text;
             if (string.IsNullOrWhiteSpace(mode))
                 mode = paymentModeBox?.SelectedItem?.ToString();
-            _rpModeLbl.Text        = string.IsNullOrWhiteSpace(mode) ? "Cash" : mode;
+            _rpModeLbl.Text        = (string.IsNullOrWhiteSpace(mode) ? "CASH" : mode).ToUpperInvariant();
             _rpAmountLbl.Text      = amount > 0 ? ((int)Math.Floor(amount)).ToString("N0") : "—";
-            _rpBalanceLbl.Text     = "GHc " + projected.ToString("N2");
+            _rpBalanceLbl.Text     = "GHC " + projected.ToString("N2");
 
             // Show the approved overpayment as a credit beneath the balance-after.
             if (_rpCreditLbl != null)
@@ -1571,12 +1577,12 @@ namespace kingdom_Preparatory_School_Management_System
                 bool hasCredit = _overpaymentApproved && _approvedOverpayment > 0m;
                 _rpCreditLbl.Visible = hasCredit;
                 _rpCreditLbl.Text = hasCredit
-                    ? "Incl. overpayment credit: GHc " + _approvedOverpayment.ToString("N2")
+                    ? "INCL. OVERPAYMENT CREDIT: GHC " + _approvedOverpayment.ToString("N2")
                     : "";
             }
 
-            _rpBursarLbl.Text      = bursarBox?.Text.Trim() ?? "";
-            _rpReceiptNumLbl.Text  = receiptNumberLabel?.Text ?? "";
+            _rpBursarLbl.Text      = (bursarBox?.Text.Trim() ?? "").ToUpperInvariant();
+            _rpReceiptNumLbl.Text  = (receiptNumberLabel?.Text ?? "").ToUpperInvariant();
             _rpDateLbl.Text        = paymentDatePicker?.Value.ToString("dd/MM/yyyy") ?? "";
         }
 
@@ -1985,15 +1991,16 @@ namespace kingdom_Preparatory_School_Management_System
 
             return new ReceiptPrintData
             {
-                ReceiptNumber = CleanReceiptNumber(receiptNumberLabel != null ? receiptNumberLabel.Text : ""),
-                ReceivedFrom = studentNameBox != null ? studentNameBox.Text.Trim() : "",
-                AmountWords = amountWordsBox != null ? amountWordsBox.Text.Trim() : "",
-                AmountPaid = amount > 0 ? cedis.ToString("N0") : "",
-                Pesewas = amount > 0 ? pesewas.ToString("00") : "",
-                Being = beingBox != null ? beingBox.Text.Trim() : "",
-                CashChequeNo = cashChequeBox != null ? cashChequeBox.Text.Trim() : "",
-                Balance = balanceBox != null ? balanceBox.Text.Trim() : "",
-                BursarName = bursarBox != null ? bursarBox.Text.Trim() : "",
+                ReceiptNumber = CleanReceiptNumber(receiptNumberLabel != null ? receiptNumberLabel.Text : "").ToUpperInvariant(),
+                ReceivedFrom = (studentNameBox != null ? studentNameBox.Text.Trim() : "").ToUpperInvariant(),
+                AmountWords = (amountWordsBox != null ? amountWordsBox.Text.Trim() : "").ToUpperInvariant(),
+                AmountPaid = amount > 0 ? cedis.ToString("N0").ToUpperInvariant() : "",
+                Pesewas = amount > 0 ? pesewas.ToString("00").ToUpperInvariant() : "",
+                Being = (beingBox != null ? beingBox.Text.Trim() : "").ToUpperInvariant(),
+                PaymentMode = (paymentModeBox != null ? paymentModeBox.Text.Trim() : "CASH").ToUpperInvariant(),
+                CashChequeNo = (cashChequeBox != null ? cashChequeBox.Text.Trim() : "").ToUpperInvariant(),
+                Balance = (balanceBox != null ? balanceBox.Text.Trim() : "").ToUpperInvariant(),
+                BursarName = (bursarBox != null ? bursarBox.Text.Trim() : "").ToUpperInvariant(),
                 PaymentDate = paymentDatePicker != null ? paymentDatePicker.Value.Date : DateTime.Today
             };
         }
@@ -2031,7 +2038,7 @@ namespace kingdom_Preparatory_School_Management_System
             using (var subTitleFont = new Font("Georgia", 21f, FontStyle.Bold))
             using (var contactFont = new Font("Georgia", 18f, FontStyle.Regular))
             using (var receiptTitleFont = new Font("Arial Narrow", 38f, FontStyle.Bold))
-            using (var labelFont = new Font("Georgia", 25f, FontStyle.Regular))
+            using (var labelFont = new Font("Georgia", 22f, FontStyle.Regular))
             using (var normalFont = new Font("Georgia", 18f, FontStyle.Regular))
             using (var numberFont = new Font("Consolas", 36f, FontStyle.Regular))
             using (var amountLabelFont = new Font("Arial Narrow", 36f, FontStyle.Bold))
@@ -2042,6 +2049,9 @@ namespace kingdom_Preparatory_School_Management_System
                 dottedPen.DashStyle = DashStyle.Dot;
                 dottedPen.DashCap = DashCap.Round;
 
+                // 1. Receipt Number - Moved alittle UP (above school name)
+                DrawCenteredText(graphics, "NO. " + data.ReceiptNumber, labelFont, blackBrush, new RectangleF(170, -25, 820, 30));
+
                 DrawReceiptLogo(graphics, new RectangleF(28, 8, 112, 125));
 
                 DrawCenteredText(graphics, "KINGDOM PREPARATORY & J.H.S", titleFont, blueBrush, new RectangleF(170, 18, 820, 48));
@@ -2049,49 +2059,65 @@ namespace kingdom_Preparatory_School_Management_System
                 DrawCenteredText(graphics, "P. O. BOX 7 AKIM ODA", subTitleFont, blueBrush, new RectangleF(245, 82, 655, 32));
                 DrawCenteredText(graphics, "Tel: 0548 050 141 | 0200 369 762 | 0201 455 533", contactFont, blueBrush, new RectangleF(215, 113, 720, 30));
 
-                var receiptBox = new RectangleF(28, 154, 405, 74);
+                // 1. Official Receipt Box - Widened significantly to 560 to prevent any clipping
+                var receiptBox = new RectangleF(28, 154, 560, 74);
                 graphics.DrawRectangle(bluePen, receiptBox.X, receiptBox.Y, receiptBox.Width, receiptBox.Height);
-                DrawCenteredText(graphics, "Official Receipt", receiptTitleFont, blueBrush, receiptBox);
+                DrawCenteredText(graphics, "OFFICIAL RECEIPT", receiptTitleFont, blueBrush, receiptBox);
 
-                graphics.DrawString("No.", labelFont, blackBrush, 438, 177);
-                graphics.DrawString(data.ReceiptNumber, numberFont, blackBrush, 505, 163);
-                graphics.DrawString("Date:", labelFont, blueBrush, 705, 177);
-                DrawDottedLine(graphics, dottedPen, 795, 205, 1014, 205);
-                DrawValueOnLine(graphics, data.PaymentDate.ToString("dd/MM/yyyy"), valueFont, blackBrush, 805, 176, 205);
+                // 2. Date - Shifted label left to 600 and expanded value area to prevent overlap
+                graphics.DrawString("DATE:", labelFont, blueBrush, 600, 177);
+                DrawDottedLine(graphics, dottedPen, 750, 205, 1014, 205);
+                DrawValueOnLine(graphics, data.PaymentDate.ToString("dd/MM/yyyy"), valueFont, blackBrush, 760, 176, 1014);
 
-                DrawLineField(graphics, "Received From", data.ReceivedFrom, labelFont, valueFont, blueBrush, blackBrush, dottedPen, 40, 285, 1010);
-                DrawLineField(graphics, "The sum of:", data.AmountWords, labelFont, valueFont, blueBrush, blackBrush, dottedPen, 40, 370, 1010);
+                DrawLineField(graphics, "RECEIVED FROM", data.ReceivedFrom, labelFont, valueFont, blueBrush, blackBrush, dottedPen, 40, 285, 1010);
+                DrawLineField(graphics, "THE SUM OF:", data.AmountWords, labelFont, valueFont, blueBrush, blackBrush, dottedPen, 40, 370, 1010);
 
-                DrawDottedLine(graphics, dottedPen, 40, 456, 710, 456);
-                DrawValueOnLine(graphics, data.AmountPaid, valueFont, blackBrush, 55, 427, 710);
-                graphics.DrawString("GHc", labelFont, blueBrush, 715, 429);
-                DrawDottedLine(graphics, dottedPen, 785, 456, 980, 456);
-                DrawValueOnLine(graphics, data.Pesewas, valueFont, blackBrush, 795, 427, 980);
-                graphics.DrawString("Gp", labelFont, blueBrush, 985, 429);
+                // 3. GHC/Pesewas line - Widened spacing between the two amount segments
+                DrawDottedLine(graphics, dottedPen, 40, 456, 650, 456);
+                DrawValueOnLine(graphics, data.AmountPaid, valueFont, blackBrush, 55, 427, 650);
+                graphics.DrawString("GHC", labelFont, blueBrush, 655, 429);
+                DrawDottedLine(graphics, dottedPen, 760, 456, 980, 456);
+                DrawValueOnLine(graphics, data.Pesewas, valueFont, blackBrush, 770, 427, 980);
+                graphics.DrawString("GP", labelFont, blueBrush, 985, 429);
+DrawLineField(graphics, "BEING:", data.Being, labelFont, valueFont, blueBrush, blackBrush, dottedPen, 40, 540, 1010);
 
-                DrawLineField(graphics, "Being:", data.Being, labelFont, valueFont, blueBrush, blackBrush, dottedPen, 40, 540, 1010);
-                DrawDottedLine(graphics, dottedPen, 40, 622, 1010, 622);
+// 4. Mode of Payment - Moved up to 615 and aligned value at x=420
+graphics.DrawString("MODE OF PAYMENT:", labelFont, blueBrush, 40, 615 - 27);
+DrawDottedLine(graphics, dottedPen, 410, 615, 1014, 615);
+DrawValueOnLine(graphics, data.PaymentMode, valueFont, blackBrush, 420, 615 - 28, 1010);
 
-                graphics.DrawString("Cash/Cheque No:", labelFont, blueBrush, 40, 665);
-                DrawDottedLine(graphics, dottedPen, 275, 693, 705, 693);
-                DrawValueOnLine(graphics, data.CashChequeNo, valueFont, blackBrush, 285, 665, 705);
-                graphics.DrawString("Balance GHc", labelFont, blueBrush, 715, 665);
-                DrawDottedLine(graphics, dottedPen, 895, 693, 1010, 693);
-                DrawValueOnLine(graphics, data.Balance, valueFont, blackBrush, 905, 665, 1010);
+// 5. Cash/Cheque No and Balance Area - Moved up to 675 and aligned value at x=420
+graphics.DrawString("CASH/CHEQUE NO:", labelFont, blueBrush, 40, 675 - 27);
+DrawDottedLine(graphics, dottedPen, 410, 675, 620, 675);
+DrawValueOnLine(graphics, data.CashChequeNo, valueFont, blackBrush, 420, 675 - 28, 620);
 
-                var amountBox = new RectangleF(40, 710, 610, 88);
-                graphics.DrawRectangle(bluePen, amountBox.X, amountBox.Y, amountBox.Width, amountBox.Height);
-                graphics.DrawLine(bluePen, 178, 710, 178, 798);
-                graphics.DrawString("GHc", amountLabelFont, blueBrush, 65, 727);
-                DrawCenteredText(graphics, data.AmountPaid, numberFont, blackBrush, new RectangleF(188, 725, 345, 48));
-                graphics.DrawString("." + (string.IsNullOrWhiteSpace(data.Pesewas) ? "Gp" : data.Pesewas + "Gp"), amountLabelFont, blueBrush, 540, 727);
+graphics.DrawString("BALANCE GHC", labelFont, blueBrush, 640, 675 - 27);
+DrawDottedLine(graphics, dottedPen, 890, 675, 1014, 675);
+DrawValueOnLine(graphics, data.Balance, valueFont, blackBrush, 900, 675 - 28, 1014);
 
-                DrawDottedLine(graphics, dottedPen, 800, 752, 1010, 752);
-                if (!string.IsNullOrWhiteSpace(data.BursarName))
-                {
-                    DrawCenteredText(graphics, data.BursarName, valueFont, blackBrush, new RectangleF(795, 720, 220, 26));
-                }
-                graphics.DrawString("Signature", labelFont, blueBrush, 830, 765);
+var amountBox = new RectangleF(40, 715, 610, 88);
+graphics.DrawRectangle(bluePen, amountBox.X, amountBox.Y, amountBox.Width, amountBox.Height);
+graphics.DrawLine(bluePen, 178, 715, 178, 803); // Vertical separator after GHC
+graphics.DrawString("GHC", amountLabelFont, blueBrush, 65, 732);
+
+// Centered Amount (e.g. 1,000)
+DrawCenteredText(graphics, data.AmountPaid, numberFont, blackBrush, new RectangleF(188, 730, 310, 48));
+
+// GP Suffix (e.g. .00GP) - Moved left to 500 and font reduced slightly to fit inside the 610 width
+using (var gpFont = new Font("Arial Narrow", 30f, FontStyle.Bold))
+{
+    string gpSuffix = "." + (string.IsNullOrWhiteSpace(data.Pesewas) ? "00" : data.Pesewas) + "GP";
+    graphics.DrawString(gpSuffix, gpFont, blueBrush, 505, 736);
+}
+
+DrawDottedLine(graphics, dottedPen, 800, 757, 1010, 757);
+graphics.DrawString("SIGNATURE", labelFont, blueBrush, 830, 770);
+
+// 4. Bursar Name - Adjusted position
+if (!string.IsNullOrWhiteSpace(data.BursarName))
+{
+    DrawCenteredText(graphics, "BURSAR / CASHIER: " + data.BursarName, valueFont, blackBrush, new RectangleF(40, 815, 970, 30));
+}
             }
 
             graphics.Restore(state);
@@ -2187,7 +2213,7 @@ namespace kingdom_Preparatory_School_Management_System
             // Use Anchor instead of Dock so the input keeps its fixed height
             input.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
             input.Dock = DockStyle.None;
-            input.Height = 38; // Increased from 32
+            input.Height = 42; // Increased from 38
             input.Margin = new Padding(0, 0, 0, 0);
             
             var inputHost = new Panel 
@@ -2196,11 +2222,11 @@ namespace kingdom_Preparatory_School_Management_System
                 BackColor = SurfaceColor, 
                 Margin = Padding.Empty, 
                 Padding = Padding.Empty,
-                Height = 40
+                Height = 44
             };
             inputHost.Resize += (s, e) =>
             {
-                input.Location = new Point(0, 0);
+                input.Location = new Point(0, (inputHost.Height - input.Height) / 2);
                 input.Width = inputHost.Width;
             };
             inputHost.Controls.Add(input);

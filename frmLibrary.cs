@@ -33,6 +33,7 @@ namespace kingdom_Preparatory_School_Management_System
         public frmLibrary()
         {
             BuildUi();
+            Common.SessionUi.AttachSignOut(this);
             if (!AuthService.RequireAccess("frmLibrary", this)) return;
             Load += async (s, e) => await InitAsync();
         }

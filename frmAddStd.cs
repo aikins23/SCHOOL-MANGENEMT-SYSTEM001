@@ -47,6 +47,7 @@ namespace kingdom_Preparatory_School_Management_System
         public frmAddStd()
         {
             InitializeComponent();
+            Common.SessionUi.AttachSignOut(this);
             if (!AuthService.RequireAccess("frmAddStd", this)) return;
 
             // Initialize modern architecture

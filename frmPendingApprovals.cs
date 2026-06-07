@@ -36,6 +36,7 @@ namespace kingdom_Preparatory_School_Management_System
                 fees);
 
             BuildUi();
+            Common.SessionUi.AttachSignOut(this);
             if (!AuthService.RequireAccess("frmPendingApprovals", this)) return;
             Load += async (s, e) => await LoadPendingAsync();
         }
