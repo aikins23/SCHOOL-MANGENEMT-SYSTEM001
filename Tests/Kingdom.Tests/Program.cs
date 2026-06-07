@@ -27,6 +27,7 @@ namespace Kingdom.Tests
                 new TestCase("SmsSenderIds detects names over gateway limit", SmsSenderIds_DetectsGatewayLimit),
                 new TestCase("StudentId formats numeric IDs as prefixed display", StudentId_FormatsDisplayIds),
                 new TestCase("StudentId parses display IDs back to numeric", StudentId_ParsesDisplayIds),
+                new TestCase("TransportPeriod maps route terms to current period", TransportPeriod_MapsTermsToPeriod),
                 new TestCase("SecretStorage protects and restores local secrets", SecretStorage_ProtectsAndRestoresSecrets),
                 new TestCase("SecretStorage preserves legacy plaintext values", SecretStorage_PreservesLegacyPlaintextValues),
                 new TestCase("FeeBalanceCalculator calculates remaining balances", FeeBalanceCalculator_CalculatesRemainingBalances),
@@ -154,6 +155,29 @@ namespace Kingdom.Tests
             AssertEx.Equal("", StudentId.Parse(null));
             AssertEx.Equal("", StudentId.Parse(""));
             AssertEx.Equal("9016", StudentId.Parse(StudentId.Display("9016")));                // round-trips with Display
+        }
+
+        private static void TransportPeriod_MapsTermsToPeriod()
+        {
+            var m = TransportPeriod.Current("Monthly", new DateTime(2026, 6, 7));
+            AssertEx.Equal("2026-06", m.Key);
+            AssertEx.Equal(new DateTime(2026, 6, 1), m.Start);
+            AssertEx.Equal(new DateTime(2026, 6, 30), m.End);
+
+            var d = TransportPeriod.Current("Daily", new DateTime(2026, 6, 7));
+            AssertEx.Equal("2026-06-07", d.Key);
+            AssertEx.Equal(new DateTime(2026, 6, 7), d.Start);
+            AssertEx.Equal(new DateTime(2026, 6, 7), d.End);
+
+            // Weekly = fixed 2-week block (length 14, deterministic, end = start+13).
+            var w = TransportPeriod.Current("Weekly", new DateTime(2026, 6, 7));
+            AssertEx.Equal(14, (int)(w.End - w.Start).TotalDays + 1);
+            AssertEx.True(w.Start <= new DateTime(2026, 6, 7) && new DateTime(2026, 6, 7) <= w.End,
+                "today must fall within its fortnight block");
+
+            AssertEx.True(TransportPeriod.SupportsReminders("Monthly"));
+            AssertEx.True(TransportPeriod.SupportsReminders("Weekly"));
+            AssertEx.False(TransportPeriod.SupportsReminders("Daily"));
         }
 
         private static void SecretStorage_ProtectsAndRestoresSecrets()

@@ -176,6 +176,7 @@
     <Compile Include="Common\ImageHelper.cs" />
     <Compile Include="Common\NavigationSidebar.cs" />
     <Compile Include="Common\SessionUi.cs" />
+    <Compile Include="Common\TransportPeriod.cs" />
     <Compile Include="Common\SecretStorage.cs" />
     <Compile Include="Common\UIHelper.cs" />
     <Compile Include="Common\ValidationHelper.cs" />
