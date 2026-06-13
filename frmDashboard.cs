@@ -19,6 +19,7 @@ namespace kingdom_Preparatory_School_Management_System
         private FeeRepository _feeRepository;
 
         private Label studentCountLabel;
+        private Label _incomeLabel, _expensesLabel, _fundLabel;
         private Label employeeCountLabel;
         private Label feesCollectedLabel;
         private Label feesBalanceLabel;
@@ -579,6 +580,22 @@ public frmDashboard()
             feesCollectedLabel.AutoEllipsis = true;
             feesBalanceLabel.Font = new Font("Segoe UI Semibold", 15F, FontStyle.Bold);
             feesBalanceLabel.AutoEllipsis = true;
+
+            // Finance overview tiles (Total Income / Expenses / Fund) — only for finance/leadership.
+            var financeRole = AuthService.CurrentUser.Role;
+            if (financeRole == AuthService.UserRole.Accountant || financeRole == AuthService.UserRole.Administrator
+                || financeRole == AuthService.UserRole.Director)
+            {
+                metricGrid.RowCount = 2;
+                metricGrid.RowStyles.Add(new RowStyle(SizeType.Percent, 50));
+                metricGrid.RowStyles.Add(new RowStyle(SizeType.Percent, 50));
+                _incomeLabel = new Label(); _expensesLabel = new Label(); _fundLabel = new Label();
+                metricGrid.Controls.Add(CreateMetricCard("Total Income",   _incomeLabel,   "This term", AccentGreen, "INCOME",   DashboardIconType.Fees),    0, 1);
+                metricGrid.Controls.Add(CreateMetricCard("Total Expenses", _expensesLabel, "This term", AccentRed,   "EXPENSES", DashboardIconType.Balance), 1, 1);
+                metricGrid.Controls.Add(CreateMetricCard("Total Fund",     _fundLabel,     "This term", AccentGold,  "FUND",     DashboardIconType.Fees),    2, 1);
+                foreach (var l in new[] { _incomeLabel, _expensesLabel, _fundLabel })
+                { l.Font = new Font("Segoe UI Semibold", 15F, FontStyle.Bold); l.AutoEllipsis = true; }
+            }
 
             var analyticsGrid = BuildAnalyticsGrid();
             var actionPanel = BuildQuickActionsPanel();
@@ -1241,6 +1258,16 @@ public frmDashboard()
                 feesBalanceLabel.Text = FormatCurrency(metrics.TotalFeesBalance);
                 averageExamLabel.Text = metrics.AverageExamScore.ToString("0.0") + "%";
                 topClassLabel.Text = metrics.TopClass;
+
+                if (_fundLabel != null)
+                {
+                    var term = Common.AppConfig.Leave.CurrentTerm;
+                    var fin = await _dashboardService.GetFinanceSummaryAsync(term.Start, term.End);
+                    _incomeLabel.Text = FormatCurrency(fin.Income);
+                    _expensesLabel.Text = FormatCurrency(fin.Expenses);
+                    _fundLabel.Text = FormatCurrency(fin.Fund);
+                    _fundLabel.ForeColor = fin.Fund < 0 ? AccentRed : AccentGreen;
+                }
 
                 recentPaymentsGrid.DataSource = metrics.RecentPayments;
                 classSummaryGrid.DataSource = metrics.ClassSummary;
