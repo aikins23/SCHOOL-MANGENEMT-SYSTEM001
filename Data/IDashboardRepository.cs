@@ -33,5 +33,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
         Task<DataTable> GetActiveVsRolledOutStudentsAsync();
         Task<DataTable> GetSalarySpendByDepartmentAsync();
         Task<DataTable> GetSubjectPassFailRateAsync();
+        Task<decimal> GetTotalIncomeBetweenAsync(System.DateTime from, System.DateTime to);
+        Task<decimal> GetTotalExpensesBetweenAsync(System.DateTime from, System.DateTime to);
     }
 }

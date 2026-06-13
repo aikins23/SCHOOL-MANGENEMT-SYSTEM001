@@ -426,6 +426,33 @@ namespace kingdom_Preparatory_School_Management_System.Data
             }
         }
 
+        public async Task<decimal> GetTotalIncomeBetweenAsync(DateTime from, DateTime to) =>
+            await ScalarDecimalRangeAsync(
+                "SELECT ISNULL(SUM(Amount_paid),0) FROM payment_record WHERE [Date] BETWEEN ? AND ?", from, to);
+
+        public async Task<decimal> GetTotalExpensesBetweenAsync(DateTime from, DateTime to) =>
+            await ScalarDecimalRangeAsync(
+                "SELECT ISNULL(SUM(TRY_CAST(REPLACE(ISNULL(Amount,'0'),',','') AS DECIMAL(18,2))),0) FROM Expenses WHERE Date_Time BETWEEN ? AND ?", from, to);
+
+        private async Task<decimal> ScalarDecimalRangeAsync(string query, DateTime from, DateTime to)
+        {
+            try
+            {
+                using (var connection = new OleDbConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+                    using (var command = new OleDbCommand(query, connection))
+                    {
+                        command.Parameters.AddWithValue("?", from.Date);
+                        command.Parameters.AddWithValue("?", to.Date);
+                        var result = await command.ExecuteScalarAsync();
+                        return result == null || result == DBNull.Value ? 0m : Convert.ToDecimal(result);
+                    }
+                }
+            }
+            catch { return 0m; }
+        }
+
         private async Task<decimal> ExecuteScalarDecimalAsync(string query)
         {
             try

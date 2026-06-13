@@ -14,6 +14,14 @@ namespace kingdom_Preparatory_School_Management_System.Services
             _repository = repository ?? throw new ArgumentNullException(nameof(repository));
         }
 
+        /// <summary>Total income (payments) and expenses for a date window, plus net fund.</summary>
+        public async Task<(decimal Income, decimal Expenses, decimal Fund)> GetFinanceSummaryAsync(DateTime from, DateTime to)
+        {
+            decimal income = await _repository.GetTotalIncomeBetweenAsync(from, to);
+            decimal expenses = await _repository.GetTotalExpensesBetweenAsync(from, to);
+            return (income, expenses, income - expenses);
+        }
+
         public async Task<DashboardMetrics> GetMetricsAsync()
         {
             var metrics = new DashboardMetrics();
