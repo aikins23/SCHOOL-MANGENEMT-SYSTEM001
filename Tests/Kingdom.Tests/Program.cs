@@ -29,6 +29,7 @@ namespace Kingdom.Tests
                 new TestCase("StudentId parses display IDs back to numeric", StudentId_ParsesDisplayIds),
                 new TestCase("TransportPeriod maps route terms to current period", TransportPeriod_MapsTermsToPeriod),
                 new TestCase("SmsOutboxKey is deterministic and content-sensitive", SmsOutboxKey_IsDeterministic),
+                new TestCase("ImportCredentials derives usernames and strong passwords", ImportCredentials_DerivesUsernamesAndPasswords),
                 new TestCase("SyncSchema adds sync columns idempotently", SyncSchema_AddsColumnsIdempotentlyAsync),
                 new TestCase("SecretStorage protects and restores local secrets", SecretStorage_ProtectsAndRestoresSecrets),
                 new TestCase("SecretStorage preserves legacy plaintext values", SecretStorage_PreservesLegacyPlaintextValues),
@@ -203,6 +204,21 @@ namespace Kingdom.Tests
             AssertEx.Equal(64, a.Length);
             AssertEx.NotEqual(a, SmsOutboxKey.Compute("233241234567", "KPSFEES.", "Hello world"));
             AssertEx.NotEqual(a, SmsOutboxKey.Compute("233240000000", "KPSFEES.", "Hello"));
+        }
+
+        private static void ImportCredentials_DerivesUsernamesAndPasswords()
+        {
+            string ab = StudentId.Abbrev.ToLowerInvariant();
+            AssertEx.Equal(ab + "9016", ImportCredentials.UsernameFor("9016"));
+            AssertEx.Equal(ab + "9016", ImportCredentials.UsernameFor(ab.ToUpperInvariant() + "9016")); // display form in
+            AssertEx.Equal(ab + "1", ImportCredentials.UsernameFor("1"));                                // short IDs OK
+            AssertEx.True(ImportCredentials.UsernameFor("1").Length >= 3, "prefix must satisfy the 3-char username minimum");
+
+            string p1 = ImportCredentials.NewPassword();
+            string p2 = ImportCredentials.NewPassword();
+            AssertEx.True(ValidationHelper.IsStrongPassword(p1), "password must satisfy the strong-password rule: " + p1);
+            AssertEx.Equal(8, p1.Length);
+            AssertEx.NotEqual(p1, p2, "consecutive passwords must differ");
         }
 
         private static void SecretStorage_ProtectsAndRestoresSecrets()

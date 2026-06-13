@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
@@ -179,6 +179,7 @@
     <Compile Include="Common\TransportPeriod.cs" />
     <Compile Include="Common\Branding.cs" />
     <Compile Include="Common\SmsOutboxKey.cs" />
+    <Compile Include="Common\ImportCredentials.cs" />
     <Compile Include="Common\SecretStorage.cs" />
     <Compile Include="Common\UIHelper.cs" />
     <Compile Include="Common\ValidationHelper.cs" />
@@ -214,7 +215,9 @@
     <Compile Include="Data\IGradingSchemeRepository.cs" />
     <Compile Include="Data\GradingSchemeRepository.cs" />
     <Compile Include="Data\ISubjectRepository.cs" />
+    <Compile Include="Data\INoticeRepository.cs" />
     <Compile Include="Data\SubjectRepository.cs" />
+    <Compile Include="Data\NoticeRepository.cs" />
     <Compile Include="Data\ILibraryRepository.cs" />
     <Compile Include="Data\LibraryRepository.cs" />
     <Compile Include="Data\ITransportRepository.cs" />
@@ -410,10 +413,12 @@
     <Compile Include="Models\Student.cs" />
     <Compile Include="Models\SubjectResult.cs" />
     <Compile Include="Models\StudentTermRemarks.cs" />
+    <Compile Include="Models\Notice.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Services\AttendanceService.cs" />
     <Compile Include="Services\AuthService.cs" />
+    <Compile Include="Services\CsvImportExportService.cs" />
     <Compile Include="Services\ClassService.cs" />
     <Compile Include="Services\DashboardService.cs" />
     <Compile Include="Services\EmployeeService.cs" />
@@ -429,6 +434,7 @@
     <Compile Include="Services\ReportCardPrinter.cs" />
     <Compile Include="Services\StudentService.cs" />
     <Compile Include="Services\NotificationService.cs" />
+    <Compile Include="Services\NoticeService.cs" />
     <Compile Include="Services\SmsService.cs" />
     <Compile Include="Services\SmsOutboxService.cs" />
     <Compile Include="Services\DraftAdmissionService.cs" />
@@ -438,12 +444,24 @@
     <Compile Include="frmSchoolInfo.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="frmPaymentHistory.cs" />
-    <Compile Include="frmGradingScheme.cs" />
-    <Compile Include="frmSubjects.cs" />
-    <Compile Include="frmLibrary.cs" />
-    <Compile Include="frmTransport.cs" />
-    <Compile Include="frmTransportPayments.cs" />
+    <Compile Include="frmPaymentHistory.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmGradingScheme.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmSubjects.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmLibrary.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmTransport.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmTransportPayments.cs">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="Services\PhoneNumberGh.cs" />
     <Compile Include="Services\SmsSenderIds.cs" />
     <Compile Include="Services\DatabaseBackupService.cs" />
@@ -452,6 +470,9 @@
     <Compile Include="Services\Sms\ArkeselSmsProvider.cs" />
     <Compile Include="Services\Sms\BulkSmsGhProvider.cs" />
     <Compile Include="frmBackupManager.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmSendNotice.cs">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="frmEmailSettings.cs">
@@ -613,6 +634,7 @@
     <Content Include="features to work.txt" />
     <Content Include="Resources\11639128559275-beb32281-19b0-4e5f-9960-8ff17fb91d6d-removebg-preview.png" />
     <Content Include="Resources\1639128559275-beb32281-19b0-4e5f-9960-8ff17fb91d6d-removebg-preview.png" />
+    <Content Include="Resources\new_logo.png" />
     <Content Include="Resources\icon.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
@@ -622,13 +644,17 @@
     <Content Include="Resources\app_logo.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="Resources\icon_bg.png" />
-    <Content Include="Resources\logo2.png" />
-    <Content Include="Resources\logo.png">
+    <Content Include="Resources\icon_bg.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="Resources\app_logo_bg.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Resources\logo2.png" />
     <Content Include="Resources\logo1.png" />
-    <Content Include="Resources\logo_bg.png" />
+    <Content Include="Resources\logo_bg.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="Resources\school_background.png" />
     <Content Include="Resources\school_logo.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -684,7 +710,6 @@
     <Content Include="Resources\check-form_116472.ico" />
     <Content Include="Resources\checkmark.png" />
     <Content Include="Resources\codeimage-snippet_8.png" />
-    <Content Include="Resources\code_time_report_1709553147.png" />
     <Content Include="Resources\columnmove.png" />
     <Content Include="Resources\commonclose.png" />
     <Content Include="Resources\commonhelp.png" />
