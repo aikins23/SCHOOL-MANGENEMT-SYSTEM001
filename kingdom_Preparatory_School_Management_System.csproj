@@ -226,6 +226,7 @@
     <Compile Include="Data\TransportRepository.cs" />
     <Compile Include="Data\SmsOutboxRepository.cs" />
     <Compile Include="Data\SyncSchema.cs" />
+    <Compile Include="Data\ExpenseRepository.cs" />
     <Compile Include="Data\IDashboardRepository.cs" />
     <Compile Include="Data\AttendanceRepository.cs" />
     <Compile Include="Data\IAttendanceRepository.cs" />
@@ -412,6 +413,7 @@
     <Compile Include="Models\BusRoute.cs" />
     <Compile Include="Models\TransportArrear.cs" />
     <Compile Include="Models\SmsOutboxItem.cs" />
+    <Compile Include="Models\Expense.cs" />
     <Compile Include="Models\Student.cs" />
     <Compile Include="Models\SubjectResult.cs" />
     <Compile Include="Models\StudentTermRemarks.cs" />
