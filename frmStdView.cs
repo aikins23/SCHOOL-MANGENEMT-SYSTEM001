@@ -1,6 +1,7 @@
 using System;
 using System.Data;
 using System.Drawing;
+using System.Linq;
 using System.Windows.Forms;
 using kingdom_Preparatory_School_Management_System.Common;
 using kingdom_Preparatory_School_Management_System.Data;
@@ -16,7 +17,7 @@ namespace kingdom_Preparatory_School_Management_System
         private DataGridView studentsGrid;
         private Label resultLabel;
 
-        private static readonly Color PageBackColor = Color.FromArgb(246, 248, 251);
+        private static readonly Color PageBackColor = Color.White;
         private static readonly Color SurfaceColor = Color.White;
         private static readonly Color SidebarBackColor = Color.FromArgb(17, 35, 58);
         private static readonly Color PrimaryColor = Color.FromArgb(31, 99, 198);
@@ -125,10 +126,14 @@ namespace kingdom_Preparatory_School_Management_System
             {
                 Dock = DockStyle.Fill,
                 FlowDirection = FlowDirection.RightToLeft,
+                WrapContents = false,
                 BackColor = PageBackColor,
-                Padding = new Padding(0, 12, 0, 0)
+                Padding = new Padding(0, 12, 16, 0)
             };
+
             actions.Controls.Add(CreatePrimaryButton("Add Student", () => new frmAddStd().Show()));
+            actions.Controls.Add(CreateSecondaryButton("Import CSV", async () => await ImportCsvAsync()));
+            actions.Controls.Add(CreateSecondaryButton("Export CSV", async () => await ExportCsvAsync()));
             actions.Controls.Add(CreateSecondaryButton("Dashboard", () =>
             {
                 Close();
@@ -138,6 +143,70 @@ namespace kingdom_Preparatory_School_Management_System
             header.Controls.Add(titleBlock, 0, 0);
             header.Controls.Add(actions, 1, 0);
             return header;
+        }
+
+        private async System.Threading.Tasks.Task ExportCsvAsync()
+        {
+            using (var sfd = new SaveFileDialog { Filter = "CSV File|*.csv", Title = "Export Students", FileName = "Students_Export.csv" })
+            {
+                if (sfd.ShowDialog() == DialogResult.OK)
+                {
+                    var repo = new kingdom_Preparatory_School_Management_System.Data.StudentRepository(Common.AppConfig.ConnectionString);
+                    var feeRepo = new kingdom_Preparatory_School_Management_System.Data.FeeRepository(Common.AppConfig.ConnectionString);
+                    var svc = new kingdom_Preparatory_School_Management_System.Services.StudentService(repo, feeRepo);
+                    var csvSvc = new kingdom_Preparatory_School_Management_System.Services.CsvImportExportService(svc, repo);
+
+                    UseWaitCursor = true;
+                    var result = await System.Threading.Tasks.Task.Run(
+                        () => csvSvc.ExportStudentsToCsvAsync(sfd.FileName));
+                    UseWaitCursor = false;
+                    if (result.Success)
+                    {
+                        MessageBox.Show(result.Message, "Export Successful", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                    else
+                    {
+                        MessageBox.Show(result.Message, "Export Failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+                }
+            }
+        }
+
+        private async System.Threading.Tasks.Task ImportCsvAsync()
+        {
+            using (var ofd = new OpenFileDialog { Filter = "CSV File|*.csv", Title = "Import Students" })
+            {
+                if (ofd.ShowDialog() == DialogResult.OK)
+                {
+                    var repo = new kingdom_Preparatory_School_Management_System.Data.StudentRepository(Common.AppConfig.ConnectionString);
+                    var feeRepo = new kingdom_Preparatory_School_Management_System.Data.FeeRepository(Common.AppConfig.ConnectionString);
+                    var svc = new kingdom_Preparatory_School_Management_System.Services.StudentService(repo, feeRepo);
+                    var csvSvc = new kingdom_Preparatory_School_Management_System.Services.CsvImportExportService(svc, repo);
+
+                    int dataRows = System.IO.File.ReadAllLines(ofd.FileName)
+                        .Skip(1).Count(l => !string.IsNullOrWhiteSpace(l));
+                    if (dataRows == 0)
+                    { MessageBox.Show("The file contains no data rows.", "Import", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
+                    if (MessageBox.Show(
+                            $"{dataRows} data row(s) found. Import now?\n\nNew students get opening fee records and their guardians receive credential SMS.",
+                            "Confirm Import", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
+
+                    UseWaitCursor = true;
+                    var result = await System.Threading.Tasks.Task.Run(
+                        () => csvSvc.ImportStudentsFromCsvAsync(ofd.FileName));
+                    UseWaitCursor = false;
+
+                    if (result.Success)
+                    {
+                        MessageBox.Show(result.Message, "Import Successful", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        await LoadStudents(); // Refresh grid
+                    }
+                    else
+                    {
+                        MessageBox.Show(result.Message, "Import Failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+                }
+            }
         }
 
         private Control BuildFilterBar()
@@ -220,7 +289,8 @@ namespace kingdom_Preparatory_School_Management_System
                 AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.DisplayedCells,
                 SelectionMode = DataGridViewSelectionMode.FullRowSelect,
                 MultiSelect = false,
-                EnableHeadersVisualStyles = false
+                EnableHeadersVisualStyles = false,
+                ScrollBars = ScrollBars.Both
             };
             UiTheme.StyleDataGrid(studentsGrid);
             Common.StudentId.AttachGridFormatting(studentsGrid, "STUDENT ID");
@@ -231,9 +301,18 @@ namespace kingdom_Preparatory_School_Management_System
             studentsGrid.DefaultCellStyle.ForeColor = TextColor;
             studentsGrid.DefaultCellStyle.SelectionBackColor = Color.FromArgb(219, 234, 254);
             studentsGrid.DefaultCellStyle.SelectionForeColor = TextColor;
-            studentsGrid.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(248, 250, 252);
+            studentsGrid.AlternatingRowsDefaultCellStyle.BackColor = Color.White;
             studentsGrid.GridColor = BorderColor;
             studentsGrid.CellDoubleClick += StudentsGrid_CellDoubleClick;
+            
+            // Suppress the default error dialog for invalid/empty images in the grid
+            studentsGrid.DataError += (s, e) =>
+            {
+                if (e.Exception is ArgumentException || e.Exception is FormatException)
+                {
+                    e.ThrowException = false;
+                }
+            };
 
             shell.Controls.Add(studentsGrid);
             return shell;
@@ -263,9 +342,10 @@ namespace kingdom_Preparatory_School_Management_System
         {
             var button = new Button
             {
-                Width = 110,
-                Height = 36,
+                AutoSize = true,
+                MinimumSize = new Size(110, 36),
                 Margin = new Padding(8, 0, 0, 0),
+                Padding = new Padding(8, 0, 8, 0),
                 Text = text,
                 FlatStyle = FlatStyle.Flat,
                 Font = new Font("Segoe UI Semibold", 9.5F, FontStyle.Bold),
@@ -318,24 +398,29 @@ namespace kingdom_Preparatory_School_Management_System
             if (studentsGrid.Columns.Contains("STUDENT ID"))
                 studentsGrid.Columns["STUDENT ID"].DisplayIndex = 0;
 
-            // Fill columns to use the full grid width
-            studentsGrid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+            // Use None + explicit widths so columns can exceed the viewport width,
+            // which enables the horizontal scrollbar when there are many columns.
+            studentsGrid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None;
 
-            // Tweak relative widths so essentials get room
-            void Weight(string col, int w)
+            void ColWidth(string col, int w)
             {
-                if (studentsGrid.Columns.Contains(col)) studentsGrid.Columns[col].FillWeight = w;
+                if (studentsGrid.Columns.Contains(col))
+                {
+                    studentsGrid.Columns[col].Width = w;
+                    studentsGrid.Columns[col].MinimumWidth = w;
+                }
             }
-            Weight("STUDENT ID", 80);
-            Weight("FIRST NAME", 110);
-            Weight("LAST NAME", 110);
-            Weight("CLASS ID", 90);
-            Weight("GENDER", 70);
-            Weight("DATE OF BIRTH", 110);
-            Weight("HOME TOWN", 100);
-            Weight("RESIDENCE", 110);
-            Weight("GUARDIAN NAME", 130);
-            Weight("ADMISSION DATE", 110);
+            ColWidth("STUDENT ID", 110);
+            ColWidth("FIRST NAME", 160);
+            ColWidth("LAST NAME", 160);
+            ColWidth("CLASS ID", 100);
+            ColWidth("GENDER", 80);
+            ColWidth("DATE OF BIRTH", 120);
+            ColWidth("ADMISSION DATE", 120);
+            ColWidth("EMAIL", 200);
+            ColWidth("HOME TOWN", 140);
+            ColWidth("RESIDENCE", 160);
+            ColWidth("GUARDIAN NAME", 200);
         }
 
         private void ApplyFilters()
