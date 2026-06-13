@@ -207,6 +207,21 @@ Please settle it at your earliest convenience.
             return SendSmsAsync(recipient, message, SmsSenderIds.FeeReminder);
         }
 
+        /// <summary>Guardian login credentials for the parent portal (sent on student import).
+        /// Routed through the durable outbox; the portal link is included only when configured.</summary>
+        public static Task<(bool Success, string Message)> SendParentCredentialsAsync(
+            string recipient, string studentName, string username, string password)
+        {
+            string portal = SchoolProfile.PortalUrl;
+            string linkLine = string.IsNullOrWhiteSpace(portal) ? "" : "\nPortal: " + portal.Trim();
+            string message =
+$@"Dear Guardian, here is your login to track {studentName} at {SchoolProfile.DisplayName}:
+Username: {username}
+Password: {password}{linkLine}
+- Administration";
+            return SendSmsAsync(recipient, message, SmsSenderIds.StudentAdmission);
+        }
+
         /// <summary>Used by the settings Test button. Bypasses the outbox so it reflects live
         /// connectivity (a "queued" result would be misleading on the test screen).</summary>
         public static Task<(bool Success, string Message)> SendTestAsync(string recipient)
