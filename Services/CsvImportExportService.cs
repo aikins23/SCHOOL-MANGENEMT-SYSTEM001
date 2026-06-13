@@ -143,9 +143,10 @@ namespace kingdom_Preparatory_School_Management_System.Services
                     student.GuardianLocation = cols[12].Trim();
                     student.EmergencyContact = cols[13].Trim(); // Guardian Phone Number
 
+                    // Bulk import of existing students bypasses the admission-form age band.
                     var res = isNew
-                        ? await _studentService.AddStudentAsync(student)
-                        : await _studentService.UpdateStudentAsync(student);
+                        ? await _studentService.AddStudentAsync(student, skipAgeCheck: true)
+                        : await _studentService.UpdateStudentAsync(student, skipAgeCheck: true);
 
                     if (!res.Success)
                     {

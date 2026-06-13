@@ -25,12 +25,12 @@ namespace kingdom_Preparatory_School_Management_System.Services
         /// <summary>
         /// Adds a new student and their initial fee records after validation
         /// </summary>
-        public async Task<(bool Success, string Message)> AddStudentAsync(Models.Student student)
+        public async Task<(bool Success, string Message)> AddStudentAsync(Models.Student student, bool skipAgeCheck = false)
         {
             try
             {
                 // Validate student data
-                var validationResult = ValidateStudent(student);
+                var validationResult = ValidateStudent(student, skipAgeCheck);
                 if (!validationResult.IsValid)
                 {
                     return (false, validationResult.ErrorMessage);
@@ -70,11 +70,11 @@ namespace kingdom_Preparatory_School_Management_System.Services
         /// <summary>
         /// Updates an existing student and their fee records
         /// </summary>
-        public async Task<(bool Success, string Message)> UpdateStudentAsync(Models.Student student)
+        public async Task<(bool Success, string Message)> UpdateStudentAsync(Models.Student student, bool skipAgeCheck = false)
         {
             try
             {
-                var validationResult = ValidateStudent(student);
+                var validationResult = ValidateStudent(student, skipAgeCheck);
                 if (!validationResult.IsValid)
                 {
                     return (false, validationResult.ErrorMessage);
@@ -225,7 +225,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
         /// <summary>
         /// Validates student data using centralized ValidationHelper
         /// </summary>
-        private ValidationResult ValidateStudent(Models.Student student)
+        private ValidationResult ValidateStudent(Models.Student student, bool skipAgeCheck = false)
         {
             if (student == null)
                 return new ValidationResult(false, "Student data is required");
@@ -248,9 +248,14 @@ namespace kingdom_Preparatory_School_Management_System.Services
             if (!ValidationHelper.IsNotFutureDate(student.DateOfBirth.ToString()))
                 return new ValidationResult(false, "Date of birth must be in the past");
 
-            var age = student.GetAge();
-            if (age < AppConfig.MinStudentAge || age > AppConfig.MaxStudentAge)
-                return new ValidationResult(false, $"Student age must be between {AppConfig.MinStudentAge} and {AppConfig.MaxStudentAge} years");
+            // Age band is an admission-form guard; bulk import of existing students bypasses it
+            // (old rolls often carry odd/legacy birth dates).
+            if (!skipAgeCheck)
+            {
+                var age = student.GetAge();
+                if (age < AppConfig.MinStudentAge || age > AppConfig.MaxStudentAge)
+                    return new ValidationResult(false, $"Student age must be between {AppConfig.MinStudentAge} and {AppConfig.MaxStudentAge} years");
+            }
 
             if (!ValidationHelper.IsNotEmpty(student.Gender))
                 return new ValidationResult(false, "Gender is required");
