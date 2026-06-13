@@ -180,6 +180,8 @@
     <Compile Include="Common\Branding.cs" />
     <Compile Include="Common\SmsOutboxKey.cs" />
     <Compile Include="Common\ImportCredentials.cs" />
+    <Compile Include="Common\ExpenseAmount.cs" />
+    <Compile Include="Common\FinancePeriod.cs" />
     <Compile Include="Common\SecretStorage.cs" />
     <Compile Include="Common\UIHelper.cs" />
     <Compile Include="Common\ValidationHelper.cs" />

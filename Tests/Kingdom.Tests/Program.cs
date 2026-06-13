@@ -30,6 +30,8 @@ namespace Kingdom.Tests
                 new TestCase("TransportPeriod maps route terms to current period", TransportPeriod_MapsTermsToPeriod),
                 new TestCase("SmsOutboxKey is deterministic and content-sensitive", SmsOutboxKey_IsDeterministic),
                 new TestCase("ImportCredentials derives usernames and strong passwords", ImportCredentials_DerivesUsernamesAndPasswords),
+                new TestCase("ExpenseAmount parses legacy varchar and round-trips", ExpenseAmount_ParsesAndStores),
+                new TestCase("FinancePeriod resolves term/year/all-time/custom windows", FinancePeriod_ResolvesWindows),
                 new TestCase("SyncSchema adds sync columns idempotently", SyncSchema_AddsColumnsIdempotentlyAsync),
                 new TestCase("SecretStorage protects and restores local secrets", SecretStorage_ProtectsAndRestoresSecrets),
                 new TestCase("SecretStorage preserves legacy plaintext values", SecretStorage_PreservesLegacyPlaintextValues),
@@ -204,6 +206,35 @@ namespace Kingdom.Tests
             AssertEx.Equal(64, a.Length);
             AssertEx.NotEqual(a, SmsOutboxKey.Compute("233241234567", "KPSFEES.", "Hello world"));
             AssertEx.NotEqual(a, SmsOutboxKey.Compute("233240000000", "KPSFEES.", "Hello"));
+        }
+
+        private static void ExpenseAmount_ParsesAndStores()
+        {
+            AssertEx.Equal(1500.00m, ExpenseAmount.Parse("1,500.00"));
+            AssertEx.Equal(1500.00m, ExpenseAmount.Parse("GHS 1500"));
+            AssertEx.Equal(0m, ExpenseAmount.Parse(""));
+            AssertEx.Equal(0m, ExpenseAmount.Parse("abc"));
+            AssertEx.Equal("1500.00", ExpenseAmount.Store(1500m));
+            AssertEx.Equal(1234.50m, ExpenseAmount.Parse(ExpenseAmount.Store(1234.5m))); // round-trip
+        }
+
+        private static void FinancePeriod_ResolvesWindows()
+        {
+            var d = new DateTime(2026, 6, 15);
+            var year = FinancePeriod.Resolve(FinanceWindow.Year, d);
+            AssertEx.Equal(new DateTime(2026, 1, 1), year.From);
+            AssertEx.Equal(new DateTime(2026, 12, 31), year.To);
+            AssertEx.Equal("2026", year.Label);
+
+            var all = FinancePeriod.Resolve(FinanceWindow.AllTime, d);
+            AssertEx.True(all.From <= new DateTime(2000, 1, 1) && all.To >= new DateTime(2099, 12, 31), "all-time spans wide");
+
+            var cust = FinancePeriod.Resolve(FinanceWindow.Custom, d, new DateTime(2026, 5, 10), new DateTime(2026, 5, 1));
+            AssertEx.Equal(new DateTime(2026, 5, 1), cust.From);   // swapped because from > to
+            AssertEx.Equal(new DateTime(2026, 5, 10), cust.To);
+
+            var term = FinancePeriod.Resolve(FinanceWindow.Term, d); // May-Aug term for June
+            AssertEx.True(term.From <= d && d <= term.To, "today falls within the resolved term");
         }
 
         private static void ImportCredentials_DerivesUsernamesAndPasswords()
