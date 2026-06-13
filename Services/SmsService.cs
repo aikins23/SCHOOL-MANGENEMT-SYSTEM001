@@ -14,6 +14,13 @@ namespace kingdom_Preparatory_School_Management_System.Services
     {
         private static readonly string LogDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logs");
 
+        /// <summary>True when a real gateway will actually deliver (SMS enabled + API key set).
+        /// When false, sends only get logged (LogOnly) — useful to warn the operator after a bulk run.</summary>
+        public static bool IsLive =>
+            AppConfig.Sms.Enabled && !string.IsNullOrWhiteSpace(AppConfig.Sms.ApiKey)
+            && (string.Equals(AppConfig.Sms.Provider, "Arkesel", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(AppConfig.Sms.Provider, "BulkSMSGh", StringComparison.OrdinalIgnoreCase));
+
         private static ISmsProvider ResolveProvider()
         {
             // Real sending only when enabled, a known provider is selected, and a key exists.

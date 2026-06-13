@@ -183,9 +183,12 @@ namespace kingdom_Preparatory_School_Management_System.Services
 
                 foreach (var f in failures) LoggerHelper.LogWarning("Import: " + f);
 
+                string smsLine = SmsService.IsLive
+                    ? $"Sent {smsCount} SMS credentials."
+                    : $"{smsCount} credential SMS LOGGED only — SMS sending is OFF. Enable it in Settings (Email/SMS) to deliver to guardians.";
                 string summary =
                     $"Import completed. {newAutoCount} new (auto-ID), {newExplicitCount} new (explicit ID), " +
-                    $"{updatedCount} updated, {failures.Count} failed. Sent {smsCount} SMS credentials.";
+                    $"{updatedCount} updated, {failures.Count} failed. {smsLine}";
                 if (failures.Count > 0)
                     summary += Environment.NewLine + Environment.NewLine + "Failures:" + Environment.NewLine +
                                string.Join(Environment.NewLine, failures.Take(10)) +

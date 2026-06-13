@@ -385,9 +385,9 @@ namespace kingdom_Preparatory_School_Management_System
         {
             if (studentsGrid.Columns.Count == 0) return;
 
-            // Hide noisy columns and the raw numeric ID (kept in the DataTable for lookups)
-            string[] toHide = { "ID", "EMAIL", "ALLERGIES", "EMERGENCY CONTACT",
-                                "GUARDIAN EMAIL", "GUARDIAN LOCATION", "STUDENT PIC" };
+            // Hide only the internal columns (raw numeric ID kept for lookups, and the binary
+            // photo). Contact/guardian fields stay visible so imported data is verifiable.
+            string[] toHide = { "ID", "STUDENT PIC" };
             foreach (var name in toHide)
             {
                 if (studentsGrid.Columns.Contains(name))
