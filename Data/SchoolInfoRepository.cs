@@ -43,7 +43,8 @@ namespace kingdom_Preparatory_School_Management_System.Data
                 {
                     $"IF COL_LENGTH('SchoolInformation','PrimaryColor') IS NULL ALTER TABLE SchoolInformation ADD PrimaryColor INT NOT NULL CONSTRAINT DF_SI_Primary DEFAULT ({def.PrimaryColorArgb})",
                     $"IF COL_LENGTH('SchoolInformation','AccentColor') IS NULL ALTER TABLE SchoolInformation ADD AccentColor INT NOT NULL CONSTRAINT DF_SI_Accent DEFAULT ({def.AccentColorArgb})",
-                    $"IF COL_LENGTH('SchoolInformation','SecondaryColor') IS NULL ALTER TABLE SchoolInformation ADD SecondaryColor INT NOT NULL CONSTRAINT DF_SI_Secondary DEFAULT ({def.SecondaryColorArgb})"
+                    $"IF COL_LENGTH('SchoolInformation','SecondaryColor') IS NULL ALTER TABLE SchoolInformation ADD SecondaryColor INT NOT NULL CONSTRAINT DF_SI_Secondary DEFAULT ({def.SecondaryColorArgb})",
+                    "IF COL_LENGTH('SchoolInformation','PortalUrl') IS NULL ALTER TABLE SchoolInformation ADD PortalUrl NVARCHAR(200) NOT NULL CONSTRAINT DF_SI_PortalUrl DEFAULT ('')"
                 };
                 foreach (var alter in colAlters)
                     using (var cmd = new OleDbCommand(alter, c)) await cmd.ExecuteNonQueryAsync();
@@ -120,6 +121,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
                         Phone1 = AsString(r["Phone1"]),
                         Phone2 = AsString(r["Phone2"]),
                         Email = AsString(r["Email"]),
+                        PortalUrl = AsString(r["PortalUrl"]),
                         Logo = r["Logo"] as byte[],
                         AdmissionFee = Convert.ToDecimal(r["AdmissionFee"]),
                         PrimaryColorArgb = AsInt(r, "PrimaryColor", new SchoolInformation().PrimaryColorArgb),
@@ -151,7 +153,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
             {
                 await c.OpenAsync();
                 const string sql = @"UPDATE SchoolInformation SET
-                    Name=?, Address=?, PoBox=?, GpsAddress=?, Phone1=?, Phone2=?, Email=?,
+                    Name=?, Address=?, PoBox=?, GpsAddress=?, Phone1=?, Phone2=?, Email=?, PortalUrl=?,
                     Logo=?, AdmissionFee=?, PrimaryColor=?, AccentColor=?, SecondaryColor=?, UpdatedDate=? WHERE Id = 1";
                 using (var cmd = new OleDbCommand(sql, c))
                 {
@@ -162,6 +164,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
                     cmd.Parameters.AddWithValue("?", info.Phone1 ?? "");
                     cmd.Parameters.AddWithValue("?", info.Phone2 ?? "");
                     cmd.Parameters.AddWithValue("?", info.Email ?? "");
+                    cmd.Parameters.AddWithValue("?", info.PortalUrl ?? "");
                     cmd.Parameters.Add("?", OleDbType.VarBinary).Value =
                         (object)info.Logo ?? DBNull.Value;
                     cmd.Parameters.AddWithValue("?", info.AdmissionFee);

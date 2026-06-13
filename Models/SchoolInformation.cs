@@ -16,6 +16,7 @@ namespace kingdom_Preparatory_School_Management_System.Models
         public string Phone1 { get; set; } = "0548050141";
         public string Phone2 { get; set; } = "0246087609";
         public string Email { get; set; } = "noreply@nyansapoerp.edu.gh";
+        public string PortalUrl { get; set; } = "";           // parent portal link for credential SMS; blank = omit
         public byte[] Logo { get; set; }                        // null => fall back to Resources/school_logo.png
         public decimal AdmissionFee { get; set; } = 100m;
         public DateTime UpdatedDate { get; set; } = DateTime.Now;

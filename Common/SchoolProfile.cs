@@ -59,6 +59,7 @@ namespace kingdom_Preparatory_School_Management_System.Common
         public static string Phone2 => Info.Phone2;
         public static string Phones => Info.Phones;
         public static string Email => Info.Email;
+        public static string PortalUrl => Info.PortalUrl;
         public static byte[] Logo => Info.Logo;
         public static decimal AdmissionFee => Info.AdmissionFee;
 

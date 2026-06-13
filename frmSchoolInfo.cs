@@ -21,7 +21,7 @@ namespace kingdom_Preparatory_School_Management_System
     {
         private readonly SchoolInfoRepository _repo = new SchoolInfoRepository(AppConfig.ConnectionString);
 
-        private TextBox _name, _address, _poBox, _gps, _phone1, _phone2, _email, _admissionFee;
+        private TextBox _name, _address, _poBox, _gps, _phone1, _phone2, _email, _portalUrl, _admissionFee;
         private PictureBox _logo;
         private byte[] _logoBytes;
         private DataGridView _feeGrid;
@@ -75,6 +75,7 @@ namespace kingdom_Preparatory_School_Management_System
             _phone1 = addRow("Phone 1");
             _phone2 = addRow("Phone 2");
             _email = addRow("Email");
+            _portalUrl = addRow("Parent Portal URL");
 
             // Logo
             var logoLbl = new Label { Text = "Logo", Left = lblX, Top = y + 4, Width = boxX - lblX - 6, Font = new Font("Segoe UI", 10F) };
@@ -152,7 +153,8 @@ namespace kingdom_Preparatory_School_Management_System
 
                 _name.Text = info.Name; _address.Text = info.Address; _poBox.Text = info.PoBox;
                 _gps.Text = info.GpsAddress; _phone1.Text = info.Phone1; _phone2.Text = info.Phone2;
-                _email.Text = info.Email; _admissionFee.Text = info.AdmissionFee.ToString("0.##");
+                _email.Text = info.Email; _portalUrl.Text = info.PortalUrl;
+                _admissionFee.Text = info.AdmissionFee.ToString("0.##");
                 _logoBytes = info.Logo;
                 SetLogoPreview(info.Logo);
 
@@ -228,7 +230,8 @@ namespace kingdom_Preparatory_School_Management_System
                 {
                     Name = _name.Text.Trim(), Address = _address.Text.Trim(), PoBox = _poBox.Text.Trim(),
                     GpsAddress = _gps.Text.Trim(), Phone1 = _phone1.Text.Trim(), Phone2 = _phone2.Text.Trim(),
-                    Email = _email.Text.Trim(), Logo = _logoBytes, AdmissionFee = admission,
+                    Email = _email.Text.Trim(), PortalUrl = _portalUrl.Text.Trim(),
+                    Logo = _logoBytes, AdmissionFee = admission,
                     PrimaryColorArgb = _primarySwatch.BackColor.ToArgb(),
                     AccentColorArgb = _accentSwatch.BackColor.ToArgb(),
                     SecondaryColorArgb = _secondarySwatch.BackColor.ToArgb()
