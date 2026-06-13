@@ -205,7 +205,7 @@ public frmDashboard()
 
             Controls.Clear();
             Text = Common.AppConfig.ProductName;
-            var _brandIcon = Common.Branding.AppIcon; if (_brandIcon != null) Icon = _brandIcon;
+            var _brandIcon = Common.Branding.AppIconOnBlue; if (_brandIcon != null) Icon = _brandIcon;
             BackColor = PageBackColor;
             Font = new Font("Segoe UI", 9.5F, FontStyle.Regular);
             StartPosition = FormStartPosition.CenterScreen;
@@ -244,23 +244,23 @@ public frmDashboard()
             var brand = new Panel
             {
                 Dock      = DockStyle.Top,
-                Height    = 84,
+                Height    = 104,
                 BackColor = SidebarBackColor,
                 Padding   = new Padding(16, 18, 16, 10)
             };
 
-            // School/product logo (configured School Information logo, else bundled brand logo).
-            // Falls back to a painted gold badge only if no logo asset is available.
-            var logoImage = Common.Branding.Logo;
-            if (logoImage != null)
+            // Sidebar emblem: the icon_bg asset, loaded directly as a full-resolution image
+            // (crisper than round-tripping through the 256px window Icon).
+            var sideIcon = Common.Branding.IconBgImage ?? Common.Branding.AppIconOnBlue?.ToBitmap();
+            if (sideIcon != null)
             {
                 brand.Controls.Add(new PictureBox
                 {
-                    Size     = new Size(42, 42),
-                    Location = new Point(16, 21),
+                    Size     = new Size(72, 72),
+                    Location = new Point(10, 16),
                     SizeMode = PictureBoxSizeMode.Zoom,
                     BackColor = Color.Transparent,
-                    Image    = logoImage
+                    Image    = sideIcon
                 });
             }
             else
@@ -287,7 +287,7 @@ public frmDashboard()
                 Text       = Common.SchoolProfile.DisplayName,
                 ForeColor  = Color.White,
                 Font       = new Font("Segoe UI Semibold", 13F, FontStyle.Bold),
-                Bounds     = new Rectangle(66, 22, 150, 22),
+                Bounds     = new Rectangle(90, 30, 138, 22),
                 AutoEllipsis = true,
                 TextAlign  = ContentAlignment.MiddleLeft
             });
@@ -296,7 +296,7 @@ public frmDashboard()
                 Text      = "School Management",
                 ForeColor = Color.FromArgb(130, 150, 180),
                 Font      = new Font("Segoe UI", 8.25F),
-                Bounds    = new Rectangle(66, 44, 150, 18),
+                Bounds    = new Rectangle(90, 52, 138, 18),
                 TextAlign = ContentAlignment.MiddleLeft
             });
 
@@ -368,6 +368,7 @@ public frmDashboard()
             Add(finance, isAdmin || isAcct || isHead, "Fees Payment", () => OpenForm(new frmFessPayment()));
             Add(finance, isAcct || isDir || isAdmin || isHead, "Payment History", () => OpenForm(new frmPaymentHistory()));
             Add(finance, isAcct || isAdmin || isHead, "Transport Payments", () => OpenForm(new frmTransportPayments()));
+            Add(finance, isAcct || isAdmin || isDir, "Expenses", () => OpenForm(new frmExpenses()));
             if (isAcct)
             {
                 _approvalsNavBtn = CreateNavButton("Admission Approvals", () => OpenForm(new frmPendingApprovals()));
@@ -380,6 +381,10 @@ public frmDashboard()
             Add(ops, isDir || isAdmin || isHead, "Library", () => new frmLibrary().ShowDialog());
             Add(ops, isDir || isAdmin || isHead, "Transport", () => new frmTransport().ShowDialog());
             AddGroup("Operations", ops);
+
+            var comms = new System.Collections.Generic.List<Button>();
+            Add(comms, isDir || isAdmin || isHead || isTeach, "Send Notice", () => OpenForm(new frmSendNotice()));
+            AddGroup("Communications", comms);
 
             var admin = new System.Collections.Generic.List<Button>();
             Add(admin, isDir || isAdmin || isHead, "Settings", () => new frmEmailSettings().ShowDialog());

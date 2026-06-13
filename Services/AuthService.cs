@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.OleDb;
@@ -76,6 +76,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
             ["frmRegistration"]           = new[] { UserRole.Director, UserRole.Administrator },
             ["frmBackupManager"]          = new[] { UserRole.Director, UserRole.Administrator },
             ["frmEmailSettings"]          = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster },
+            ["frmSendNotice"]             = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster, UserRole.Teacher, UserRole.Accountant },
             ["frmSchoolInfo"]             = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster },
             ["frmGradingScheme"]          = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster },
             ["frmSubjects"]               = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster },
@@ -83,6 +84,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
             ["frmTransport"]              = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster },
             ["frmPaymentHistory"]         = new[] { UserRole.Accountant, UserRole.Director, UserRole.Administrator, UserRole.Headmaster },
             ["frmTransportPayments"]      = new[] { UserRole.Accountant, UserRole.Administrator, UserRole.Headmaster },
+            ["frmExpenses"]               = new[] { UserRole.Accountant, UserRole.Administrator, UserRole.Director },
         };
 
         /// <summary>
