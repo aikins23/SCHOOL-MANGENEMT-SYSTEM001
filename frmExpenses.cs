@@ -106,29 +106,47 @@ namespace kingdom_Preparatory_School_Management_System
             band.Controls.Add(winRow);
 
             // ── Record-expense card ──────────────────────────────────────
-            var entryHost = new Panel { Dock = DockStyle.Top, Height = 116, BackColor = UiTheme.Page, Padding = new Padding(22, 2, 22, 8) };
-            var entryCard = new Panel { Dock = DockStyle.Fill, BackColor = UiTheme.Surface, Padding = new Padding(14, 8, 14, 8) };
+            var entryHost = new Panel { Dock = DockStyle.Top, Height = 176, BackColor = UiTheme.Page, Padding = new Padding(22, 2, 22, 10) };
+            var entryCard = new Panel { Dock = DockStyle.Fill, BackColor = UiTheme.Surface, Padding = new Padding(16, 10, 16, 12) };
             entryCard.Paint += (s, e) => ControlPaint.DrawBorder(e.Graphics, entryCard.ClientRectangle, UiTheme.Border, ButtonBorderStyle.Solid);
-            entryCard.Controls.Add(new Label { Text = "Record Expense", Dock = DockStyle.Top, Height = 22, ForeColor = UiTheme.Navy, Font = new Font("Segoe UI Semibold", 10.5F, FontStyle.Bold) });
 
-            var entry = new FlowLayoutPanel { Dock = DockStyle.Fill, WrapContents = true, BackColor = UiTheme.Surface };
-            _name = Field(entry, "Name", 170);
-            _category = new ComboBox { Width = 150, Margin = new Padding(0, 20, 10, 0) };
-            entry.Controls.Add(Captioned("Category", _category));
-            _amount = Field(entry, "Amount (GHS)", 110);
-            _date = new DateTimePicker { Width = 120, Format = DateTimePickerFormat.Short, Margin = new Padding(0, 20, 10, 0) };
-            entry.Controls.Add(Captioned("Date", _date));
-            _payee = Field(entry, "Payee", 140);
-            _description = Field(entry, "Description", 190);
-            _btnRecord = PrimaryButton("Record", 104);
-            _btnRecord.Click += async (s, e) => await SaveAsync();
-            var clear = NeutralButton("Clear", 74);
-            clear.Click += (s, e) => ClearEntry();
-            _btnDelete = DangerButton("Delete", 84);
-            _btnDelete.Enabled = false;
-            _btnDelete.Click += async (s, e) => await DeleteAsync();
-            entry.Controls.Add(_btnRecord); entry.Controls.Add(clear); entry.Controls.Add(_btnDelete);
-            entryCard.Controls.Add(entry);
+            _name = NewTextBox();
+            _category = new ComboBox { Dock = DockStyle.Top, Font = new Font("Segoe UI", 9.75F) };
+            _amount = NewTextBox();
+            _date = new DateTimePicker { Dock = DockStyle.Top, Format = DateTimePickerFormat.Short };
+            _payee = NewTextBox();
+            _description = NewTextBox();
+
+            var fields = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 5, RowCount = 2, BackColor = UiTheme.Surface };
+            fields.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 24));
+            fields.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 19));
+            fields.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 14));
+            fields.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 17));
+            fields.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 26));
+            fields.RowStyles.Add(new RowStyle(SizeType.Percent, 50));
+            fields.RowStyles.Add(new RowStyle(SizeType.Percent, 50));
+
+            fields.Controls.Add(CaptionedFill("Name", _name), 0, 0);
+            fields.Controls.Add(CaptionedFill("Category", _category), 1, 0);
+            fields.Controls.Add(CaptionedFill("Amount (GHS)", _amount), 2, 0);
+            fields.Controls.Add(CaptionedFill("Date", _date), 3, 0);
+            fields.Controls.Add(CaptionedFill("Payee", _payee), 4, 0);
+
+            var descCell = CaptionedFill("Description", _description);
+            fields.Controls.Add(descCell, 0, 1);
+            fields.SetColumnSpan(descCell, 3);
+
+            _btnRecord = PrimaryButton("Record", 110); _btnRecord.Click += async (s, e) => await SaveAsync();
+            var clear = NeutralButton("Clear", 80); clear.Click += (s, e) => ClearEntry();
+            _btnDelete = DangerButton("Delete", 90); _btnDelete.Enabled = false; _btnDelete.Click += async (s, e) => await DeleteAsync();
+            var buttons = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.RightToLeft, BackColor = UiTheme.Surface, Padding = new Padding(0, 20, 2, 0) };
+            buttons.Controls.Add(_btnDelete); buttons.Controls.Add(clear); buttons.Controls.Add(_btnRecord);
+            fields.Controls.Add(buttons, 3, 1);
+            fields.SetColumnSpan(buttons, 2);
+
+            var entryTitle = new Label { Text = "Record Expense", Dock = DockStyle.Top, Height = 24, ForeColor = UiTheme.Navy, Font = new Font("Segoe UI Semibold", 10.5F, FontStyle.Bold) };
+            entryCard.Controls.Add(fields);       // Fill first
+            entryCard.Controls.Add(entryTitle);   // Top last → docks above the fields
             entryHost.Controls.Add(entryCard);
 
             // ── Grid + footer ────────────────────────────────────────────
@@ -173,18 +191,16 @@ namespace kingdom_Preparatory_School_Management_System
             return val;
         }
 
-        private static TextBox Field(FlowLayoutPanel host, string caption, int width)
-        {
-            var t = new TextBox { Width = width, Font = new Font("Segoe UI", 9.75F) };
-            host.Controls.Add(Captioned(caption, t));
-            return t;
-        }
+        private static TextBox NewTextBox() =>
+            new TextBox { Dock = DockStyle.Top, Font = new Font("Segoe UI", 9.75F) };
 
-        private static Control Captioned(string caption, Control c)
+        // A label-over-input cell that fills its grid column width.
+        private static Control CaptionedFill(string caption, Control input)
         {
-            var p = new FlowLayoutPanel { FlowDirection = FlowDirection.TopDown, WrapContents = false, AutoSize = true, Margin = new Padding(0, 0, 10, 0), BackColor = Color.Transparent };
-            p.Controls.Add(new Label { Text = caption, AutoSize = true, ForeColor = UiTheme.Muted, Font = new Font("Segoe UI Semibold", 8F, FontStyle.Bold), Margin = new Padding(2, 0, 0, 2) });
-            p.Controls.Add(c);
+            var p = new Panel { Dock = DockStyle.Fill, BackColor = UiTheme.Surface, Margin = new Padding(0, 0, 12, 8) };
+            input.Dock = DockStyle.Top;
+            p.Controls.Add(input);   // added first → sits below
+            p.Controls.Add(new Label { Text = caption, Dock = DockStyle.Top, Height = 17, ForeColor = UiTheme.Muted, Font = new Font("Segoe UI Semibold", 8F, FontStyle.Bold) });
             return p;
         }
 
