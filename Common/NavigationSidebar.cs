@@ -11,9 +11,9 @@ namespace kingdom_Preparatory_School_Management_System.Common
     /// </summary>
     public static class NavigationSidebar
     {
-        private const int SidebarWidth  = 225;
+        private const int SidebarWidth  = 240;
         private const int NavItemHeight = 42;
-        private const int NavItemGap    = 3;
+        private const int NavItemGap    = 5;
 
         private static readonly Color NavyBack  = Color.FromArgb(11, 31, 73);
         private static readonly Color NavyDark  = Color.FromArgb(5,  18, 48);
@@ -76,11 +76,13 @@ namespace kingdom_Preparatory_School_Management_System.Common
             // Build nav items
             string[] labels = {
                 "Dashboard", "Students", "Promotion", "Staff",
-                "Attendance", "Submit Exams", "Report Cards", "Fees", "Outstanding"
+                "Attendance", "Academic Calendar", "Timetable",
+                "Submit Exams", "Report Cards", "Fees", "Outstanding", "Scholarships"
             };
             string[] targets = {
                 "frmDashboard", "frmStdView", "frmStudentPromotion", "frmEmpView",
-                "frmAttendance", "EXAMS", "EXAMSVIEW", "frmFessPayment", "frmOutstandingFees"
+                "frmAttendance", "frmAcademicCalendar", "frmTimetable",
+                "EXAMS", "EXAMSVIEW", "frmFessPayment", "frmOutstandingFees", "frmScholarships"
             };
 
             // Determine inner height from item count so nav is exactly tall enough
@@ -141,16 +143,16 @@ namespace kingdom_Preparatory_School_Management_System.Common
             var brand = new Panel
             {
                 Dock      = DockStyle.Top,
-                Height    = 80,
+                Height    = 92,
                 BackColor = NavyBack,
-                Padding   = new Padding(18, 14, 14, 10)
+                Padding   = new Padding(18, 16, 16, 12)
             };
 
             // Gold "K" badge
             var badge = new Panel
             {
-                Size      = new Size(40, 40),
-                Location  = new Point(18, 20),
+                Size      = new Size(44, 44),
+                Location  = new Point(18, 24),
                 BackColor = Color.Transparent
             };
             badge.Paint += (s, e) =>
@@ -158,7 +160,7 @@ namespace kingdom_Preparatory_School_Management_System.Common
                 var g = e.Graphics;
                 g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
                 using (var br = new SolidBrush(GoldAccent))
-                    g.FillEllipse(br, 0, 0, 39, 39);
+                    g.FillEllipse(br, 0, 0, 43, 43);
                 using (var f  = new Font("Georgia", 15F, FontStyle.Bold))
                 using (var tb = new SolidBrush(Color.FromArgb(8, 14, 52)))
                 {
@@ -167,7 +169,7 @@ namespace kingdom_Preparatory_School_Management_System.Common
                         Alignment     = StringAlignment.Center,
                         LineAlignment = StringAlignment.Center
                     };
-                    g.DrawString("K", f, tb, new RectangleF(0, 0, 40, 40), sf);
+                    g.DrawString("K", f, tb, new RectangleF(0, 0, 44, 44), sf);
                 }
             };
 
@@ -177,7 +179,7 @@ namespace kingdom_Preparatory_School_Management_System.Common
                 Text      = "KPS Admin",
                 ForeColor = Color.White,
                 Font      = new Font("Segoe UI Semibold", 12F, FontStyle.Bold),
-                Bounds    = new Rectangle(66, 18, 148, 22),
+                Bounds    = new Rectangle(72, 24, 150, 22),
                 BackColor = Color.Transparent
             });
             brand.Controls.Add(new Label
@@ -185,7 +187,7 @@ namespace kingdom_Preparatory_School_Management_System.Common
                 Text      = "School Management",
                 ForeColor = Color.FromArgb(130, 150, 180),
                 Font      = new Font("Segoe UI", 8F),
-                Bounds    = new Rectangle(66, 40, 148, 18),
+                Bounds    = new Rectangle(72, 46, 150, 18),
                 BackColor = Color.Transparent
             });
 
@@ -200,7 +202,7 @@ namespace kingdom_Preparatory_School_Management_System.Common
                 FlatStyle = FlatStyle.Flat,
                 ForeColor = Color.FromArgb(165, 182, 205),
                 BackColor = NavyBack,
-                Font      = new Font("Segoe UI", 9.5F),
+                Font      = new Font("Segoe UI", 9.25F),
                 TextAlign = ContentAlignment.MiddleLeft,
                 Cursor    = Cursors.Hand
             };
@@ -231,6 +233,10 @@ namespace kingdom_Preparatory_School_Management_System.Common
                         FormManager.ShowForm<frmEmpView>(form);         break;
                     case "frmAttendance":
                         FormManager.ShowForm<frmAttendance>(form);      break;
+                    case "frmAcademicCalendar":
+                        FormManager.ShowForm<frmAcademicCalendar>(form); break;
+                    case "frmTimetable":
+                        FormManager.ShowForm<frmTimetable>(form);       break;
                     case "EXAMS":
                         FormManager.ShowForm<EXAMS>(form);              break;
                     case "EXAMSVIEW":
@@ -239,6 +245,8 @@ namespace kingdom_Preparatory_School_Management_System.Common
                         FormManager.ShowForm<frmFessPayment>(form);     break;
                     case "frmOutstandingFees":
                         FormManager.ShowForm<frmOutstandingFees>(form); break;
+                    case "frmScholarships":
+                        FormManager.ShowForm<frmScholarships>(form); break;
                 }
             };
         }

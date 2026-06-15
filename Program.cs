@@ -22,6 +22,16 @@ namespace kingdom_Preparatory_School_Management_System
             try { Data.SyncSchema.EnsureSyncColumnsAsync().GetAwaiter().GetResult(); }
             catch (Exception ex) { Services.LoggerHelper.LogWarning("SyncSchema init: " + ex.Message); }
 
+            // Tenant isolation foundation: every school-owned table gets SchoolId so desktop and
+            // future web sync can safely separate one school's data from another's.
+            try { Data.TenantSchema.EnsureTenantColumnsAsync().GetAwaiter().GetResult(); }
+            catch (Exception ex) { Services.LoggerHelper.LogWarning("TenantSchema init: " + ex.Message); }
+
+            // Add query indexes for dashboard/search-heavy screens. Idempotent and best-effort:
+            // first run may spend a moment creating indexes, later runs are effectively no-op.
+            try { Data.SyncSchema.EnsurePerformanceIndexesAsync().GetAwaiter().GetResult(); }
+            catch (Exception ex) { Services.LoggerHelper.LogWarning("Performance index init: " + ex.Message); }
+
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 

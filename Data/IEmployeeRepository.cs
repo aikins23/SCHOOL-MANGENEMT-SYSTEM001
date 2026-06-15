@@ -20,5 +20,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
         Task<string> GenerateNextEmployeeIdAsync();
         Task<DataTable> GetAsTableAsync(string filterId = null, string filterDepartment = null);
         Task<bool> TerminateAsync(string employeeId, DateTime terminationDate);
+        Task<bool> RestoreAsync(string employeeId);
+        Task<DataTable> GetRolledOutAsTableAsync();
     }
 }

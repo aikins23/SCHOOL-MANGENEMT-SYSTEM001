@@ -9,6 +9,9 @@ namespace kingdom_Preparatory_School_Management_System.Data
     public class FeeRepository : IFeeRepository
     {
         private readonly string _connectionString;
+        private const string FeesTable = "fees";
+        private const string PaymentRecordTable = "payment_record";
+        private const string StudentsTable = "Students";
 
         public FeeRepository(string connectionString)
         {
@@ -22,13 +25,21 @@ namespace kingdom_Preparatory_School_Management_System.Data
                 using (var connection = new OleDbConnection(_connectionString))
                 {
                     await connection.OpenAsync();
-                    var query = "INSERT INTO fees (StudentID, ClassID, FeeName, Amount) VALUES (?, ?, ?, ?)";
+                    var tenant = await TenantContext.HasSchoolIdColumnAsync(connection, FeesTable);
+                    var query = tenant
+                        ? "INSERT INTO fees (StudentID, ClassID, FeeName, Amount, SchoolId) VALUES (?, ?, ?, ?, ?)"
+                        : "INSERT INTO fees (StudentID, ClassID, FeeName, Amount) VALUES (?, ?, ?, ?)";
                     using (var command = new OleDbCommand(query, connection))
                     {
                         command.Parameters.AddWithValue("?", studentId);
                         command.Parameters.AddWithValue("?", classId);
                         command.Parameters.AddWithValue("?", "Tuition Fee");
                         command.Parameters.AddWithValue("?", amount);
+                        if (tenant)
+                        {
+                            TenantContext.AddSchoolParameter(command);
+                        }
+
                         var result = await command.ExecuteNonQueryAsync();
                         return result > 0;
                     }
@@ -49,7 +60,10 @@ namespace kingdom_Preparatory_School_Management_System.Data
                 {
                     await connection.OpenAsync();
                     // payment_record has no FeeName column — omit it from INSERT.
-                    var query = "INSERT INTO payment_record (StudentID, classID, Balance, student_name, Amount_paid, [Date]) VALUES (?, ?, ?, ?, ?, ?)";
+                    var tenant = await TenantContext.HasSchoolIdColumnAsync(connection, PaymentRecordTable);
+                    var query = tenant
+                        ? "INSERT INTO payment_record (StudentID, classID, Balance, student_name, Amount_paid, [Date], SchoolId) VALUES (?, ?, ?, ?, ?, ?, ?)"
+                        : "INSERT INTO payment_record (StudentID, classID, Balance, student_name, Amount_paid, [Date]) VALUES (?, ?, ?, ?, ?, ?)";
                     using (var command = new OleDbCommand(query, connection))
                     {
                         command.Parameters.AddWithValue("?", studentId);
@@ -58,6 +72,11 @@ namespace kingdom_Preparatory_School_Management_System.Data
                         command.Parameters.AddWithValue("?", studentName);
                         command.Parameters.AddWithValue("?", 0m);
                         command.Parameters.AddWithValue("?", DateTime.Today);
+                        if (tenant)
+                        {
+                            TenantContext.AddSchoolParameter(command);
+                        }
+
                         var result = await command.ExecuteNonQueryAsync();
                         return result > 0;
                     }
@@ -78,12 +97,23 @@ namespace kingdom_Preparatory_School_Management_System.Data
                 {
                     await connection.OpenAsync();
                     var query = "UPDATE fees SET ClassID = ?, FeeName = ?, Amount = ? WHERE StudentID = ?";
+                    var tenant = await TenantContext.HasSchoolIdColumnAsync(connection, FeesTable);
+                    if (tenant)
+                    {
+                        query += TenantContext.FilterClause();
+                    }
+
                     using (var command = new OleDbCommand(query, connection))
                     {
                         command.Parameters.AddWithValue("?", classId);
                         command.Parameters.AddWithValue("?", "Tuition Fee");
                         command.Parameters.AddWithValue("?", amount);
                         command.Parameters.AddWithValue("?", studentId);
+                        if (tenant)
+                        {
+                            TenantContext.AddSchoolParameter(command);
+                        }
+
                         var result = await command.ExecuteNonQueryAsync();
                         return result > 0;
                     }
@@ -105,12 +135,22 @@ namespace kingdom_Preparatory_School_Management_System.Data
                     await connection.OpenAsync();
                     // payment_record has no FeeName column — omit it from UPDATE.
                     var query = "UPDATE payment_record SET classID = ?, Balance = ?, student_name = ? WHERE StudentID = ?";
+                    var tenant = await TenantContext.HasSchoolIdColumnAsync(connection, PaymentRecordTable);
+                    if (tenant)
+                    {
+                        query += TenantContext.FilterClause();
+                    }
                     using (var command = new OleDbCommand(query, connection))
                     {
                         command.Parameters.AddWithValue("?", classId);
                         command.Parameters.AddWithValue("?", balance);
                         command.Parameters.AddWithValue("?", studentName);
                         command.Parameters.AddWithValue("?", studentId);
+                        if (tenant)
+                        {
+                            TenantContext.AddSchoolParameter(command);
+                        }
+
                         var result = await command.ExecuteNonQueryAsync();
                         return result > 0;
                     }
@@ -137,10 +177,22 @@ namespace kingdom_Preparatory_School_Management_System.Data
                     // tiebreaker, and the engine could return the wrong Balance. Break the
                     // tie with [Balance] ASC: among same-second rows the most-paid (latest)
                     // state always has the lowest balance, so this returns the true latest.
-                    var query = "SELECT TOP 1 [Balance] FROM [payment_record] WHERE [StudentID] = ? ORDER BY [Date] DESC, [tm] DESC, [Balance] ASC";
+                    var query = "SELECT TOP 1 [Balance] FROM [payment_record] WHERE [StudentID] = ?";
+                    var tenant = await TenantContext.HasSchoolIdColumnAsync(connection, PaymentRecordTable);
+                    if (tenant)
+                    {
+                        query += TenantContext.FilterClause();
+                    }
+
+                    query += " ORDER BY [Date] DESC, [tm] DESC, [Balance] ASC";
                     using (var command = new OleDbCommand(query, connection))
                     {
                         command.Parameters.AddWithValue("?", studentId);
+                        if (tenant)
+                        {
+                            TenantContext.AddSchoolParameter(command);
+                        }
+
                         var result = await command.ExecuteScalarAsync();
                         if (result != null && result != DBNull.Value)
                         {
@@ -165,10 +217,21 @@ namespace kingdom_Preparatory_School_Management_System.Data
                 {
                     await connection.OpenAsync();
                     var query = "SELECT TOP 1 [Amount] FROM [fees] WHERE [StudentID] = ? AND [ClassID] = ?";
+                    var tenant = await TenantContext.HasSchoolIdColumnAsync(connection, FeesTable);
+                    if (tenant)
+                    {
+                        query += TenantContext.FilterClause();
+                    }
+
                     using (var command = new OleDbCommand(query, connection))
                     {
                         command.Parameters.AddWithValue("?", studentId);
                         command.Parameters.AddWithValue("?", classId);
+                        if (tenant)
+                        {
+                            TenantContext.AddSchoolParameter(command);
+                        }
+
                         var result = await command.ExecuteScalarAsync();
                         if (result != null && result != DBNull.Value)
                         {
@@ -193,7 +256,10 @@ namespace kingdom_Preparatory_School_Management_System.Data
                 {
                     await connection.OpenAsync();
                     // payment_record has no FeeName column — omit it from INSERT.
-                    var query = "INSERT INTO payment_record (StudentID, classID, Balance, student_name, Amount_paid, [Date], tm, payment_mode, Bursor_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                    var tenant = await TenantContext.HasSchoolIdColumnAsync(connection, PaymentRecordTable);
+                    var query = tenant
+                        ? "INSERT INTO payment_record (StudentID, classID, Balance, student_name, Amount_paid, [Date], tm, payment_mode, Bursor_name, SchoolId) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+                        : "INSERT INTO payment_record (StudentID, classID, Balance, student_name, Amount_paid, [Date], tm, payment_mode, Bursor_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
                     using (var command = new OleDbCommand(query, connection))
                     {
                         command.Parameters.AddWithValue("?", studentId);
@@ -205,6 +271,11 @@ namespace kingdom_Preparatory_School_Management_System.Data
                         command.Parameters.AddWithValue("?", DateTime.Now.ToString("HH:mm:ss"));
                         command.Parameters.AddWithValue("?", paymentMode);
                         command.Parameters.AddWithValue("?", bursarName);
+                        if (tenant)
+                        {
+                            TenantContext.AddSchoolParameter(command);
+                        }
+
                         var result = await command.ExecuteNonQueryAsync();
 
                         if (result > 0)
@@ -244,9 +315,20 @@ namespace kingdom_Preparatory_School_Management_System.Data
                     await connection.OpenAsync();
                     // Actual column name in Students table is GuidianceEmail (legacy typo)
                     var query = "SELECT GuidianceEmail FROM Students WHERE StudentID = ?";
+                    var tenant = await TenantContext.HasSchoolIdColumnAsync(connection, StudentsTable);
+                    if (tenant)
+                    {
+                        query += TenantContext.FilterClause();
+                    }
+
                     using (var command = new OleDbCommand(query, connection))
                     {
                         command.Parameters.AddWithValue("?", studentId);
+                        if (tenant)
+                        {
+                            TenantContext.AddSchoolParameter(command);
+                        }
+
                         var result = await command.ExecuteScalarAsync();
                         return result?.ToString() ?? "";
                     }
@@ -267,9 +349,20 @@ namespace kingdom_Preparatory_School_Management_System.Data
                     await connection.OpenAsync();
                     // Column EmergencyConatct is a legacy typo; same number used at registration.
                     var query = "SELECT EmergencyConatct FROM Students WHERE StudentID = ?";
+                    var tenant = await TenantContext.HasSchoolIdColumnAsync(connection, StudentsTable);
+                    if (tenant)
+                    {
+                        query += TenantContext.FilterClause();
+                    }
+
                     using (var command = new OleDbCommand(query, connection))
                     {
                         command.Parameters.AddWithValue("?", studentId);
+                        if (tenant)
+                        {
+                            TenantContext.AddSchoolParameter(command);
+                        }
+
                         var result = await command.ExecuteScalarAsync();
                         return result?.ToString() ?? "";
                     }
@@ -289,6 +382,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
                 using (var connection = new OleDbConnection(_connectionString))
                 {
                     await connection.OpenAsync();
+                    var tenant = await TenantContext.HasSchoolIdColumnAsync(connection, PaymentRecordTable);
                     var query = @"
                         SELECT
                             [StudentID] AS [STUDENT ID],
@@ -301,11 +395,24 @@ namespace kingdom_Preparatory_School_Management_System.Data
                             [payment_mode] AS [PAYMENT MODE],
                             [Bursor_name] AS [BURSAR NAME]
                         FROM [payment_record]
-                        ORDER BY [Date] DESC, [tm] DESC";
-                    using (var command = new OleDbCommand(query, connection))
-                    using (var adapter = new OleDbDataAdapter(command))
+                        WHERE 1=1";
+                    if (tenant)
                     {
-                        adapter.Fill(table);
+                        query += TenantContext.FilterClause();
+                    }
+
+                    query += " ORDER BY [Date] DESC, [tm] DESC";
+                    using (var command = new OleDbCommand(query, connection))
+                    {
+                        if (tenant)
+                        {
+                            TenantContext.AddSchoolParameter(command);
+                        }
+
+                        using (var adapter = new OleDbDataAdapter(command))
+                        {
+                            adapter.Fill(table);
+                        }
                     }
                 }
             }
@@ -330,6 +437,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
                     // [Date] DESC, [tm] DESC, [Balance] ASC — among same-second rows the
                     // most-paid (latest) state has the lowest balance. ROW_NUMBER picks
                     // exactly one row per student, so a student can't duplicate or vanish.
+                    var tenant = await TenantContext.HasSchoolIdColumnAsync(connection, PaymentRecordTable);
                     var query = @"
                         SELECT [ID], [Student Name], [Class], [Balance Owed], [Last Payment]
                         FROM (
@@ -343,14 +451,28 @@ namespace kingdom_Preparatory_School_Management_System.Data
                                     PARTITION BY p.StudentID
                                     ORDER BY p.[Date] DESC, p.tm DESC, p.Balance ASC) AS rn
                             FROM payment_record p
+                            WHERE 1=1";
+                    if (tenant)
+                    {
+                        query += TenantContext.FilterClause("p");
+                    }
+
+                    query += @"
                         ) latest
                         WHERE latest.rn = 1 AND latest.[Balance Owed] > 0
                         ORDER BY latest.[Balance Owed] DESC";
                     
                     using (var command = new OleDbCommand(query, connection))
-                    using (var adapter = new OleDbDataAdapter(command))
                     {
-                        adapter.Fill(table);
+                        if (tenant)
+                        {
+                            TenantContext.AddSchoolParameter(command);
+                        }
+
+                        using (var adapter = new OleDbDataAdapter(command))
+                        {
+                            adapter.Fill(table);
+                        }
                     }
                 }
             }
@@ -370,11 +492,25 @@ namespace kingdom_Preparatory_School_Management_System.Data
                 using (var connection = new OleDbConnection(_connectionString))
                 {
                     await connection.OpenAsync();
-                    var query = "SELECT FeeID AS [FEE ID], StudentID AS [STUDENT ID], ClassID AS [CLASS ID], FeeName AS [FEE NAME], Amount AS [AMOUNT] FROM fees ORDER BY FeeID DESC";
-                    using (var command = new OleDbCommand(query, connection))
-                    using (var adapter = new OleDbDataAdapter(command))
+                    var tenant = await TenantContext.HasSchoolIdColumnAsync(connection, FeesTable);
+                    var query = "SELECT FeeID AS [FEE ID], StudentID AS [STUDENT ID], ClassID AS [CLASS ID], FeeName AS [FEE NAME], Amount AS [AMOUNT] FROM fees WHERE 1=1";
+                    if (tenant)
                     {
-                        adapter.Fill(table);
+                        query += TenantContext.FilterClause();
+                    }
+
+                    query += " ORDER BY FeeID DESC";
+                    using (var command = new OleDbCommand(query, connection))
+                    {
+                        if (tenant)
+                        {
+                            TenantContext.AddSchoolParameter(command);
+                        }
+
+                        using (var adapter = new OleDbDataAdapter(command))
+                        {
+                            adapter.Fill(table);
+                        }
                     }
                 }
             }

@@ -15,6 +15,7 @@ builder.Services.AddDbContext<AppDbContext>(o =>
     o.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IStudentStats, StudentStatsRepository>();
+builder.Services.AddScoped<IWardRepository, WardRepository>();
 
 // --- Auth ---
 builder.Services.AddScoped<IUserLookup, UserLookupAdapter>();

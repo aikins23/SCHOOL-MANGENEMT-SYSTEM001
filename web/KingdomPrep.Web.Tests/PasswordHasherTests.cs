@@ -7,7 +7,7 @@ public class PasswordHasherTests
     public void Verify_RoundTrip_True()
     {
         string hash = PasswordHasher.Hash("Secret123!");
-        Assert.StartsWith("P2$", hash);
+        Assert.StartsWith("P3$", hash);
         Assert.True(PasswordHasher.Verify("Secret123!", hash));
     }
 
@@ -21,7 +21,7 @@ public class PasswordHasherTests
     [Fact]
     public void Verify_KnownDesktopVector_True()
     {
-        // Generated with .NET Framework Rfc2898DeriveBytes (default = HMAC-SHA1),
+        // Legacy P2 generated with .NET Framework Rfc2898DeriveBytes (default = HMAC-SHA1),
         // password "password", salt 0x0102030405060708, 100000 iters, 16-byte hash —
         // identical to what the desktop AuthService writes.
         const string stored = "P2$100000$AQIDBAUGBwg=$X6JRGXIqKPfnF+YJRvyUmQ==";

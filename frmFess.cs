@@ -27,6 +27,7 @@ namespace kingdom_Preparatory_School_Management_System
         public frmFess()
         {
             InitializeComponent();
+            this.Icon = kingdom_Preparatory_School_Management_System.Common.Branding.AppIcon;
             if (!AuthService.RequireAccess("frmFess", this)) return;
 
             // Initialize modern architecture

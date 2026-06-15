@@ -23,6 +23,7 @@ namespace kingdom_Preparatory_School_Management_System
         private Label averageScoreLabel;
         private Label topStudentLabel;
         private DataTable resultsTable;
+        private DataView _activeView;
 
         private static readonly Color PageBackColor = UiTheme.Page;
         private static readonly Color SurfaceColor = UiTheme.Surface;
@@ -42,6 +43,7 @@ namespace kingdom_Preparatory_School_Management_System
         public EXAMSVIEW()
         {
             InitializeComponent();
+            this.Icon = kingdom_Preparatory_School_Management_System.Common.Branding.AppIcon;
             Common.SessionUi.AttachSignOut(this);
             if (!AuthService.RequireAccess("EXAMSVIEW", this)) return;
 
@@ -190,11 +192,17 @@ namespace kingdom_Preparatory_School_Management_System
                 AllowUserToDeleteRows = false,
                 ReadOnly = true,
                 RowHeadersVisible = false,
-                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.DisplayedCells,
+                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None, // Disabled for performance
                 SelectionMode = DataGridViewSelectionMode.FullRowSelect,
                 MultiSelect = false,
-                EnableHeadersVisualStyles = false
+                EnableHeadersVisualStyles = false,
+                VirtualMode = true // High-performance virtual loading
             };
+
+            resultsGrid.CellValueNeeded += ResultsGrid_CellValueNeeded;
+            resultsGrid.CellDoubleClick += (sender, args) => { if (args.RowIndex >= 0) OpenSelectedResult(); };
+            resultsGrid.CellFormatting += ResultsGrid_CellFormatting;
+
             UiTheme.StyleDataGrid(resultsGrid);
             resultsGrid.ColumnHeadersDefaultCellStyle.BackColor = Navy;
             resultsGrid.ColumnHeadersDefaultCellStyle.ForeColor = Color.White;
@@ -204,10 +212,20 @@ namespace kingdom_Preparatory_School_Management_System
             resultsGrid.DefaultCellStyle.SelectionForeColor = TextColor;
             resultsGrid.AlternatingRowsDefaultCellStyle.BackColor = SurfaceAlt;
             resultsGrid.GridColor = BorderColor;
-            resultsGrid.CellDoubleClick += (sender, args) => { if (args.RowIndex >= 0) OpenSelectedResult(); };
-            resultsGrid.CellFormatting += ResultsGrid_CellFormatting;
+            
             shell.Controls.Add(resultsGrid);
             return shell;
+        }
+
+        private void ResultsGrid_CellValueNeeded(object sender, DataGridViewCellValueEventArgs e)
+        {
+            if (_activeView == null || e.RowIndex >= _activeView.Count) return;
+            try
+            {
+                string colName = resultsGrid.Columns[e.ColumnIndex].Name;
+                e.Value = _activeView[e.RowIndex][colName];
+            }
+            catch { e.Value = null; }
         }
 
         private Control CreateMetricCard(string title, Label valueLabel, string caption)
@@ -351,58 +369,84 @@ namespace kingdom_Preparatory_School_Management_System
         {
             try
             {
-                if (_examService == null)
-                {
-                    LoggerHelper.LogWarning("Exam service not initialized. Access may have been denied.");
-                    return;
-                }
-
+                if (_examService == null) return;
                 if (resultLabel != null) resultLabel.Text = "Loading academic reports...";
+
                 resultsTable = await _examService.GetResultsReportTableAsync();
-                resultsGrid.DataSource = resultsTable;
+                _activeView = resultsTable?.DefaultView;
+
+                // 1. Build columns manually for Virtual Mode (first time only)
+                if (resultsTable != null && resultsGrid.Columns.Count == 0)
+                {
+                    resultsGrid.Columns.Clear();
+                    foreach (DataColumn col in resultsTable.Columns)
+                    {
+                        resultsGrid.Columns.Add(col.ColumnName, col.ColumnName);
+                    }
+                }
                 
+                // 2. Configure visibility and headers
                 ConfigureGridColumns();
+                
+                // 3. Setup filters
                 LoadFilterValues();
                 await ApplyTeacherScopeAsync();
                 ApplyFilters();
 
                 if (resultsTable == null || resultsTable.Rows.Count == 0)
                 {
-                    if (resultLabel != null) resultLabel.Text = "No exam records found in database.";
-                    LoggerHelper.LogWarning("Exam results table is empty.");
-                }
-                else
-                {
-                    LoggerHelper.LogInfo($"Loaded {resultsTable.Rows.Count} exam records.");
+                    if (resultLabel != null) resultLabel.Text = "No exam records found.";
                 }
             }
             catch (Exception ex)
             {
-                LoggerHelper.LogError("Failed to load exam results in EXAMSVIEW", ex);
+                LoggerHelper.LogError("LoadResults failed", ex);
                 UIHelper.ShowError("Results could not be loaded: " + ex.Message, "Exam Results");
-                
-                // Ensure filters are still initialized
-                LoadFilterValues();
             }
         }
 
         private void ConfigureGridColumns()
         {
+            if (resultsGrid.Columns.Count == 0) return;
+
+            // Define protected/system columns that should always be visible (or specifically hidden)
+            var systemColumns = new HashSet<string>(StringComparer.OrdinalIgnoreCase) 
+            { "NAME", "CLASS", "TERMS", "YEAR", "TOTAL_SCORE", "TOTAL_RANK" };
+
             foreach (DataGridViewColumn column in resultsGrid.Columns)
             {
-                column.Visible = column.Name == "NAME" || column.Name == "CLASS" || column.Name == "TERMS" ||
-                                 column.Name == "YEAR" || column.Name == "TOTAL_SCORE" || column.Name == "TOTAL_RANK" ||
-                                 column.Name == "ENG" || column.Name == "MATHS" || column.Name == "SCI" || column.Name == "SOCIAL";
+                string name = column.Name.ToUpperInvariant();
+
+                // 1. Hide internal ID
+                if (name == "STUDENTID") { column.Visible = false; continue; }
+
+                // 2. Hide metadata columns (Grade, Remark, Position) from the main overview
+                if (name.EndsWith(" GRADE") || name.EndsWith(" REMARK") || name.EndsWith(" POS"))
+                {
+                    column.Visible = false;
+                    continue;
+                }
+
+                // 3. Show everything else (system columns + all subject scores)
+                column.Visible = true;
+                
+                // 4. Set pretty headers for system columns
+                if (name == "NAME") column.HeaderText = "Student";
+                else if (name == "TERMS") column.HeaderText = "Term";
+                else if (name == "TOTAL_SCORE") column.HeaderText = "Total";
+                else if (name == "TOTAL_RANK") column.HeaderText = "Rank";
+                else if (name == "YEAR") column.HeaderText = "Year";
+                else if (name == "CLASS") column.HeaderText = "Class";
+                else
+                {
+                    // For subjects, we just use the name as-is but ensure it's not too wide
+                    column.MinimumWidth = 80;
+                }
             }
 
-            SetHeader("NAME", "Student");
-            SetHeader("TERMS", "Term");
-            SetHeader("TOTAL_SCORE", "Total");
-            SetHeader("TOTAL_RANK", "Rank");
-            SetHeader("ENG", "English");
-            SetHeader("MATHS", "Maths");
-            SetHeader("SCI", "Science");
-            SetHeader("SOCIAL", "Social");
+            // Move Rank and Total to the end
+            if (resultsGrid.Columns.Contains("TOTAL_SCORE")) resultsGrid.Columns["TOTAL_SCORE"].DisplayIndex = resultsGrid.Columns.Count - 2;
+            if (resultsGrid.Columns.Contains("TOTAL_RANK")) resultsGrid.Columns["TOTAL_RANK"].DisplayIndex = resultsGrid.Columns.Count - 1;
         }
 
         private void SetHeader(string name, string header)
@@ -446,21 +490,24 @@ namespace kingdom_Preparatory_School_Management_System
 
         private void ApplyFilters()
         {
-            if (resultsTable == null) return;
+            if (resultsTable == null || _activeView == null) return;
             var filters = new List<string>();
             string search = searchBox.Text.Trim().Replace("'", "''");
             if (!string.IsNullOrWhiteSpace(search)) filters.Add("NAME LIKE '%" + search + "%'");
             if (classFilter.SelectedIndex > 0) filters.Add("CLASS = '" + classFilter.Text.Replace("'", "''") + "'");
             if (termFilter.SelectedIndex > 0) filters.Add("TERMS = '" + termFilter.Text.Replace("'", "''") + "'");
 
-            resultsTable.DefaultView.RowFilter = string.Join(" AND ", filters);
-            if (resultLabel != null) resultLabel.Text = resultsTable.DefaultView.Count + " report card(s) shown";
+            _activeView.RowFilter = string.Join(" AND ", filters);
+            resultsGrid.RowCount = _activeView.Count;
+            resultsGrid.Invalidate();
+
+            if (resultLabel != null) resultLabel.Text = _activeView.Count + " report card(s) shown";
             UpdateMetrics();
         }
 
         private void UpdateMetrics()
         {
-            int count = resultsTable == null ? 0 : resultsTable.DefaultView.Count;
+            int count = _activeView == null ? 0 : _activeView.Count;
             totalReportsLabel.Text = count.ToString();
             if (count == 0)
             {
@@ -472,7 +519,7 @@ namespace kingdom_Preparatory_School_Management_System
             decimal total = 0m;
             decimal bestScore = decimal.MinValue;
             string bestName = "";
-            foreach (DataRowView view in resultsTable.DefaultView)
+            foreach (DataRowView view in _activeView)
             {
                 decimal score = Convert.ToDecimal(view["TOTAL_SCORE"]);
                 total += score;
@@ -527,14 +574,17 @@ namespace kingdom_Preparatory_School_Management_System
 
         private Dictionary<string, string> SelectedRowData()
         {
-            if (resultsGrid.CurrentRow == null) return null;
+            if (resultsGrid.CurrentRow == null || _activeView == null) return null;
+            
+            int idx = resultsGrid.CurrentRow.Index;
+            if (idx < 0 || idx >= _activeView.Count) return null;
+
             var rowData = new Dictionary<string, string>();
-            foreach (DataGridViewCell cell in resultsGrid.CurrentRow.Cells)
+            DataRowView row = _activeView[idx];
+
+            foreach (DataGridViewColumn col in resultsGrid.Columns)
             {
-                if (cell.OwningColumn != null)
-                {
-                    rowData[cell.OwningColumn.Name] = cell.Value?.ToString() ?? "";
-                }
+                rowData[col.Name] = row[col.Name]?.ToString() ?? "";
             }
             return rowData;
         }

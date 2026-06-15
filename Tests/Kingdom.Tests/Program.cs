@@ -33,6 +33,8 @@ namespace Kingdom.Tests
                 new TestCase("ExpenseAmount parses legacy varchar and round-trips", ExpenseAmount_ParsesAndStores),
                 new TestCase("FinancePeriod resolves term/year/all-time/custom windows", FinancePeriod_ResolvesWindows),
                 new TestCase("SyncSchema adds sync columns idempotently", SyncSchema_AddsColumnsIdempotentlyAsync),
+                new TestCase("TenantSchema covers core school-owned tables", TenantSchema_CoversCoreTables),
+                new TestCase("SchoolInformation creates a school identity", SchoolInformation_CreatesSchoolIdentity),
                 new TestCase("SecretStorage protects and restores local secrets", SecretStorage_ProtectsAndRestoresSecrets),
                 new TestCase("SecretStorage preserves legacy plaintext values", SecretStorage_PreservesLegacyPlaintextValues),
                 new TestCase("FeeBalanceCalculator calculates remaining balances", FeeBalanceCalculator_CalculatesRemainingBalances),
@@ -196,6 +198,23 @@ namespace Kingdom.Tests
                 AssertEx.True(await SyncSchema.TableHasColumnAsync(database.ConnectionString, "Employee", "UpdatedAt"));
                 AssertEx.True(await SyncSchema.TableHasColumnAsync(database.ConnectionString, "Employee", "RowVersion"));
             }
+        }
+
+        private static void TenantSchema_CoversCoreTables()
+        {
+            AssertEx.True(Array.IndexOf(TenantSchema.TenantTables, "Students") >= 0);
+            AssertEx.True(Array.IndexOf(TenantSchema.TenantTables, "Employee") >= 0);
+            AssertEx.True(Array.IndexOf(TenantSchema.TenantTables, "Users") >= 0);
+            AssertEx.True(Array.IndexOf(TenantSchema.TenantTables, "payment_record") >= 0);
+            AssertEx.True(Array.IndexOf(TenantSchema.TenantTables, "ClassSubjects") >= 0);
+            AssertEx.True(Array.IndexOf(TenantSchema.TenantTables, "TimetableEntries") >= 0);
+            AssertEx.True(Array.IndexOf(TenantSchema.TenantTables, "SmsOutbox") >= 0);
+        }
+
+        private static void SchoolInformation_CreatesSchoolIdentity()
+        {
+            var info = new SchoolInformation();
+            AssertEx.NotEqual(Guid.Empty, info.SchoolId);
         }
 
         private static void SmsOutboxKey_IsDeterministic()
@@ -996,7 +1015,9 @@ namespace Kingdom.Tests
             public Task<DataTable> GetAsTableAsync(string filterId = null, string filterClass = null) => Task.FromResult(new DataTable());
             public Task<bool> UpdateStudentClassBatchAsync(IEnumerable<string> studentIds, string newClassId) => Task.FromResult(BatchUpdateResult);
             public Task<bool> RollOutAsync(string studentId) => Task.FromResult(RollOutResult);
+            public Task<bool> RestoreAsync(string studentId) => Task.FromResult(true);
             public Task<DataTable> GetRolledOutAsTableAsync() => Task.FromResult(new DataTable());
+            public Task<DataTable> GetGraduatedAsTableAsync() => Task.FromResult(new DataTable());
         }
 
         private sealed class FakeFeeRepository : IFeeRepository

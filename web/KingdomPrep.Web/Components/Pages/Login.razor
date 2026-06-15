@@ -57,6 +57,10 @@
             new(ClaimTypes.Name, user.Username),
             new(ClaimTypes.Role, user.Role.ToString())
         };
+        if (user.EmploymentId.HasValue)
+        {
+            claims.Add(new("EmploymentId", user.EmploymentId.Value.ToString()));
+        }
         var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
         await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme,
             new ClaimsPrincipal(identity));

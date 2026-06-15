@@ -106,7 +106,7 @@ namespace kingdom_Preparatory_School_Management_System
             band.Controls.Add(winRow);
 
             // ── Record-expense card ──────────────────────────────────────
-            var entryHost = new Panel { Dock = DockStyle.Top, Height = 176, BackColor = UiTheme.Page, Padding = new Padding(22, 2, 22, 10) };
+            var entryHost = new Panel { Dock = DockStyle.Top, Height = 208, BackColor = UiTheme.Page, Padding = new Padding(22, 2, 22, 12) };
             var entryCard = new Panel { Dock = DockStyle.Fill, BackColor = UiTheme.Surface, Padding = new Padding(16, 10, 16, 12) };
             entryCard.Paint += (s, e) => ControlPaint.DrawBorder(e.Graphics, entryCard.ClientRectangle, UiTheme.Border, ButtonBorderStyle.Solid);
 
@@ -139,7 +139,7 @@ namespace kingdom_Preparatory_School_Management_System
             _btnRecord = PrimaryButton("Record", 110); _btnRecord.Click += async (s, e) => await SaveAsync();
             var clear = NeutralButton("Clear", 80); clear.Click += (s, e) => ClearEntry();
             _btnDelete = DangerButton("Delete", 90); _btnDelete.Enabled = false; _btnDelete.Click += async (s, e) => await DeleteAsync();
-            var buttons = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.RightToLeft, BackColor = UiTheme.Surface, Padding = new Padding(0, 20, 2, 0) };
+            var buttons = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.RightToLeft, BackColor = UiTheme.Surface, Padding = new Padding(0, 14, 2, 0) };
             buttons.Controls.Add(_btnDelete); buttons.Controls.Add(clear); buttons.Controls.Add(_btnRecord);
             fields.Controls.Add(buttons, 3, 1);
             fields.SetColumnSpan(buttons, 2);

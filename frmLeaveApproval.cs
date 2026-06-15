@@ -37,6 +37,7 @@ namespace kingdom_Preparatory_School_Management_System
         public frmLeaveApproval()
         {
             InitializeComponent();
+            this.Icon = kingdom_Preparatory_School_Management_System.Common.Branding.AppIcon;
             if (!AuthService.RequireAccess("frmLeaveApproval", this)) return;
 
             // Initialize modern architecture

@@ -165,7 +165,10 @@ namespace kingdom_Preparatory_School_Management_System.Services
                         string username = Common.ImportCredentials.UsernameFor(student.StudentID);
                         string password = Common.ImportCredentials.NewPassword();
 
-                        var authRes = await AuthService.RegisterAsync(username, password, password, "PARENT", null);
+                        // Link parent to student (studentId is numeric string from DB identity)
+                        int? studentInternalId = int.TryParse(studentId, out int sid) ? (int?)sid : null;
+
+                        var authRes = await AuthService.RegisterAsync(username, password, password, "PARENT", studentInternalId);
                         if (authRes.Success)
                         {
                             var smsRes = await SmsService.SendParentCredentialsAsync(
@@ -214,10 +217,22 @@ namespace kingdom_Preparatory_School_Management_System.Services
         private string EscapeCsv(string field)
         {
             if (string.IsNullOrEmpty(field)) return "";
+            field = NeutralizeSpreadsheetFormula(field);
             if (field.Contains(",") || field.Contains("\"") || field.Contains("\n"))
             {
                 return "\"" + field.Replace("\"", "\"\"") + "\"";
             }
+            return field;
+        }
+
+        private static string NeutralizeSpreadsheetFormula(string field)
+        {
+            if (string.IsNullOrEmpty(field)) return field;
+
+            char first = field[0];
+            if (first == '=' || first == '+' || first == '-' || first == '@' || first == '\t')
+                return "'" + field;
+
             return field;
         }
 

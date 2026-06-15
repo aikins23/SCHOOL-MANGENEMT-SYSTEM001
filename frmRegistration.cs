@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Data.OleDb;
 using kingdom_Preparatory_School_Management_System.Common;
+using kingdom_Preparatory_School_Management_System.Data;
 using kingdom_Preparatory_School_Management_System.Services;
 
 
@@ -30,6 +31,7 @@ namespace kingdom_Preparatory_School_Management_System
         public frmRegistration()
         {
             InitializeComponent();
+            this.Icon = kingdom_Preparatory_School_Management_System.Common.Branding.AppIcon;
             if (!AuthService.RequireAccess("frmRegistration", this)) return;
             BuildModernRegistrationView();
 
@@ -406,6 +408,67 @@ namespace kingdom_Preparatory_School_Management_System
             public override string ToString() => Display;
         }
 
+        private async System.Threading.Tasks.Task<int?> PromptForStudentAsync()
+        {
+            DataTable students;
+            try
+            {
+                var repo = new StudentRepository(AppConfig.ConnectionString);
+                students = await repo.GetAsTableAsync();
+            }
+            catch (Exception ex)
+            {
+                UIHelper.ShowError("Could not load students: " + ex.Message, "Student Link");
+                return null;
+            }
+
+            if (students == null || students.Rows.Count == 0)
+            {
+                UIHelper.ShowWarning("No student records found.", "Student Link");
+                return null;
+            }
+
+            using (var dlg = new Form())
+            {
+                dlg.Text = "Link Account to Student (Required for Parents)";
+                dlg.StartPosition = FormStartPosition.CenterParent;
+                dlg.FormBorderStyle = FormBorderStyle.FixedDialog;
+                dlg.MaximizeBox = false; dlg.MinimizeBox = false;
+                dlg.ClientSize = new Size(420, 170);
+                dlg.Padding = new Padding(16);
+                dlg.Font = new Font("Segoe UI", 9.5F);
+
+                var prompt = new Label { Dock = DockStyle.Top, Height = 48, Text = "Select the student for this parent account:", TextAlign = ContentAlignment.MiddleLeft };
+                var combo = new ComboBox { Dock = DockStyle.Top, DropDownStyle = ComboBoxStyle.DropDownList, Height = 30 };
+                
+                foreach (DataRow row in students.Rows)
+                {
+                    string id = row["ID"].ToString();
+                    string name = row["FIRST NAME"] + " " + row["LAST NAME"];
+                    combo.Items.Add(new { ID = int.Parse(id), Display = $"{Common.StudentId.Display(id)} — {name}" });
+                }
+                combo.DisplayMember = "Display";
+                if (combo.Items.Count > 0) combo.SelectedIndex = 0;
+
+                var buttonsRow = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 48, FlowDirection = FlowDirection.RightToLeft, Padding = new Padding(0, 8, 0, 0) };
+                var btnOk = new Button { Text = "Link", Width = 100, Height = 32 };
+                var btnCancel = new Button { Text = "Cancel", Width = 100, Height = 32 };
+                btnOk.Click += (s, e) => { dlg.DialogResult = DialogResult.OK; dlg.Close(); };
+                btnCancel.Click += (s, e) => { dlg.DialogResult = DialogResult.Cancel; dlg.Close(); };
+                buttonsRow.Controls.Add(btnOk); buttonsRow.Controls.Add(btnCancel);
+
+                dlg.Controls.Add(buttonsRow); dlg.Controls.Add(combo); dlg.Controls.Add(prompt);
+                dlg.AcceptButton = btnOk; dlg.CancelButton = btnCancel;
+
+                if (dlg.ShowDialog(this) == DialogResult.OK && combo.SelectedItem != null)
+                {
+                    dynamic picked = combo.SelectedItem;
+                    return picked.ID;
+                }
+                return null;
+            }
+        }
+
         private async void RegisterUser()
         {
             try
@@ -434,21 +497,30 @@ namespace kingdom_Preparatory_School_Management_System
 
                 // Staff roles can be linked to an Employee record. Teacher is REQUIRED
                 // to be linked — drives "own class only" filtering.
-                int? employmentId = null;
+                int? linkedId = null;
                 if (IsStaffRole(userType))
                 {
                     bool teacherRoleRequiresLink = userType.Equals("Teacher", StringComparison.OrdinalIgnoreCase);
-                    employmentId = await PromptForEmployeeAsync(teacherRoleRequiresLink);
-                    if (teacherRoleRequiresLink && !employmentId.HasValue)
+                    linkedId = await PromptForEmployeeAsync(teacherRoleRequiresLink);
+                    if (teacherRoleRequiresLink && !linkedId.HasValue)
                     {
                         if (statusLabel != null) statusLabel.Text = "Teacher account requires an employee link.";
+                        return;
+                    }
+                }
+                else if (userType.Equals("Parent", StringComparison.OrdinalIgnoreCase) || userType.Equals("Guardian", StringComparison.OrdinalIgnoreCase))
+                {
+                    linkedId = await PromptForStudentAsync();
+                    if (!linkedId.HasValue)
+                    {
+                        if (statusLabel != null) statusLabel.Text = "Parent account requires a student link.";
                         return;
                     }
                 }
 
                 if (statusLabel != null) statusLabel.Text = "Creating account...";
 
-                var (success, message) = await AuthService.RegisterAsync(username, password, confirmPassword, userType, employmentId);
+                var (success, message) = await AuthService.RegisterAsync(username, password, confirmPassword, userType, linkedId);
 
                 if (success)
                 {

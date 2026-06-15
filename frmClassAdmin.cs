@@ -27,6 +27,7 @@ namespace kingdom_Preparatory_School_Management_System
         public frmClassAdmin()
         {
             InitializeComponent();
+            this.Icon = kingdom_Preparatory_School_Management_System.Common.Branding.AppIcon;
             if (!AuthService.RequireAccess("frmClassAdmin", this)) return;
 
             // Initialize modern architecture

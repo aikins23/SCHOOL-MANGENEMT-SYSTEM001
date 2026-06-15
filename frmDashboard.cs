@@ -1,5 +1,6 @@
 using System;
 using System.Data;
+using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Threading.Tasks;
@@ -19,7 +20,7 @@ namespace kingdom_Preparatory_School_Management_System
         private FeeRepository _feeRepository;
 
         private Label studentCountLabel;
-        private Label _incomeLabel, _expensesLabel, _fundLabel;
+        private Label _incomeLabel, _expensesLabel, _fundLabel, _topExpenseLabel;
         private Label employeeCountLabel;
         private Label feesCollectedLabel;
         private Label feesBalanceLabel;
@@ -53,6 +54,7 @@ namespace kingdom_Preparatory_School_Management_System
 public frmDashboard()
 {
     InitializeComponent();
+    this.Icon = kingdom_Preparatory_School_Management_System.Common.Branding.AppIcon;
     if (!AuthService.RequireAccess("frmDashboard", this)) return;
 
     // Initialize modern architecture
@@ -210,8 +212,8 @@ public frmDashboard()
             BackColor = PageBackColor;
             Font = new Font("Segoe UI", 9.5F, FontStyle.Regular);
             StartPosition = FormStartPosition.CenterScreen;
-            MinimumSize = new Size(1280, 760);
-            Size = new Size(1520, 940);
+            MinimumSize = new Size(1220, 740);
+            Size = new Size(1520, 900);
 
             var root = new TableLayoutPanel
             {
@@ -222,7 +224,7 @@ public frmDashboard()
                 Margin = Padding.Empty,
                 Padding = Padding.Empty
             };
-            root.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 240));
+            root.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 264));
             root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
 
             root.Controls.Add(BuildSidebar(), 0, 0);
@@ -245,9 +247,9 @@ public frmDashboard()
             var brand = new Panel
             {
                 Dock      = DockStyle.Top,
-                Height    = 104,
+                Height    = 112,
                 BackColor = SidebarBackColor,
-                Padding   = new Padding(16, 18, 16, 10)
+                Padding   = new Padding(18, 18, 18, 12)
             };
 
             // Sidebar emblem: the icon_bg asset, loaded directly as a full-resolution image
@@ -257,8 +259,8 @@ public frmDashboard()
             {
                 brand.Controls.Add(new PictureBox
                 {
-                    Size     = new Size(72, 72),
-                    Location = new Point(10, 16),
+                    Size     = new Size(68, 68),
+                    Location = new Point(14, 20),
                     SizeMode = PictureBoxSizeMode.Zoom,
                     BackColor = Color.Transparent,
                     Image    = sideIcon
@@ -288,7 +290,7 @@ public frmDashboard()
                 Text       = Common.SchoolProfile.DisplayName,
                 ForeColor  = Color.White,
                 Font       = new Font("Segoe UI Semibold", 13F, FontStyle.Bold),
-                Bounds     = new Rectangle(90, 30, 138, 22),
+                Bounds     = new Rectangle(92, 32, 152, 24),
                 AutoEllipsis = true,
                 TextAlign  = ContentAlignment.MiddleLeft
             });
@@ -297,7 +299,7 @@ public frmDashboard()
                 Text      = "School Management",
                 ForeColor = Color.FromArgb(130, 150, 180),
                 Font      = new Font("Segoe UI", 8.25F),
-                Bounds    = new Rectangle(90, 52, 138, 18),
+                Bounds    = new Rectangle(92, 58, 152, 18),
                 TextAlign = ContentAlignment.MiddleLeft
             });
 
@@ -321,7 +323,7 @@ public frmDashboard()
                 WrapContents  = false,
                 AutoSize      = true,
                 AutoSizeMode  = AutoSizeMode.GrowAndShrink,
-                Padding       = new Padding(16, 12, 16, 0),
+                Padding       = new Padding(18, 14, 18, 0),
                 BackColor     = SidebarBackColor
             };
 
@@ -362,6 +364,9 @@ public frmDashboard()
             var academics = new System.Collections.Generic.List<Button>();
             Add(academics, isAdmin || isTeach || isHead, "Exams", () => OpenForm(new EXAMS()));
             Add(academics, known, "Exam Reports", () => OpenForm(new EXAMSVIEW()));
+            Add(academics, isDir || isAdmin || isHead || isAcct, "Class Manager", () => OpenForm(new frmClassManager()));
+            Add(academics, isDir || isAdmin || isHead, "Academic Calendar", () => OpenForm(new frmAcademicCalendar()));
+            Add(academics, isDir || isAdmin || isHead, "Timetable Generator", () => OpenForm(new frmTimetable()));
             Add(academics, isDir || isAdmin || isHead, "Subjects", () => new frmSubjects().ShowDialog());
             AddGroup("Academics", academics);
 
@@ -369,7 +374,8 @@ public frmDashboard()
             Add(finance, isAdmin || isAcct || isHead, "Fees Payment", () => OpenForm(new frmFessPayment()));
             Add(finance, isAcct || isDir || isAdmin || isHead, "Payment History", () => OpenForm(new frmPaymentHistory()));
             Add(finance, isAcct || isAdmin || isHead, "Transport Payments", () => OpenForm(new frmTransportPayments()));
-            Add(finance, isAcct || isAdmin || isDir, "Expenses", () => OpenForm(new frmExpenses()));
+            Add(finance, isDir || isAdmin || isAcct, "Scholarships & Discounts", () => OpenForm(new frmScholarships()));
+            Add(finance, isDir || isAdmin || isAcct, "Expenses", () => OpenForm(new frmExpenses()));
             if (isAcct)
             {
                 _approvalsNavBtn = CreateNavButton("Admission Approvals", () => OpenForm(new frmPendingApprovals()));
@@ -384,14 +390,18 @@ public frmDashboard()
             AddGroup("Operations", ops);
 
             var comms = new System.Collections.Generic.List<Button>();
+            Add(comms, isDir || isAdmin || isHead || isTeach, "Notice Board", () => OpenForm(new frmNotice()));
             Add(comms, isDir || isAdmin || isHead || isTeach, "Send Notice", () => OpenForm(new frmSendNotice()));
             AddGroup("Communications", comms);
 
             var admin = new System.Collections.Generic.List<Button>();
             Add(admin, isDir || isAdmin || isHead, "Settings", () => new frmEmailSettings().ShowDialog());
+            Add(admin, isDir || isAdmin || isHead, "Class Management", () => OpenForm(new frmClassManager()));
+            Add(admin, isDir || isAdmin || isHead, "Archive & Admin Hub", () => OpenForm(new frmAdminDashboard()));
             Add(admin, isDir || isAdmin || isHead, "School Information", () => new frmSchoolInfo().ShowDialog());
             Add(admin, isDir || isAdmin || isHead, "Grading Scheme", () => new frmGradingScheme().ShowDialog());
             Add(admin, isAdmin || isHead, "Database Backup", RunBackup);
+            Add(admin, isAdmin || isHead, "Database Coverage", () => OpenForm(new frmDatabaseCoverageAudit()));
             Add(admin, isAdmin || isHead, "System Logs", ViewLogs);
             AddGroup("Administration", admin);
 
@@ -417,7 +427,7 @@ public frmDashboard()
             var userFooter = new Panel
             {
                 Dock      = DockStyle.Bottom,
-                Height    = 62,
+                Height    = 66,
                 BackColor = Color.FromArgb(8, 14, 52),
                 Padding   = new Padding(16, 10, 16, 10)
             };
@@ -446,7 +456,7 @@ public frmDashboard()
                 Text      = AuthService.CurrentUser?.Username ?? "User",
                 ForeColor = Color.White,
                 Font      = new Font("Segoe UI Semibold", 9F, FontStyle.Bold),
-                Bounds    = new Rectangle(62, 12, 140, 18),
+                Bounds    = new Rectangle(62, 12, 172, 18),
                 TextAlign = ContentAlignment.MiddleLeft
             });
             userFooter.Controls.Add(new Label
@@ -454,7 +464,7 @@ public frmDashboard()
                 Text      = AuthService.CurrentUser?.Role.ToString() ?? "",
                 ForeColor = Color.FromArgb(120, 145, 175),
                 Font      = new Font("Segoe UI", 8F),
-                Bounds    = new Rectangle(62, 30, 140, 16),
+                Bounds    = new Rectangle(62, 32, 172, 16),
                 TextAlign = ContentAlignment.MiddleLeft
             });
 
@@ -487,21 +497,21 @@ public frmDashboard()
 
             // Total fixed row heights: 82 + 200 + 540 + 170 = 992 px
             // Plus Padding top+bottom 28+28 = 56 px  →  content height = 1048 px
-            const int ContentHeight = 1048;
+            const int ContentHeight = 1050;
 
             var content = new TableLayoutPanel
             {
                 // No Dock — let it keep its own size so scrollHost's AutoScroll works.
                 BackColor  = PageBackColor,
-                Padding    = new Padding(28),
+                Padding    = new Padding(26, 24, 26, 22),
                 ColumnCount = 1,
                 RowCount    = 4,
                 Height      = ContentHeight
             };
-            content.RowStyles.Add(new RowStyle(SizeType.Absolute, 82));
-            content.RowStyles.Add(new RowStyle(SizeType.Absolute, 200));
-            content.RowStyles.Add(new RowStyle(SizeType.Absolute, 540));
-            content.RowStyles.Add(new RowStyle(SizeType.Absolute, 170));
+            content.RowStyles.Add(new RowStyle(SizeType.Absolute, 80));
+            content.RowStyles.Add(new RowStyle(SizeType.Absolute, 282));
+            content.RowStyles.Add(new RowStyle(SizeType.Absolute, 466));
+            content.RowStyles.Add(new RowStyle(SizeType.Absolute, 176));
 
             // Width always fills the visible area; scrollbar appears vertically only.
             scrollHost.SizeChanged += (s, e) =>
@@ -525,19 +535,19 @@ public frmDashboard()
             titleBlock.Controls.Add(new Label
             {
                 Dock      = DockStyle.Top,
-                Height    = 40,
+                Height    = 38,
                 Text      = $"{greeting}, {userName}!",
                 ForeColor = TextColor,
-                Font      = new Font("Segoe UI Semibold", 22F, FontStyle.Bold),
+                Font      = new Font("Segoe UI Semibold", 21F, FontStyle.Bold),
                 TextAlign = ContentAlignment.MiddleLeft
             });
             titleBlock.Controls.Add(new Label
             {
                 Dock      = DockStyle.Bottom,
-                Height    = 24,
+                Height    = 22,
                 Text      = $"Operations & Academic Dashboard  ·  {dateStr}",
                 ForeColor = MutedTextColor,
-                Font      = new Font("Segoe UI", 9.5F, FontStyle.Regular),
+                Font      = new Font("Segoe UI", 9.25F, FontStyle.Regular),
                 TextAlign = ContentAlignment.MiddleLeft
             });
 
@@ -557,12 +567,14 @@ public frmDashboard()
                 Dock = DockStyle.Fill,
                 ColumnCount = 4,
                 BackColor = PageBackColor,
-                Padding = new Padding(0, 8, 0, 10)
+                Padding = new Padding(0, 6, 0, 12),
+                RowCount = 1
             };
             for (int i = 0; i < 4; i++)
             {
                 metricGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
             }
+            metricGrid.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
             studentCountLabel = new Label();
             employeeCountLabel = new Label();
@@ -576,25 +588,31 @@ public frmDashboard()
 
             // Currency strings are long ("GHS 15,746.00") — shrink the font and enable
             // ellipsis so they fit the card width without being clipped to "GH".
-            feesCollectedLabel.Font = new Font("Segoe UI Semibold", 15F, FontStyle.Bold);
+            feesCollectedLabel.Font = new Font("Segoe UI Semibold", 17F, FontStyle.Bold);
             feesCollectedLabel.AutoEllipsis = true;
-            feesBalanceLabel.Font = new Font("Segoe UI Semibold", 15F, FontStyle.Bold);
+            feesBalanceLabel.Font = new Font("Segoe UI Semibold", 17F, FontStyle.Bold);
             feesBalanceLabel.AutoEllipsis = true;
 
-            // Finance overview tiles (Total Income / Expenses / Fund) — only for finance/leadership.
+            // Finance overview tiles (Income, Expenses, Fund, Top Expense) — only for finance/leadership.
             var financeRole = AuthService.CurrentUser.Role;
             if (financeRole == AuthService.UserRole.Accountant || financeRole == AuthService.UserRole.Administrator
                 || financeRole == AuthService.UserRole.Director)
             {
                 metricGrid.RowCount = 2;
+                metricGrid.RowStyles.Clear();
                 metricGrid.RowStyles.Add(new RowStyle(SizeType.Percent, 50));
                 metricGrid.RowStyles.Add(new RowStyle(SizeType.Percent, 50));
+
                 _incomeLabel = new Label(); _expensesLabel = new Label(); _fundLabel = new Label();
+                _topExpenseLabel = new Label();
+
                 metricGrid.Controls.Add(CreateMetricCard("Total Income",   _incomeLabel,   "This term", AccentGreen, "INCOME",   DashboardIconType.Fees),    0, 1);
                 metricGrid.Controls.Add(CreateMetricCard("Total Expenses", _expensesLabel, "This term", AccentRed,   "EXPENSES", DashboardIconType.Balance), 1, 1);
                 metricGrid.Controls.Add(CreateMetricCard("Total Fund",     _fundLabel,     "This term", AccentGold,  "FUND",     DashboardIconType.Fees),    2, 1);
-                foreach (var l in new[] { _incomeLabel, _expensesLabel, _fundLabel })
-                { l.Font = new Font("Segoe UI Semibold", 15F, FontStyle.Bold); l.AutoEllipsis = true; }
+                metricGrid.Controls.Add(CreateMetricCard("Top Expense",    _topExpenseLabel, "Highest category", AccentRed, "HIGHEST",  DashboardIconType.Balance), 3, 1);
+
+                foreach (var l in new[] { _incomeLabel, _expensesLabel, _fundLabel, _topExpenseLabel })
+                { l.Font = new Font("Segoe UI Semibold", 17F, FontStyle.Bold); l.AutoEllipsis = true; }
             }
 
             var analyticsGrid = BuildAnalyticsGrid();
@@ -740,8 +758,8 @@ public frmDashboard()
                 ColumnCount = 1,
                 BackColor = PageBackColor
             };
-            rightStack.RowStyles.Add(new RowStyle(SizeType.Percent, 48));
-            rightStack.RowStyles.Add(new RowStyle(SizeType.Percent, 52));
+            rightStack.RowStyles.Add(new RowStyle(SizeType.Percent, 46));
+            rightStack.RowStyles.Add(new RowStyle(SizeType.Percent, 54));
 
             var classPanel = CreateSectionPanel("Class Enrollment");
             classPanel.Margin = new Padding(0, 0, 0, 12);
@@ -755,13 +773,13 @@ public frmDashboard()
             var insightBody = new TableLayoutPanel
             {
                 Dock = DockStyle.Top,
-                Height = 250,
+                Height = 220,
                 RowCount = 2,
                 ColumnCount = 1,
                 BackColor = Color.White,
                 Padding = new Padding(14, 10, 14, 14)
             };
-            insightBody.RowStyles.Add(new RowStyle(SizeType.Absolute, 92));
+            insightBody.RowStyles.Add(new RowStyle(SizeType.Absolute, 84));
             insightBody.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
             var academicSummary = new TableLayoutPanel
@@ -784,7 +802,7 @@ public frmDashboard()
                 RowCount = 2,
                 BackColor = Color.White
             };
-            leaveSummary.RowStyles.Add(new RowStyle(SizeType.Absolute, 74));
+            leaveSummary.RowStyles.Add(new RowStyle(SizeType.Absolute, 66));
             leaveSummary.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
             leaveSummary.Controls.Add(CreateInsightTile("Pending Leave", pendingLeaveLabel, DashboardIconType.Leave), 0, 0);
             leaveSummary.Controls.Add(leaveSummaryGrid, 0, 1);
@@ -820,22 +838,36 @@ public frmDashboard()
             {
                 Dock = DockStyle.Fill,
                 ColumnCount = 3,
-                RowCount = 2,
-                Padding = new Padding(18, 10, 18, 14),
+                RowCount = 3,
+                Padding = new Padding(20, 14, 20, 16),
                 BackColor = Color.White
             };
             for (int i = 0; i < 3; i++)
             {
                 actions.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.33F));
             }
-            actions.RowStyles.Add(new RowStyle(SizeType.Percent, 50));
-            actions.RowStyles.Add(new RowStyle(SizeType.Percent, 50));
+            actions.RowStyles.Add(new RowStyle(SizeType.Percent, 33.33F));
+            actions.RowStyles.Add(new RowStyle(SizeType.Percent, 33.33F));
+            actions.RowStyles.Add(new RowStyle(SizeType.Percent, 33.33F));
+
+            bool isDir = AuthService.CurrentUser.Role == AuthService.UserRole.Director;
+            bool isAdmin = AuthService.CurrentUser.Role == AuthService.UserRole.Administrator;
+            bool isHead = AuthService.CurrentUser.Role == AuthService.UserRole.Headmaster;
+            bool isAcct = AuthService.CurrentUser.Role == AuthService.UserRole.Accountant;
+
             actions.Controls.Add(CreateActionButton("Register Student", () => OpenForm(new frmAddStd(), true)), 0, 0);
             actions.Controls.Add(CreateActionButton("Record Attendance", () => OpenForm(new frmAttendance())), 1, 0);
             actions.Controls.Add(CreateActionButton("Record Fees", () => OpenForm(new frmFessPayment())), 2, 0);
+            
             actions.Controls.Add(CreateActionButton("Submit Exam Scores", () => OpenForm(new EXAMS())), 0, 1);
             actions.Controls.Add(CreateActionButton("Generate Report Cards", () => OpenForm(new EXAMSVIEW())), 1, 1);
             actions.Controls.Add(CreateActionButton("Analytics Dashboard", OpenAnalyticsDashboard), 2, 1);
+
+            if (isDir || isAdmin || isHead || isAcct)
+            {
+                actions.Controls.Add(CreateActionButton("Class Manager", () => OpenForm(new frmClassManager())), 0, 2);
+            }
+
             actionPanel.Controls.Add(actions);
 
             return actionPanel;
@@ -845,20 +877,20 @@ public frmDashboard()
         {
             var button = new Button
             {
-                Width  = 185,   // fits within 225px sidebar minus 16px padding each side, with scrollbar room
-                Height = 44,
-                Margin = new Padding(0, 0, 0, 4),
+                Width  = 210,
+                Height = 42,
+                Margin = new Padding(0, 0, 0, 5),
                 Text   = text,
                 TextAlign  = ContentAlignment.MiddleLeft,
                 FlatStyle  = FlatStyle.Flat,
                 BackColor  = selected ? Color.FromArgb(22, 34, 78) : SidebarBackColor,
-                ForeColor  = selected ? Color.White : Color.FromArgb(165, 182, 205),
+                ForeColor  = selected ? Color.White : Color.FromArgb(174, 190, 215),
                 Font    = new Font("Segoe UI", 9.5F, selected ? FontStyle.Bold : FontStyle.Regular),
                 Padding = new Padding(selected ? 20 : 16, 0, 0, 0),
                 Cursor  = Cursors.Hand
             };
             button.FlatAppearance.BorderSize          = 0;
-            button.FlatAppearance.MouseOverBackColor  = Color.FromArgb(22, 34, 78);
+            button.FlatAppearance.MouseOverBackColor  = Color.FromArgb(31, 43, 100);
             button.FlatAppearance.MouseDownBackColor  = Color.FromArgb(10, 18, 56);
 
             // Gold left-bar accent on selected item
@@ -867,7 +899,7 @@ public frmDashboard()
                 button.Paint += (s, e) =>
                 {
                     using (var br = new SolidBrush(AccentGold))
-                        e.Graphics.FillRectangle(br, 0, 8, 4, button.Height - 16);
+                        e.Graphics.FillRectangle(br, 0, 9, 4, button.Height - 18);
                 };
             }
 
@@ -918,21 +950,30 @@ public frmDashboard()
         {
             var card = CreateModernPanel(8);
             card.Dock    = DockStyle.Fill;
-            card.Margin  = new Padding(0, 0, 14, 0);
-            card.Padding = new Padding(18, 16, 18, 12);
+            card.Margin  = new Padding(0, 0, 16, 14);
+            card.Padding = new Padding(20, 16, 20, 14);
 
             // Coloured top accent strip (4 px, painted on the panel itself)
             card.Paint += (s, e) =>
             {
                 using (var br = new SolidBrush(accent))
-                    e.Graphics.FillRectangle(br, 0, 0, card.Width, 4);
+                    e.Graphics.FillRectangle(br, 0, 0, card.Width, 3);
             };
 
-            var body = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 3, BackColor = Color.Transparent };
+            var body = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 2,
+                RowCount = 4,
+                BackColor = Color.Transparent,
+                Margin = Padding.Empty,
+                Padding = Padding.Empty
+            };
             body.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-            body.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 54));
+            body.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 58));
             body.RowStyles.Add(new RowStyle(SizeType.Absolute, 22));
             body.RowStyles.Add(new RowStyle(SizeType.Absolute, 26));
+            body.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
             body.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
             // Tag chip (e.g. "STUDENTS") in accent colour
@@ -941,7 +982,7 @@ public frmDashboard()
                 Dock      = DockStyle.Fill,
                 Text      = tag,
                 ForeColor = accent,
-                Font      = new Font("Segoe UI", 7.5F, FontStyle.Bold),
+                Font      = new Font("Segoe UI", 7.75F, FontStyle.Bold),
                 TextAlign = ContentAlignment.MiddleLeft
             };
 
@@ -954,32 +995,35 @@ public frmDashboard()
                 TextAlign = ContentAlignment.MiddleLeft
             };
 
-            valueLabel.Dock      = DockStyle.Fill;
-            valueLabel.Text      = "--";
+            valueLabel.Dock = DockStyle.Fill;
+            valueLabel.Margin = Padding.Empty;
+            valueLabel.Padding = new Padding(0, 0, 8, 0);
+            valueLabel.Text = "--";
             valueLabel.ForeColor = TextColor;
-            valueLabel.Font      = new Font("Segoe UI Semibold", 24F, FontStyle.Bold);
+            valueLabel.Font = new Font("Segoe UI Semibold", 18.5F, FontStyle.Bold);
             valueLabel.TextAlign = ContentAlignment.MiddleLeft;
+            valueLabel.AutoEllipsis = true;
 
             var captionLabel = new Label
             {
-                Dock      = DockStyle.Bottom,
-                Height    = 24,
+                Dock      = DockStyle.Fill,
                 Text      = caption,
                 ForeColor = MutedTextColor,
-                Font      = new Font("Segoe UI", 8.5F, FontStyle.Regular),
-                TextAlign = ContentAlignment.BottomLeft
+                Font      = new Font("Segoe UI", 8.75F, FontStyle.Regular),
+                TextAlign = ContentAlignment.MiddleLeft
             };
 
             var icon = CreateMetricIcon(iconType, accent);
             icon.Dock = DockStyle.Fill;
+            icon.Margin = new Padding(0, 2, 0, 0);
 
             body.Controls.Add(tagLabel, 0, 0);
             body.Controls.Add(titleLabel, 0, 1);
             body.Controls.Add(valueLabel, 0, 2);
+            body.Controls.Add(captionLabel, 0, 3);
             body.Controls.Add(icon, 1, 1);
             body.SetRowSpan(icon, 2);
 
-            card.Controls.Add(captionLabel);
             card.Controls.Add(body);
             return card;
         }
@@ -1019,7 +1063,7 @@ public frmDashboard()
             var tile = CreateModernPanel(7, UiTheme.SurfaceAlt, UiTheme.SurfaceAlt);
             tile.Dock = DockStyle.Fill;
             tile.Margin = new Padding(0, 0, 8, 0);
-            tile.Padding = new Padding(12, 8, 12, 8);
+            tile.Padding = new Padding(12, 7, 12, 7);
 
             var layout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 2, BackColor = Color.Transparent };
             layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
@@ -1037,7 +1081,7 @@ public frmDashboard()
             valueLabel.Dock = DockStyle.Fill;
             valueLabel.Text = "--";
             valueLabel.ForeColor = TextColor;
-            valueLabel.Font = new Font("Segoe UI Semibold", 15F, FontStyle.Bold);
+            valueLabel.Font = new Font("Segoe UI Semibold", 14.5F, FontStyle.Bold);
             valueLabel.TextAlign = ContentAlignment.MiddleLeft;
             valueLabel.AutoEllipsis = true;
 
@@ -1058,20 +1102,20 @@ public frmDashboard()
         {
             var section = CreateModernPanel(8);
             section.Dock    = DockStyle.Fill;
-            section.Padding = new Padding(0, 49, 0, 0);
+            section.Padding = new Padding(0, 45, 0, 0);
 
             // Navy header bar with white title text
             var titleLabel = new Label
             {
                 Anchor    = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
-                Height    = 46,
+                Height    = 42,
                 Width     = section.ClientSize.Width,
                 Location  = new Point(0, 0),
                 Padding   = new Padding(18, 0, 0, 0),
                 Text      = title,
                 BackColor = SidebarBackColor,
                 ForeColor = Color.White,
-                Font      = new Font("Segoe UI Semibold", 11F, FontStyle.Bold),
+                Font      = new Font("Segoe UI Semibold", 10.5F, FontStyle.Bold),
                 TextAlign = ContentAlignment.MiddleLeft
             };
 
@@ -1081,7 +1125,7 @@ public frmDashboard()
                 Anchor    = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
                 Height    = 3,
                 Width     = section.ClientSize.Width,
-                Location  = new Point(0, 46),
+                Location  = new Point(0, 42),
                 BackColor = AccentGold
             };
 
@@ -1108,8 +1152,8 @@ public frmDashboard()
                 BorderRadius = radius
             };
             panel.ShadowDecoration.Enabled = true;
-            panel.ShadowDecoration.Depth = 4;
-            panel.ShadowDecoration.Color = Color.FromArgb(28, 25, 25, 112);
+            panel.ShadowDecoration.Depth = 3;
+            panel.ShadowDecoration.Color = Color.FromArgb(22, 25, 25, 112);
             return panel;
         }
 
@@ -1128,8 +1172,8 @@ public frmDashboard()
                 RowHeadersVisible = false,
                 SelectionMode = DataGridViewSelectionMode.FullRowSelect,
                 AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.DisplayedCells,
-                ColumnHeadersHeight = 42,
-                RowTemplate = { Height = 34 },
+                ColumnHeadersHeight = 38,
+                RowTemplate = { Height = 31 },
                 GridColor = BorderColor,
                 ScrollBars = ScrollBars.Both
             };
@@ -1140,21 +1184,23 @@ public frmDashboard()
             grid.ThemeStyle.HeaderStyle.BackColor = PrimaryColor;
             grid.ThemeStyle.HeaderStyle.ForeColor = Color.White;
             grid.ThemeStyle.HeaderStyle.Font = new Font("Segoe UI Semibold", 9F, FontStyle.Bold);
-            grid.ThemeStyle.HeaderStyle.Height = 42;
+            grid.ThemeStyle.HeaderStyle.Height = 38;
             grid.ThemeStyle.RowsStyle.BackColor = Color.White;
             grid.ThemeStyle.RowsStyle.ForeColor = TextColor;
             grid.ThemeStyle.RowsStyle.SelectionBackColor = UiTheme.GoldSoft;
             grid.ThemeStyle.RowsStyle.SelectionForeColor = TextColor;
-            grid.ThemeStyle.RowsStyle.Height = 34;
+            grid.ThemeStyle.RowsStyle.Height = 31;
 
             grid.ColumnHeadersDefaultCellStyle.BackColor = PrimaryColor;
             grid.ColumnHeadersDefaultCellStyle.ForeColor = Color.White;
             grid.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI Semibold", 9F, FontStyle.Bold);
             grid.ColumnHeadersDefaultCellStyle.SelectionBackColor = PrimaryColor;
+            grid.ColumnHeadersDefaultCellStyle.Padding = new Padding(8, 0, 8, 0);
             grid.DefaultCellStyle.BackColor = Color.White;
             grid.DefaultCellStyle.ForeColor = TextColor;
             grid.DefaultCellStyle.SelectionBackColor = UiTheme.GoldSoft;
             grid.DefaultCellStyle.SelectionForeColor = TextColor;
+            grid.DefaultCellStyle.Padding = new Padding(8, 0, 8, 0);
             grid.AlternatingRowsDefaultCellStyle.BackColor = UiTheme.SurfaceAlt;
 
             return grid;
@@ -1180,20 +1226,24 @@ public frmDashboard()
             var button = new Guna.UI2.WinForms.Guna2Button
             {
                 Dock             = DockStyle.Fill,
-                Margin           = new Padding(8),
+                Margin           = new Padding(8, 7, 8, 7),
                 Text             = text,
-                FillColor        = Color.White,
+                FillColor        = Color.FromArgb(250, 252, 255),
                 ForeColor        = TextColor,
-                Font             = new Font("Segoe UI Semibold", 9.75F, FontStyle.Bold),
+                Font             = new Font("Segoe UI Semibold", 10F, FontStyle.Bold),
                 Cursor           = Cursors.Hand,
                 BorderColor      = accent,
                 BorderRadius     = 8,
-                BorderThickness  = 2,
-                PressedColor     = Color.FromArgb(245, 245, 252)
+                BorderThickness  = 1,
+                PressedColor     = Color.FromArgb(245, 245, 252),
+                TextAlign        = HorizontalAlignment.Center
             };
-            button.HoverState.FillColor   = accent;
+            button.ShadowDecoration.Enabled = true;
+            button.ShadowDecoration.Depth = 2;
+            button.ShadowDecoration.Color = Color.FromArgb(18, 25, 25, 112);
+            button.HoverState.FillColor   = Color.FromArgb(255, 252, 235);
             button.HoverState.BorderColor = accent;
-            button.HoverState.ForeColor   = Color.White;
+            button.HoverState.ForeColor   = TextColor;
             button.Click += (sender, args) => action();
             return button;
         }
@@ -1244,12 +1294,13 @@ public frmDashboard()
             }
         }
 
-        private async Task LoadDashboardStatisticsAsync()
+        private async Task LoadDashboardStatisticsAsync(bool forceRefresh = false)
         {
+            var stopwatch = Stopwatch.StartNew();
             try
             {
                 statusLabel.Text = "Refreshing school analytics...";
-                var metrics = await _dashboardService.GetMetricsAsync();
+                var metrics = await _dashboardService.GetMetricsAsync(forceRefresh);
 
                 studentCountLabel.Text = metrics.StudentCount.ToString();
                 employeeCountLabel.Text = metrics.EmployeeCount.ToString();
@@ -1258,6 +1309,14 @@ public frmDashboard()
                 feesBalanceLabel.Text = FormatCurrency(metrics.TotalFeesBalance);
                 averageExamLabel.Text = metrics.AverageExamScore.ToString("0.0") + "%";
                 topClassLabel.Text = metrics.TopClass;
+
+                if (_topExpenseLabel != null)
+                {
+                    string cat = metrics.TopExpenseCategory;
+                    string amt = FormatCurrency(metrics.TopExpenseAmount);
+                    _topExpenseLabel.Text = $"{cat}\n{amt}";
+                    _topExpenseLabel.Font = new Font("Segoe UI Semibold", cat.Length > 12 ? 14F : 16F, FontStyle.Bold);
+                }
 
                 if (_fundLabel != null)
                 {
@@ -1269,18 +1328,36 @@ public frmDashboard()
                     _fundLabel.ForeColor = fin.Fund < 0 ? AccentRed : AccentGreen;
                 }
 
-                recentPaymentsGrid.DataSource = metrics.RecentPayments;
-                classSummaryGrid.DataSource = metrics.ClassSummary;
-                leaveSummaryGrid.DataSource = metrics.LeaveSummary;
+                BindGrid(recentPaymentsGrid, metrics.RecentPayments);
+                BindGrid(classSummaryGrid, metrics.ClassSummary);
+                BindGrid(leaveSummaryGrid, metrics.LeaveSummary);
 
                 statusLabel.Text = "Connected to Neat_Academy | " + DateTime.Now.ToString("dd MMM yyyy, h:mm tt");
-                LoggerHelper.LogInfo("Dashboard statistics loaded successfully");
+                LoggerHelper.LogInfo($"Dashboard statistics loaded in {stopwatch.ElapsedMilliseconds}ms");
             }
             catch (Exception ex)
             {
                 statusLabel.Text = "Refresh failed";
                 UIHelper.ShowError("Dashboard could not load live metrics: " + ex.Message, "Dashboard");
                 LoggerHelper.LogError("LoadDashboardStatisticsAsync failed", ex);
+            }
+        }
+
+        private static void BindGrid(DataGridView grid, DataTable table)
+        {
+            if (grid == null)
+            {
+                return;
+            }
+
+            grid.SuspendLayout();
+            try
+            {
+                grid.DataSource = table;
+            }
+            finally
+            {
+                grid.ResumeLayout();
             }
         }
 
@@ -1297,7 +1374,7 @@ public frmDashboard()
             try
             {
                 OpenForm(new frmAddStd(), true);
-                _ = LoadDashboardStatisticsAsync();
+                _ = LoadDashboardStatisticsAsync(true);
             }
             catch (Exception ex)
             {
@@ -1370,7 +1447,7 @@ public frmDashboard()
             try
             {
                 OpenForm(new frmFessPayment());
-                _ = LoadDashboardStatisticsAsync();
+                _ = LoadDashboardStatisticsAsync(true);
             }
             catch (Exception ex)
             {
@@ -1395,7 +1472,7 @@ public frmDashboard()
             try
             {
                 OpenForm(new frmEmpLeave());
-                _ = LoadDashboardStatisticsAsync();
+                _ = LoadDashboardStatisticsAsync(true);
             }
             catch (Exception ex)
             {
@@ -1408,7 +1485,7 @@ public frmDashboard()
             try
             {
                 OpenForm(new frmLeaveDetails());
-                _ = LoadDashboardStatisticsAsync();
+                _ = LoadDashboardStatisticsAsync(true);
             }
             catch (Exception ex)
             {
@@ -1437,7 +1514,7 @@ public frmDashboard()
         {
             try
             {
-                await LoadDashboardStatisticsAsync();
+                await LoadDashboardStatisticsAsync(true);
                 LoggerHelper.LogInfo("frmDashboard loaded successfully");
 
                 // Start weekly fee reminder timer

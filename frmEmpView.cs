@@ -27,6 +27,7 @@ namespace kingdom_Preparatory_School_Management_System
         public frmEmpView()
         {
             InitializeComponent();
+            this.Icon = kingdom_Preparatory_School_Management_System.Common.Branding.AppIcon;
             Common.SessionUi.AttachSignOut(this);
             if (!AuthService.RequireAccess("frmEmpView", this)) return;
 

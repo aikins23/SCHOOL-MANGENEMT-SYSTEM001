@@ -135,6 +135,7 @@ namespace kingdom_Preparatory_School_Management_System
         private frmFessPayment(bool enforceAccess)
         {
             InitializeComponent();
+            this.Icon = kingdom_Preparatory_School_Management_System.Common.Branding.AppIcon;
 
             // Initialize modern architecture
             var studentRepo = new StudentRepository(AppConfig.ConnectionString);
@@ -1728,24 +1729,37 @@ namespace kingdom_Preparatory_School_Management_System
 
             return panel;
         }
-
-
         private string GetSchoolLogoPath()
         {
-            string logoPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources", "app_logo.png");
+            // First try bundled/overridden assets via absolute paths for robustness
+            string logoPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources", "plogo.png");
             if (!File.Exists(logoPath))
-            {
+                logoPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources", "app_logo.png");
+            if (!File.Exists(logoPath))
                 logoPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources", "school_logo.png");
-            }
+            
+            // Try dev-mode paths
             if (!File.Exists(logoPath))
-            {
+                logoPath = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "Resources", "plogo.png"));
+            if (!File.Exists(logoPath))
                 logoPath = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "Resources", "app_logo.png"));
-            }
-            if (!File.Exists(logoPath))
-            {
-                logoPath = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "Resources", "school_logo.png"));
-            }
+
             return File.Exists(logoPath) ? logoPath : "";
+        }
+
+        private Image LoadSchoolLogo()
+        {
+            try
+            {
+                // Prefer the profile's uploaded logo or branding assets
+                var logo = Branding.Logo;
+                if (logo != null) return logo;
+
+                string path = GetSchoolLogoPath();
+                if (!string.IsNullOrEmpty(path)) return Image.FromFile(path);
+            }
+            catch { }
+            return null;
         }
 
         private Control BuildReceiptLogo()

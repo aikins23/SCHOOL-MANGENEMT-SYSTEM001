@@ -47,6 +47,7 @@ namespace kingdom_Preparatory_School_Management_System
         public frmAddStd()
         {
             InitializeComponent();
+            this.Icon = kingdom_Preparatory_School_Management_System.Common.Branding.AppIcon;
             Common.SessionUi.AttachSignOut(this);
             if (!AuthService.RequireAccess("frmAddStd", this)) return;
 

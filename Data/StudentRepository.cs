@@ -28,11 +28,14 @@ namespace kingdom_Preparatory_School_Management_System.Data
                 using (var connection = new OleDbConnection(_connectionString))
                 {
                     await connection.OpenAsync();
+                    bool tenant = await TenantContext.HasSchoolIdColumnAsync(connection, STUDENTS_TABLE);
                     var query = $"SELECT * FROM {STUDENTS_TABLE} WHERE StudentID = ?";
+                    if (tenant) query += TenantContext.FilterClause();
 
                     using (var command = new OleDbCommand(query, connection))
                     {
                         command.Parameters.AddWithValue("?", studentId);
+                        if (tenant) TenantContext.AddSchoolParameter(command);
                         using (var reader = await command.ExecuteReaderAsync())
                         {
                             if (reader.Read())
@@ -60,10 +63,14 @@ namespace kingdom_Preparatory_School_Management_System.Data
                 using (var connection = new OleDbConnection(_connectionString))
                 {
                     await connection.OpenAsync();
-                    var query = $"SELECT * FROM {STUDENTS_TABLE} ORDER BY StudentID";
+                    bool tenant = await TenantContext.HasSchoolIdColumnAsync(connection, STUDENTS_TABLE);
+                    var query = $"SELECT * FROM {STUDENTS_TABLE} WHERE 1=1";
+                    if (tenant) query += TenantContext.FilterClause();
+                    query += " ORDER BY StudentID";
 
                     using (var command = new OleDbCommand(query, connection))
                     {
+                        if (tenant) TenantContext.AddSchoolParameter(command);
                         using (var reader = await command.ExecuteReaderAsync())
                         {
                             while (reader.Read())
@@ -91,11 +98,17 @@ namespace kingdom_Preparatory_School_Management_System.Data
                 using (var connection = new OleDbConnection(_connectionString))
                 {
                     await connection.OpenAsync();
+                    bool tenant = await TenantContext.HasSchoolIdColumnAsync(connection, STUDENTS_TABLE);
                     var query = $"SELECT * FROM {STUDENTS_TABLE} WHERE ClassID = ? ORDER BY FirstName, LastName";
+                    if (tenant)
+                    {
+                        query = $"SELECT * FROM {STUDENTS_TABLE} WHERE ClassID = ?{TenantContext.FilterClause()} ORDER BY FirstName, LastName";
+                    }
 
                     using (var command = new OleDbCommand(query, connection))
                     {
                         command.Parameters.AddWithValue("?", classId);
+                        if (tenant) TenantContext.AddSchoolParameter(command);
                         using (var reader = await command.ExecuteReaderAsync())
                         {
                             while (reader.Read())
@@ -123,6 +136,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
                 using (var connection = new OleDbConnection(_connectionString))
                 {
                     await connection.OpenAsync();
+                    bool tenant = await TenantContext.HasSchoolIdColumnAsync(connection, STUDENTS_TABLE);
 
                     var query = $@"
                         INSERT INTO {STUDENTS_TABLE} 
@@ -131,10 +145,21 @@ namespace kingdom_Preparatory_School_Management_System.Data
                          admission_date, Std_pic) 
                         VALUES 
                         (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                    if (tenant)
+                    {
+                        query = $@"
+                        INSERT INTO {STUDENTS_TABLE} 
+                        (FirstName, LastName, DOB, Gender, Email, ClassID, HomeTown, 
+                         Residence, Allegies, EmergencyConatct, GuidanceName, GuidianceEmail, Guidiance_Location, 
+                         admission_date, Std_pic, SchoolId) 
+                        VALUES 
+                        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                    }
 
                     using (var command = new OleDbCommand(query, connection))
                     {
                         AddStudentParameters(command, student);
+                        if (tenant) TenantContext.AddSchoolParameter(command);
 
                         var result = await command.ExecuteNonQueryAsync();
                         
@@ -170,6 +195,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
                 using (var connection = new OleDbConnection(_connectionString))
                 {
                     await connection.OpenAsync();
+                    bool tenant = await TenantContext.HasSchoolIdColumnAsync(connection, STUDENTS_TABLE);
 
                     var query = $@"
                         UPDATE {STUDENTS_TABLE} 
@@ -180,11 +206,13 @@ namespace kingdom_Preparatory_School_Management_System.Data
                             Guidiance_Location = ?, admission_date = ?, 
                             Std_pic = ? 
                         WHERE StudentID = ?";
+                    if (tenant) query += TenantContext.FilterClause();
 
                     using (var command = new OleDbCommand(query, connection))
                     {
                         AddStudentParameters(command, student);
                         command.Parameters.AddWithValue("?", student.StudentID);
+                        if (tenant) TenantContext.AddSchoolParameter(command);
 
                         var result = await command.ExecuteNonQueryAsync();
                         return result > 0;
@@ -204,11 +232,14 @@ namespace kingdom_Preparatory_School_Management_System.Data
                 using (var connection = new OleDbConnection(_connectionString))
                 {
                     await connection.OpenAsync();
+                    bool tenant = await TenantContext.HasSchoolIdColumnAsync(connection, STUDENTS_TABLE);
                     var query = $"DELETE FROM {STUDENTS_TABLE} WHERE StudentID = ?";
+                    if (tenant) query += TenantContext.FilterClause();
 
                     using (var command = new OleDbCommand(query, connection))
                     {
                         command.Parameters.AddWithValue("?", studentId);
+                        if (tenant) TenantContext.AddSchoolParameter(command);
                         var result = await command.ExecuteNonQueryAsync();
                         return result > 0;
                     }
@@ -227,11 +258,14 @@ namespace kingdom_Preparatory_School_Management_System.Data
                 using (var connection = new OleDbConnection(_connectionString))
                 {
                     await connection.OpenAsync();
+                    bool tenant = await TenantContext.HasSchoolIdColumnAsync(connection, STUDENTS_TABLE);
                     var query = $"SELECT COUNT(*) FROM {STUDENTS_TABLE} WHERE StudentID = ?";
+                    if (tenant) query += TenantContext.FilterClause();
 
                     using (var command = new OleDbCommand(query, connection))
                     {
                         command.Parameters.AddWithValue("?", studentId);
+                        if (tenant) TenantContext.AddSchoolParameter(command);
                         var count = Convert.ToInt32(await command.ExecuteScalarAsync());
                         return count > 0;
                     }
@@ -250,10 +284,13 @@ namespace kingdom_Preparatory_School_Management_System.Data
                 using (var connection = new OleDbConnection(_connectionString))
                 {
                     await connection.OpenAsync();
+                    bool tenant = await TenantContext.HasSchoolIdColumnAsync(connection, STUDENTS_TABLE);
                     var query = $"SELECT ISNULL(MAX(StudentID), 0) + 1 FROM {STUDENTS_TABLE}";
+                    if (tenant) query += " WHERE SchoolId = ?";
 
                     using (var command = new OleDbCommand(query, connection))
                     {
+                        if (tenant) TenantContext.AddSchoolParameter(command);
                         var result = await command.ExecuteScalarAsync();
                         return result?.ToString() ?? "1";
                     }
@@ -273,6 +310,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
                 using (var connection = new OleDbConnection(_connectionString))
                 {
                     await connection.OpenAsync();
+                    bool tenant = await TenantContext.HasSchoolIdColumnAsync(connection, STUDENTS_TABLE);
                     // Note: SQL Server OLE DB optimized query
                     var query = $@"
                         SELECT 
@@ -296,11 +334,13 @@ namespace kingdom_Preparatory_School_Management_System.Data
                         FROM {STUDENTS_TABLE}
                         WHERE 1=1";
 
+                    if (tenant) query += TenantContext.FilterClause();
                     if (!string.IsNullOrWhiteSpace(filterId)) query += " AND StudentID = ?";
                     if (!string.IsNullOrWhiteSpace(filterClass)) query += " AND ClassID = ?";
 
                     using (var command = new OleDbCommand(query, connection))
                     {
+                        if (tenant) TenantContext.AddSchoolParameter(command);
                         if (!string.IsNullOrWhiteSpace(filterId)) command.Parameters.AddWithValue("?", filterId);
                         if (!string.IsNullOrWhiteSpace(filterClass)) command.Parameters.AddWithValue("?", filterClass);
 
@@ -327,9 +367,11 @@ namespace kingdom_Preparatory_School_Management_System.Data
                 using (var connection = new OleDbConnection(_connectionString))
                 {
                     await connection.OpenAsync();
+                    bool tenant = await TenantContext.HasSchoolIdColumnAsync(connection, STUDENTS_TABLE);
                     using (var transaction = connection.BeginTransaction())
                     {
                         var query = $"UPDATE {STUDENTS_TABLE} SET ClassID = ? WHERE StudentID = ?";
+                        if (tenant) query += TenantContext.FilterClause();
                         using (var command = new OleDbCommand(query, connection, transaction))
                         {
                             foreach (var id in studentIds)
@@ -337,6 +379,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
                                 command.Parameters.Clear();
                                 command.Parameters.AddWithValue("?", newClassId);
                                 command.Parameters.AddWithValue("?", id);
+                                if (tenant) TenantContext.AddSchoolParameter(command);
                                 await command.ExecuteNonQueryAsync();
                             }
                         }
@@ -358,6 +401,8 @@ namespace kingdom_Preparatory_School_Management_System.Data
                 using (var connection = new OleDbConnection(_connectionString))
                 {
                     await connection.OpenAsync();
+                    bool studentTenant = await TenantContext.HasSchoolIdColumnAsync(connection, STUDENTS_TABLE);
+                    bool archiveTenant = await TenantContext.HasSchoolIdColumnAsync(connection, "Rolled_Out_Students");
                     using (var transaction = connection.BeginTransaction())
                     {
                         var student = await GetByIdAsync(studentId);
@@ -367,6 +412,13 @@ namespace kingdom_Preparatory_School_Management_System.Data
                             INSERT INTO Rolled_Out_Students
                             (StudentID, FirstName, LastName, DOB, Gender, Email, ClassID, HomeTown, Residence, Allegies, EmergencyConatct, GuidanceName, GuidianceEmail, Guidiance_Location, admission_date, [date], Std_pic)
                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                        if (archiveTenant)
+                        {
+                            insertQuery = @"
+                            INSERT INTO Rolled_Out_Students
+                            (StudentID, FirstName, LastName, DOB, Gender, Email, ClassID, HomeTown, Residence, Allegies, EmergencyConatct, GuidanceName, GuidianceEmail, Guidiance_Location, admission_date, [date], Std_pic, SchoolId)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                        }
                         
                         using (var insCmd = new OleDbCommand(insertQuery, connection, transaction))
                         {
@@ -387,13 +439,16 @@ namespace kingdom_Preparatory_School_Management_System.Data
                             insCmd.Parameters.AddWithValue("?", student.AdmissionDate);
                             insCmd.Parameters.AddWithValue("?", DateTime.Today);
                             insCmd.Parameters.AddWithValue("?", student.ProfilePhoto ?? new byte[0]);
+                            if (archiveTenant) TenantContext.AddSchoolParameter(insCmd);
                             await insCmd.ExecuteNonQueryAsync();
                         }
 
                         var deleteQuery = $"DELETE FROM {STUDENTS_TABLE} WHERE StudentID = ?";
+                        if (studentTenant) deleteQuery += TenantContext.FilterClause();
                         using (var delCmd = new OleDbCommand(deleteQuery, connection, transaction))
                         {
                             delCmd.Parameters.AddWithValue("?", studentId);
+                            if (studentTenant) TenantContext.AddSchoolParameter(delCmd);
                             await delCmd.ExecuteNonQueryAsync();
                         }
 
@@ -408,6 +463,69 @@ namespace kingdom_Preparatory_School_Management_System.Data
             }
         }
 
+        public async Task<bool> RestoreAsync(string studentId)
+        {
+            try
+            {
+                using (var connection = new OleDbConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+                    bool studentTenant = await TenantContext.HasSchoolIdColumnAsync(connection, STUDENTS_TABLE);
+                    bool archiveTenant = await TenantContext.HasSchoolIdColumnAsync(connection, "Rolled_Out_Students");
+                    using (var transaction = connection.BeginTransaction())
+                    {
+                        try
+                        {
+                            // 1. Move back to main table
+                            var moveSql = @"INSERT INTO Students 
+                                            SELECT * FROM Rolled_Out_Students WHERE StudentID = ?";
+                            if (archiveTenant) moveSql += TenantContext.FilterClause();
+                            using (var moveCmd = new OleDbCommand(moveSql, connection, transaction))
+                            {
+                                moveCmd.Parameters.AddWithValue("?", studentId);
+                                if (archiveTenant) TenantContext.AddSchoolParameter(moveCmd);
+                                int rows = await moveCmd.ExecuteNonQueryAsync();
+                                if (rows == 0) return false;
+                            }
+
+                            // 2. Delete from archive
+                            var delSql = "DELETE FROM Rolled_Out_Students WHERE StudentID = ?";
+                            if (archiveTenant) delSql += TenantContext.FilterClause();
+                            using (var delCmd = new OleDbCommand(delSql, connection, transaction))
+                            {
+                                delCmd.Parameters.AddWithValue("?", studentId);
+                                if (archiveTenant) TenantContext.AddSchoolParameter(delCmd);
+                                await delCmd.ExecuteNonQueryAsync();
+                            }
+
+                            if (studentTenant)
+                            {
+                                using (var scopeCmd = new OleDbCommand($"UPDATE {STUDENTS_TABLE} SET SchoolId = ? WHERE StudentID = ?", connection, transaction))
+                                {
+                                    TenantContext.AddSchoolParameter(scopeCmd);
+                                    scopeCmd.Parameters.AddWithValue("?", studentId);
+                                    await scopeCmd.ExecuteNonQueryAsync();
+                                }
+                            }
+
+                            transaction.Commit();
+                            return true;
+                        }
+                        catch
+                        {
+                            transaction.Rollback();
+                            throw;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Services.LoggerHelper.LogError($"Error restoring student {studentId}", ex);
+                return false;
+            }
+        }
+
         public async Task<DataTable> GetRolledOutAsTableAsync()
         {
             var table = new DataTable();
@@ -416,38 +534,60 @@ namespace kingdom_Preparatory_School_Management_System.Data
                 using (var connection = new OleDbConnection(_connectionString))
                 {
                     await connection.OpenAsync();
-                    var query = @"
-                        SELECT 
-                            StudentID AS [ID],
-                            StudentID AS [STUDENT ID],
-                            FirstName AS [FIRST NAME],
-                            LastName AS [LAST NAME],
-                            DOB AS [DATE OF BIRTH],
-                            Gender AS [GENDER],
-                            Email AS [EMAIL],
-                            ClassID AS [CLASS ID],
-                            HomeTown AS [HOME TOWN],
-                            Residence AS [RESIDENCE],
-                            Allegies AS [ALLERGIES],
-                            EmergencyConatct AS [EMERGENCY CONTACT],
-                            GuidanceName AS [GUIDANCE NAME],
-                            GuidianceEmail AS [GUIDANCE EMAIL],
-                            Guidiance_Location AS [GUIDANCE LOCATION],
-                            admission_date AS [ADMISSION DATE],
-                            Std_pic AS [STUDENT PIC]
-                        FROM Rolled_Out_Students
-                        ORDER BY [date] DESC";
-                    
+                    bool tenant = await TenantContext.HasSchoolIdColumnAsync(connection, "Rolled_Out_Students");
+                    var query = @"SELECT StudentID AS ID, FirstName + ' ' + LastName AS [FULL NAME], 
+                                         Gender AS GENDER, ClassID AS [CLASS], admission_date AS [ADMISSION DATE] 
+                                  FROM Rolled_Out_Students
+                                  WHERE 1=1
+                                  ORDER BY [date] DESC";
+                    if (tenant)
+                    {
+                        query = query.Replace("ORDER BY", TenantContext.FilterClause() + " ORDER BY");
+                    }
                     using (var command = new OleDbCommand(query, connection))
                     using (var adapter = new OleDbDataAdapter(command))
                     {
+                        if (tenant) TenantContext.AddSchoolParameter(command);
                         adapter.Fill(table);
                     }
                 }
             }
             catch (Exception ex)
             {
-                throw new DataException("Error retrieving rolled out students", ex);
+                Services.LoggerHelper.LogError("Error retrieving rolled out students table", ex);
+            }
+            return table;
+        }
+
+        public async Task<DataTable> GetGraduatedAsTableAsync()
+        {
+            var table = new DataTable();
+            try
+            {
+                using (var connection = new OleDbConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+                    bool tenant = await TenantContext.HasSchoolIdColumnAsync(connection, STUDENTS_TABLE);
+                    var query = @"SELECT StudentID AS ID, FirstName + ' ' + LastName AS [FULL NAME], 
+                                         Gender AS GENDER, admission_date AS [ADMISSION DATE] 
+                                  FROM Students 
+                                  WHERE UPPER(ClassID) = 'GRADUATED'
+                                  ORDER BY StudentID";
+                    if (tenant)
+                    {
+                        query = query.Replace("ORDER BY", TenantContext.FilterClause() + " ORDER BY");
+                    }
+                    using (var command = new OleDbCommand(query, connection))
+                    using (var adapter = new OleDbDataAdapter(command))
+                    {
+                        if (tenant) TenantContext.AddSchoolParameter(command);
+                        adapter.Fill(table);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Services.LoggerHelper.LogError("Error retrieving graduated students table", ex);
             }
             return table;
         }

@@ -13,6 +13,11 @@ namespace kingdom_Preparatory_School_Management_System.Common
             MessageBox.Show(message, title, MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
+        public static void ShowInfo(string message, string title = "Information")
+        {
+            MessageBox.Show(message, title, MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+
         public static void ShowError(string message, string title = "Error")
         {
             MessageBox.Show(message, title, MessageBoxButtons.OK, MessageBoxIcon.Error);

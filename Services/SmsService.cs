@@ -277,6 +277,16 @@ Password: {password}{linkLine}
             return SendSmsAsync(hrPhone, message, SmsSenderIds.EmployeeAdmission);
         }
 
+        public static Task<(bool Success, string Message)> SendAttendanceAlertAsync(
+            string recipient, string studentName, string status, DateTime date)
+        {
+            string dateStr = date.ToString("dddd, MMMM dd, yyyy");
+            string message = 
+                $"Dear Guardian, your ward {studentName} was marked {status.ToUpperInvariant()} in school today, {dateStr}. " +
+                $"Please contact the school office for any inquiries. - {SchoolProfile.DisplayName}";
+            return SendSmsAsync(recipient, message, "ATTENDANCE");
+        }
+
         private static void Log(string eventType, string recipient, string senderId, string details)
         {
             try

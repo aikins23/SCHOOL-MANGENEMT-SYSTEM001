@@ -4,29 +4,30 @@ namespace KingdomPrep.Web.Core.Auth;
 
 /// <summary>
 /// Verifies/creates passwords compatible with the desktop AuthService:
-/// PBKDF2/HMAC-SHA1, 100000 iterations, 8-byte salt, 16-byte hash, stored as
-/// "P2$&lt;iterations&gt;$&lt;base64Salt&gt;$&lt;base64Hash&gt;".
-/// A stored value that does not start with "P2$" is treated as legacy plaintext
-/// (the desktop upgrades those on next login).
+/// current hashes use PBKDF2/HMAC-SHA256 and are stored as
+/// "P3$&lt;iterations&gt;$&lt;base64Salt&gt;$&lt;base64Hash&gt;".
+/// P2 HMAC-SHA1 hashes and legacy plaintext are still accepted for migration.
 /// </summary>
 public static class PasswordHasher
 {
-    private const int Iterations = 100000;
-    private const int SaltSize = 8;
-    private const int HashSize = 16;
-    private const string Prefix = "P2";
+    private const int Iterations = 150000;
+    private const int SaltSize = 16;
+    private const int HashSize = 32;
+    private const string LegacyPrefix = "P2";
+    private const string CurrentPrefix = "P3";
 
     public static string Hash(string password)
     {
         byte[] salt = RandomNumberGenerator.GetBytes(SaltSize);
-        byte[] hash = Derive(password, salt, Iterations, HashSize);
-        return $"{Prefix}${Iterations}${Convert.ToBase64String(salt)}${Convert.ToBase64String(hash)}";
+        byte[] hash = Derive(password, salt, Iterations, HashSize, HashAlgorithmName.SHA256);
+        return $"{CurrentPrefix}${Iterations}${Convert.ToBase64String(salt)}${Convert.ToBase64String(hash)}";
     }
 
     public static bool Verify(string password, string stored)
     {
         if (string.IsNullOrEmpty(stored)) return false;
-        if (!stored.StartsWith(Prefix + "$", StringComparison.Ordinal))
+        if (!stored.StartsWith(CurrentPrefix + "$", StringComparison.Ordinal)
+            && !stored.StartsWith(LegacyPrefix + "$", StringComparison.Ordinal))
             return stored == password; // legacy plaintext
 
         string[] parts = stored.Split('$');
@@ -40,13 +41,13 @@ public static class PasswordHasher
         }
         catch (FormatException) { return false; }
 
-        byte[] actual = Derive(password, salt, iterations, expected.Length);
+        var algorithm = parts[0] == CurrentPrefix ? HashAlgorithmName.SHA256 : HashAlgorithmName.SHA1;
+        byte[] actual = Derive(password, salt, iterations, expected.Length, algorithm);
         return CryptographicOperations.FixedTimeEquals(actual, expected);
     }
 
-    private static byte[] Derive(string password, byte[] salt, int iterations, int length)
+    private static byte[] Derive(string password, byte[] salt, int iterations, int length, HashAlgorithmName algorithm)
     {
-        using var pbkdf2 = new Rfc2898DeriveBytes(password, salt, iterations, HashAlgorithmName.SHA1);
-        return pbkdf2.GetBytes(length);
+        return Rfc2898DeriveBytes.Pbkdf2(password, salt, iterations, algorithm, length);
     }
 }

@@ -32,9 +32,9 @@ namespace kingdom_Preparatory_School_Management_System.Services
 
         // Brand colours come from the configurable School Information settings (SchoolProfile),
         // honouring the transient preview override. Black/white stay fixed.
-        private static XColor Navy      => ToX(Common.SchoolProfile.ReportPrimaryColor);
-        private static XColor LightBlue => ToX(Common.SchoolProfile.ReportSecondaryColor);
-        private static XColor Gold      => ToX(Common.SchoolProfile.ReportAccentColor);
+        private static XColor Primary   => ToX(Common.SchoolProfile.ReportPrimaryColor);
+        private static XColor Secondary => ToX(Common.SchoolProfile.ReportSecondaryColor);
+        private static XColor Accent    => ToX(Common.SchoolProfile.ReportAccentColor);
         private static readonly XColor Black = XColors.Black;
         private static readonly XColor White = XColors.White;
 
@@ -109,7 +109,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
 
         private double DrawHeader(XGraphics gfx, double y, ReportCardData data)
         {
-            DrawFilledCell(gfx, ReportX, y, ReportWidth, HeaderHeight, Navy, 1.2);
+            DrawFilledCell(gfx, ReportX, y, ReportWidth, HeaderHeight, Primary, 1.2);
 
             double logoSize = 76;
             double logoX = ReportX + 25;
@@ -232,14 +232,14 @@ namespace kingdom_Preparatory_School_Management_System.Services
             double x = ReportX;
             for (int i = 0; i < headers.Length; i++)
             {
-                DrawFilledCell(gfx, x, y, widths[i], SubjectHeaderHeight, LightBlue);
+                DrawFilledCell(gfx, x, y, widths[i], SubjectHeaderHeight, Secondary);
                 DrawMultilineCenter(gfx, headers[i], x, y, widths[i], SubjectHeaderHeight, Font(7, true), Black);
                 x += widths[i];
             }
 
             double gradingX = ReportX + leftTableW;
-            DrawFilledCell(gfx, gradingX, y, gradingW, SubjectHeaderHeight, Navy);
-            CenterTextInCell(gfx, "Grading System", gradingX, y, gradingW, SubjectHeaderHeight, Font(8, true), Gold);
+            DrawFilledCell(gfx, gradingX, y, gradingW, SubjectHeaderHeight, Primary);
+            CenterTextInCell(gfx, "Grading System", gradingX, y, gradingW, SubjectHeaderHeight, Font(8, true), Accent);
 
             double rowY = y + SubjectHeaderHeight;
             for (int i = 0; i < subjects.Count; i++)
@@ -251,7 +251,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
 
             var total = BuildTotalRow(subjects);
             DrawSubjectRow(gfx, total, ReportX, rowY, widths, true);
-            DrawFilledCell(gfx, gradingX, rowY, gradingW, SubjectRowHeight, LightBlue);
+            DrawFilledCell(gfx, gradingX, rowY, gradingW, SubjectRowHeight, Secondary);
 
             return rowY + SubjectRowHeight;
         }
@@ -270,7 +270,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
             };
 
             var font = Font(7.6, total || row.Subject.Length > 0);
-            XColor fill = total ? LightBlue : White;
+            XColor fill = total ? Secondary : White;
             double cellX = x;
             for (int i = 0; i < values.Length; i++)
             {
@@ -293,7 +293,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
                 double cellX = x;
                 for (int i = 0; i < headers.Length; i++)
                 {
-                    DrawFilledCell(gfx, cellX, y, widths[i], SubjectRowHeight, LightBlue);
+                    DrawFilledCell(gfx, cellX, y, widths[i], SubjectRowHeight, Secondary);
                     CenterTextInCell(gfx, headers[i], cellX, y, widths[i], SubjectRowHeight, Font(6.2, true));
                     cellX += widths[i];
                 }
@@ -403,8 +403,8 @@ namespace kingdom_Preparatory_School_Management_System.Services
         {
             double labelW = 84;
             double gridW = ReportWidth - labelW;
-            DrawFilledCell(gfx, ReportX, y, labelW, BottomLegendHeight, Navy);
-            CenterTextInCell(gfx, "Grading System", ReportX, y, labelW, BottomLegendHeight, Font(7, true), Gold);
+            DrawFilledCell(gfx, ReportX, y, labelW, BottomLegendHeight, Primary);
+            CenterTextInCell(gfx, "Grading System", ReportX, y, labelW, BottomLegendHeight, Font(7, true), Accent);
 
             double labelColW = 36;
             double levelW = (gridW - labelColW) / GradeLevels.Length;
@@ -414,7 +414,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
             for (int r = 0; r < labels.Length; r++)
             {
                 double rowY = y + r * rowH;
-                DrawFilledCell(gfx, ReportX + labelW, rowY, labelColW, rowH, LightBlue);
+                DrawFilledCell(gfx, ReportX + labelW, rowY, labelColW, rowH, Secondary);
                 CenterTextInCell(gfx, labels[r], ReportX + labelW, rowY, labelColW, rowH, Font(5.5, true));
 
                 for (int i = 0; i < GradeLevels.Length; i++)
@@ -452,8 +452,8 @@ namespace kingdom_Preparatory_School_Management_System.Services
             // Logo-absent placeholder: show only the configurable abbreviation. The header beside it
             // already prints the full school name, location and phone from School Information, so we
             // avoid any hardcoded school motto/town that would be wrong for another school.
-            DrawCell(gfx, x, y, width, height, Gold, 1.2);
-            CenterTextInCell(gfx, Common.StudentId.Abbrev, x, y + (height - 18) / 2, width, 18, Font(16, true), Gold);
+            DrawCell(gfx, x, y, width, height, Accent, 1.2);
+            CenterTextInCell(gfx, Common.StudentId.Abbrev, x, y + (height - 18) / 2, width, 18, Font(16, true), Accent);
         }
 
         private void DrawImageOrPhotoPlaceholder(XGraphics gfx, byte[] imageBytes, double x, double y, double width, double height)

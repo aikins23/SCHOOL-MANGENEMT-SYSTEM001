@@ -14,6 +14,13 @@ namespace kingdom_Preparatory_School_Management_System.Data
     public class TransportRepository : ITransportRepository
     {
         private readonly string _connectionString;
+        private const string BusesTable = "Buses";
+        private const string RoutesTable = "BusRoutes";
+        private const string StudentTransportTable = "StudentTransport";
+        private const string TransportPaymentTable = "TransportPayment";
+        private const string ReminderLogTable = "TransportReminderLog";
+        private const string StudentsTable = "Students";
+        private const string AttendanceTable = "Attendance";
 
         public TransportRepository(string connectionString)
         {
@@ -62,6 +69,8 @@ namespace kingdom_Preparatory_School_Management_System.Data
                         CONSTRAINT PK_TransportReminderLog PRIMARY KEY (StudentID, Period));";
                 using (var cmd = new OleDbCommand(tRem, c)) await cmd.ExecuteNonQueryAsync();
             }
+
+            await TenantSchema.EnsureTenantColumnsAsync(_connectionString);
         }
 
         public async Task<List<Bus>> GetBusesAsync(string search)
@@ -70,12 +79,15 @@ namespace kingdom_Preparatory_School_Management_System.Data
             using (var c = new OleDbConnection(_connectionString))
             {
                 await c.OpenAsync();
-                string sql = "SELECT * FROM Buses";
+                var tenant = await TenantContext.HasSchoolIdColumnAsync(c, BusesTable);
+                string sql = "SELECT * FROM Buses WHERE 1=1";
                 bool s = !string.IsNullOrWhiteSpace(search);
-                if (s) sql += " WHERE Label LIKE ? OR RegNumber LIKE ? OR DriverName LIKE ?";
+                if (tenant) sql += TenantContext.FilterClause();
+                if (s) sql += " AND (Label LIKE ? OR RegNumber LIKE ? OR DriverName LIKE ?)";
                 sql += " ORDER BY Label";
                 using (var cmd = new OleDbCommand(sql, c))
                 {
+                    if (tenant) TenantContext.AddSchoolParameter(cmd);
                     if (s)
                     {
                         string like = "%" + search.Trim() + "%";
@@ -95,7 +107,11 @@ namespace kingdom_Preparatory_School_Management_System.Data
             using (var c = new OleDbConnection(_connectionString))
             {
                 await c.OpenAsync();
-                const string sql = @"INSERT INTO Buses (Label,RegNumber,DriverName,DriverContact,Capacity,Notes,AddedDate)
+                var tenant = await TenantContext.HasSchoolIdColumnAsync(c, BusesTable);
+                var sql = tenant
+                    ? @"INSERT INTO Buses (Label,RegNumber,DriverName,DriverContact,Capacity,Notes,AddedDate,SchoolId)
+                    VALUES (?,?,?,?,?,?,?,?)"
+                    : @"INSERT INTO Buses (Label,RegNumber,DriverName,DriverContact,Capacity,Notes,AddedDate)
                     VALUES (?,?,?,?,?,?,?)";
                 using (var cmd = new OleDbCommand(sql, c))
                 {
@@ -106,6 +122,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
                     cmd.Parameters.AddWithValue("?", b.Capacity);
                     cmd.Parameters.AddWithValue("?", b.Notes ?? "");
                     cmd.Parameters.AddWithValue("?", TruncateSeconds(DateTime.Now));
+                    if (tenant) TenantContext.AddSchoolParameter(cmd);
                     await cmd.ExecuteNonQueryAsync();
                     using (var idc = new OleDbCommand("SELECT @@IDENTITY", c))
                     {
@@ -121,7 +138,9 @@ namespace kingdom_Preparatory_School_Management_System.Data
             using (var c = new OleDbConnection(_connectionString))
             {
                 await c.OpenAsync();
-                const string sql = @"UPDATE Buses SET Label=?,RegNumber=?,DriverName=?,DriverContact=?,Capacity=?,Notes=? WHERE BusId=?";
+                var tenant = await TenantContext.HasSchoolIdColumnAsync(c, BusesTable);
+                var sql = @"UPDATE Buses SET Label=?,RegNumber=?,DriverName=?,DriverContact=?,Capacity=?,Notes=? WHERE BusId=?";
+                if (tenant) sql += TenantContext.FilterClause();
                 using (var cmd = new OleDbCommand(sql, c))
                 {
                     cmd.Parameters.AddWithValue("?", b.Label ?? "");
@@ -131,6 +150,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
                     cmd.Parameters.AddWithValue("?", b.Capacity);
                     cmd.Parameters.AddWithValue("?", b.Notes ?? "");
                     cmd.Parameters.AddWithValue("?", b.BusId);
+                    if (tenant) TenantContext.AddSchoolParameter(cmd);
                     await cmd.ExecuteNonQueryAsync();
                 }
             }
@@ -141,16 +161,24 @@ namespace kingdom_Preparatory_School_Management_System.Data
             using (var c = new OleDbConnection(_connectionString))
             {
                 await c.OpenAsync();
+                var busTenant = await TenantContext.HasSchoolIdColumnAsync(c, BusesTable);
+                var routeTenant = await TenantContext.HasSchoolIdColumnAsync(c, RoutesTable);
                 int used;
-                using (var cmd = new OleDbCommand("SELECT COUNT(*) FROM BusRoutes WHERE BusId=?", c))
+                var usedSql = "SELECT COUNT(*) FROM BusRoutes WHERE BusId=?";
+                if (routeTenant) usedSql += TenantContext.FilterClause();
+                using (var cmd = new OleDbCommand(usedSql, c))
                 {
                     cmd.Parameters.AddWithValue("?", busId);
+                    if (routeTenant) TenantContext.AddSchoolParameter(cmd);
                     used = Convert.ToInt32(await cmd.ExecuteScalarAsync());
                 }
                 if (used > 0) return false;
-                using (var cmd = new OleDbCommand("DELETE FROM Buses WHERE BusId=?", c))
+                var delSql = "DELETE FROM Buses WHERE BusId=?";
+                if (busTenant) delSql += TenantContext.FilterClause();
+                using (var cmd = new OleDbCommand(delSql, c))
                 {
                     cmd.Parameters.AddWithValue("?", busId);
+                    if (busTenant) TenantContext.AddSchoolParameter(cmd);
                     await cmd.ExecuteNonQueryAsync();
                 }
                 return true;
@@ -163,11 +191,29 @@ namespace kingdom_Preparatory_School_Management_System.Data
             using (var c = new OleDbConnection(_connectionString))
             {
                 await c.OpenAsync();
-                const string sql = @"SELECT r.*, b.Label AS BusLabel FROM BusRoutes r
-                    LEFT JOIN Buses b ON r.BusId=b.BusId ORDER BY r.RouteName";
+                var routeTenant = await TenantContext.HasSchoolIdColumnAsync(c, RoutesTable);
+                var busTenant = await TenantContext.HasSchoolIdColumnAsync(c, BusesTable);
+                var sql = @"SELECT r.*, b.Label AS BusLabel FROM BusRoutes r
+                    LEFT JOIN Buses b ON r.BusId=b.BusId";
+                if (busTenant)
+                {
+                    sql += TenantContext.FilterClause("b");
+                }
+
+                sql += " WHERE 1=1";
+                if (routeTenant)
+                {
+                    sql += TenantContext.FilterClause("r");
+                }
+
+                sql += " ORDER BY r.RouteName";
                 using (var cmd = new OleDbCommand(sql, c))
-                using (var rd = await cmd.ExecuteReaderAsync())
-                    while (await rd.ReadAsync()) list.Add(MapRoute(rd));
+                {
+                    if (busTenant) TenantContext.AddSchoolParameter(cmd);
+                    if (routeTenant) TenantContext.AddSchoolParameter(cmd);
+                    using (var rd = await cmd.ExecuteReaderAsync())
+                        while (await rd.ReadAsync()) list.Add(MapRoute(rd));
+                }
             }
             return list;
         }
@@ -177,7 +223,11 @@ namespace kingdom_Preparatory_School_Management_System.Data
             using (var c = new OleDbConnection(_connectionString))
             {
                 await c.OpenAsync();
-                const string sql = @"INSERT INTO BusRoutes (RouteName,Fee,PaymentTerm,BusId,Stops,Notes)
+                var tenant = await TenantContext.HasSchoolIdColumnAsync(c, RoutesTable);
+                var sql = tenant
+                    ? @"INSERT INTO BusRoutes (RouteName,Fee,PaymentTerm,BusId,Stops,Notes,SchoolId)
+                    VALUES (?,?,?,?,?,?,?)"
+                    : @"INSERT INTO BusRoutes (RouteName,Fee,PaymentTerm,BusId,Stops,Notes)
                     VALUES (?,?,?,?,?,?)";
                 using (var cmd = new OleDbCommand(sql, c))
                 {
@@ -187,6 +237,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
                     cmd.Parameters.Add("?", OleDbType.Integer).Value = (object)r.BusId ?? DBNull.Value;
                     cmd.Parameters.AddWithValue("?", r.Stops ?? "");
                     cmd.Parameters.AddWithValue("?", r.Notes ?? "");
+                    if (tenant) TenantContext.AddSchoolParameter(cmd);
                     await cmd.ExecuteNonQueryAsync();
                     using (var idc = new OleDbCommand("SELECT @@IDENTITY", c))
                     {
@@ -202,7 +253,9 @@ namespace kingdom_Preparatory_School_Management_System.Data
             using (var c = new OleDbConnection(_connectionString))
             {
                 await c.OpenAsync();
-                const string sql = @"UPDATE BusRoutes SET RouteName=?,Fee=?,PaymentTerm=?,BusId=?,Stops=?,Notes=? WHERE RouteId=?";
+                var tenant = await TenantContext.HasSchoolIdColumnAsync(c, RoutesTable);
+                var sql = @"UPDATE BusRoutes SET RouteName=?,Fee=?,PaymentTerm=?,BusId=?,Stops=?,Notes=? WHERE RouteId=?";
+                if (tenant) sql += TenantContext.FilterClause();
                 using (var cmd = new OleDbCommand(sql, c))
                 {
                     cmd.Parameters.AddWithValue("?", r.RouteName ?? "");
@@ -212,6 +265,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
                     cmd.Parameters.AddWithValue("?", r.Stops ?? "");
                     cmd.Parameters.AddWithValue("?", r.Notes ?? "");
                     cmd.Parameters.AddWithValue("?", r.RouteId);
+                    if (tenant) TenantContext.AddSchoolParameter(cmd);
                     await cmd.ExecuteNonQueryAsync();
                 }
             }
@@ -222,9 +276,13 @@ namespace kingdom_Preparatory_School_Management_System.Data
             using (var c = new OleDbConnection(_connectionString))
             {
                 await c.OpenAsync();
-                using (var cmd = new OleDbCommand("DELETE FROM BusRoutes WHERE RouteId=?", c))
+                var tenant = await TenantContext.HasSchoolIdColumnAsync(c, RoutesTable);
+                var sql = "DELETE FROM BusRoutes WHERE RouteId=?";
+                if (tenant) sql += TenantContext.FilterClause();
+                using (var cmd = new OleDbCommand(sql, c))
                 {
                     cmd.Parameters.AddWithValue("?", routeId);
+                    if (tenant) TenantContext.AddSchoolParameter(cmd);
                     await cmd.ExecuteNonQueryAsync();
                 }
                 return true;
@@ -236,17 +294,25 @@ namespace kingdom_Preparatory_School_Management_System.Data
             using (var c = new OleDbConnection(_connectionString))
             {
                 await c.OpenAsync();
-                using (var del = new OleDbCommand("DELETE FROM StudentTransport WHERE StudentID=?", c))
+                var tenant = await TenantContext.HasSchoolIdColumnAsync(c, StudentTransportTable);
+                var delSql = "DELETE FROM StudentTransport WHERE StudentID=?";
+                if (tenant) delSql += TenantContext.FilterClause();
+                using (var del = new OleDbCommand(delSql, c))
                 {
                     del.Parameters.AddWithValue("?", studentId);
+                    if (tenant) TenantContext.AddSchoolParameter(del);
                     await del.ExecuteNonQueryAsync();
                 }
                 if (routeId.HasValue)
                 {
-                    using (var ins = new OleDbCommand("INSERT INTO StudentTransport (StudentID, RouteId) VALUES (?, ?)", c))
+                    var insSql = tenant
+                        ? "INSERT INTO StudentTransport (StudentID, RouteId, SchoolId) VALUES (?, ?, ?)"
+                        : "INSERT INTO StudentTransport (StudentID, RouteId) VALUES (?, ?)";
+                    using (var ins = new OleDbCommand(insSql, c))
                     {
                         ins.Parameters.AddWithValue("?", studentId);
                         ins.Parameters.AddWithValue("?", routeId.Value);
+                        if (tenant) TenantContext.AddSchoolParameter(ins);
                         await ins.ExecuteNonQueryAsync();
                     }
                 }
@@ -258,12 +324,22 @@ namespace kingdom_Preparatory_School_Management_System.Data
             using (var c = new OleDbConnection(_connectionString))
             {
                 await c.OpenAsync();
-                const string sql = @"SELECT r.*, b.Label AS BusLabel FROM StudentTransport st
+                var studentTransportTenant = await TenantContext.HasSchoolIdColumnAsync(c, StudentTransportTable);
+                var routeTenant = await TenantContext.HasSchoolIdColumnAsync(c, RoutesTable);
+                var busTenant = await TenantContext.HasSchoolIdColumnAsync(c, BusesTable);
+                var sql = @"SELECT r.*, b.Label AS BusLabel FROM StudentTransport st
                     INNER JOIN BusRoutes r ON st.RouteId = r.RouteId
-                    LEFT JOIN Buses b ON r.BusId = b.BusId WHERE st.StudentID = ?";
+                    LEFT JOIN Buses b ON r.BusId = b.BusId";
+                if (busTenant) sql += TenantContext.FilterClause("b");
+                sql += " WHERE st.StudentID = ?";
+                if (studentTransportTenant) sql += TenantContext.FilterClause("st");
+                if (routeTenant) sql += TenantContext.FilterClause("r");
                 using (var cmd = new OleDbCommand(sql, c))
                 {
+                    if (busTenant) TenantContext.AddSchoolParameter(cmd);
                     cmd.Parameters.AddWithValue("?", studentId);
+                    if (studentTransportTenant) TenantContext.AddSchoolParameter(cmd);
+                    if (routeTenant) TenantContext.AddSchoolParameter(cmd);
                     using (var rd = await cmd.ExecuteReaderAsync())
                         return await rd.ReadAsync() ? MapRoute(rd) : null;
                 }
@@ -276,7 +352,12 @@ namespace kingdom_Preparatory_School_Management_System.Data
             using (var c = new OleDbConnection(_connectionString))
             {
                 await c.OpenAsync();
-                const string sql = @"INSERT INTO TransportPayment
+                var tenant = await TenantContext.HasSchoolIdColumnAsync(c, TransportPaymentTable);
+                var sql = tenant
+                    ? @"INSERT INTO TransportPayment
+                    (StudentID,RouteId,Period,PeriodStart,PeriodEnd,AmountPaid,PaymentDate,Cashier,Notes,SchoolId)
+                    VALUES (?,?,?,?,?,?,?,?,?,?)"
+                    : @"INSERT INTO TransportPayment
                     (StudentID,RouteId,Period,PeriodStart,PeriodEnd,AmountPaid,PaymentDate,Cashier,Notes)
                     VALUES (?,?,?,?,?,?,?,?,?)";
                 using (var cmd = new OleDbCommand(sql, c))
@@ -290,6 +371,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
                     cmd.Parameters.AddWithValue("?", TruncateSeconds(date));
                     cmd.Parameters.AddWithValue("?", cashier ?? "");
                     cmd.Parameters.AddWithValue("?", notes ?? "");
+                    if (tenant) TenantContext.AddSchoolParameter(cmd);
                     return (await cmd.ExecuteNonQueryAsync()) > 0;
                 }
             }
@@ -300,11 +382,14 @@ namespace kingdom_Preparatory_School_Management_System.Data
             using (var c = new OleDbConnection(_connectionString))
             {
                 await c.OpenAsync();
-                using (var cmd = new OleDbCommand(
-                    "SELECT ISNULL(SUM(AmountPaid),0) FROM TransportPayment WHERE StudentID=? AND Period=?", c))
+                var tenant = await TenantContext.HasSchoolIdColumnAsync(c, TransportPaymentTable);
+                var sql = "SELECT ISNULL(SUM(AmountPaid),0) FROM TransportPayment WHERE StudentID=? AND Period=?";
+                if (tenant) sql += TenantContext.FilterClause();
+                using (var cmd = new OleDbCommand(sql, c))
                 {
                     cmd.Parameters.AddWithValue("?", studentId);
                     cmd.Parameters.AddWithValue("?", periodKey ?? "");
+                    if (tenant) TenantContext.AddSchoolParameter(cmd);
                     var o = await cmd.ExecuteScalarAsync();
                     return o == null || o == DBNull.Value ? 0m : Convert.ToDecimal(o);
                 }
@@ -317,13 +402,20 @@ namespace kingdom_Preparatory_School_Management_System.Data
             using (var c = new OleDbConnection(_connectionString))
             {
                 await c.OpenAsync();
-                const string sql = @"SELECT tp.PaymentDate AS [Date], r.RouteName AS [Route], tp.Period AS [Period],
+                var paymentTenant = await TenantContext.HasSchoolIdColumnAsync(c, TransportPaymentTable);
+                var routeTenant = await TenantContext.HasSchoolIdColumnAsync(c, RoutesTable);
+                var sql = @"SELECT tp.PaymentDate AS [Date], r.RouteName AS [Route], tp.Period AS [Period],
                     tp.AmountPaid AS [Amount Paid], tp.Cashier AS [Cashier], tp.Notes AS [Notes]
                     FROM TransportPayment tp LEFT JOIN BusRoutes r ON tp.RouteId=r.RouteId
-                    WHERE tp.StudentID=? ORDER BY tp.PaymentDate DESC, tp.Id DESC";
+                    WHERE tp.StudentID=?";
+                if (paymentTenant) sql += TenantContext.FilterClause("tp");
+                if (routeTenant) sql += TenantContext.FilterClause("r");
+                sql += " ORDER BY tp.PaymentDate DESC, tp.Id DESC";
                 using (var cmd = new OleDbCommand(sql, c))
                 {
                     cmd.Parameters.AddWithValue("?", studentId);
+                    if (paymentTenant) TenantContext.AddSchoolParameter(cmd);
+                    if (routeTenant) TenantContext.AddSchoolParameter(cmd);
                     using (var rd = await cmd.ExecuteReaderAsync()) dt.Load(rd);
                 }
             }
@@ -340,19 +432,31 @@ namespace kingdom_Preparatory_School_Management_System.Data
             using (var c = new OleDbConnection(_connectionString))
             {
                 await c.OpenAsync();
-                const string sql = @"SELECT st.StudentID, st.RouteId,
+                var studentTransportTenant = await TenantContext.HasSchoolIdColumnAsync(c, StudentTransportTable);
+                var routeTenant = await TenantContext.HasSchoolIdColumnAsync(c, RoutesTable);
+                var studentTenant = await TenantContext.HasSchoolIdColumnAsync(c, StudentsTable);
+                var sql = @"SELECT st.StudentID, st.RouteId,
                     (s.FirstName + ' ' + s.LastName) AS StudentName, s.EmergencyConatct AS Phone,
                     r.RouteName, r.PaymentTerm, r.Fee
                     FROM StudentTransport st
                     INNER JOIN BusRoutes r ON st.RouteId = r.RouteId
-                    INNER JOIN Students s ON s.StudentID = st.StudentID";
+                    INNER JOIN Students s ON s.StudentID = st.StudentID
+                    WHERE 1=1";
+                if (studentTransportTenant) sql += TenantContext.FilterClause("st");
+                if (routeTenant) sql += TenantContext.FilterClause("r");
+                if (studentTenant) sql += TenantContext.FilterClause("s");
                 using (var cmd = new OleDbCommand(sql, c))
-                using (var rd = await cmd.ExecuteReaderAsync())
                 {
-                    while (await rd.ReadAsync())
-                        seed.Add((I(rd["StudentID"]), I(rd["RouteId"]), S(rd["StudentName"]), S(rd["Phone"]),
-                                  S(rd["RouteName"]), S(rd["PaymentTerm"]),
-                                  rd["Fee"] == DBNull.Value ? 0m : Convert.ToDecimal(rd["Fee"])));
+                    if (studentTransportTenant) TenantContext.AddSchoolParameter(cmd);
+                    if (routeTenant) TenantContext.AddSchoolParameter(cmd);
+                    if (studentTenant) TenantContext.AddSchoolParameter(cmd);
+                    using (var rd = await cmd.ExecuteReaderAsync())
+                    {
+                        while (await rd.ReadAsync())
+                            seed.Add((I(rd["StudentID"]), I(rd["RouteId"]), S(rd["StudentName"]), S(rd["Phone"]),
+                                      S(rd["RouteName"]), S(rd["PaymentTerm"]),
+                                      rd["Fee"] == DBNull.Value ? 0m : Convert.ToDecimal(rd["Fee"])));
+                    }
                 }
 
                 foreach (var x in seed)
@@ -363,23 +467,29 @@ namespace kingdom_Preparatory_School_Management_System.Data
                     var p = Common.TransportPeriod.Current(x.Term, asOf);
 
                     decimal paid;
-                    using (var cmd = new OleDbCommand(
-                        "SELECT ISNULL(SUM(AmountPaid),0) FROM TransportPayment WHERE StudentID=? AND Period=?", c))
+                    var paymentTenant = await TenantContext.HasSchoolIdColumnAsync(c, TransportPaymentTable);
+                    var paidSql = "SELECT ISNULL(SUM(AmountPaid),0) FROM TransportPayment WHERE StudentID=? AND Period=?";
+                    if (paymentTenant) paidSql += TenantContext.FilterClause();
+                    using (var cmd = new OleDbCommand(paidSql, c))
                     {
                         cmd.Parameters.AddWithValue("?", x.StudentId);
                         cmd.Parameters.AddWithValue("?", p.Key);
+                        if (paymentTenant) TenantContext.AddSchoolParameter(cmd);
                         var o = await cmd.ExecuteScalarAsync();
                         paid = o == null || o == DBNull.Value ? 0m : Convert.ToDecimal(o);
                     }
 
                     int present;
-                    using (var cmd = new OleDbCommand(
-                        @"SELECT COUNT(*) FROM Attendance WHERE ReferenceID=? AND ReferenceType='STUDENT'
-                          AND [Status]='PRESENT' AND [Date] BETWEEN ? AND ?", c))
+                    var attendanceTenant = await TenantContext.HasSchoolIdColumnAsync(c, AttendanceTable);
+                    var attendanceSql = @"SELECT COUNT(*) FROM Attendance WHERE ReferenceID=? AND ReferenceType='STUDENT'
+                          AND [Status]='PRESENT' AND [Date] BETWEEN ? AND ?";
+                    if (attendanceTenant) attendanceSql += TenantContext.FilterClause();
+                    using (var cmd = new OleDbCommand(attendanceSql, c))
                     {
                         cmd.Parameters.AddWithValue("?", x.StudentId.ToString());
                         cmd.Parameters.AddWithValue("?", p.Start.Date);
                         cmd.Parameters.AddWithValue("?", asOf.Date);
+                        if (attendanceTenant) TenantContext.AddSchoolParameter(cmd);
                         present = Convert.ToInt32(await cmd.ExecuteScalarAsync());
                     }
 
@@ -406,11 +516,14 @@ namespace kingdom_Preparatory_School_Management_System.Data
                 using (var c = new OleDbConnection(_connectionString))
                 {
                     await c.OpenAsync();
-                    using (var cmd = new OleDbCommand(
-                        "SELECT COUNT(*) FROM TransportReminderLog WHERE StudentID=? AND Period=?", c))
+                    var tenant = await TenantContext.HasSchoolIdColumnAsync(c, ReminderLogTable);
+                    var sql = "SELECT COUNT(*) FROM TransportReminderLog WHERE StudentID=? AND Period=?";
+                    if (tenant) sql += TenantContext.FilterClause();
+                    using (var cmd = new OleDbCommand(sql, c))
                     {
                         cmd.Parameters.AddWithValue("?", a.StudentID);
                         cmd.Parameters.AddWithValue("?", a.Period);
+                        if (tenant) TenantContext.AddSchoolParameter(cmd);
                         if (Convert.ToInt32(await cmd.ExecuteScalarAsync()) > 0) continue;
                     }
                 }
@@ -424,15 +537,21 @@ namespace kingdom_Preparatory_School_Management_System.Data
             using (var c = new OleDbConnection(_connectionString))
             {
                 await c.OpenAsync();
-                const string sql = @"IF NOT EXISTS (SELECT 1 FROM TransportReminderLog WHERE StudentID=? AND Period=?)
+                var tenant = await TenantContext.HasSchoolIdColumnAsync(c, ReminderLogTable);
+                var sql = tenant
+                    ? @"IF NOT EXISTS (SELECT 1 FROM TransportReminderLog WHERE StudentID=? AND Period=? AND SchoolId=?)
+                    INSERT INTO TransportReminderLog (StudentID,Period,SentDate,SchoolId) VALUES (?,?,?,?)"
+                    : @"IF NOT EXISTS (SELECT 1 FROM TransportReminderLog WHERE StudentID=? AND Period=?)
                     INSERT INTO TransportReminderLog (StudentID,Period,SentDate) VALUES (?,?,?)";
                 using (var cmd = new OleDbCommand(sql, c))
                 {
                     cmd.Parameters.AddWithValue("?", studentId);
                     cmd.Parameters.AddWithValue("?", periodKey ?? "");
+                    if (tenant) TenantContext.AddSchoolParameter(cmd);
                     cmd.Parameters.AddWithValue("?", studentId);
                     cmd.Parameters.AddWithValue("?", periodKey ?? "");
                     cmd.Parameters.AddWithValue("?", TruncateSeconds(DateTime.Now));
+                    if (tenant) TenantContext.AddSchoolParameter(cmd);
                     await cmd.ExecuteNonQueryAsync();
                 }
             }

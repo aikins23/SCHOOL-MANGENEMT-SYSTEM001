@@ -1,5 +1,6 @@
 using System;
 using System.Data;
+using System.Threading;
 using System.Threading.Tasks;
 using kingdom_Preparatory_School_Management_System.Data;
 
@@ -8,6 +9,10 @@ namespace kingdom_Preparatory_School_Management_System.Services
     public class DashboardService
     {
         private readonly IDashboardRepository _repository;
+        private static readonly TimeSpan MetricsCacheDuration = TimeSpan.FromSeconds(20);
+        private readonly SemaphoreSlim _metricsLock = new SemaphoreSlim(1, 1);
+        private DashboardMetrics _metricsCache;
+        private DateTime _metricsCacheUtc;
 
         public DashboardService(IDashboardRepository repository)
         {
@@ -22,18 +27,49 @@ namespace kingdom_Preparatory_School_Management_System.Services
             return (income, expenses, income - expenses);
         }
 
-        public async Task<DashboardMetrics> GetMetricsAsync()
+        public async Task<DashboardMetrics> GetMetricsAsync(bool forceRefresh = false)
+        {
+            if (!forceRefresh && IsMetricsCacheFresh())
+            {
+                return _metricsCache;
+            }
+
+            await _metricsLock.WaitAsync();
+            try
+            {
+                if (!forceRefresh && IsMetricsCacheFresh())
+                {
+                    return _metricsCache;
+                }
+
+                var metrics = await LoadMetricsAsync();
+                _metricsCache = metrics;
+                _metricsCacheUtc = DateTime.UtcNow;
+                return metrics;
+            }
+            finally
+            {
+                _metricsLock.Release();
+            }
+        }
+
+        public void InvalidateCache()
+        {
+            _metricsCache = null;
+            _metricsCacheUtc = DateTime.MinValue;
+        }
+
+        private bool IsMetricsCacheFresh()
+        {
+            return _metricsCache != null && DateTime.UtcNow - _metricsCacheUtc < MetricsCacheDuration;
+        }
+
+        private async Task<DashboardMetrics> LoadMetricsAsync()
         {
             var metrics = new DashboardMetrics();
             int currentYear = DateTime.Now.Year;
-            
-            var studentTask = _repository.GetStudentCountAsync();
-            var employeeTask = _repository.GetEmployeeCountAsync();
-            var leaveTask = _repository.GetPendingLeaveCountAsync();
-            var collectedTask = _repository.GetTotalFeesCollectedAsync();
-            var balanceTask = _repository.GetTotalFeesBalanceAsync();
-            var examTask = _repository.GetAverageExamScoreAsync();
-            var topClassTask = _repository.GetTopClassByEnrollmentAsync();
+
+            var coreTask = _repository.GetCoreMetricsAsync();
             var recentPaymentsTask = _repository.GetRecentPaymentsAsync(14);
             var classSummaryTask = _repository.GetClassEnrollmentSummaryAsync();
             var leaveSummaryTask = _repository.GetLeaveStatusSummaryAsync();
@@ -56,15 +92,20 @@ namespace kingdom_Preparatory_School_Management_System.Services
             var salaryByDeptTask = _repository.GetSalarySpendByDepartmentAsync();
             var subjectPassFailTask = _repository.GetSubjectPassFailRateAsync();
 
-            await Task.WhenAll(studentTask, employeeTask, leaveTask, collectedTask, balanceTask, examTask, topClassTask, recentPaymentsTask, classSummaryTask, leaveSummaryTask, subjectScoresTask, collectionTrendTask, attendanceTrendTask, incomeExpensesTask, gradeDistributionTask, attendanceByClassTask, outstandingByClassTask, paymentModeTask, staffByDeptTask, expenseByCategoryTask, topAbsentTask, classAvgScoreTask, genderDistTask, termPerformanceTask, admissionsPerYearTask, activeVsRolledOutTask, salaryByDeptTask, subjectPassFailTask);
+            await Task.WhenAll(coreTask, recentPaymentsTask, classSummaryTask, leaveSummaryTask, subjectScoresTask, collectionTrendTask, attendanceTrendTask, incomeExpensesTask, gradeDistributionTask, attendanceByClassTask, outstandingByClassTask, paymentModeTask, staffByDeptTask, expenseByCategoryTask, topAbsentTask, classAvgScoreTask, genderDistTask, termPerformanceTask, admissionsPerYearTask, activeVsRolledOutTask, salaryByDeptTask, subjectPassFailTask);
 
-            metrics.StudentCount = await studentTask;
-            metrics.EmployeeCount = await employeeTask;
-            metrics.PendingLeaveCount = await leaveTask;
-            metrics.TotalFeesCollected = await collectedTask;
-            metrics.TotalFeesBalance = await balanceTask;
-            metrics.AverageExamScore = await examTask;
-            metrics.TopClass = await topClassTask;
+            var core = await coreTask;
+            metrics.StudentCount = core.StudentCount;
+            metrics.EmployeeCount = core.EmployeeCount;
+            metrics.PendingLeaveCount = core.PendingLeaveCount;
+            metrics.TotalFeesCollected = core.TotalFeesCollected;
+            metrics.TotalFeesBalance = core.TotalFeesBalance;
+            metrics.AverageExamScore = core.AverageExamScore;
+            metrics.TopClass = core.TopClass;
+            metrics.TopExpenseCategory = core.TopExpenseCategory;
+            metrics.TopExpenseAmount = core.TopExpenseAmount;
+            metrics.LargestExpenseItem = core.LargestExpenseItem;
+            metrics.LargestExpenseAmount = core.LargestExpenseAmount;
             metrics.RecentPayments = await recentPaymentsTask;
             metrics.ClassSummary = await classSummaryTask;
             metrics.LeaveSummary = await leaveSummaryTask;
@@ -100,6 +141,10 @@ namespace kingdom_Preparatory_School_Management_System.Services
         public decimal TotalFeesBalance { get; set; }
         public decimal AverageExamScore { get; set; }
         public string TopClass { get; set; }
+        public string TopExpenseCategory { get; set; }
+        public decimal TopExpenseAmount { get; set; }
+        public string LargestExpenseItem { get; set; }
+        public decimal LargestExpenseAmount { get; set; }
         public DataTable RecentPayments { get; set; }
         public DataTable ClassSummary { get; set; }
         public DataTable LeaveSummary { get; set; }

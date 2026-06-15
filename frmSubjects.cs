@@ -150,7 +150,7 @@ namespace kingdom_Preparatory_School_Management_System
             _saveBtn.Enabled = false;
             try
             {
-                await _repo.SaveSubjectsForClassAsync(_currentClass, subs);
+                await _repo.SetSubjectsForClassAsync(_currentClass, subs);
                 SubjectCatalog.Refresh();
                 _dirty = false;
                 _status.Text = "Saved " + DateTime.Now.ToString("HH:mm:ss") + ".";

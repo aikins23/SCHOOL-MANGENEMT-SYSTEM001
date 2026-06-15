@@ -19,8 +19,8 @@ namespace kingdom_Preparatory_School_Management_System
     {
         private Label statusLabel;
 
-        private static readonly Color PageBackColor = Color.FromArgb(248, 246, 239);
-        private static readonly Color SurfaceColor = Color.FromArgb(255, 253, 247);
+        private static readonly Color PageBackColor = Color.White;
+        private static readonly Color SurfaceColor = Color.White;
         private static readonly Color PrimaryColor = Color.FromArgb(11, 31, 73);
         private static readonly Color SidebarColor = Color.FromArgb(5, 18, 48);
         private static readonly Color GoldColor = Color.FromArgb(197, 158, 57);
@@ -33,6 +33,7 @@ namespace kingdom_Preparatory_School_Management_System
         {
             InitializeComponent();
             BuildModernLoginView();
+            this.Icon = kingdom_Preparatory_School_Management_System.Common.Branding.AppIcon;
 
             // Event handlers are commented-out in the designer — wire them here
             BTN_Login.Click          += (s, e) => LoginUser();
@@ -53,6 +54,7 @@ namespace kingdom_Preparatory_School_Management_System
             MaximizeBox = false;
             MinimizeBox = true;
             ClientSize = new Size(940, 580);
+            this.Icon = kingdom_Preparatory_School_Management_System.Common.Branding.AppIcon;
 
             var root = new TableLayoutPanel
             {
@@ -84,28 +86,7 @@ namespace kingdom_Preparatory_School_Management_System
             pictureBox1.Height = 150;
             pictureBox1.SizeMode = PictureBoxSizeMode.Zoom;
             pictureBox1.BackColor = Color.Transparent;
-            
-            try
-            {
-                string logoPath = System.IO.Path.Combine(Application.StartupPath, "Resources", "app_logo.png");
-                if (System.IO.File.Exists(logoPath))
-                {
-                    pictureBox1.Image = Image.FromFile(logoPath);
-                }
-                else
-                {
-                    // Fallback to searching for the file in the project structure if not in bin
-                    string projectLogoPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "Resources", "app_logo.png");
-                    if (System.IO.File.Exists(projectLogoPath))
-                    {
-                        pictureBox1.Image = Image.FromFile(projectLogoPath);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine("Failed to load login logo: " + ex.Message);
-            }
+            pictureBox1.Image = Branding.GetLogo(onBlue: true);
 
             panel.Controls.Add(pictureBox1);
 

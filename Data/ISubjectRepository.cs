@@ -8,6 +8,6 @@ namespace kingdom_Preparatory_School_Management_System.Data
         Task EnsureTableAsync();
         Task<List<string>> GetSubjectsForClassAsync(string className);
         Task<Dictionary<string, List<string>>> GetAllAsync();
-        Task SaveSubjectsForClassAsync(string className, IEnumerable<string> subjects);
+        Task SetSubjectsForClassAsync(string className, IEnumerable<string> subjects);
     }
 }

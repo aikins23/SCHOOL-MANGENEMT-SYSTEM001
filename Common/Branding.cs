@@ -23,6 +23,23 @@ namespace kingdom_Preparatory_School_Management_System.Common
         private static Icon _appIconOnBlue;
         private static bool _appIconOnBlueTried;
 
+        private static Image _iconBg;
+        private static bool _iconBgTried;
+
+        /// <summary>Crisp high-resolution emblem for sidebars/headers (usually icon_bg.png).</summary>
+        public static Image IconBgImage
+        {
+            get
+            {
+                if (!_iconBgTried)
+                {
+                    _iconBgTried = true;
+                    _iconBg = LoadImage("icon_bg.png", "app_icon_bg.png", "icon.png");
+                }
+                return _iconBg;
+            }
+        }
+
         /// <summary>Bundled product logo for light backgrounds.</summary>
         public static Image AppLogo
         {
@@ -31,7 +48,7 @@ namespace kingdom_Preparatory_School_Management_System.Common
                 if (!_appLogoTried)
                 {
                     _appLogoTried = true;
-                    _appLogo = LoadImage("app_logo.png", "logo.png", "school_logo.png");
+                    _appLogo = LoadImage("plogo.png", "app_logo.png", "logo.png", "school_logo.png");
                 }
                 return _appLogo;
             }
@@ -45,7 +62,7 @@ namespace kingdom_Preparatory_School_Management_System.Common
                 if (!_appLogoOnBlueTried)
                 {
                     _appLogoOnBlueTried = true;
-                    _appLogoOnBlue = LoadImage("app_logo_bg.png", "logo_bg.png");
+                    _appLogoOnBlue = LoadImage("plogo.png", "app_logo_bg.png", "logo_bg.png");
                     if (_appLogoOnBlue == null) _appLogoOnBlue = AppLogo;
                 }
                 return _appLogoOnBlue;
@@ -84,7 +101,7 @@ namespace kingdom_Preparatory_School_Management_System.Common
                 if (!_appIconTried)
                 {
                     _appIconTried = true;
-                    _appIcon = LoadIcon("app_icon.png", "icon.png");
+                    _appIcon = LoadIcon("icon_bg.png", "app_icon.png", "icon.png");
                 }
                 return _appIcon;
             }

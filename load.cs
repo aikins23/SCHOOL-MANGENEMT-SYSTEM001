@@ -15,34 +15,34 @@ namespace kingdom_Preparatory_School_Management_System
     /// </summary>
     public partial class load : Form
     {
-        private static readonly Color Navy = Color.FromArgb(11, 31, 73);
-        private static readonly Color NavyDark = Color.FromArgb(5, 18, 48);
-        private static readonly Color NavySoft = Color.FromArgb(25, 52, 103);
-        private static readonly Color Gold = Color.FromArgb(197, 158, 57);
-        private static readonly Color GoldSoft = Color.FromArgb(235, 219, 167);
-        private static readonly Color Ivory = Color.FromArgb(248, 246, 239);
-        private static readonly Color Paper = Color.FromArgb(255, 253, 247);
-        private static readonly Color Ink = Color.FromArgb(28, 36, 52);
-        private static readonly Color MutedInk = Color.FromArgb(105, 113, 130);
-        private static readonly Color Border = Color.FromArgb(215, 207, 185);
+        private static readonly Color Navy = Color.FromArgb(8, 25, 61);
+        private static readonly Color NavyDark = Color.FromArgb(3, 12, 34);
+        private static readonly Color NavySoft = Color.FromArgb(20, 48, 100);
+        private static readonly Color Gold = Color.FromArgb(200, 159, 54);
+        private static readonly Color GoldSoft = Color.FromArgb(238, 221, 166);
+        private static readonly Color Ivory = Color.White;
+        private static readonly Color Paper = Color.White;
+        private static readonly Color Ink = Color.FromArgb(22, 31, 48);
+        private static readonly Color MutedInk = Color.FromArgb(104, 113, 132);
+        private static readonly Color Border = Color.FromArgb(218, 210, 190);
 
-        private const int FormW = 760;
-        private const int FormH = 460;
-        private const int BrandW = 270;
-        private const int CornerRadius = 12;
+        private const int FormW = 820;
+        private const int FormH = 500;
+        private const int BrandW = 292;
+        private const int CornerRadius = 14;
 
-        private const int FadeInterval = 18;
-        private const double FadeStep = 0.08;
+        private const int FadeInterval = 10;
+        private const double FadeStep = 0.15;
         private const int ProgressInterval = 45;
-        private const int TotalTicks = 86;
+        private const int TotalTicks = 90;
 
         private static readonly string[] StatusMessages =
         {
-            "Starting application services",
-            "Checking school records",
-            "Loading academic modules",
-            "Preparing secure workspace",
-            "Opening sign in"
+            "Starting application services...",
+            "Initializing database schema...",
+            "Syncing tables...",
+            "Preparing secure workspace...",
+            "Opening sign in..."
         };
 
         private Panel _progressTrack;
@@ -50,6 +50,7 @@ namespace kingdom_Preparatory_School_Management_System
         private Label _statusLabel;
         private Label _percentLabel;
         private Timer _progressTimer;
+        private bool _isDbInitialized = false;
 
         public load()
         {
@@ -69,6 +70,7 @@ namespace kingdom_Preparatory_School_Management_System
             Opacity = 0;
             DoubleBuffered = true;
             Region = new Region(RoundedRect(new Rectangle(0, 0, FormW, FormH), CornerRadius));
+            this.Icon = kingdom_Preparatory_School_Management_System.Common.Branding.AppIcon;
 
             SetStyle(
                 ControlStyles.AllPaintingInWmPaint |
@@ -84,88 +86,115 @@ namespace kingdom_Preparatory_School_Management_System
             ResumeLayout(false);
         }
 
+        private async System.Threading.Tasks.Task InitializeDatabaseAsync()
+        {
+            try
+            {
+                await Data.DatabaseInitializer.InitializeAsync();
+                await Data.SyncSchema.EnsureSyncColumnsAsync();
+                await Data.SyncSchema.EnsurePerformanceIndexesAsync();
+            }
+            catch (Exception ex)
+            {
+                Services.LoggerHelper.LogWarning("Splash DB Init: " + ex.Message);
+            }
+            finally
+            {
+                _isDbInitialized = true;
+            }
+        }
+
         private void BuildBrandPanel()
         {
-            pictureBoxLogo.Bounds = new Rectangle(71, 80, 128, 128);
+            // Logo made significantly bigger (256x256) and centered in the brand panel
+            int logoSize = 256;
+            pictureBoxLogo.Bounds = new Rectangle((BrandW - logoSize) / 2, 40, logoSize, logoSize);
             pictureBoxLogo.SizeMode = PictureBoxSizeMode.Zoom;
             pictureBoxLogo.BackColor = Color.Transparent;
-            pictureBoxLogo.Image = LoadLogoImage();
+            pictureBoxLogo.Image = Common.Branding.GetLogo(onBlue: true);
             pictureBoxLogo.Paint += PaintLogoFallback;
             Controls.Add(pictureBoxLogo);
 
             Controls.Add(CreateLabel(
                 "NYANSAPO ERP",
-                new Font("Georgia", 14F, FontStyle.Bold),
+                new Font("Georgia", 13.5F, FontStyle.Bold),
                 Color.White,
-                new Rectangle(32, 222, BrandW - 64, 28),
+                new Rectangle(34, 310, BrandW - 68, 28),
                 ContentAlignment.MiddleCenter));
 
             Controls.Add(CreateLabel(
                 "SMART SCHOOL SOLUTIONS",
                 new Font("Segoe UI Semibold", 8.5F, FontStyle.Bold),
                 GoldSoft,
-                new Rectangle(32, 252, BrandW - 64, 22),
+                new Rectangle(34, 340, BrandW - 68, 22),
                 ContentAlignment.MiddleCenter));
 
             Controls.Add(CreateLabel(
                 "Untangling Complexity",
-                new Font("Georgia", 10F, FontStyle.Italic),
+                new Font("Georgia", 9.75F, FontStyle.Italic),
                 Color.FromArgb(225, 231, 245),
-                new Rectangle(32, 298, BrandW - 64, 28),
+                new Rectangle(34, 380, BrandW - 68, 28),
                 ContentAlignment.MiddleCenter));
 
             Controls.Add(CreateLabel(
                 "Version 1.0.0",
                 new Font("Segoe UI", 8F, FontStyle.Regular),
                 Color.FromArgb(155, 169, 205),
-                new Rectangle(32, FormH - 58, BrandW - 64, 20),
+                new Rectangle(34, FormH - 62, BrandW - 68, 20),
                 ContentAlignment.MiddleCenter));
         }
 
         private void BuildContentPanel()
         {
-            int contentX = BrandW + 48;
-            int contentW = FormW - contentX - 54;
+            int contentX = BrandW + 54;
+            int contentW = FormW - contentX - 58;
 
             Controls.Add(CreateLabel(
                 "SCHOOL MANAGEMENT SYSTEM",
                 new Font("Segoe UI Semibold", 8.5F, FontStyle.Bold),
                 Gold,
-                new Rectangle(contentX, 74, contentW, 20),
+                new Rectangle(contentX, 82, contentW, 20),
                 ContentAlignment.MiddleLeft));
 
             Controls.Add(CreateLabel(
                 Common.AppConfig.ProductName,
-                new Font("Georgia", 25F, FontStyle.Bold),
+                new Font("Georgia", 25.5F, FontStyle.Bold),
                 Ink,
-                new Rectangle(contentX, 100, contentW, 48),
+                new Rectangle(contentX, 108, contentW, 48),
                 ContentAlignment.MiddleLeft));
 
             Controls.Add(CreateLabel(
                 "A clean workspace for admissions, academics, finance, attendance, staff, and reports.",
-                new Font("Segoe UI", 10.5F, FontStyle.Regular),
+                new Font("Segoe UI", 10.25F, FontStyle.Regular),
                 MutedInk,
-                new Rectangle(contentX + 1, 153, contentW - 18, 54),
+                new Rectangle(contentX + 1, 164, contentW - 20, 54),
                 ContentAlignment.TopLeft));
 
             Controls.Add(new Panel
             {
-                Bounds = new Rectangle(contentX, 220, contentW, 1),
+                Bounds = new Rectangle(contentX, 226, contentW, 1),
                 BackColor = Border
             });
+
+            Controls.Add(CreateLabel(
+                "LOCAL-FIRST DESKTOP  |  CLOUD-READY OPERATIONS",
+                new Font("Segoe UI Semibold", 7.75F, FontStyle.Bold),
+                Color.FromArgb(130, 119, 88),
+                new Rectangle(contentX, 232, contentW, 18),
+                ContentAlignment.MiddleLeft));
 
             Controls.Add(CreateLabel(
                 "PREPARING YOUR SESSION",
                 new Font("Segoe UI Semibold", 8F, FontStyle.Bold),
                 Color.FromArgb(81, 89, 108),
-                new Rectangle(contentX, 244, contentW, 20),
+                new Rectangle(contentX, 260, contentW, 20),
                 ContentAlignment.MiddleLeft));
 
             _statusLabel = CreateLabel(
                 StatusMessages[0],
                 new Font("Segoe UI", 9.5F, FontStyle.Regular),
                 MutedInk,
-                new Rectangle(contentX, 270, contentW - 62, 24),
+                new Rectangle(contentX, 286, contentW - 62, 24),
                 ContentAlignment.MiddleLeft);
             Controls.Add(_statusLabel);
 
@@ -173,18 +202,18 @@ namespace kingdom_Preparatory_School_Management_System
                 "0%",
                 new Font("Segoe UI Semibold", 9F, FontStyle.Bold),
                 Ink,
-                new Rectangle(contentX + contentW - 58, 270, 58, 24),
+                new Rectangle(contentX + contentW - 58, 286, 58, 24),
                 ContentAlignment.MiddleRight);
             Controls.Add(_percentLabel);
 
             _progressTrack = new Panel
             {
-                Bounds = new Rectangle(contentX, 306, contentW, 7),
+                Bounds = new Rectangle(contentX, 322, contentW, 8),
                 BackColor = Color.FromArgb(225, 220, 207)
             };
             _progressFill = new Panel
             {
-                Bounds = new Rectangle(0, 0, 0, 7),
+                Bounds = new Rectangle(0, 0, 0, 8),
                 BackColor = Gold
             };
             _progressTrack.Controls.Add(_progressFill);
@@ -194,7 +223,7 @@ namespace kingdom_Preparatory_School_Management_System
                 "Developed for reliable daily school administration",
                 new Font("Segoe UI", 8.5F, FontStyle.Regular),
                 Color.FromArgb(128, 135, 151),
-                new Rectangle(contentX, FormH - 72, contentW, 22),
+                new Rectangle(contentX, FormH - 78, contentW, 22),
                 ContentAlignment.MiddleLeft));
         }
 
@@ -217,10 +246,13 @@ namespace kingdom_Preparatory_School_Management_System
             }
 
             using (var accent = new SolidBrush(NavySoft))
-                g.FillRectangle(accent, BrandW - 8, 0, 8, FormH);
+                g.FillRectangle(accent, BrandW - 6, 0, 6, FormH);
 
             using (var gold = new SolidBrush(Gold))
                 g.FillRectangle(gold, BrandW - 2, 0, 2, FormH);
+
+            using (var softPanel = new SolidBrush(Color.White))
+                g.FillRectangle(softPanel, BrandW, 0, FormW - BrandW, FormH);
 
             DrawBrandOrnaments(g);
 
@@ -232,14 +264,13 @@ namespace kingdom_Preparatory_School_Management_System
         {
             using (var pen = new Pen(Color.FromArgb(58, 84, 139), 1f))
             {
-                g.DrawLine(pen, 42, 54, BrandW - 42, 54);
-                g.DrawLine(pen, 42, FormH - 92, BrandW - 42, FormH - 92);
+                g.DrawLine(pen, 46, 30, BrandW - 46, 30);
+                g.DrawLine(pen, 46, FormH - 92, BrandW - 46, FormH - 92);
             }
 
-            using (var goldPen = new Pen(Color.FromArgb(150, Gold), 1f))
+            using (var centerPen = new Pen(Color.FromArgb(92, 111, 154), 1f))
             {
-                g.DrawEllipse(goldPen, 52, 61, 166, 166);
-                g.DrawEllipse(goldPen, 63, 72, 144, 144);
+                g.DrawLine(centerPen, 98, 300, BrandW - 98, 300);
             }
         }
 
@@ -264,37 +295,6 @@ namespace kingdom_Preparatory_School_Management_System
             {
                 g.DrawString("NS", font, brush, bounds, format);
             }
-        }
-
-        private Image LoadLogoImage()
-        {
-            string baseDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-            string[] candidates =
-            {
-                Path.Combine(baseDir ?? "", "Resources", "app_logo.png"),
-                Path.Combine(baseDir ?? "", "..", "..", "Resources", "app_logo.png"),
-                Path.Combine(Directory.GetCurrentDirectory(), "Resources", "app_logo.png")
-            };
-
-            foreach (string candidate in candidates)
-            {
-                try
-                {
-                    if (!File.Exists(candidate))
-                        continue;
-
-                    using (var source = Image.FromFile(candidate))
-                    {
-                        return new Bitmap(source);
-                    }
-                }
-                catch
-                {
-                    // Fallback drawing will render the logo mark.
-                }
-            }
-
-            return null;
         }
 
         private static Label CreateLabel(string text, Font font, Color fore, Rectangle bounds, ContentAlignment align)
@@ -326,6 +326,7 @@ namespace kingdom_Preparatory_School_Management_System
 
         private void OnSplashLoad(object sender, EventArgs e)
         {
+            _ = InitializeDatabaseAsync();
             FadeIn(StartProgressAnimation);
         }
 
@@ -355,6 +356,13 @@ namespace kingdom_Preparatory_School_Management_System
             _progressTimer.Tick += (s, args) =>
             {
                 tick++;
+
+                // Slow down progress at 90% if DB isn't ready yet
+                if (tick >= TotalTicks * 0.9 && !_isDbInitialized)
+                {
+                    tick = (int)(TotalTicks * 0.9);
+                }
+
                 double percent = Math.Min((double)tick / TotalTicks, 1.0);
                 int percentValue = (int)Math.Round(percent * 100);
 
@@ -364,7 +372,7 @@ namespace kingdom_Preparatory_School_Management_System
                 int messageIndex = Math.Min((int)(percent * StatusMessages.Length), StatusMessages.Length - 1);
                 _statusLabel.Text = StatusMessages[messageIndex];
 
-                if (tick >= TotalTicks)
+                if (tick >= TotalTicks && _isDbInitialized)
                 {
                     _progressTimer.Stop();
                     _progressTimer.Dispose();

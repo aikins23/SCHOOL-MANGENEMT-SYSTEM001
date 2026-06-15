@@ -41,6 +41,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
                 var def = new SchoolInformation();
                 string[] colAlters =
                 {
+                    "IF COL_LENGTH('SchoolInformation','SchoolId') IS NULL ALTER TABLE SchoolInformation ADD SchoolId UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_SI_SchoolId DEFAULT NEWID()",
                     $"IF COL_LENGTH('SchoolInformation','PrimaryColor') IS NULL ALTER TABLE SchoolInformation ADD PrimaryColor INT NOT NULL CONSTRAINT DF_SI_Primary DEFAULT ({def.PrimaryColorArgb})",
                     $"IF COL_LENGTH('SchoolInformation','AccentColor') IS NULL ALTER TABLE SchoolInformation ADD AccentColor INT NOT NULL CONSTRAINT DF_SI_Accent DEFAULT ({def.AccentColorArgb})",
                     $"IF COL_LENGTH('SchoolInformation','SecondaryColor') IS NULL ALTER TABLE SchoolInformation ADD SecondaryColor INT NOT NULL CONSTRAINT DF_SI_Secondary DEFAULT ({def.SecondaryColorArgb})",
@@ -63,10 +64,11 @@ namespace kingdom_Preparatory_School_Management_System.Data
                 {
                     var d = new SchoolInformation();
                     const string ins = @"INSERT INTO SchoolInformation
-                        (Id,Name,Address,PoBox,GpsAddress,Phone1,Phone2,Email,Logo,AdmissionFee,UpdatedDate)
-                        VALUES (1,?,?,?,?,?,?,?,?,?,?)";
+                        (Id,SchoolId,Name,Address,PoBox,GpsAddress,Phone1,Phone2,Email,Logo,AdmissionFee,UpdatedDate)
+                        VALUES (1,?,?,?,?,?,?,?,?,?,?,?)";
                     using (var cmd = new OleDbCommand(ins, c))
                     {
+                        cmd.Parameters.AddWithValue("?", d.SchoolId);
                         cmd.Parameters.AddWithValue("?", d.Name);
                         cmd.Parameters.AddWithValue("?", d.Address);
                         cmd.Parameters.AddWithValue("?", d.PoBox);
@@ -114,6 +116,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
                     if (!await r.ReadAsync()) return new SchoolInformation(); // defaults
                     return new SchoolInformation
                     {
+                        SchoolId = AsGuid(r, "SchoolId"),
                         Name = AsString(r["Name"]),
                         Address = AsString(r["Address"]),
                         PoBox = AsString(r["PoBox"]),
@@ -153,10 +156,11 @@ namespace kingdom_Preparatory_School_Management_System.Data
             {
                 await c.OpenAsync();
                 const string sql = @"UPDATE SchoolInformation SET
-                    Name=?, Address=?, PoBox=?, GpsAddress=?, Phone1=?, Phone2=?, Email=?, PortalUrl=?,
+                    SchoolId=?, Name=?, Address=?, PoBox=?, GpsAddress=?, Phone1=?, Phone2=?, Email=?, PortalUrl=?,
                     Logo=?, AdmissionFee=?, PrimaryColor=?, AccentColor=?, SecondaryColor=?, UpdatedDate=? WHERE Id = 1";
                 using (var cmd = new OleDbCommand(sql, c))
                 {
+                    cmd.Parameters.AddWithValue("?", info.SchoolId == Guid.Empty ? Guid.NewGuid() : info.SchoolId);
                     cmd.Parameters.AddWithValue("?", info.Name ?? "");
                     cmd.Parameters.AddWithValue("?", info.Address ?? "");
                     cmd.Parameters.AddWithValue("?", info.PoBox ?? "");
@@ -212,6 +216,21 @@ namespace kingdom_Preparatory_School_Management_System.Data
             new DateTime(t.Year, t.Month, t.Day, t.Hour, t.Minute, t.Second);
 
         private static string AsString(object o) => o == null || o == DBNull.Value ? "" : o.ToString();
+
+        private static Guid AsGuid(System.Data.IDataRecord r, string col)
+        {
+            try
+            {
+                var value = r[col];
+                if (value == null || value == DBNull.Value) return Guid.NewGuid();
+                if (value is Guid id) return id;
+                return Guid.TryParse(value.ToString(), out var parsed) ? parsed : Guid.NewGuid();
+            }
+            catch
+            {
+                return Guid.NewGuid();
+            }
+        }
 
         private static int AsInt(System.Data.IDataRecord r, string col, int fallback)
         {

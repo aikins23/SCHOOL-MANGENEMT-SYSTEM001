@@ -290,6 +290,31 @@ Sent: {DateTime.Now:yyyy-MM-dd HH:mm:ss}
             return await SendEmailAsync(testEmail, subject, body, NotificationType.GeneralAnnouncement);
         }
 
+        /// <summary>Sends an attendance alert to the guardian.</summary>
+        public static async Task<(bool Success, string Message)> SendAttendanceAlertAsync(
+            string studentName, string guardianEmail, string status, DateTime date)
+        {
+            if (string.IsNullOrWhiteSpace(guardianEmail))
+                return (false, "Guardian email is required");
+
+            string statusText = status.ToUpperInvariant();
+            string dateStr = date.ToString("dddd, MMMM dd, yyyy");
+            string subject = $"Attendance Alert: {studentName} marked {statusText} - {date:dd/MM/yyyy}";
+            string body = $@"Dear Guardian,
+
+This is to inform you that your ward, {studentName}, was marked {statusText} in school today, {dateStr}.
+
+If you were not aware of this or have any concerns, please contact the school administration office immediately.
+
+Thank you.
+
+Best regards,
+Administration Office
+{SchoolProfile.DisplayName}";
+
+            return await SendEmailAsync(guardianEmail, subject, body, NotificationType.GeneralAnnouncement);
+        }
+
         // ─── Logging ───────────────────────────────────────────────────
 
         private static void LogEmailEvent(string eventType, string recipient, string subject, string details)

@@ -1,6 +1,7 @@
 @page "/"
 @attribute [Authorize]
 @inject IStudentStats Stats
+@inject IWardRepository WardRepo
 
 <PageTitle>Dashboard - Kingdom Preparatory</PageTitle>
 
@@ -11,7 +12,24 @@
 
         @if (RoleName(auth) == "Parent")
         {
-            <p>Your child's progress will appear here soon.</p>
+            @if (_ward != null)
+            {
+                <div class="dash-cards">
+                    <div class="dash-card">
+                        <h3>My Ward</h3>
+                        <p><strong>Name:</strong> @_ward.FullName</p>
+                        <p><strong>ID:</strong> @_ward.StudentID</p>
+                        <p><strong>Class:</strong> @_ward.ClassID</p>
+                    </div>
+                    <div class="dash-card disabled">Terminal Report (coming soon)</div>
+                    <div class="dash-card disabled">Attendance Records (coming soon)</div>
+                    <div class="dash-card disabled">Fee Ledger (coming soon)</div>
+                </div>
+            }
+            else
+            {
+                <p>Your account is not yet linked to a student. Please contact the administrator.</p>
+            }
         }
         else
         {
@@ -31,8 +49,28 @@
 
 @code {
     private int _studentCount;
+    private KingdomPrep.Web.Data.Entities.StudentEntity? _ward;
 
-    protected override async Task OnInitializedAsync() => _studentCount = await Stats.CountAsync();
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateTask;
+        var user = authState.User;
+        
+        if (user.IsInRole("Parent"))
+        {
+            var empIdStr = user.FindFirst("EmploymentId")?.Value;
+            if (int.TryParse(empIdStr, out int studentId))
+            {
+                _ward = await WardRepo.GetWardAsync(studentId);
+            }
+        }
+        else
+        {
+            _studentCount = await Stats.CountAsync();
+        }
+    }
 
     private static string RoleName(AuthenticationState s)
         => s.User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? "";

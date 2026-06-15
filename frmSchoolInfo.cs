@@ -184,8 +184,9 @@ namespace kingdom_Preparatory_School_Management_System
                     using (var ms = new MemoryStream(bytes)) _logo.Image = Image.FromStream(ms);
                     return;
                 }
-                string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources", "app_logo.png");
-                if (File.Exists(path)) _logo.Image = Image.FromFile(path);
+                
+                // Fallback to Branding class (which handles plogo.png)
+                _logo.Image = Branding.Logo;
             }
             catch { /* preview is best-effort */ }
         }

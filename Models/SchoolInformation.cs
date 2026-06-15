@@ -9,6 +9,7 @@ namespace kingdom_Preparatory_School_Management_System.Models
     /// </summary>
     public class SchoolInformation
     {
+        public Guid SchoolId { get; set; } = Guid.NewGuid();
         public string Name { get; set; } = "NYANSAPO SCHOOL ERP";
         public string Address { get; set; } = "ACCRA - GHANA";
         public string PoBox { get; set; } = "P. O. BOX 123 ACCRA";

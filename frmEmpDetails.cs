@@ -30,6 +30,7 @@ namespace kingdom_Preparatory_School_Management_System
         public frmEmpDetails(DataTable data)
         {
             InitializeComponent();
+            this.Icon = kingdom_Preparatory_School_Management_System.Common.Branding.AppIcon;
             Common.SessionUi.AttachSignOut(this);
             if (!AuthService.RequireAccess("frmEmpDetails", this)) return;
             this.data = data;

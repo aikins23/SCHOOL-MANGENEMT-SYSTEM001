@@ -34,8 +34,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
                 if (string.IsNullOrWhiteSpace(dbName))
                     return (false, "Could not determine database name from connection string.");
 
-                if (!Directory.Exists(BackupFolder))
-                    Directory.CreateDirectory(BackupFolder);
+                EnsureBackupFolder();
 
                 string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
                 string backupFileName = $"KPS_Backup_{timestamp}.bak";
@@ -82,7 +81,10 @@ namespace kingdom_Preparatory_School_Management_System.Services
         {
             try
             {
-                if (!File.Exists(backupPath))
+                if (!TryGetManagedBackupPath(backupPath, out string managedBackupPath, out string pathError))
+                    return (false, pathError);
+
+                if (!File.Exists(managedBackupPath))
                     return (false, "Backup file not found.");
 
                 string dbName = ExtractDatabaseName(AppConfig.ConnectionString);
@@ -103,7 +105,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
 
                     try
                     {
-                        string sql = $"RESTORE DATABASE [{dbName}] FROM DISK = N'{backupPath.Replace("'", "''")}' " +
+                        string sql = $"RESTORE DATABASE [{dbName}] FROM DISK = N'{managedBackupPath.Replace("'", "''")}' " +
                                      "WITH REPLACE, RECOVERY, STATS = 10";
                         using (var cmd = new OleDbCommand(sql, connection))
                         {
@@ -131,7 +133,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
                     }
                 }
 
-                LogBackupEvent("RESTORE_SUCCESS", $"Restored from {Path.GetFileName(backupPath)}");
+                LogBackupEvent("RESTORE_SUCCESS", $"Restored from {Path.GetFileName(managedBackupPath)}");
                 return (true, "✅ Database restored successfully!\n\n" +
                               "The application will now close.\n" +
                               "Please restart to complete the restoration.");
@@ -277,6 +279,9 @@ namespace kingdom_Preparatory_School_Management_System.Services
                 }
 
                 string destPath = Path.Combine(BackupFolder, fileName);
+                if (!TryGetManagedBackupPath(destPath, out destPath, out string pathError))
+                    return (false, pathError);
+
                 if (File.Exists(destPath))
                     return (false, $"A backup named '{fileName}' already exists in the backup folder.");
 
@@ -299,11 +304,14 @@ namespace kingdom_Preparatory_School_Management_System.Services
         {
             try
             {
-                if (!File.Exists(backupPath))
+                if (!TryGetManagedBackupPath(backupPath, out string managedBackupPath, out string pathError))
+                    return (false, pathError);
+
+                if (!File.Exists(managedBackupPath))
                     return (false, "Backup file not found.");
 
-                File.Delete(backupPath);
-                LogBackupEvent("BACKUP_DELETED", Path.GetFileName(backupPath));
+                File.Delete(managedBackupPath);
+                LogBackupEvent("BACKUP_DELETED", Path.GetFileName(managedBackupPath));
 
                 return (true, "Backup deleted successfully.");
             }
@@ -326,6 +334,62 @@ namespace kingdom_Preparatory_School_Management_System.Services
                 RegexOptions.IgnoreCase);
 
             return match.Success ? match.Groups[1].Value.Trim() : null;
+        }
+
+        private static void EnsureBackupFolder()
+        {
+            if (!Directory.Exists(BackupFolder))
+                Directory.CreateDirectory(BackupFolder);
+        }
+
+        private static bool TryGetManagedBackupPath(string backupPath, out string fullPath, out string error)
+        {
+            fullPath = null;
+            error = null;
+
+            if (string.IsNullOrWhiteSpace(backupPath))
+            {
+                error = "Backup path is required.";
+                return false;
+            }
+
+            try
+            {
+                EnsureBackupFolder();
+
+                string backupRoot = Path.GetFullPath(BackupFolder)
+                    .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+                    + Path.DirectorySeparatorChar;
+                string candidate = Path.GetFullPath(backupPath);
+                string fileName = Path.GetFileName(candidate);
+
+                if (!candidate.StartsWith(backupRoot, StringComparison.OrdinalIgnoreCase))
+                {
+                    error = "For safety, restore and delete operations are limited to the managed backup folder. Import the backup first.";
+                    return false;
+                }
+
+                if (!IsManagedBackupFileName(fileName))
+                {
+                    error = "Invalid backup file name. Expected a KPS_Backup_*.bak file.";
+                    return false;
+                }
+
+                fullPath = candidate;
+                return true;
+            }
+            catch (Exception ex)
+            {
+                error = "Invalid backup path: " + ex.Message;
+                return false;
+            }
+        }
+
+        private static bool IsManagedBackupFileName(string fileName)
+        {
+            return !string.IsNullOrWhiteSpace(fileName)
+                && fileName.StartsWith("KPS_Backup_", StringComparison.OrdinalIgnoreCase)
+                && fileName.EndsWith(".bak", StringComparison.OrdinalIgnoreCase);
         }
 
         private static string GetMasterConnectionString(string connectionString)

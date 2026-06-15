@@ -16,6 +16,7 @@ namespace kingdom_Preparatory_School_Management_System
         public Form1()
         {
             InitializeComponent();
+            this.Icon = kingdom_Preparatory_School_Management_System.Common.Branding.AppIcon;
 
             // Initialize modern architecture
             var studentRepo = new StudentRepository(AppConfig.ConnectionString);

@@ -47,6 +47,7 @@ namespace kingdom_Preparatory_School_Management_System
         public frmOutstandingFees()
         {
             InitializeComponent();
+            this.Icon = kingdom_Preparatory_School_Management_System.Common.Branding.AppIcon;
             if (!AuthService.RequireAccess("frmOutstandingFees", this)) return;
 
             _feeRepository = new FeeRepository(AppConfig.ConnectionString);

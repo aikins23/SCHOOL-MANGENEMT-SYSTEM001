@@ -15,11 +15,15 @@ namespace kingdom_Preparatory_School_Management_System.Services
     {
         private readonly IStudentRepository _repository;
         private readonly IFeeRepository _feeRepository;
+        private readonly ScholarshipService _scholarshipService;
 
         public StudentService(IStudentRepository repository, IFeeRepository feeRepository)
         {
             _repository = repository ?? throw new ArgumentNullException(nameof(repository));
             _feeRepository = feeRepository ?? throw new ArgumentNullException(nameof(feeRepository));
+            
+            // In a real DI setup this would be injected. For MVP we'll construct it directly.
+            _scholarshipService = new ScholarshipService(new ScholarshipRepository(Common.AppConfig.ConnectionString));
         }
 
         /// <summary>
@@ -49,10 +53,12 @@ namespace kingdom_Preparatory_School_Management_System.Services
                     return (false, "Failed to add student to database");
                 }
 
-                // Handle initial fee records
-                decimal fee = GetFeeForClass(student.ClassID);
-                await _feeRepository.AddInitialFeeRecordAsync(student.StudentID, student.ClassID, fee);
-                await _feeRepository.AddInitialPaymentRecordAsync(student.StudentID, student.ClassID, student.FullName, fee);
+                // Handle initial fee records with potential scholarships
+                decimal baseFee = GetFeeForClass(student.ClassID);
+                decimal adjustedFee = await CalculateAdjustedFeeSafeAsync(student.StudentID, baseFee);
+
+                await _feeRepository.AddInitialFeeRecordAsync(student.StudentID, student.ClassID, adjustedFee);
+                await _feeRepository.AddInitialPaymentRecordAsync(student.StudentID, student.ClassID, student.FullName, adjustedFee);
 
                 // Admission notifications (SMS + email) are sent by the bursar-approval
                 // path with the payment lines, not here. See DraftAdmissionService /
@@ -220,6 +226,19 @@ namespace kingdom_Preparatory_School_Management_System.Services
         public decimal GetFeeForClass(string classId)
         {
             return Common.SchoolProfile.FeeForClass(classId);
+        }
+
+        private async Task<decimal> CalculateAdjustedFeeSafeAsync(string studentId, decimal baseFee)
+        {
+            try
+            {
+                return await _scholarshipService.CalculateAdjustedTuitionAsync(studentId, baseFee);
+            }
+            catch (Exception ex)
+            {
+                LoggerHelper.LogWarning("Scholarship fee adjustment skipped: " + ex.Message);
+                return baseFee;
+            }
         }
 
         /// <summary>

@@ -29,9 +29,20 @@ namespace kingdom_Preparatory_School_Management_System.Data
                 {
                     await connection.OpenAsync();
                     var query = $"SELECT * FROM {EMPLOYEE_TABLE} WHERE employmentID = ?";
+                    var tenant = await TenantContext.HasSchoolIdColumnAsync(connection, EMPLOYEE_TABLE);
+                    if (tenant)
+                    {
+                        query += TenantContext.FilterClause();
+                    }
+
                     using (var command = new OleDbCommand(query, connection))
                     {
                         command.Parameters.AddWithValue("?", employeeId);
+                        if (tenant)
+                        {
+                            TenantContext.AddSchoolParameter(command);
+                        }
+
                         using (var reader = await command.ExecuteReaderAsync())
                         {
                             if (await reader.ReadAsync())
@@ -57,8 +68,21 @@ namespace kingdom_Preparatory_School_Management_System.Data
                 using (var connection = new OleDbConnection(_connectionString))
                 {
                     await connection.OpenAsync();
-                    using (var command = new OleDbCommand($"SELECT * FROM {EMPLOYEE_TABLE} ORDER BY employmentID", connection))
+                    var tenant = await TenantContext.HasSchoolIdColumnAsync(connection, EMPLOYEE_TABLE);
+                    var query = $"SELECT * FROM {EMPLOYEE_TABLE} WHERE 1=1";
+                    if (tenant)
                     {
+                        query += TenantContext.FilterClause();
+                    }
+
+                    query += " ORDER BY employmentID";
+                    using (var command = new OleDbCommand(query, connection))
+                    {
+                        if (tenant)
+                        {
+                            TenantContext.AddSchoolParameter(command);
+                        }
+
                         using (var reader = await command.ExecuteReaderAsync())
                         {
                             while (await reader.ReadAsync())
@@ -85,9 +109,20 @@ namespace kingdom_Preparatory_School_Management_System.Data
                 {
                     await connection.OpenAsync();
                     var query = $"SELECT * FROM {EMPLOYEE_TABLE} WHERE department = ?";
+                    var tenant = await TenantContext.HasSchoolIdColumnAsync(connection, EMPLOYEE_TABLE);
+                    if (tenant)
+                    {
+                        query += TenantContext.FilterClause();
+                    }
+
                     using (var command = new OleDbCommand(query, connection))
                     {
                         command.Parameters.AddWithValue("?", department);
+                        if (tenant)
+                        {
+                            TenantContext.AddSchoolParameter(command);
+                        }
+
                         using (var reader = await command.ExecuteReaderAsync())
                         {
                             while (await reader.ReadAsync())
@@ -113,16 +148,29 @@ namespace kingdom_Preparatory_School_Management_System.Data
                 {
                     await connection.OpenAsync();
                     // employmentID is INT IDENTITY — never include it in INSERT.
+                    var tenant = await TenantContext.HasSchoolIdColumnAsync(connection, EMPLOYEE_TABLE);
+                    var columns = @"fullName, gender, dOB, conatct, email, department, position, homeTown, residence,
+                         date_of_Emplyment, employment_Mode, employment_Status, emergency_Contact_Person,
+                         emergency_contact, Employees_Reviews, salary, pic";
+                    var values = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?";
+                    if (tenant)
+                    {
+                        columns += ", SchoolId";
+                        values += ", ?";
+                    }
+
                     var query = $@"
                         INSERT INTO {EMPLOYEE_TABLE}
-                        (fullName, gender, dOB, conatct, email, department, position, homeTown, residence,
-                         date_of_Emplyment, employment_Mode, employment_Status, emergency_Contact_Person,
-                         emergency_contact, Employees_Reviews, salary, pic)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                        ({columns})
+                        VALUES ({values})";
 
                     using (var command = new OleDbCommand(query, connection))
                     {
                         AddEmployeeParameters(command, employee);
+                        if (tenant)
+                        {
+                            TenantContext.AddSchoolParameter(command);
+                        }
 
                         var rows = await command.ExecuteNonQueryAsync();
                         if (rows > 0)
@@ -161,11 +209,20 @@ namespace kingdom_Preparatory_School_Management_System.Data
                             employment_Mode = ?, employment_Status = ?, emergency_Contact_Person = ?, 
                             emergency_contact = ?, Employees_Reviews = ?, salary = ?, pic = ?
                         WHERE employmentID = ?";
+                    var tenant = await TenantContext.HasSchoolIdColumnAsync(connection, EMPLOYEE_TABLE);
+                    if (tenant)
+                    {
+                        query += TenantContext.FilterClause();
+                    }
 
                     using (var command = new OleDbCommand(query, connection))
                     {
                         AddEmployeeParameters(command, employee);
                         command.Parameters.AddWithValue("?", employee.EmployeeID ?? "");
+                        if (tenant)
+                        {
+                            TenantContext.AddSchoolParameter(command);
+                        }
                         
                         var rows = await command.ExecuteNonQueryAsync();
                         return rows > 0;
@@ -187,9 +244,20 @@ namespace kingdom_Preparatory_School_Management_System.Data
                 {
                     await connection.OpenAsync();
                     var query = $"DELETE FROM {EMPLOYEE_TABLE} WHERE employmentID = ?";
+                    var tenant = await TenantContext.HasSchoolIdColumnAsync(connection, EMPLOYEE_TABLE);
+                    if (tenant)
+                    {
+                        query += TenantContext.FilterClause();
+                    }
+
                     using (var command = new OleDbCommand(query, connection))
                     {
                         command.Parameters.AddWithValue("?", employeeId);
+                        if (tenant)
+                        {
+                            TenantContext.AddSchoolParameter(command);
+                        }
+
                         var rows = await command.ExecuteNonQueryAsync();
                         return rows > 0;
                     }
@@ -210,9 +278,20 @@ namespace kingdom_Preparatory_School_Management_System.Data
                 {
                     await connection.OpenAsync();
                     var query = $"SELECT COUNT(*) FROM {EMPLOYEE_TABLE} WHERE employmentID = ?";
+                    var tenant = await TenantContext.HasSchoolIdColumnAsync(connection, EMPLOYEE_TABLE);
+                    if (tenant)
+                    {
+                        query += TenantContext.FilterClause();
+                    }
+
                     using (var command = new OleDbCommand(query, connection))
                     {
                         command.Parameters.AddWithValue("?", employeeId);
+                        if (tenant)
+                        {
+                            TenantContext.AddSchoolParameter(command);
+                        }
+
                         var count = Convert.ToInt32(await command.ExecuteScalarAsync());
                         return count > 0;
                     }
@@ -235,9 +314,20 @@ namespace kingdom_Preparatory_School_Management_System.Data
                 using (var connection = new OleDbConnection(_connectionString))
                 {
                     await connection.OpenAsync();
+                    var tenant = await TenantContext.HasSchoolIdColumnAsync(connection, EMPLOYEE_TABLE);
                     var query = $"SELECT ISNULL(MAX(employmentID), 0) + 1 FROM {EMPLOYEE_TABLE}";
+                    if (tenant)
+                    {
+                        query += " WHERE SchoolId = ?";
+                    }
+
                     using (var command = new OleDbCommand(query, connection))
                     {
+                        if (tenant)
+                        {
+                            TenantContext.AddSchoolParameter(command);
+                        }
+
                         var result = await command.ExecuteScalarAsync();
                         if (result != null && result != DBNull.Value)
                             return result.ToString();
@@ -273,6 +363,13 @@ namespace kingdom_Preparatory_School_Management_System.Data
                     using (var command = new OleDbCommand())
                     {
                         command.Connection = connection;
+                        var tenant = await TenantContext.HasSchoolIdColumnAsync(connection, EMPLOYEE_TABLE);
+                        if (tenant)
+                        {
+                            query += TenantContext.FilterClause();
+                            TenantContext.AddSchoolParameter(command);
+                        }
+
                         if (!string.IsNullOrEmpty(filterId))
                         {
                             command.Parameters.AddWithValue("?", "%" + filterId + "%");
@@ -307,14 +404,66 @@ namespace kingdom_Preparatory_School_Management_System.Data
                 using (var connection = new OleDbConnection(_connectionString))
                 {
                     await connection.OpenAsync();
-                    // Move to Rolled_Out_Employees or just update status?
-                    // The modern requirement seems to be just updating status here
-                    var query = $"UPDATE {EMPLOYEE_TABLE} SET employment_Status = 'Terminated' WHERE employmentID = ?";
-                    using (var command = new OleDbCommand(query, connection))
+                    using (var transaction = connection.BeginTransaction())
                     {
-                        command.Parameters.AddWithValue("?", employeeId);
-                        var rows = await command.ExecuteNonQueryAsync();
-                        return rows > 0;
+                        var employeeTenant = await TenantContext.HasSchoolIdColumnAsync(connection, EMPLOYEE_TABLE);
+                        var archiveTenant = await TenantContext.HasSchoolIdColumnAsync(connection, "Rolled_Out_Employees");
+                        var employee = await GetByIdAsync(employeeId);
+                        if (employee == null) return false;
+
+                        // 1. Insert into archive
+                        var insColumns = "employmentID, fullName, gender, DOB, homeTown, residence, position, department, mobile, email, [date]";
+                        var insValues = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?";
+                        if (archiveTenant)
+                        {
+                            insColumns += ", SchoolId";
+                            insValues += ", ?";
+                        }
+
+                        var insSql = $@"INSERT INTO Rolled_Out_Employees 
+                                       ({insColumns})
+                                       VALUES ({insValues})";
+                        using (var insCmd = new OleDbCommand(insSql, connection, transaction))
+                        {
+                            insCmd.Parameters.AddWithValue("?", employee.EmployeeID);
+                            insCmd.Parameters.AddWithValue("?", employee.FullName ?? "");
+                            insCmd.Parameters.AddWithValue("?", employee.Gender ?? "");
+                            insCmd.Parameters.AddWithValue("?", employee.DateOfBirth);
+                            insCmd.Parameters.AddWithValue("?", employee.HomeTown ?? "");
+                            insCmd.Parameters.AddWithValue("?", employee.Residence ?? "");
+                            insCmd.Parameters.AddWithValue("?", employee.Position ?? "");
+                            insCmd.Parameters.AddWithValue("?", employee.Department ?? "");
+                            insCmd.Parameters.AddWithValue("?", employee.Contact ?? "");
+                            insCmd.Parameters.AddWithValue("?", employee.Email ?? "");
+                            insCmd.Parameters.AddWithValue("?", terminationDate);
+                            if (archiveTenant)
+                            {
+                                TenantContext.AddSchoolParameter(insCmd);
+                            }
+
+                            await insCmd.ExecuteNonQueryAsync();
+                        }
+
+                        // 2. Delete from main
+                        var delSql = "DELETE FROM Employee WHERE employmentID = ?";
+                        if (employeeTenant)
+                        {
+                            delSql += TenantContext.FilterClause();
+                        }
+
+                        using (var delCmd = new OleDbCommand(delSql, connection, transaction))
+                        {
+                            delCmd.Parameters.AddWithValue("?", employeeId);
+                            if (employeeTenant)
+                            {
+                                TenantContext.AddSchoolParameter(delCmd);
+                            }
+
+                            await delCmd.ExecuteNonQueryAsync();
+                        }
+
+                        transaction.Commit();
+                        return true;
                     }
                 }
             }
@@ -323,6 +472,130 @@ namespace kingdom_Preparatory_School_Management_System.Data
                 LoggerHelper.LogError($"Failed to terminate employee: {employeeId}", ex);
                 return false;
             }
+        }
+
+        public async Task<bool> RestoreAsync(string employeeId)
+        {
+            try
+            {
+                using (var connection = new OleDbConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+                    using (var transaction = connection.BeginTransaction())
+                    {
+                        try
+                        {
+                            var employeeTenant = await TenantContext.HasSchoolIdColumnAsync(connection, EMPLOYEE_TABLE);
+                            var archiveTenant = await TenantContext.HasSchoolIdColumnAsync(connection, "Rolled_Out_Employees");
+                            // 1. Move back to main table
+                            var targetColumns = "fullName, gender, dOB, conatct, email, department, position, homeTown, residence";
+                            var selectColumns = "fullName, gender, DOB, mobile, email, department, position, homeTown, residence";
+                            if (employeeTenant)
+                            {
+                                targetColumns += ", SchoolId";
+                                selectColumns += ", ?";
+                            }
+
+                            var moveSql = $@"INSERT INTO Employee 
+                                            ({targetColumns})
+                                            SELECT {selectColumns}
+                                            FROM Rolled_Out_Employees WHERE employmentID = ?";
+                            if (archiveTenant)
+                            {
+                                moveSql += TenantContext.FilterClause();
+                            }
+
+                            using (var moveCmd = new OleDbCommand(moveSql, connection, transaction))
+                            {
+                                if (employeeTenant)
+                                {
+                                    TenantContext.AddSchoolParameter(moveCmd);
+                                }
+
+                                moveCmd.Parameters.AddWithValue("?", employeeId);
+                                if (archiveTenant)
+                                {
+                                    TenantContext.AddSchoolParameter(moveCmd);
+                                }
+
+                                int rows = await moveCmd.ExecuteNonQueryAsync();
+                                if (rows == 0) return false;
+                            }
+
+                            // 2. Delete from archive
+                            var delSql = "DELETE FROM Rolled_Out_Employees WHERE employmentID = ?";
+                            if (archiveTenant)
+                            {
+                                delSql += TenantContext.FilterClause();
+                            }
+
+                            using (var delCmd = new OleDbCommand(delSql, connection, transaction))
+                            {
+                                delCmd.Parameters.AddWithValue("?", employeeId);
+                                if (archiveTenant)
+                                {
+                                    TenantContext.AddSchoolParameter(delCmd);
+                                }
+
+                                await delCmd.ExecuteNonQueryAsync();
+                            }
+
+                            transaction.Commit();
+                            return true;
+                        }
+                        catch
+                        {
+                            transaction.Rollback();
+                            throw;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggerHelper.LogError($"Error restoring employee {employeeId}", ex);
+                return false;
+            }
+        }
+
+        public async Task<DataTable> GetRolledOutAsTableAsync()
+        {
+            var table = new DataTable();
+            try
+            {
+                using (var connection = new OleDbConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+                    var archiveTenant = await TenantContext.HasSchoolIdColumnAsync(connection, "Rolled_Out_Employees");
+                    var query = @"SELECT employmentID AS ID, fullName AS [FULL NAME], 
+                                         department AS DEPARTMENT, position AS POSITION, [date] AS [EXIT DATE] 
+                                  FROM Rolled_Out_Employees 
+                                  WHERE 1=1";
+                    if (archiveTenant)
+                    {
+                        query += TenantContext.FilterClause();
+                    }
+
+                    query += " ORDER BY [date] DESC";
+                    using (var command = new OleDbCommand(query, connection))
+                    {
+                        if (archiveTenant)
+                        {
+                            TenantContext.AddSchoolParameter(command);
+                        }
+
+                        using (var adapter = new OleDbDataAdapter(command))
+                        {
+                            adapter.Fill(table);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Services.LoggerHelper.LogError("Error retrieving rolled out employees table", ex);
+            }
+            return table;
         }
 
         private Models.Employee MapReaderToEmployee(IDataReader reader)

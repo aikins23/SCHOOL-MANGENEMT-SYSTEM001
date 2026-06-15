@@ -51,10 +51,12 @@ namespace kingdom_Preparatory_School_Management_System
         public frmAttendance()
         {
             InitializeComponent();
+            this.Icon = kingdom_Preparatory_School_Management_System.Common.Branding.AppIcon;
             if (!AuthService.RequireAccess("frmAttendance", this)) return;
 
             var repository = new AttendanceRepository(AppConfig.ConnectionString);
-            _attendanceService = new AttendanceService(repository);
+            var studentRepo = new StudentRepository(AppConfig.ConnectionString);
+            _attendanceService = new AttendanceService(repository, studentRepo);
 
             Load += frmAttendance_Load;
         }
@@ -64,7 +66,6 @@ namespace kingdom_Preparatory_School_Management_System
             BuildModernLayout();
             NavigationSidebar.AddTo(this);
 
-            await _attendanceService.InitializeAsync();
             await LoadClasses();
             await ApplyTeacherScopeAsync();
             await LoadTargetList();

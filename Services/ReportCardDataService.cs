@@ -89,7 +89,12 @@ namespace kingdom_Preparatory_School_Management_System.Services
             using (var connection = new OleDbConnection(_connectionString))
             {
                 await connection.OpenAsync();
-                const string query = "SELECT * FROM Students WHERE StudentID = ?";
+                var query = "SELECT * FROM Students WHERE StudentID = ?";
+                var tenant = await TenantContext.HasSchoolIdColumnAsync(connection, "Students");
+                if (tenant)
+                {
+                    query += TenantContext.FilterClause();
+                }
 
                 using (var cmd = new OleDbCommand(query, connection))
                 {
@@ -98,6 +103,11 @@ namespace kingdom_Preparatory_School_Management_System.Services
                         cmd.Parameters.AddWithValue("?", idInt);
                     else
                         cmd.Parameters.AddWithValue("?", studentId);
+
+                    if (tenant)
+                    {
+                        TenantContext.AddSchoolParameter(cmd);
+                    }
 
                     using (var reader = await cmd.ExecuteReaderAsync())
                     {
@@ -129,7 +139,12 @@ namespace kingdom_Preparatory_School_Management_System.Services
             using (var connection = new OleDbConnection(_connectionString))
             {
                 await connection.OpenAsync();
-                const string query = "SELECT * FROM examss WHERE std_id = ? AND term = ? AND [year] = ?";
+                var query = "SELECT * FROM examss WHERE std_id = ? AND term = ? AND [year] = ?";
+                var tenant = await TenantContext.HasSchoolIdColumnAsync(connection, "examss");
+                if (tenant)
+                {
+                    query += TenantContext.FilterClause();
+                }
 
                 using (var cmd = new OleDbCommand(query, connection))
                 {
@@ -140,6 +155,10 @@ namespace kingdom_Preparatory_School_Management_System.Services
 
                     cmd.Parameters.AddWithValue("?", term ?? "");
                     cmd.Parameters.AddWithValue("?", year ?? "");
+                    if (tenant)
+                    {
+                        TenantContext.AddSchoolParameter(cmd);
+                    }
 
                     using (var reader = await cmd.ExecuteReaderAsync())
                     {
@@ -202,7 +221,12 @@ namespace kingdom_Preparatory_School_Management_System.Services
             using (var connection = new OleDbConnection(_connectionString))
             {
                 await connection.OpenAsync();
-                const string query = "SELECT gt FROM examss WHERE subject = ? AND std_class = ? AND term = ? AND [year] = ?";
+                var query = "SELECT gt FROM examss WHERE subject = ? AND std_class = ? AND term = ? AND [year] = ?";
+                var tenant = await TenantContext.HasSchoolIdColumnAsync(connection, "examss");
+                if (tenant)
+                {
+                    query += TenantContext.FilterClause();
+                }
 
                 using (var cmd = new OleDbCommand(query, connection))
                 {
@@ -210,6 +234,10 @@ namespace kingdom_Preparatory_School_Management_System.Services
                     cmd.Parameters.AddWithValue("?", classId ?? "");
                     cmd.Parameters.AddWithValue("?", term ?? "");
                     cmd.Parameters.AddWithValue("?", year ?? "");
+                    if (tenant)
+                    {
+                        TenantContext.AddSchoolParameter(cmd);
+                    }
 
                     using (var reader = await cmd.ExecuteReaderAsync())
                     {
@@ -235,13 +263,24 @@ namespace kingdom_Preparatory_School_Management_System.Services
             using (var connection = new OleDbConnection(_connectionString))
             {
                 await connection.OpenAsync();
-                const string query = "SELECT std_id, SUM(gt) as AggregateScore FROM examss WHERE std_class = ? AND term = ? AND [year] = ? GROUP BY std_id";
+                var query = "SELECT std_id, SUM(gt) as AggregateScore FROM examss WHERE std_class = ? AND term = ? AND [year] = ?";
+                var tenant = await TenantContext.HasSchoolIdColumnAsync(connection, "examss");
+                if (tenant)
+                {
+                    query += TenantContext.FilterClause();
+                }
+
+                query += " GROUP BY std_id";
 
                 using (var cmd = new OleDbCommand(query, connection))
                 {
                     cmd.Parameters.AddWithValue("?", classId ?? "");
                     cmd.Parameters.AddWithValue("?", term ?? "");
                     cmd.Parameters.AddWithValue("?", year ?? "");
+                    if (tenant)
+                    {
+                        TenantContext.AddSchoolParameter(cmd);
+                    }
 
                     using (var reader = await cmd.ExecuteReaderAsync())
                     {
@@ -278,7 +317,13 @@ namespace kingdom_Preparatory_School_Management_System.Services
                     int yearNum = DateTime.Today.Year;
                     if (!string.IsNullOrEmpty(year) && int.TryParse(year.Split('/')[0], out var y)) yearNum = y;
 
-                    const string presentQuery = "SELECT COUNT(*) FROM Attendance WHERE ReferenceID = ? AND ReferenceType = 'STUDENT' AND [Status] = 'PRESENT' AND YEAR([Date]) = ?";
+                    var tenant = await TenantContext.HasSchoolIdColumnAsync(connection, "Attendance");
+                    var presentQuery = "SELECT COUNT(*) FROM Attendance WHERE ReferenceID = ? AND ReferenceType = 'STUDENT' AND [Status] = 'PRESENT' AND YEAR([Date]) = ?";
+                    if (tenant)
+                    {
+                        presentQuery += TenantContext.FilterClause();
+                    }
+
                     int presentDays = 0;
                     using (var cmd = new OleDbCommand(presentQuery, connection))
                     {
@@ -288,14 +333,29 @@ namespace kingdom_Preparatory_School_Management_System.Services
                             cmd.Parameters.AddWithValue("?", studentId);
                         
                         cmd.Parameters.AddWithValue("?", yearNum);
+                        if (tenant)
+                        {
+                            TenantContext.AddSchoolParameter(cmd);
+                        }
+
                         presentDays = Convert.ToInt32(await cmd.ExecuteScalarAsync());
                     }
 
-                    const string totalQuery = "SELECT COUNT(DISTINCT [Date]) FROM Attendance WHERE YEAR([Date]) = ?";
+                    var totalQuery = "SELECT COUNT(DISTINCT [Date]) FROM Attendance WHERE YEAR([Date]) = ?";
+                    if (tenant)
+                    {
+                        totalQuery += TenantContext.FilterClause();
+                    }
+
                     int totalDays = 0;
                     using (var cmd = new OleDbCommand(totalQuery, connection))
                     {
                         cmd.Parameters.AddWithValue("?", yearNum);
+                        if (tenant)
+                        {
+                            TenantContext.AddSchoolParameter(cmd);
+                        }
+
                         totalDays = Convert.ToInt32(await cmd.ExecuteScalarAsync());
                     }
 

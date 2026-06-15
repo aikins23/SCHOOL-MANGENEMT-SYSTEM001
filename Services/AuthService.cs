@@ -126,18 +126,19 @@ namespace kingdom_Preparatory_School_Management_System.Services
             return false;
         }
 
-        private const int Iterations = 100000;
-        private const int SaltSize = 8;
-        private const int HashSize = 16;
-        private const string Prefix = "P2";
+        private const int Iterations = 150000;
+        private const int SaltSize = 16;
+        private const int HashSize = 32;
+        private const string LegacyPrefix = "P2";
+        private const string CurrentPrefix = "P3";
 
         public static string HashPassword(string password)
         {
             if (password == null) throw new ArgumentNullException(nameof(password));
             byte[] salt = new byte[SaltSize];
             using (var rng = RandomNumberGenerator.Create()) { rng.GetBytes(salt); }
-            byte[] hash = DeriveHash(password, salt, Iterations);
-            return $"{Prefix}${Iterations}${Encode(salt)}${Encode(hash)}";
+            byte[] hash = DeriveHash(password, salt, Iterations, HashSize, HashAlgorithmName.SHA256);
+            return $"{CurrentPrefix}${Iterations}${Encode(salt)}${Encode(hash)}";
         }
 
         public static bool VerifyPassword(string password, string storedPassword)
@@ -148,9 +149,13 @@ namespace kingdom_Preparatory_School_Management_System.Services
             if (parts.Length != 4 || !int.TryParse(parts[1], out int iterations)) return false;
             try
             {
+                string prefix = parts[0];
                 byte[] salt = Decode(parts[2]);
                 byte[] expectedHash = Decode(parts[3]);
-                byte[] actualHash = DeriveHash(password, salt, iterations, expectedHash.Length);
+                var algorithm = string.Equals(prefix, CurrentPrefix, StringComparison.Ordinal)
+                    ? HashAlgorithmName.SHA256
+                    : HashAlgorithmName.SHA1;
+                byte[] actualHash = DeriveHash(password, salt, iterations, expectedHash.Length, algorithm);
                 return FixedTimeEquals(actualHash, expectedHash);
             }
             catch (Exception ex)
@@ -162,7 +167,15 @@ namespace kingdom_Preparatory_School_Management_System.Services
 
         public static bool IsHashedPassword(string storedPassword)
         {
-            return !string.IsNullOrWhiteSpace(storedPassword) && storedPassword.StartsWith(Prefix + "$", StringComparison.Ordinal);
+            return !string.IsNullOrWhiteSpace(storedPassword)
+                && (storedPassword.StartsWith(CurrentPrefix + "$", StringComparison.Ordinal)
+                    || storedPassword.StartsWith(LegacyPrefix + "$", StringComparison.Ordinal));
+        }
+
+        private static bool IsCurrentPasswordHash(string storedPassword)
+        {
+            return !string.IsNullOrWhiteSpace(storedPassword)
+                && storedPassword.StartsWith(CurrentPrefix + "$", StringComparison.Ordinal);
         }
 
         public static string ValidateRegistration(string username, string password, string confirmPassword, string userType)
@@ -197,9 +210,20 @@ namespace kingdom_Preparatory_School_Management_System.Services
                 {
                     await connection.OpenAsync();
                     var query = "SELECT [Password], [User_Type], [EmploymentID] FROM Users WHERE Username = ?";
+                    var tenant = await Data.TenantContext.HasSchoolIdColumnAsync(connection, "Users");
+                    if (tenant)
+                    {
+                        query += Data.TenantContext.FilterClause();
+                    }
+
                     using (var command = new OleDbCommand(query, connection))
                     {
                         command.Parameters.Add("?", OleDbType.VarChar).Value = username;
+                        if (tenant)
+                        {
+                            Data.TenantContext.AddSchoolParameter(command);
+                        }
+
                         using (var reader = await command.ExecuteReaderAsync())
                         {
                             if (await reader.ReadAsync())
@@ -226,7 +250,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
                                 // receipts) shows a real name instead of the login username.
                                 CurrentUser.FullName = await ResolveEmployeeFullNameAsync(employmentId);
 
-                                if (!IsHashedPassword(storedPassword))
+                                if (!IsCurrentPasswordHash(storedPassword))
                                 {
                                     await TryUpgradePasswordHashAsync(connection, username, password);
                                 }
@@ -241,7 +265,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
             catch (Exception ex) 
             {
                 LoggerHelper.LogError($"Login failed for user {username}", ex);
-                return (false, "Authentication error: " + ex.Message); 
+                return (false, "Authentication is temporarily unavailable. Please try again or contact the administrator."); 
             }
         }
 
@@ -260,9 +284,21 @@ namespace kingdom_Preparatory_School_Management_System.Services
                 using (var connection = new OleDbConnection(AppConfig.ConnectionString))
                 {
                     await connection.OpenAsync();
-                    using (var command = new OleDbCommand("SELECT fullName FROM Employee WHERE employmentID = ?", connection))
+                    var query = "SELECT fullName FROM Employee WHERE employmentID = ?";
+                    var tenant = await Data.TenantContext.HasSchoolIdColumnAsync(connection, "Employee");
+                    if (tenant)
+                    {
+                        query += Data.TenantContext.FilterClause();
+                    }
+
+                    using (var command = new OleDbCommand(query, connection))
                     {
                         command.Parameters.AddWithValue("?", employmentId.Value);
+                        if (tenant)
+                        {
+                            Data.TenantContext.AddSchoolParameter(command);
+                        }
+
                         var result = await command.ExecuteScalarAsync();
                         return result == null || result == DBNull.Value ? "" : result.ToString();
                     }
@@ -340,14 +376,27 @@ namespace kingdom_Preparatory_School_Management_System.Services
                 {
                     await connection.OpenAsync();
                     var checkQuery = "SELECT COUNT(*) FROM Users WHERE Username = ?";
+                    var tenant = await Data.TenantContext.HasSchoolIdColumnAsync(connection, "Users");
+                    if (tenant)
+                    {
+                        checkQuery += Data.TenantContext.FilterClause();
+                    }
+
                     using (var checkCmd = new OleDbCommand(checkQuery, connection))
                     {
                         checkCmd.Parameters.Add("?", OleDbType.VarChar).Value = username;
+                        if (tenant)
+                        {
+                            Data.TenantContext.AddSchoolParameter(checkCmd);
+                        }
+
                         if (Convert.ToInt32(await checkCmd.ExecuteScalarAsync()) > 0) return (false, "Username already exists.");
                     }
 
                     string passwordHash = HashPassword(password);
-                    var insertQuery = "INSERT INTO Users (Username, [Password], Con_Password, User_Type, EmploymentID) VALUES (?, ?, ?, ?, ?)";
+                    var insertQuery = tenant
+                        ? "INSERT INTO Users (Username, [Password], Con_Password, User_Type, EmploymentID, SchoolId) VALUES (?, ?, ?, ?, ?, ?)"
+                        : "INSERT INTO Users (Username, [Password], Con_Password, User_Type, EmploymentID) VALUES (?, ?, ?, ?, ?)";
                     using (var command = new OleDbCommand(insertQuery, connection))
                     {
                         command.Parameters.Add("?", OleDbType.VarChar).Value = username;
@@ -355,6 +404,11 @@ namespace kingdom_Preparatory_School_Management_System.Services
                         command.Parameters.Add("?", OleDbType.VarChar).Value = passwordHash;
                         command.Parameters.Add("?", OleDbType.VarChar).Value = userType;
                         command.Parameters.Add("?", OleDbType.Integer).Value = (object)employmentId ?? DBNull.Value;
+                        if (tenant)
+                        {
+                            Data.TenantContext.AddSchoolParameter(command);
+                        }
+
                         await command.ExecuteNonQueryAsync();
                         return (true, "Registration successful.");
                     }
@@ -373,11 +427,22 @@ namespace kingdom_Preparatory_School_Management_System.Services
             {
                 string passwordHash = HashPassword(password);
                 var query = "UPDATE Users SET [Password] = ?, Con_Password = ? WHERE Username = ?";
+                var tenant = await Data.TenantContext.HasSchoolIdColumnAsync(connection, "Users");
+                if (tenant)
+                {
+                    query += Data.TenantContext.FilterClause();
+                }
+
                 using (var command = new OleDbCommand(query, connection))
                 {
                     command.Parameters.Add("?", OleDbType.VarChar).Value = passwordHash;
                     command.Parameters.Add("?", OleDbType.VarChar).Value = passwordHash;
                     command.Parameters.Add("?", OleDbType.VarChar).Value = username;
+                    if (tenant)
+                    {
+                        Data.TenantContext.AddSchoolParameter(command);
+                    }
+
                     await command.ExecuteNonQueryAsync();
                 }
             }
@@ -435,6 +500,8 @@ namespace kingdom_Preparatory_School_Management_System.Services
                         if (!hasEmploymentId) Execute(connection, "ALTER TABLE Users ADD COLUMN EmploymentID INT NULL");
                     }
                 }
+
+                await Data.TenantSchema.EnsureTenantColumnsAsync(AppConfig.ConnectionString);
             }
             catch (Exception ex)
             {
@@ -477,9 +544,9 @@ namespace kingdom_Preparatory_School_Management_System.Services
 
         private static void Execute(OleDbConnection con, string sql) { using (var cmd = new OleDbCommand(sql, con)) cmd.ExecuteNonQuery(); }
 
-        private static byte[] DeriveHash(string password, byte[] salt, int iterations, int length = HashSize)
+        private static byte[] DeriveHash(string password, byte[] salt, int iterations, int length, HashAlgorithmName algorithm)
         {
-            using (var pbkdf2 = new Rfc2898DeriveBytes(password, salt, iterations)) return pbkdf2.GetBytes(length);
+            using (var pbkdf2 = new Rfc2898DeriveBytes(password, salt, iterations, algorithm)) return pbkdf2.GetBytes(length);
         }
 
         private static string Encode(byte[] data) => Convert.ToBase64String(data);

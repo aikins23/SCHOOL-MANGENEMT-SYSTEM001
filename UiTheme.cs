@@ -7,29 +7,34 @@ namespace kingdom_Preparatory_School_Management_System
 {
     internal static class UiTheme
     {
-        private static readonly Font BaseFont = new Font("Segoe UI", 9.5F, FontStyle.Regular);
-        private static readonly Font ButtonFont = new Font("Segoe UI Semibold", 9.5F, FontStyle.Bold);
-        public static readonly Color Page = Color.FromArgb(245, 247, 250);
+        private static readonly Font BaseFont = new Font("Segoe UI", 9.25F, FontStyle.Regular);
+        private static readonly Font ButtonFont = new Font("Segoe UI Semibold", 9.25F, FontStyle.Bold);
+        public static readonly Color Page = Color.FromArgb(247, 249, 252);
         public static readonly Color Surface = Color.White;
-        public static readonly Color SurfaceAlt = Color.FromArgb(238, 242, 247);
-        public static readonly Color Border = Color.FromArgb(216, 222, 232);
+        public static readonly Color SurfaceAlt = Color.FromArgb(241, 245, 249);
+        public static readonly Color Border = Color.FromArgb(223, 230, 240);
         public static readonly Color Text = Color.FromArgb(17, 24, 39);
-        public static readonly Color Muted = Color.FromArgb(91, 105, 119);
+        public static readonly Color Muted = Color.FromArgb(96, 111, 128);
         public static readonly Color Navy = Color.FromArgb(25, 25, 112);
-        public static readonly Color NavyHover = Color.FromArgb(18, 18, 86);
+        public static readonly Color NavyHover = Color.FromArgb(29, 38, 130);
         public static readonly Color Gold = Color.FromArgb(255, 215, 0);
         public static readonly Color GoldSoft = Color.FromArgb(255, 248, 204);
+        public static readonly Color Success = Color.FromArgb(16, 185, 129);
 
         public static void Apply(Form form)
         {
-            if (form == null)
-            {
-                return;
-            }
+            if (form == null) return;
 
             form.BackColor = Page;
             form.Font = BaseFont;
-            form.MinimumSize = new Size(Math.Max(form.MinimumSize.Width, 1000), Math.Max(form.MinimumSize.Height, 650));
+            form.Icon = Common.Branding.AppIcon;
+            
+            // Ensure responsive min size unless specifically small (dialogs)
+            if (form.FormBorderStyle != FormBorderStyle.FixedDialog && form.MaximizeBox)
+            {
+                form.MinimumSize = new Size(Math.Max(form.MinimumSize.Width, 1000), Math.Max(form.MinimumSize.Height, 650));
+            }
+            
             ApplyToControls(form.Controls, false);
         }
 
@@ -119,18 +124,20 @@ namespace kingdom_Preparatory_School_Management_System
             grid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             grid.MultiSelect = false;
             grid.ScrollBars = ScrollBars.Both;
-            grid.ColumnHeadersHeight = 42;
-            grid.RowTemplate.Height = 34;
+            grid.ColumnHeadersHeight = 40;
+            grid.RowTemplate.Height = 32;
             grid.ClipboardCopyMode = DataGridViewClipboardCopyMode.EnableAlwaysIncludeHeaderText;
             grid.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal;
             grid.ColumnHeadersDefaultCellStyle.BackColor = Navy;
             grid.ColumnHeadersDefaultCellStyle.ForeColor = Color.White;
             grid.ColumnHeadersDefaultCellStyle.Font = ButtonFont;
+            grid.ColumnHeadersDefaultCellStyle.Padding = new Padding(8, 0, 8, 0);
             grid.ColumnHeadersDefaultCellStyle.SelectionBackColor = Navy;
             grid.ColumnHeadersDefaultCellStyle.WrapMode = DataGridViewTriState.True;
             grid.DefaultCellStyle.BackColor = Surface;
             grid.DefaultCellStyle.ForeColor = Text;
             grid.DefaultCellStyle.Font = BaseFont;
+            grid.DefaultCellStyle.Padding = new Padding(8, 0, 8, 0);
             grid.DefaultCellStyle.SelectionBackColor = GoldSoft;
             grid.DefaultCellStyle.SelectionForeColor = Text;
             grid.DefaultCellStyle.WrapMode = DataGridViewTriState.False;

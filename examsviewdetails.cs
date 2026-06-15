@@ -26,6 +26,7 @@ namespace kingdom_Preparatory_School_Management_System
         public examsviewdetails(Dictionary<string, string> data)
         {
             InitializeComponent();
+            this.Icon = kingdom_Preparatory_School_Management_System.Common.Branding.AppIcon;
             if (!AuthService.RequireAccess("examsviewdetails", this)) return;
             rowData = data ?? new Dictionary<string, string>();
             BuildReportCardView();
