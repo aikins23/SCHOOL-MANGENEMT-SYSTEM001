@@ -364,3 +364,18 @@ FodyWeavers.xsd
 
 # Git Worktrees (isolated development environments)
 .worktrees/
+
+# Local secrets and certificate private keys
+.env
+.env.*
+!.env.example
+*.pfx
+*.p12
+*.pem
+*.key
+*.snk
+*.jks
+*.keystore
+*.secrets.json
+secrets/
+.security-history-rewrite/

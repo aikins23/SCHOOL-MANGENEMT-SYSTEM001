@@ -45,13 +45,19 @@ namespace kingdom_Preparatory_School_Management_System
                 // 2. Create Users for these Employees
                 await AuthService.EnsureDatabaseSetupAsync();
 
+                string seedPassword = Environment.GetEnvironmentVariable("NYANSAPO_SEED_USER_PASSWORD");
+                if (string.IsNullOrWhiteSpace(seedPassword))
+                {
+                    throw new InvalidOperationException(
+                        "Set NYANSAPO_SEED_USER_PASSWORD before creating demonstration user accounts.");
+                }
+
                 foreach (var emp in existing)
                 {
                     if (string.IsNullOrEmpty(emp.EmployeeID)) continue;
                     
                     int empId = int.Parse(emp.EmployeeID);
                     string username = emp.FullName.Split(' ')[0].ToLower(); // e.g. "emmanuel", "sarah"
-                    string password = "RETIRED_SECRET_REMOVED";
                     string userType = "TEACHER";
 
                     if (emp.Position == "Principal") 
@@ -70,7 +76,7 @@ namespace kingdom_Preparatory_School_Management_System
                     }
 
                     // Attempt registration
-                    await AuthService.RegisterAsync(username, password, password, userType, empId);
+                    await AuthService.RegisterAsync(username, seedPassword, seedPassword, userType, empId);
                 }
             }
             catch (Exception ex)
