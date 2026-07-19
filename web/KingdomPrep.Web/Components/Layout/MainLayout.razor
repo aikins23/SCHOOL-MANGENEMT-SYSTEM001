@@ -1,18 +1,206 @@
-﻿@inherits LayoutComponentBase
+@inherits LayoutComponentBase
+@using System.Security.Claims
+@inject IJSRuntime JSRuntime
 
 <div class="page">
+    <input type="checkbox" id="sidebar-toggler" class="sidebar-toggler-checkbox d-none" />
+    <label for="sidebar-toggler" class="sidebar-overlay"></label>
+
     <div class="sidebar">
         <NavMenu />
     </div>
 
     <main>
-        <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
+        <div class="top-row px-3 px-md-4 border-0 d-flex align-items-center justify-content-between" style="background-color: var(--nyansapo-bg); min-height: 5rem;">
+            <div class="d-flex align-items-center">
+                <label for="sidebar-toggler" class="me-3 mb-0" style="cursor:pointer; color: var(--nyansapo-navy); display: block;" title="Toggle Sidebar">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="3" y1="12" x2="21" y2="12"></line>
+                        <line x1="3" y1="6" x2="21" y2="6"></line>
+                        <line x1="3" y1="18" x2="21" y2="18"></line>
+                    </svg>
+                </label>
+                <h2 class="m-0 fw-bold dashboard-title" style="color: var(--nyansapo-navy); font-size: 1.75rem;">Dashboard</h2>
+            </div>
+
+            <div class="d-flex align-items-center gap-4">
+                <!-- Action Icons -->
+                <div class="d-flex align-items-center gap-3" style="color: var(--nyansapo-navy);">
+                    <button type="button" id="pwa-install-button" class="pwa-install-button" onclick="window.installNyansapoPwa && window.installNyansapoPwa(); return false;" hidden title="Install Nyansapo ERP">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 3v12"></path>
+                            <path d="m7 10 5 5 5-5"></path>
+                            <path d="M5 21h14"></path>
+                        </svg>
+                        <span>Install</span>
+                    </button>
+                    <button type="button" class="btn btn-link p-0" style="color: inherit;" onclick="window.toggleTheme(); return false;" title="Toggle Dark Mode" id="theme-toggle">
+                        <svg class="sun-icon" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="display: none;">
+                            <circle cx="12" cy="12" r="5"></circle>
+                            <line x1="12" y1="1" x2="12" y2="3"></line>
+                            <line x1="12" y1="21" x2="12" y2="23"></line>
+                            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                            <line x1="1" y1="12" x2="3" y2="12"></line>
+                            <line x1="21" y1="12" x2="23" y2="12"></line>
+                            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                        </svg>
+                        <svg class="moon-icon" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                        </svg>
+                    </button>
+                    <!-- Notification Bell Dropdown -->
+                    <div class="dropdown">
+                        <div class="position-relative" style="cursor:pointer" data-bs-toggle="dropdown" aria-expanded="false">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--nyansapo-navy);">
+                                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                                <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                            </svg>
+                            <!-- Notice Bubble Badge -->
+                            <span class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle" style="width: 10px; height: 10px;">
+                                <span class="visually-hidden">New alerts</span>
+                            </span>
+                        </div>
+                        <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 rounded-4 mt-3 p-0" style="width: 320px; overflow: hidden; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1) !important;">
+                            <li class="p-3 bg-light border-bottom d-flex justify-content-between align-items-center">
+                                <span class="fw-bold" style="color: #1e293b;">Notifications</span>
+                                <span class="badge bg-primary rounded-pill">1 New</span>
+                            </li>
+                            <li>
+                                <div class="list-group list-group-flush">
+                                    <a href="#" class="list-group-item list-group-item-action py-3 border-bottom-0">
+                                        <div class="d-flex gap-3">
+                                            <div class="rounded-circle bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center flex-shrink-0" style="width: 40px; height: 40px;">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                                            </div>
+                                            <div>
+                                                <p class="mb-1 fw-bold" style="font-size: 0.9rem; color: #1e293b;">New Request Approved</p>
+                                                <p class="mb-0 text-muted" style="font-size: 0.8rem;">Your recent request was processed.</p>
+                                                <small class="text-primary fw-semibold" style="font-size: 0.7rem;">Just now</small>
+                                            </div>
+                                        </div>
+                                    </a>
+                                </div>
+                            </li>
+                            <li class="p-2 text-center border-top bg-light">
+                                <a href="/notifications" class="text-decoration-none text-primary fw-semibold" style="font-size: 0.85rem;">View All Notifications</a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- User Profile Dropdown -->
+                <AuthorizeView>
+                    <Authorized>
+                        <div class="dropdown">
+                            <div class="d-flex align-items-center gap-2" style="cursor:pointer" data-bs-toggle="dropdown" aria-expanded="false">
+                                <div class="profile-avatar-display rounded-circle d-flex align-items-center justify-content-center fw-bold shadow-sm overflow-hidden" style="width: 40px; height: 40px; background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color: white; border: 2px solid #fff; position: relative;">
+                                    @if (!string.IsNullOrEmpty(_avatarBase64))
+                                    {
+                                        <img src="@_avatarBase64" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover;" />
+                                    }
+                                    else
+                                    {
+                                        <span class="profile-initial-display">@(_username.FirstOrDefault().ToString().ToUpper())</span>
+                                    }
+                                </div>
+                                <div class="d-none d-md-flex flex-column lh-1">
+                                    <span class="fw-bold profile-username-display" style="color: var(--nyansapo-navy); font-size: 0.95rem;">@_username</span>
+                                    <span class="text-muted" style="font-size: 0.75rem;">@@@context.User.FindFirst(ClaimTypes.Role)?.Value.ToLower()</span>
+                                </div>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ms-1 text-muted">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </div>
+                            <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 rounded-4 mt-3" style="min-width: 200px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1) !important;">
+                                <li><h6 class="dropdown-header fw-bold text-muted text-uppercase" style="font-size: 0.7rem; letter-spacing: 0.5px;">Account</h6></li>
+                                <li><a class="dropdown-item py-2 fw-semibold d-flex align-items-center" href="/profile"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2 text-muted"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg> Profile</a></li>
+                                <li><a class="dropdown-item py-2 fw-semibold d-flex align-items-center" href="/settings"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2 text-muted"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg> Settings</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <form action="/logout" method="post" class="m-0 p-0">
+                                        <AntiforgeryToken />
+                                        <button type="submit" class="dropdown-item py-2 fw-bold text-danger d-flex align-items-center">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg> Sign Out
+                                        </button>
+                                    </form>
+                                </li>
+                            </ul>
+                        </div>
+                    </Authorized>
+                </AuthorizeView>
+            </div>
         </div>
 
-        <article class="content px-4">
+        <article class="content px-4 py-4" style="min-height: calc(100vh - 5rem - 80px);">
             @Body
         </article>
+
+        <!-- Professional Footer -->
+        <footer class="mt-auto border-top border-light border-opacity-10" style="background-color: var(--nyansapo-navy);">
+            <div class="container py-3 py-lg-4">
+                <div class="row g-0 align-items-center">
+
+                    <!-- Column 1: Brand & About -->
+                    <div class="col-12 col-lg-5 pe-lg-4 text-center text-lg-start pb-3 pb-lg-0 border-bottom border-bottom-lg-0 border-light border-opacity-10">
+                        <div class="d-flex align-items-center justify-content-center justify-content-lg-start gap-2 mb-2">
+                            <img src="/images/icon_bg.png" alt="Nyansapo Logo" style="height: 35px; width: 35px; object-fit: contain;" />
+                            <div class="text-start">
+                                <h6 class="fw-bold text-white mb-0" style="letter-spacing: -0.3px;">Nyansapo School ERP</h6>
+                                <p class="text-white opacity-75 mb-0" style="font-size: 0.7rem;">School Management System</p>
+                            </div>
+                        </div>
+                        <p class="text-white opacity-75 mb-0 mx-auto mx-lg-0" style="font-size: 0.8rem; line-height: 1.4; max-width: 380px;">
+                            Empowering schools with simple, reliable tools to manage students, finances, and academic excellence.
+                        </p>
+                    </div>
+
+                    <!-- Column 2: Contact Info -->
+                    <div class="col-12 col-lg-4 px-lg-4 border-start-lg border-end-lg border-bottom border-bottom-lg-0 border-light border-opacity-10 py-3 py-lg-2">
+                        <div class="d-flex flex-column align-items-center align-items-lg-start gap-2">
+                            <a href="mailto:darktechhub2@gmail.com" class="d-flex align-items-center gap-2 text-decoration-none text-white opacity-75 hover-white transition-all">
+                                <i class="bi bi-envelope" style="font-size: 0.9rem;"></i>
+                                <span style="font-size: 0.85rem;">darktechhub2@gmail.com</span>
+                            </a>
+                            <div class="d-flex flex-column flex-sm-row gap-1 gap-sm-2 align-items-center text-white opacity-75">
+                                <div class="d-flex align-items-center gap-2">
+                                    <i class="bi bi-telephone" style="font-size: 0.9rem;"></i>
+                                    <a href="tel:+233548369261" class="text-decoration-none text-white hover-white transition-all" style="font-size: 0.85rem;">+233 54 836 9261</a>
+                                </div>
+                                <span class="opacity-50 d-none d-sm-inline">|</span>
+                                <a href="tel:+233204939571" class="text-decoration-none text-white hover-white transition-all" style="font-size: 0.85rem;">+233 20 493 9571</a>
+                            </div>
+                            <div class="d-flex align-items-center gap-2 text-white opacity-75">
+                                <i class="bi bi-geo-alt" style="font-size: 0.9rem;"></i>
+                                <span style="font-size: 0.85rem;">Accra, Ghana</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Column 3: Partner & Copyright -->
+                    <div class="col-12 col-lg-3 ps-lg-4 text-center pt-3 pt-lg-0">
+                        <div class="mb-2 d-inline-block">
+                            <div class="bg-white rounded p-1 shadow-sm d-inline-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                                <img src="/images/brand_logo.png" alt="Dartek Integration" style="max-width: 100%; max-height: 100%; object-fit: contain;" />
+                            </div>
+                        </div>
+                        <div class="text-white opacity-75" style="font-size: 0.75rem; line-height: 1.4;">
+                            <p class="mb-0">&copy; @DateTime.Now.Year Nyansapo ERP. All rights reserved.</p>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </footer>
+
+        <style>
+            .hover-primary:hover { color: #3b82f6 !important; }
+            .hover-white:hover { color: #ffffff !important; }
+            .hover-footer-link:hover { color: var(--nyansapo-gold) !important; }
+            .transition-all { transition: all 0.2s ease; }
+            main { display: flex; flex-direction: column; min-height: 100vh; }
+        </style>
     </main>
 </div>
 
@@ -21,3 +209,57 @@
     <a href="." class="reload">Reload</a>
     <span class="dismiss">🗙</span>
 </div>
+
+@inject KingdomPrep.Web.Data.IUserProfileService UserProfileService
+
+@code {
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    private bool isDark = false;
+    private string _authUsername = "User";
+    private string _username = "User";
+    private string _avatarBase64 = "";
+    private string _phone = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateTask;
+        if (authState.User.Identity?.IsAuthenticated == true)
+        {
+            _authUsername = authState.User.Identity.Name ?? "User";
+            _username = _authUsername;
+
+            // Fetch actual profile data from database
+            var dbProfile = await UserProfileService.GetProfileAsync(_authUsername);
+            if (dbProfile != null)
+            {
+                if (!string.IsNullOrWhiteSpace(dbProfile.FullName)) _username = dbProfile.FullName;
+                if (!string.IsNullOrWhiteSpace(dbProfile.Phone)) _phone = dbProfile.Phone;
+                if (!string.IsNullOrWhiteSpace(dbProfile.AvatarBase64)) _avatarBase64 = dbProfile.AvatarBase64;
+            }
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                // Sync DB data into browser storage so other UI elements (like NavMenu) get instant updates
+                await JSRuntime.InvokeVoidAsync("window.saveProfileData", _username, _phone, _avatarBase64);
+                // Instantly apply JS stored data onto the DOM to bypass any Blazor lifecycle hydration gaps
+                await JSRuntime.InvokeVoidAsync("window.applyProfileData");
+                StateHasChanged();
+            }
+            catch { }
+        }
+    }
+
+    private async Task ToggleTheme()
+    {
+        isDark = !isDark;
+        await JSRuntime.InvokeVoidAsync("document.documentElement.setAttribute", "data-theme", isDark ? "dark" : "light");
+    }
+}

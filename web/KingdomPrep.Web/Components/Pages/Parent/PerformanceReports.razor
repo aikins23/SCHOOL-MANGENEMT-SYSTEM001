@@ -1,0 +1,161 @@
+@page "/parent/performance-reports"
+@rendermode InteractiveServer
+@attribute [Authorize(Roles = "Parent")]
+@using KingdomPrep.Web.Data
+@using KingdomPrep.Web.Data.Entities
+@inject IWardRepository WardRepo
+@inject IPerformanceReportRepository PerformanceRepo
+@inject IPortalTenantContext TenantContext
+
+<PageTitle>Performance Reports - Nyansapo ERP</PageTitle>
+
+<div class="container-fluid py-4" style="background-color: #f6f8fb; min-height: calc(100vh - 5rem);">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h2 class="mb-1 fw-bold" style="color: #11233a;">Performance Reports</h2>
+            <p class="mb-0 text-muted">Approved teacher performance updates for your ward</p>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-3" style="border-radius: 6px;">
+        <div class="card-body p-3">
+            <div class="row align-items-end g-3">
+                <div class="col-md-4">
+                    <label class="form-label text-muted small fw-bold">Ward</label>
+                    <select class="form-select fw-semibold" @bind="_selectedStudentId" @bind:after="LoadReports">
+                        @foreach (var ward in _wards)
+                        {
+                            <option value="@ward.StudentID">@ward.FullName - @ward.ClassID</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-8 text-md-end">
+                    <span class="badge bg-light text-dark rounded-pill px-3 py-2">@_reports.Count approved report(s)</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (_isLoading)
+    {
+        <div class="d-flex justify-content-center py-5"><div class="spinner-border text-primary" role="status"></div></div>
+    }
+    else if (!_wards.Any())
+    {
+        <div class="card border-0 shadow-sm"><div class="card-body p-5 text-center text-muted">No ward is linked to this parent account.</div></div>
+    }
+    else if (!_reports.Any())
+    {
+        <div class="card border-0 shadow-sm"><div class="card-body p-5 text-center text-muted">No approved performance reports are available yet.</div></div>
+    }
+    else
+    {
+        <div class="row g-3">
+            @foreach (var item in _reports)
+            {
+                var entry = item.Entries.FirstOrDefault();
+                <div class="col-lg-6">
+                    <div class="card border-0 shadow-sm h-100" style="border-radius: 6px;">
+                        <div class="card-header bg-white border-0 px-4 pt-4 pb-2">
+                            <div class="d-flex justify-content-between gap-3">
+                                <div>
+                                    <h5 class="fw-bold mb-1" style="color: #11233a;">@item.Report.ReportPeriod Performance</h5>
+                                    <p class="text-muted small mb-0">@item.Report.ClassId | @item.Report.Term @item.Report.AcademicYear | @item.Report.ReportDate.ToString("dd MMM yyyy")</p>
+                                </div>
+                                @if (entry != null)
+                                {
+                                    <span class="badge @TrendBadge(entry.PerformanceTrend) align-self-start">@entry.PerformanceTrend</span>
+                                }
+                            </div>
+                        </div>
+                        <div class="card-body px-4 pb-4">
+                            <p class="mb-3">@item.Report.ReportText</p>
+                            @if (entry != null && HasMarks(entry))
+                            {
+                                <div class="row g-2 mb-3">
+                                    @if (entry.ExerciseMarksObtained.HasValue || entry.ExerciseMarksTotal.HasValue)
+                                    {
+                                        <div class="col-sm-6">
+                                            <div class="p-3 bg-light border rounded">
+                                                <div class="small text-muted fw-bold mb-1">Exercise Marks</div>
+                                                <div class="fw-semibold">@FormatMarks(entry.ExerciseMarksObtained, entry.ExerciseMarksTotal)</div>
+                                            </div>
+                                        </div>
+                                    }
+                                    @if (entry.HomeworkMarksObtained.HasValue || entry.HomeworkMarksTotal.HasValue)
+                                    {
+                                        <div class="col-sm-6">
+                                            <div class="p-3 bg-light border rounded">
+                                                <div class="small text-muted fw-bold mb-1">Homework Marks</div>
+                                                <div class="fw-semibold">@FormatMarks(entry.HomeworkMarksObtained, entry.HomeworkMarksTotal)</div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                            @if (entry != null && !string.IsNullOrWhiteSpace(entry.TeacherNotes))
+                            {
+                                <div class="p-3 bg-light border rounded">
+                                    <div class="small text-muted fw-bold mb-1">Teacher Note</div>
+                                    <div>@entry.TeacherNotes</div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private string _username = "";
+    private Guid? _schoolId;
+    private bool _isLoading = true;
+    private int _selectedStudentId;
+    private List<StudentEntity> _wards = new();
+    private List<PerformanceReportDetail> _reports = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var tenant = await TenantContext.GetCurrentAsync();
+        _username = tenant.Username ?? "";
+        _schoolId = tenant.SchoolId;
+
+        _wards = await WardRepo.GetWardsForParentAsync(_username, _schoolId);
+        _selectedStudentId = _wards.FirstOrDefault()?.StudentID ?? 0;
+        await LoadReports();
+        _isLoading = false;
+    }
+
+    private async Task LoadReports()
+    {
+        if (_selectedStudentId == 0)
+        {
+            _reports = new List<PerformanceReportDetail>();
+            return;
+        }
+
+        _reports = await PerformanceRepo.GetApprovedReportsForStudentAsync(_username, _selectedStudentId, _schoolId);
+    }
+
+    private static string TrendBadge(string trend) => trend switch
+    {
+        "Improving" => "bg-success",
+        "Declining" => "bg-danger",
+        _ => "bg-secondary"
+    };
+
+    private static bool HasMarks(StudentPerformanceEntryEntity entry) =>
+        entry.ExerciseMarksObtained.HasValue ||
+        entry.ExerciseMarksTotal.HasValue ||
+        entry.HomeworkMarksObtained.HasValue ||
+        entry.HomeworkMarksTotal.HasValue;
+
+    private static string FormatMarks(decimal? obtained, decimal? total)
+    {
+        if (!obtained.HasValue && !total.HasValue) return "-";
+        if (obtained.HasValue && total.HasValue) return $"{obtained:0.##} / {total:0.##}";
+        return obtained.HasValue ? $"{obtained:0.##}" : $"- / {total:0.##}";
+    }
+}

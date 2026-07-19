@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageId>KingdomPrep.DesignSystem</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>KingdomPrep Team</Authors>
+    <Description>Shared design system for KingdomPrep ERP (Blazor components)</Description>
+    <PackageTags>blazor;design-system;components;kingdomprep</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <SupportedPlatform Include="browser" />
+  </ItemGroup>
+
+</Project>

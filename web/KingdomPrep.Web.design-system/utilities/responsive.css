@@ -1,0 +1,279 @@
+/* Responsive System - KingdomPrep ERP
+ * CSS Layer: utilities/responsive
+ * Responsive breakpoints and grid system
+ * Based on desktop app breakpoints (640px)
+ */
+
+@layer utilities {
+  /* Responsive Breakpoints */
+  @media (max-width: 640.98px) {
+    /* Mobile-first approach for widths < 641px */
+    .container {
+      padding: 0 0.75rem;
+    }
+
+    /* Mobile Grid - Single column */
+    .grid-cols-1-mobile { grid-template-columns: repeat(1, 1fr); }
+    .grid-cols-2-mobile { grid-template-columns: repeat(2, 1fr); }
+    .grid-cols-3-mobile { grid-template-columns: repeat(3, 1fr); }
+    .grid-cols-4-mobile { grid-template-columns: repeat(4, 1fr); }
+
+    /* Mobile Spacing */
+    .p-mobile-0 { padding: 0; }
+    .p-mobile-2 { padding: 0.5rem; }
+    .p-mobile-3 { padding: 0.75rem; }
+    .p-mobile-4 { padding: 1rem; }
+    .p-mobile-5 { padding: 1.5rem; }
+
+    /* Mobile Typography */
+    h1 { font-size: clamp(1.75rem, 4vw, 2.25rem); }
+    h2 { font-size: clamp(1.5rem, 3.5vw, 2rem); }
+    h3 { font-size: clamp(1.375rem, 3vw, 1.75rem); }
+
+    /* Mobile Layout Adjustments */
+    .sidebar {
+      position: fixed;
+      left: -250px;
+      top: 0;
+      height: 100vh;
+      z-index: 1000;
+      transition: left 0.3s ease;
+    }
+
+    .sidebar.open {
+      left: 0;
+    }
+
+    .page {
+      padding-left: 0 !important;
+    }
+
+    /* Hero Components Mobile */
+    .hero-shell {
+      margin: 1rem 0 0.75rem;
+      padding: 1.25rem 1.5rem;
+    }
+
+    .hero-copy h1 {
+      font-size: clamp(1.75rem, 4vw, 2.5rem);
+      margin-bottom: 0.2rem;
+    }
+
+    /* Cards Mobile */
+    .dash-cards {
+      grid-template-columns: 1fr;
+    }
+
+    .dash-card {
+      min-height: 160px;
+      padding: 1rem;
+    }
+
+    /* Fee Statement Mobile */
+    .statement-hero {
+      grid-template-columns: 1fr;
+    }
+
+    .hero-balance {
+      text-align: left;
+      min-width: auto;
+    }
+
+    /* Table Mobile */
+    .table-head, .table-row {
+      grid-template-columns: 1.2fr 1fr 1fr 1fr;
+      font-size: 0.92rem;
+    }
+
+    /* Navigation Mobile */
+    .top-row {
+      justify-content: space-between;
+    }
+
+    .top-row ::deep a, .top-row ::deep .btn-link {
+      margin-left: 0;
+    }
+
+    /* Modal Mobile */
+    #components-reconnect-modal {
+      width: 18rem;
+      margin: 30vh auto;
+      padding: 1.5rem;
+    }
+  }
+
+  /* Tablet and Desktop Breakpoints */
+  @media (min-width: 641px) {
+    /* Desktop Layout */
+    .container {
+      padding: 0 2rem;
+    }
+
+    /* Desktop Grid - Multi-column */
+    .grid-cols-1-desktop { grid-template-columns: repeat(1, 1fr); }
+    .grid-cols-2-desktop { grid-template-columns: repeat(2, 1fr); }
+    .grid-cols-3-desktop { grid-template-columns: repeat(3, 1fr); }
+    .grid-cols-4-desktop { grid-template-columns: repeat(4, 1fr); }
+
+    /* Sidebar Desktop */
+    .sidebar {
+      width: 250px;
+      height: 100vh;
+      position: sticky;
+      top: 0;
+      background: var(--nyansapo-navy);
+      border-right: 1px solid rgba(255, 244, 194, 0.16);
+    }
+
+    .page {
+      flex-direction: row;
+      padding-left: 0 !important;
+    }
+
+    main {
+      padding-left: 2rem !important;
+      padding-right: 1.5rem !important;
+    }
+
+    /* Hero Components Desktop */
+    .hero-shell {
+      margin: 1.5rem 0 1.25rem;
+      padding: 1.5rem 1.6rem;
+    }
+
+    /* Cards Desktop */
+    .dash-cards {
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    }
+
+    /* Tables Desktop */
+    .ledger-layout {
+      grid-template-columns: 1.15fr 0.85fr;
+    }
+
+    .table-head, .table-row {
+      grid-template-columns: minmax(180px, 1.4fr) repeat(3, minmax(110px, 0.7fr));
+    }
+
+    /* Navigation Desktop */
+    .nav-scrollable {
+      display: block;
+      height: calc(100vh - 3.5rem);
+      overflow-y: auto;
+    }
+
+    .navbar-toggler {
+      display: none;
+    }
+
+    /* Modal Desktop */
+    #components-reconnect-modal {
+      width: 20rem;
+      margin: 20vh auto;
+      padding: 2rem;
+    }
+  }
+
+  /* Large Desktop Breakpoints */
+  @media (min-width: 1024px) {
+    .container {
+      padding: 0 3rem;
+    }
+
+    .dash-cards {
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    }
+
+    .ledger-layout {
+      grid-template-columns: 1.25fr 0.75fr;
+      gap: 1.5rem;
+    }
+  }
+
+  /* Extra Large Desktop Breakpoints */
+  @media (min-width: 1280px) {
+    .container {
+      max-width: 1280px;
+      padding: 0 4rem;
+    }
+
+    .dash-cards {
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    }
+  }
+
+  /* Responsive Utilities */
+  .hide-mobile { display: none; }
+  .hide-desktop { display: block; }
+
+  @media (max-width: 640.98px) {
+    .hide-mobile { display: block; }
+    .hide-desktop { display: none; }
+  }
+
+  /* Text Alignment Utilities */
+  .text-center { text-align: center; }
+  .text-left { text-align: left; }
+  .text-right { text-align: right; }
+
+  /* Overflow Utilities */
+  .overflow-hidden { overflow: hidden; }
+  .overflow-auto { overflow: auto; }
+
+  /* Display Utilities */
+  .hidden { display: none; }
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  /* Flex Utilities */
+  .d-none { display: none; }
+  .d-flex { display: flex; }
+  .d-inline-flex { display: inline-flex; }
+  .d-inline { display: inline; }
+  .d-block { display: block; }
+  .d-inline-block { display: inline-block; }
+  .d-grid { display: grid; }
+
+  /* Visibility Utilities */
+  .visible { visibility: visible; }
+  .invisible { visibility: hidden; }
+}
+
+/* Print Styles */
+@media print {
+  @layer utilities {
+    .no-print { display: none; }
+
+    body {
+      background: white;
+      color: black;
+    }
+
+    .page {
+      min-height: auto;
+    }
+
+    .sidebar {
+      display: none;
+    }
+
+    .dash-card {
+      break-inside: avoid;
+      border: 1px solid #ccc;
+    }
+
+    a {
+      color: var(--nyansapo-navy);
+      text-decoration: underline;
+    }
+  }
+}

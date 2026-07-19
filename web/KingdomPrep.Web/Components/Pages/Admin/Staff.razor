@@ -1,0 +1,165 @@
+@page "/admin/staff"
+@rendermode InteractiveServer
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Administrator,Headmaster,Director")]
+@using KingdomPrep.Web.Data
+@using KingdomPrep.Web.Data.Entities
+@inject IEmployeeRepository EmployeeRepo
+@inject IPortalTenantContext TenantContext
+
+<PageTitle>Staff Directory - Nyansapo ERP</PageTitle>
+
+<div class="container-fluid mt-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h2 class="mb-1 fw-bold" style="color: #0b1f48;">Staff Directory</h2>
+            <p class="text-muted mb-0">View employees by department, role, and status.</p>
+        </div>
+        <a class="btn btn-outline-primary fw-semibold" href="admin/leave-approvals">Leave Approvals</a>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted text-uppercase fw-semibold small mb-2">Employees</div>
+                    <div class="fs-3 fw-bold">@_employees.Count</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted text-uppercase fw-semibold small mb-2">Departments</div>
+                    <div class="fs-3 fw-bold">@_departments.Count</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted text-uppercase fw-semibold small mb-2">Teachers</div>
+                    <div class="fs-3 fw-bold">@_employees.Count(e => string.Equals(e.Position, "Teacher", StringComparison.OrdinalIgnoreCase))</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted text-uppercase fw-semibold small mb-2">Active</div>
+                    <div class="fs-3 fw-bold">@_employees.Count(e => string.IsNullOrWhiteSpace(e.EmploymentStatus) || e.EmploymentStatus.Equals("Active", StringComparison.OrdinalIgnoreCase))</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-5">
+                    <label class="form-label fw-semibold text-muted">Search</label>
+                    <input class="form-control" placeholder="Name or position" @bind="_searchTerm" @bind:event="oninput" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold text-muted">Department</label>
+                    <select class="form-select" @bind="_departmentFilter">
+                        <option value="">All departments</option>
+                        @foreach (var department in _departments)
+                        {
+                            <option value="@department">@department</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex justify-content-md-end gap-2">
+                    <button class="btn btn-primary fw-semibold px-4" @onclick="LoadAsync" disabled="@_isLoading">Apply</button>
+                    <button class="btn btn-light fw-semibold px-4" @onclick="ClearFilters" disabled="@_isLoading">Clear</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Name</th>
+                            <th>Department</th>
+                            <th>Position</th>
+                            <th>Contact</th>
+                            <th>Status</th>
+                            <th class="text-end">Employment Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (_isLoading)
+                        {
+                            <tr><td colspan="6" class="text-center py-4"><span class="spinner-border spinner-border-sm"></span></td></tr>
+                        }
+                        else if (!_employees.Any())
+                        {
+                            <tr><td colspan="6" class="text-center text-muted py-4">No staff found.</td></tr>
+                        }
+                        else
+                        {
+                            @foreach (var employee in _employees)
+                            {
+                                <tr>
+                                    <td>
+                                        <div class="fw-semibold">@employee.FullName</div>
+                                        <div class="small text-muted">ID @employee.EmployeeID</div>
+                                    </td>
+                                    <td>@(employee.Department ?? "-")</td>
+                                    <td>@(employee.Position ?? "-")</td>
+                                    <td>
+                                        <div>@(employee.Contact ?? "-")</div>
+                                        <div class="small text-muted">@(employee.Email ?? "")</div>
+                                    </td>
+                                    <td><span class="badge @StatusClass(employee.EmploymentStatus)">@(string.IsNullOrWhiteSpace(employee.EmploymentStatus) ? "Active" : employee.EmploymentStatus)</span></td>
+                                    <td class="text-end">@(employee.EmploymentDate?.ToString("dd MMM yyyy") ?? "-")</td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<EmployeeEntity> _employees = new();
+    private List<string> _departments = new();
+    private string _searchTerm = "";
+    private string _departmentFilter = "";
+    private bool _isLoading = true;
+    private Guid? _schoolId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _schoolId = (await TenantContext.GetCurrentAsync()).SchoolId;
+        _departments = await EmployeeRepo.GetDepartmentsAsync(_schoolId);
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _isLoading = true;
+        _employees = await EmployeeRepo.GetEmployeesAsync(_searchTerm, _departmentFilter, _schoolId);
+        _isLoading = false;
+    }
+
+    private async Task ClearFilters()
+    {
+        _searchTerm = "";
+        _departmentFilter = "";
+        await LoadAsync();
+    }
+
+    private static string StatusClass(string? status)
+    {
+        if (string.Equals(status, "Inactive", StringComparison.OrdinalIgnoreCase)) return "bg-secondary";
+        if (string.Equals(status, "Suspended", StringComparison.OrdinalIgnoreCase)) return "bg-danger";
+        return "bg-success";
+    }
+}

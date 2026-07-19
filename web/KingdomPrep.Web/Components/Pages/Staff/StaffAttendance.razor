@@ -1,0 +1,498 @@
+@page "/staff/attendance"
+@rendermode InteractiveServer
+@attribute [Authorize(Policy = WebPermission.StaffAttendanceSelf)]
+@using KingdomPrep.Web.Data
+@using KingdomPrep.Web.Data.Entities
+@using KingdomPrep.Web.Core.Auth
+@using System.Security.Claims
+@inject IStaffAttendanceService AttendanceService
+@inject IEmployeeRepository EmployeeRepo
+@inject IJSRuntime JSRuntime
+@inject AuthenticationStateProvider AuthStateProvider
+
+<PageTitle>My Attendance - Nyansapo ERP</PageTitle>
+
+<div class="container-fluid py-4" style="background-color: #f8fafc; min-height: calc(100vh - 5rem);">
+
+    <!-- HEADER -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h2 class="mb-1" style="font-weight: 700; color: #0f172a; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 1.85rem;">
+                My Daily Attendance
+            </h2>
+            <p class="mb-0 text-muted" style="font-size: 0.95rem;">
+                Geofenced automated staff sign-in and sign-out portal
+            </p>
+        </div>
+        <div class="d-flex align-items-center gap-2 bg-white px-3 py-2 rounded shadow-sm border" style="border-color: #e2e8f0 !important;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+            <span class="fw-semibold text-dark" style="font-size: 0.9rem;">Server Date: @DateTime.Now.ToString("dddd, MMMM d, yyyy")</span>
+        </div>
+    </div>
+
+    @if (_isLoading)
+    {
+        <div class="d-flex justify-content-center align-items-center py-5">
+            <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;"></div>
+        </div>
+    }
+    else
+    {
+        <div class="row g-4 mb-4">
+            <!-- STATUS CARD -->
+            <div class="col-lg-6">
+                <div class="card border-0 h-100 shadow-sm" style="border-radius: 12px; overflow: hidden; background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%);">
+                    <div class="card-body p-4 p-md-5 d-flex flex-column justify-content-between">
+                        <div>
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <div>
+                                    <span class="text-uppercase fw-bold text-muted tracking-wider" style="font-size: 0.75rem;">Today's Attendance Status</span>
+                                    <h4 class="mt-1 mb-0 fw-bold text-dark">@(_todayRecord != null ? _todayRecord.Status : "Not Signed In Today")</h4>
+                                </div>
+                                <div class="p-3 rounded-circle" style="background-color: @(_todayRecord != null ? "#dcfce7" : "#fef3c7");">
+                                    @if (_todayRecord != null)
+                                    {
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                            <polyline points="20 6 9 17 4 12"></polyline>
+                                        </svg>
+                                    }
+                                    else
+                                    {
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                            <circle cx="12" cy="12" r="10"></circle>
+                                            <line x1="12" y1="8" x2="12" y2="12"></line>
+                                            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                                        </svg>
+                                    }
+                                </div>
+                            </div>
+
+                            @if (_todayRecord != null)
+                            {
+                                <div class="bg-white p-3 rounded border mb-4" style="border-color: #e2e8f0 !important;">
+                                    <div class="row g-2">
+                                        <div class="col-6">
+                                            <small class="text-muted d-block" style="font-size: 0.8rem;">Clock In Time (Server Automated)</small>
+                                            <span class="fw-bold text-dark fs-5">@_todayRecord.ClockInTime.ToString("hh:mm tt")</span>
+                                        </div>
+                                        <div class="col-6">
+                                            <small class="text-muted d-block" style="font-size: 0.8rem;">Clock Out Time (Server Automated)</small>
+                                            <span class="fw-bold text-dark fs-5">@(_todayRecord.ClockOutTime.HasValue ? _todayRecord.ClockOutTime.Value.ToString("hh:mm tt") : "Not Clocked Out")</span>
+                                        </div>
+                                    </div>
+                                    <div class="mt-2 pt-2 border-top d-flex align-items-center gap-2">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z"></path>
+                                            <circle cx="12" cy="10" r="3"></circle>
+                                        </svg>
+                                        <small class="text-success fw-semibold">@_todayRecord.VerificationStatus</small>
+                                    </div>
+                                </div>
+                            }
+                            else
+                            {
+                                <p class="text-muted mb-4" style="font-size: 0.95rem;">
+                                    Please ensure you are physically present on school premises before attempting to clock in. Your browser GPS coordinates will be verified against the school geofence.
+                                </p>
+                            }
+
+                            @if (!string.IsNullOrEmpty(_statusMessage))
+                            {
+                                <div class="alert @(_isSuccess ? "alert-success" : "alert-danger") d-flex align-items-center gap-2 mb-3" role="alert" style="border-radius: 8px;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        @if (_isSuccess)
+                                        {
+                                            <polyline points="20 6 9 17 4 12"></polyline>
+                                        }
+                                        else
+                                        {
+                                            <circle cx="12" cy="12" r="10"></circle>
+                                            <line x1="15" y1="9" x2="9" y2="15"></line>
+                                            <line x1="9" y1="9" x2="15" y2="15"></line>
+                                        }
+                                    </svg>
+                                    <span style="font-size: 0.9rem;">@_statusMessage</span>
+                                </div>
+                            }
+                        </div>
+
+                        <div>
+                            @if (_todayRecord == null)
+                            {
+                                <button class="btn btn-primary w-100 py-3 fw-bold shadow-sm d-flex justify-content-center align-items-center gap-2" style="background-color: #2563eb; border: none; border-radius: 8px; font-size: 1.05rem;" @onclick="AttemptClockIn" disabled="@_isProcessing">
+                                    @if (_isProcessing)
+                                    {
+                                        <span class="spinner-border spinner-border-sm" role="status"></span>
+                                        <span>Verifying Location...</span>
+                                    }
+                                    else
+                                    {
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z"></path>
+                                            <circle cx="12" cy="10" r="3"></circle>
+                                        </svg>
+                                        <span>Verify Location & Clock In</span>
+                                    }
+                                </button>
+                            }
+                            else if (!_todayRecord.ClockOutTime.HasValue)
+                            {
+                                <button class="btn btn-dark w-100 py-3 fw-bold shadow-sm d-flex justify-content-center align-items-center gap-2" style="background-color: #1e293b; border: none; border-radius: 8px; font-size: 1.05rem;" @onclick="AttemptClockOut" disabled="@_isProcessing">
+                                    @if (_isProcessing)
+                                    {
+                                        <span class="spinner-border spinner-border-sm" role="status"></span>
+                                        <span>Verifying Location...</span>
+                                    }
+                                    else
+                                    {
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                                            <polyline points="16 17 21 12 16 7"></polyline>
+                                            <line x1="21" y1="12" x2="9" y2="12"></line>
+                                        </svg>
+                                        <span>Verify Location & Clock Out</span>
+                                    }
+                                </button>
+                            }
+                            else
+                            {
+                                <div class="text-center py-2 bg-light rounded text-muted fw-semibold border" style="border-radius: 8px;">
+                                    Attendance completed for today.
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- GEOFENCING POLICY & INFO CARD -->
+            <div class="col-lg-6">
+                <div class="card border-0 h-100 shadow-sm" style="border-radius: 12px; background-color: #ffffff;">
+                    <div class="card-body p-4 p-md-5">
+                        <div class="d-flex align-items-center gap-2 mb-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="12" y1="16" x2="12" y2="12"></line>
+                                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                            </svg>
+                            <h5 class="mb-0 fw-bold text-dark">Staff Attendance Policy</h5>
+                        </div>
+
+                        <div class="d-flex flex-column gap-3 mt-3">
+                            <div class="d-flex align-items-start gap-3 p-3 bg-light rounded border" style="border-color: #f1f5f9 !important;">
+                                <div class="p-2 bg-white rounded shadow-sm">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z"></path>
+                                        <circle cx="12" cy="10" r="3"></circle>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h6 class="mb-1 fw-bold text-dark">1. Strict Geofencing Enforcement</h6>
+                                    <p class="mb-0 text-muted" style="font-size: 0.85rem;">
+                                        Sign-ins are only permitted when your GPS coordinates fall within the school's configured perimeter radius (default: <strong>@(_schoolRadius)m</strong>). Remote clock-ins are automatically rejected.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="d-flex align-items-start gap-3 p-3 bg-light rounded border" style="border-color: #f1f5f9 !important;">
+                                <div class="p-2 bg-white rounded shadow-sm">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <polyline points="12 6 12 12 16 14"></polyline>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h6 class="mb-1 fw-bold text-dark">2. Automated Uneditable Timestamps</h6>
+                                    <p class="mb-0 text-muted" style="font-size: 0.85rem;">
+                                        To ensure complete data integrity, all timestamps are generated directly by the secure server clock upon successful GPS verification. Staff members cannot modify or edit attendance times.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="d-flex align-items-start gap-3 p-3 bg-light rounded border" style="border-color: #f1f5f9 !important;">
+                                <div class="p-2 bg-white rounded shadow-sm">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                                        <line x1="12" y1="9" x2="12" y2="13"></line>
+                                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h6 class="mb-1 fw-bold text-dark">3. GPS Signal Guidance</h6>
+                                    <p class="mb-0 text-muted" style="font-size: 0.85rem;">
+                                        Please ensure location services / GPS permissions are enabled in your browser. For best accuracy on mobile devices, connect to school Wi-Fi or ensure high accuracy mode is active.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ATTENDANCE HISTORY TABLE -->
+        <div class="card border-0 shadow-sm" style="border-radius: 12px; background-color: #ffffff;">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0 fw-bold text-dark">My Recent Attendance Logs (Read-Only)</h5>
+                    <span class="badge bg-light text-muted border px-3 py-2">Last 30 Days</span>
+                </div>
+
+                @if (!_history.Any())
+                {
+                    <div class="text-center py-5 text-muted">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="mb-2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                        </svg>
+                        <p class="mb-0">No past attendance records found.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead style="background-color: #f8fafc; color: #475569; font-size: 0.85rem; text-transform: uppercase;">
+                                <tr>
+                                    <th class="py-3 border-0">Date</th>
+                                    <th class="py-3 border-0">Clock In Time</th>
+                                    <th class="py-3 border-0">Clock Out Time</th>
+                                    <th class="py-3 border-0">GPS Verification</th>
+                                    <th class="py-3 border-0 text-end">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var rec in _history)
+                                {
+                                    <tr>
+                                        <td class="fw-semibold text-dark py-3">@rec.Date.ToString("ddd, MMM d, yyyy")</td>
+                                        <td class="py-3">
+                                            <span class="badge bg-light text-dark border px-2 py-1" style="font-size: 0.85rem;">
+                                                @rec.ClockInTime.ToString("hh:mm tt")
+                                            </span>
+                                        </td>
+                                        <td class="py-3">
+                                            @if (rec.ClockOutTime.HasValue)
+                                            {
+                                                <span class="badge bg-light text-dark border px-2 py-1" style="font-size: 0.85rem;">
+                                                    @rec.ClockOutTime.Value.ToString("hh:mm tt")
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted" style="font-size: 0.85rem;">--:--</span>
+                                            }
+                                        </td>
+                                        <td class="py-3">
+                                            <small class="text-success fw-semibold d-flex align-items-center gap-1">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                    <path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z"></path>
+                                                    <circle cx="12" cy="10" r="3"></circle>
+                                                </svg>
+                                                @rec.VerificationStatus
+                                            </small>
+                                        </td>
+                                        <td class="py-3 text-end">
+                                            @if (rec.Status.Contains("Late", StringComparison.OrdinalIgnoreCase))
+                                            {
+                                                <span class="badge px-3 py-2 fw-semibold" style="background-color: #fef3c7; color: #b45309;">@rec.Status</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge px-3 py-2 fw-semibold" style="background-color: #dcfce7; color: #15803d;">@rec.Status</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+<script>
+    window.getStaffGeolocation = () => {
+        return new Promise((resolve) => {
+            if (!navigator.geolocation) {
+                resolve({ success: false, error: "Geolocation is not supported by your browser or device." });
+                return;
+            }
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    resolve({
+                        success: true,
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude,
+                        accuracy: position.coords.accuracy
+                    });
+                },
+                (error) => {
+                    let msg = "Unable to retrieve location.";
+                    if (error.code === 1) msg = "Location permission denied. Please enable GPS/location services in your browser settings.";
+                    else if (error.code === 2) msg = "Location position unavailable. Please check your GPS signal or internet connection.";
+                    else if (error.code === 3) msg = "Location request timed out. Please try again in a moment.";
+                    resolve({ success: false, error: msg });
+                },
+                { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+            );
+        });
+    };
+</script>
+
+@code {
+    private bool _isLoading = true;
+    private bool _isProcessing = false;
+    private bool _isSuccess = false;
+    private string _statusMessage = "";
+    private double _schoolRadius = 150;
+
+    private int _employeeId = 0;
+    private string _employeeName = "";
+    private string _department = "";
+
+    private StaffAttendanceEntity? _todayRecord;
+    private List<StaffAttendanceEntity> _history = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+
+            _employeeName = user.Identity?.Name ?? "Staff Member";
+            var idClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(idClaim, out _employeeId))
+            {
+                // Fallback: try to find employee by username or full name
+                var emps = await EmployeeRepo.GetEmployeesAsync(searchTerm: _employeeName);
+                var emp = emps.FirstOrDefault();
+                if (emp != null)
+                {
+                    _employeeId = emp.EmployeeID;
+                    _department = emp.Department ?? "General";
+                    if (!string.IsNullOrWhiteSpace(emp.FullName)) _employeeName = emp.FullName;
+                }
+                else
+                {
+                    _employeeId = Math.Abs(_employeeName.GetHashCode()) % 10000 + 1000;
+                    _department = user.FindFirst(ClaimTypes.Role)?.Value ?? "Staff";
+                }
+            }
+            else
+            {
+                var emps = await EmployeeRepo.GetEmployeesAsync();
+                var emp = emps.FirstOrDefault(e => e.EmployeeID == _employeeId);
+                if (emp != null)
+                {
+                    _department = emp.Department ?? "General";
+                    if (!string.IsNullOrWhiteSpace(emp.FullName)) _employeeName = emp.FullName;
+                }
+            }
+
+            var (_, _, rad) = await AttendanceService.GetSchoolGeofenceAsync();
+            _schoolRadius = rad;
+
+            await LoadDataAsync();
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task LoadDataAsync()
+    {
+        _todayRecord = await AttendanceService.GetTodayRecordAsync(_employeeId);
+        _history = await AttendanceService.GetHistoryAsync(_employeeId);
+    }
+
+    private async Task AttemptClockIn()
+    {
+        _isProcessing = true;
+        _statusMessage = "";
+        StateHasChanged();
+
+        try
+        {
+            var geo = await JSRuntime.InvokeAsync<GeolocationDto>("getStaffGeolocation");
+            if (!geo.Success)
+            {
+                _isSuccess = false;
+                _statusMessage = geo.Error ?? "Failed to acquire GPS location.";
+                return;
+            }
+
+            var result = await AttendanceService.ClockInAsync(_employeeId, _employeeName, _department, geo.Latitude, geo.Longitude);
+            _isSuccess = result.Success;
+            _statusMessage = result.Message;
+
+            if (_isSuccess)
+            {
+                await LoadDataAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            _isSuccess = false;
+            _statusMessage = "An unexpected error occurred during verification: " + ex.Message;
+        }
+        finally
+        {
+            _isProcessing = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task AttemptClockOut()
+    {
+        _isProcessing = true;
+        _statusMessage = "";
+        StateHasChanged();
+
+        try
+        {
+            var geo = await JSRuntime.InvokeAsync<GeolocationDto>("getStaffGeolocation");
+            if (!geo.Success)
+            {
+                _isSuccess = false;
+                _statusMessage = geo.Error ?? "Failed to acquire GPS location.";
+                return;
+            }
+
+            var result = await AttendanceService.ClockOutAsync(_employeeId, geo.Latitude, geo.Longitude);
+            _isSuccess = result.Success;
+            _statusMessage = result.Message;
+
+            if (_isSuccess)
+            {
+                await LoadDataAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            _isSuccess = false;
+            _statusMessage = "An unexpected error occurred during clock-out: " + ex.Message;
+        }
+        finally
+        {
+            _isProcessing = false;
+            StateHasChanged();
+        }
+    }
+
+    public class GeolocationDto
+    {
+        public bool Success { get; set; }
+        public double Latitude { get; set; }
+        public double Longitude { get; set; }
+        public double Accuracy { get; set; }
+        public string? Error { get; set; }
+    }
+}

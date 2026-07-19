@@ -1,0 +1,145 @@
+@page "/headmaster/performance-approvals"
+@rendermode InteractiveServer
+@attribute [Authorize(Policy = WebPermission.AcademicResultsPublish)]
+@using KingdomPrep.Web.Data
+@inject IPerformanceReportRepository PerformanceRepo
+@inject IPortalTenantContext TenantContext
+@inject AuthenticationStateProvider AuthStateProvider
+
+<PageTitle>Performance Report Approvals - Nyansapo ERP</PageTitle>
+
+<div class="container-fluid py-4" style="background-color: #f6f8fb; min-height: calc(100vh - 5rem);">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h2 class="mb-1 fw-bold" style="color: #11233a;">Performance Approvals</h2>
+            <p class="mb-0 text-muted">Review teacher-submitted class performance reports before parents see them</p>
+        </div>
+        <button class="btn btn-outline-primary fw-semibold" @onclick="LoadReports">Refresh</button>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(_message))
+    {
+        <div class="alert @(_messageIsError ? "alert-danger" : "alert-success") py-2">@_message</div>
+    }
+
+    @if (_isLoading)
+    {
+        <div class="d-flex justify-content-center py-5"><div class="spinner-border text-primary" role="status"></div></div>
+    }
+    else if (!_reports.Any())
+    {
+        <div class="card border-0 shadow-sm"><div class="card-body p-5 text-center text-muted">No pending performance reports.</div></div>
+    }
+    else
+    {
+        <div class="row g-3">
+            @foreach (var item in _reports)
+            {
+                <div class="col-xl-6">
+                    <div class="card border-0 shadow-sm h-100" style="border-radius: 6px;">
+                        <div class="card-header bg-white border-0 px-4 pt-4 pb-2">
+                            <div class="d-flex justify-content-between gap-3">
+                                <div>
+                                    <h5 class="fw-bold mb-1" style="color: #11233a;">@item.Report.ClassId | @item.Report.ReportPeriod</h5>
+                                    <p class="text-muted small mb-0">@item.Report.Term @item.Report.AcademicYear | @item.Report.ReportDate.ToString("dd MMM yyyy")</p>
+                                </div>
+                                <span class="badge bg-warning text-dark align-self-start">@item.Status</span>
+                            </div>
+                        </div>
+                        <div class="card-body px-4 pb-4">
+                            <p class="mb-3">@item.Report.ReportText</p>
+                            <div class="table-responsive mb-3" style="max-height: 220px; overflow-y: auto;">
+                                <table class="table table-sm">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Student ID</th>
+                                            <th>Trend</th>
+                                            <th>Exercise</th>
+                                            <th>Homework</th>
+                                            <th>Note</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var entry in item.Entries)
+                                        {
+                                            <tr>
+                                                <td>@entry.StudentId</td>
+                                                <td><span class="badge @TrendBadge(entry.PerformanceTrend)">@entry.PerformanceTrend</span></td>
+                                                <td>@FormatMarks(entry.ExerciseMarksObtained, entry.ExerciseMarksTotal)</td>
+                                                <td>@FormatMarks(entry.HomeworkMarksObtained, entry.HomeworkMarksTotal)</td>
+                                                <td>@entry.TeacherNotes</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                            @if (_canPublishReports)
+                            {
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-sm btn-success fw-semibold" @onclick='@(() => SetStatus(item.Report.ReportId, "Approved"))'>Approve</button>
+                                    <button class="btn btn-sm btn-outline-danger fw-semibold" @onclick='@(() => SetStatus(item.Report.ReportId, "Rejected"))'>Reject</button>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private Guid? _schoolId;
+    private bool _isLoading = true;
+    private string _message = "";
+    private bool _messageIsError;
+    private List<PerformanceReportDetail> _reports = new();
+    private bool _canPublishReports;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        _canPublishReports = WebPermission.CanRenderAction(authState.User, WebPermission.AcademicResultsPublish);
+        _schoolId = (await TenantContext.GetCurrentAsync()).SchoolId;
+        await LoadReports();
+    }
+
+    private async Task LoadReports()
+    {
+        _isLoading = true;
+        _reports = await PerformanceRepo.GetPendingApprovalReportsAsync(_schoolId);
+        _isLoading = false;
+    }
+
+    private async Task SetStatus(int reportId, string status)
+    {
+        if (!_canPublishReports) return;
+
+        try
+        {
+            await PerformanceRepo.SetApprovalStatusAsync(reportId, status, _schoolId);
+            _message = $"Performance report {status.ToLowerInvariant()}.";
+            _messageIsError = false;
+            await LoadReports();
+        }
+        catch (Exception ex)
+        {
+            _message = ex.Message;
+            _messageIsError = true;
+        }
+    }
+
+    private static string TrendBadge(string trend) => trend switch
+    {
+        "Improving" => "bg-success",
+        "Declining" => "bg-danger",
+        _ => "bg-secondary"
+    };
+
+    private static string FormatMarks(decimal? obtained, decimal? total)
+    {
+        if (!obtained.HasValue && !total.HasValue) return "-";
+        if (obtained.HasValue && total.HasValue) return $"{obtained:0.##} / {total:0.##}";
+        return obtained.HasValue ? $"{obtained:0.##}" : $"- / {total:0.##}";
+    }
+}

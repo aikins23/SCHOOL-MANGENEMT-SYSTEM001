@@ -1,0 +1,171 @@
+@page "/finance/dashboard"
+@rendermode InteractiveServer
+@using KingdomPrep.Web.Data
+@using KingdomPrep.Web.Data.Entities
+@using Microsoft.AspNetCore.Components.Authorization
+@inject IDashboardStats DashStats
+@inject NavigationManager NavManager
+@inject IPortalTenantContext TenantContext
+@inject ISchoolProfileService SchoolProfileService
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Administrator,Accountant,Director")]
+
+<PageTitle>Finance Dashboard</PageTitle>
+
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold" style="color: #0b1f48;">Finance Dashboard</h2>
+    </div>
+
+    <!-- Cards Row -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0 h-100" style="border-left: 4px solid #059669 !important;">
+                <div class="card-body">
+                    <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.8rem;">Total Income</h6>
+                    <h3 class="fw-bold mb-0">@Money(_totalIncome)</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0 h-100" style="border-left: 4px solid #e11d48 !important;">
+                <div class="card-body">
+                    <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.8rem;">Total Expenses</h6>
+                    <h3 class="fw-bold mb-0">@Money(_totalExpenses)</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0 h-100" style="border-left: 4px solid #d97706 !important;">
+                <div class="card-body">
+                    <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.8rem;">Fees Collected</h6>
+                    <h3 class="fw-bold mb-0">@Money(_revenue)</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0 h-100" style="border-left: 4px solid #dc2626 !important;">
+                <div class="card-body">
+                    <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.8rem;">Outstanding Fees</h6>
+                    <h3 class="fw-bold mb-0">@Money(_balance)</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Left: Recent Payments -->
+        <div class="col-lg-7 mb-4">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0 fw-bold" style="color: #0b1f48;">Recent Payments</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Student</th>
+                                    <th>Amount</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var p in _recentPayments)
+                                {
+                                    <tr>
+                                        <td class="align-middle">@SchoolBranding.FormatStudentId(p.StudentID, _schoolProfile)</td>
+                                        <td class="align-middle">@p.StudentName</td>
+                                        <td class="align-middle fw-bold" style="color: #059669;">@Money(p.AmountPaid)</td>
+                                        <td class="align-middle">@(p.PaymentDate?.ToString("MMM dd, yyyy") ?? "N/A")</td>
+                                    </tr>
+                                }
+                                @if (!_recentPayments.Any())
+                                {
+                                    <tr><td colspan="4" class="text-center py-3">No recent payments.</td></tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Outstanding Fees -->
+        <div class="col-lg-5 mb-4">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0 fw-bold" style="color: #0b1f48;">Top Outstanding Balances</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Student</th>
+                                    <th>Class</th>
+                                    <th class="text-end">Balance</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var o in _outstandingFees)
+                                {
+                                    <tr>
+                                        <td class="align-middle">@o.StudentName</td>
+                                        <td class="align-middle"><span class="badge bg-secondary">@o.ClassID</span></td>
+                                        <td class="align-middle text-end fw-bold" style="color: #dc2626;">@Money(o.Balance)</td>
+                                    </tr>
+                                }
+                                @if (!_outstandingFees.Any())
+                                {
+                                    <tr><td colspan="3" class="text-center py-3">No outstanding fees.</td></tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    private decimal _totalIncome;
+    private decimal _totalExpenses;
+    private decimal _revenue;
+    private decimal _balance;
+    private List<PaymentRecordEntity> _recentPayments = new();
+    private List<OutstandingFeeStat> _outstandingFees = new();
+    private SchoolInfoEntity? _schoolProfile;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateTask;
+        var user = authState.User;
+        if (user == null || !user.Identity?.IsAuthenticated == true)
+        {
+            NavManager.NavigateTo("/login");
+            return;
+        }
+
+        var role = user.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+        if (role != "Administrator" && role != "Accountant" && role != "Director")
+        {
+            NavManager.NavigateTo("/denied");
+            return;
+        }
+
+        var schoolId = (await TenantContext.GetCurrentAsync()).SchoolId;
+        _schoolProfile = await SchoolProfileService.GetSchoolProfileAsync();
+        _totalIncome = await DashStats.GetTotalIncomeAsync(schoolId);
+        _totalExpenses = await DashStats.GetTotalExpensesAsync(schoolId);
+        _revenue = await DashStats.GetTotalRevenueAsync(schoolId);
+        _balance = await DashStats.GetTotalBalanceAsync(schoolId);
+        _recentPayments = await DashStats.GetRecentPaymentsAsync(schoolId, 10);
+        _outstandingFees = await DashStats.GetOutstandingFeesAsync(schoolId, 10);
+    }
+
+    private string Money(decimal amount) => amount.ToString("C2", new System.Globalization.CultureInfo("en-GH"));
+}

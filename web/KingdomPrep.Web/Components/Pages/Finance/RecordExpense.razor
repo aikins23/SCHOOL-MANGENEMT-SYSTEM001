@@ -1,0 +1,114 @@
+@page "/finance/record-expense"
+@rendermode InteractiveServer
+@attribute [Authorize(Policy = WebPermission.ExpenseManage)]
+@using KingdomPrep.Web.Data
+@using KingdomPrep.Web.Data.Entities
+@inject IFinancePortalRepository FinanceRepo
+@inject NavigationManager NavManager
+@inject IPortalTenantContext TenantContext
+
+<PageTitle>Record Expense - Nyansapo ERP</PageTitle>
+
+<div class="container-fluid mt-4" style="max-width: 800px; margin: 0 auto;">
+    <div class="card shadow-sm border-0" style="border-radius: 8px;">
+        <div class="card-header bg-white py-3 border-bottom-0">
+            <h4 class="mb-0 fw-bold" style="color: #0b1f48;">Record New Expense</h4>
+            <p class="text-muted mb-0" style="font-size: 0.9rem;">Log a school expense. This action cannot be reversed.</p>
+        </div>
+        <div class="card-body p-4">
+            @if (_showSuccessMessage)
+            {
+                <div class="alert alert-success d-flex align-items-center" role="alert">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                    <div>Expense recorded successfully!</div>
+                </div>
+            }
+
+            <EditForm Model="_expense" OnValidSubmit="SaveExpense">
+                <DataAnnotationsValidator />
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold text-muted">Expense Name / Category</label>
+                        <InputText @bind-Value="_expense.ExpenseName" class="form-control" placeholder="e.g. Utility Bill" required />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold text-muted">Amount (GHS)</label>
+                        <InputText @bind-Value="_expense.Amount" class="form-control" type="number" step="0.01" required />
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold text-muted">Purpose</label>
+                        <InputText @bind-Value="_expense.Purpose" class="form-control" placeholder="e.g. Electricity" required />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold text-muted">Date</label>
+                        <InputDate @bind-Value="_expense.Date" class="form-control" required />
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold text-muted">Payee (Who was paid?)</label>
+                        <InputText @bind-Value="_expense.Payee" class="form-control" placeholder="e.g. ECG" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold text-muted">Authorized By</label>
+                        <InputText @bind-Value="_expense.Payer" class="form-control bg-light" disabled />
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label fw-semibold text-muted">Description / Notes</label>
+                    <InputTextArea @bind-Value="_expense.Description" class="form-control" rows="3" placeholder="Optional details..." />
+                </div>
+
+                <div class="d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-light fw-semibold px-4" @onclick='() => NavManager.NavigateTo("/finance/dashboard")'>Cancel</button>
+                    <button type="submit" class="btn text-white fw-semibold px-4" style="background-color: #dc2626;" disabled="@_isSaving">
+                        @if (_isSaving) { <span class="spinner-border spinner-border-sm"></span> } else { <span>Record Expense</span> }
+                    </button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+</div>
+
+@code {
+    private ExpenseEntity _expense = new ExpenseEntity { Date = DateTime.Now };
+    private bool _isSaving = false;
+    private bool _showSuccessMessage = false;
+    private Guid? _schoolId;
+    private string _actorUsername = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var tenant = await TenantContext.GetCurrentAsync();
+        _schoolId = tenant.SchoolId;
+        _actorUsername = tenant.Username ?? "Admin";
+        _expense.Payer = _actorUsername;
+        _expense.SchoolId = _schoolId;
+    }
+
+    private async Task SaveExpense()
+    {
+        _isSaving = true;
+
+        _expense.SchoolId = _schoolId;
+        await FinanceRepo.RecordExpenseAsync(_expense, _schoolId, _actorUsername);
+
+        _isSaving = false;
+        _showSuccessMessage = true;
+
+        // Reset form
+        _expense = new ExpenseEntity { Date = DateTime.Now, Payer = _expense.Payer, SchoolId = _schoolId };
+
+        StateHasChanged();
+        await Task.Delay(3000);
+        _showSuccessMessage = false;
+        StateHasChanged();
+    }
+
+}

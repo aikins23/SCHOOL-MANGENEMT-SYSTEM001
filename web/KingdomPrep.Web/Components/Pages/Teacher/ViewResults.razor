@@ -1,0 +1,237 @@
+@page "/teacher/results"
+@rendermode InteractiveServer
+@attribute [Authorize(Roles = "Teacher")]
+@using KingdomPrep.Web.Data
+@using KingdomPrep.Web.Data.Entities
+@inject ITeacherPortalRepository TeacherRepo
+@inject IStudentPortalRepository StudentRepo
+@inject IGradingPortalRepository GradingRepo
+@inject NavigationManager NavManager
+@inject IPortalTenantContext TenantContext
+
+<PageTitle>Student Results - Nyansapo ERP</PageTitle>
+
+<div class="container-fluid py-4" style="background-color: #f6f8fb; min-height: calc(100vh - 5rem);">
+
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h2 class="mb-1" style="font-weight: 600; color: #11233a; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 2rem;">Student Results</h2>
+            <p class="mb-0 text-muted" style="font-size: 0.95rem;">View comprehensive performance and grades for your class</p>
+        </div>
+    </div>
+
+    <!-- FILTER BAR -->
+    <div class="card border-0 mb-4" style="border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+        <div class="card-body p-3">
+            <div class="row align-items-end g-3">
+                <div class="col-md-3">
+                    <label class="form-label text-muted mb-1" style="font-size: 0.8rem; font-weight: 600;">Class</label>
+                    <select class="form-select fw-semibold" style="background-color: #f1f5f9; color: #475569;" disabled>
+                        <option>@(string.IsNullOrEmpty(_selectedClass) ? "No Class Assigned" : _selectedClass)</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-muted mb-1" style="font-size: 0.8rem; font-weight: 600;">Academic Term</label>
+                    <select class="form-select fw-semibold" @bind="_selectedTerm" @bind:after="LoadResults">
+                        <option value="First Term">First Term</option>
+                        <option value="Second Term">Second Term</option>
+                        <option value="Third Term">Third Term</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-muted mb-1" style="font-size: 0.8rem; font-weight: 600;">Academic Year</label>
+                    <select class="form-select fw-semibold" @bind="_selectedYear" @bind:after="LoadResults">
+                        <option value="2024/2025">2024/2025</option>
+                        <option value="2025/2026">2025/2026</option>
+                        <option value="2026/2027">2026/2027</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-muted mb-1" style="font-size: 0.8rem; font-weight: 600;">Search Students</label>
+                    <input type="text" class="form-control" placeholder="Search by name…" @bind="_searchTerm" @bind:event="oninput" @onkeyup="ApplyFilter" />
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (_isLoading)
+    {
+        <div class="d-flex justify-content-center py-5"><div class="spinner-border text-primary" role="status"></div></div>
+    }
+    else if (!_filteredStudents.Any())
+    {
+        <div class="text-center text-muted py-5 mt-4 bg-white rounded shadow-sm border-0">
+            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="mb-3" style="color: #94a3b8;"><circle cx="12" cy="12" r="10"></circle><path d="M16 16s-1.5-2-4-2-4 2-4 2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>
+            <h5>No Results Found</h5>
+            <p>No students match your current filters.</p>
+        </div>
+    }
+    else
+    {
+        <div class="row g-4">
+            @foreach (var student in _filteredStudents)
+            {
+                var grades = _studentGrades.ContainsKey(student.StudentID) ? _studentGrades[student.StudentID] : new List<ExamResultEntity>();
+                var missingSubjects = _subjects.Where(subject => !grades.Any(g => g.Subject == subject)).ToList();
+                var totalScore = grades.Sum(g => g.TotalScore ?? 0);
+                var average = grades.Any() ? Math.Round(totalScore / grades.Count, 1) : 0;
+                var isExpanded = _expandedStudentId == student.StudentID;
+
+                <div class="col-12">
+                    <div class="card border-0 shadow-sm" style="border-radius: 8px;">
+                        <div class="card-body p-4 cursor-pointer" style="cursor: pointer;" @onclick="() => ToggleExpand(student.StudentID)">
+                            <div class="row align-items-center">
+                                <div class="col-md-4 d-flex align-items-center gap-3">
+                                    <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; background-color: #f1f5f9; color: #1e3a5f; font-weight: bold; font-size: 1.2rem;">
+                                        @(string.IsNullOrEmpty(student.FullName) ? "?" : student.FullName.Substring(0,1))
+                                    </div>
+                                    <div>
+                                        <h5 class="mb-0 fw-bold" style="color: #11233a;">@student.FullName</h5>
+                                        <span class="text-muted" style="font-size: 0.85rem;">ID: @student.StudentID</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 text-center border-start border-end">
+                                    <span class="text-muted text-uppercase d-block mb-1" style="font-size: 0.75rem; letter-spacing: 0.05em;">Subjects Graded</span>
+                                    <span class="fw-bold fs-5">@grades.Count <span class="fs-6 fw-normal text-muted">/ @_subjects.Count</span></span>
+                                    @if (missingSubjects.Any())
+                                    {
+                                        <div class="small text-danger mt-1">@missingSubjects.Count missing</div>
+                                    }
+                                </div>
+                                <div class="col-md-3 text-center border-end">
+                                    <span class="text-muted text-uppercase d-block mb-1" style="font-size: 0.75rem; letter-spacing: 0.05em;">Overall Average</span>
+                                    <span class="fw-bold fs-5" style="color: @(average >= 50 ? "#16a34a" : "#dc2626");">@average%</span>
+                                </div>
+                                <div class="col-md-2 text-end">
+                                    <button class="btn btn-sm text-primary fw-semibold bg-light">
+                                        @(isExpanded ? "Hide Details" : "View Details")
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        @if (isExpanded)
+                        {
+                            <div class="card-footer bg-white border-top p-0">
+                                @if (!grades.Any())
+                                {
+                                    <div class="p-4 text-center text-muted">No grades recorded for this student in the selected term.</div>
+                                }
+                                else
+                                {
+                                    <div class="table-responsive m-0">
+                                        <table class="table table-hover mb-0" style="font-size: 0.9rem;">
+                                            <thead style="background-color: #f8fafc; color: #475569;">
+                                                <tr>
+                                                    <th class="px-4 py-2 border-bottom-0">Subject</th>
+                                                    <th class="px-2 py-2 border-bottom-0 text-center">Class Score (30)</th>
+                                                    <th class="px-2 py-2 border-bottom-0 text-center">Exam Score (70)</th>
+                                                    <th class="px-2 py-2 border-bottom-0 text-center">Total (100)</th>
+                                                    <th class="px-2 py-2 border-bottom-0 text-center">Grade</th>
+                                                    <th class="px-4 py-2 border-bottom-0">Remarks</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach (var g in grades)
+                                                {
+                                                    <tr>
+                                                        <td class="px-4 py-2 fw-semibold" style="color: #1e3a5f;">@g.Subject</td>
+                                                        <td class="px-2 py-2 text-center text-muted">@g.CategoryTotal</td>
+                                                        <td class="px-2 py-2 text-center text-muted">@g.ExamScore</td>
+                                                        <td class="px-2 py-2 text-center fw-bold">@g.TotalScore</td>
+                                                        <td class="px-2 py-2 text-center fw-bold" style="color: #b91c1c;">@g.Grade</td>
+                                                        <td class="px-4 py-2 text-muted fst-italic">@g.Remark</td>
+                                                    </tr>
+                                                }
+                                                @foreach (var subject in missingSubjects)
+                                                {
+                                                    <tr class="table-warning">
+                                                        <td class="px-4 py-2 fw-semibold" style="color: #92400e;">@subject</td>
+                                                        <td colspan="5" class="px-4 py-2 text-muted">No grade recorded for this subject.</td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private bool _isLoading = true;
+    private int _employmentId;
+    private Guid? _schoolId;
+
+    private string _selectedClass = "";
+    private string _selectedTerm = "First Term";
+    private string _selectedYear = "2025/2026";
+    private string _searchTerm = "";
+
+    private int _expandedStudentId = 0;
+
+    private List<StudentEntity> _students = new();
+    private List<StudentEntity> _filteredStudents = new();
+    private List<string> _subjects = new();
+
+    // Key: StudentID
+    private Dictionary<int, List<ExamResultEntity>> _studentGrades = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var tenant = await TenantContext.GetCurrentAsync();
+        if (!tenant.EmploymentId.HasValue)
+        {
+            NavManager.NavigateTo("/login");
+            return;
+        }
+
+        _employmentId = tenant.EmploymentId.Value;
+        _schoolId = tenant.SchoolId;
+
+        var assigned = await TeacherRepo.GetAssignedClassesAsync(_employmentId, _schoolId);
+        if (assigned.Any()) _selectedClass = assigned.First().ClassName;
+
+        _students = await StudentRepo.GetStudentsAsync(classFilter: _selectedClass, schoolId: _schoolId);
+        _subjects = await GradingRepo.GetSubjectsAsync(_selectedClass, _schoolId);
+
+        await LoadResults();
+    }
+
+    private async Task LoadResults()
+    {
+        _isLoading = true;
+        _expandedStudentId = 0;
+        _studentGrades.Clear();
+
+        if (!string.IsNullOrEmpty(_selectedClass))
+        {
+            var allGrades = await GradingRepo.GetClassGradesAsync(_selectedClass, _selectedTerm, _selectedYear, _schoolId);
+
+            foreach (var student in _students)
+            {
+                _studentGrades[student.StudentID] = allGrades.Where(g => g.StudentId == student.StudentID).ToList();
+            }
+        }
+
+        ApplyFilter();
+        _isLoading = false;
+    }
+
+    private void ApplyFilter()
+    {
+        if (string.IsNullOrWhiteSpace(_searchTerm)) _filteredStudents = _students.ToList();
+        else _filteredStudents = _students.Where(x => x.FullName.ToLower().Contains(_searchTerm.ToLower())).ToList();
+    }
+
+    private void ToggleExpand(int studentId)
+    {
+        if (_expandedStudentId == studentId) _expandedStudentId = 0;
+        else _expandedStudentId = studentId;
+    }
+}

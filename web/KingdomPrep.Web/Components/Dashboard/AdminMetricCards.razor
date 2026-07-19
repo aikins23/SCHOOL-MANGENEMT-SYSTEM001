@@ -1,0 +1,131 @@
+@using KingdomPrep.Web.Core
+<div class="row g-4 mb-4">
+    <!-- Card 1: Students -->
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="bg-white rounded shadow-sm p-3 d-flex align-items-center justify-content-between h-100" style="border-top: 3px solid #5b21b6; min-height: 110px;">
+        <div>
+            <div class="fw-bold mb-1" style="color: #5b21b6; font-size: 0.75rem; letter-spacing: 0.5px;">STUDENTS</div>
+            <div class="text-muted mb-2" style="font-size: 0.8rem;">Students</div>
+            <div class="fw-bold text-dark" style="font-size: 1.5rem;">@StudentCount</div>
+        </div>
+        <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; background-color: rgba(91, 33, 182, 0.1); color: #5b21b6;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+        </div>
+    </div>
+    </div>
+
+    <!-- Card 2: Employees -->
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="bg-white rounded shadow-sm p-3 d-flex align-items-center justify-content-between h-100" style="border-top: 3px solid #059669; min-height: 110px;">
+            <div>
+                <div class="fw-bold mb-1" style="color: #059669; font-size: 0.75rem; letter-spacing: 0.5px;">EMPLOYEES</div>
+                <div class="text-muted mb-2" style="font-size: 0.8rem;">Employees</div>
+                <div class="fw-bold text-dark" style="font-size: 1.5rem;">@EmployeeCount</div>
+            </div>
+            <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; background-color: rgba(5, 150, 105, 0.1); color: #059669;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            </div>
+        </div>
+    </div>
+
+    <!-- Card 3: Revenue -->
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="bg-white rounded shadow-sm p-3 d-flex align-items-center justify-content-between h-100" style="border-top: 3px solid #d97706; min-height: 110px;">
+            <div>
+                <div class="fw-bold mb-1" style="color: #d97706; font-size: 0.75rem; letter-spacing: 0.5px;">REVENUE</div>
+                <div class="text-muted mb-2" style="font-size: 0.8rem;">Fees Collected</div>
+                <div class="fw-bold text-dark" style="font-size: 1.2rem;">@Money(Revenue)</div>
+            </div>
+            <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; background-color: rgba(217, 119, 6, 0.1); color: #d97706;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"></rect><circle cx="12" cy="12" r="2"></circle><path d="M6 12h.01M18 12h.01"></path></svg>
+            </div>
+        </div>
+    </div>
+
+    <!-- Card 4: Balance -->
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="bg-white rounded shadow-sm p-3 d-flex align-items-center justify-content-between h-100" style="border-top: 3px solid #e11d48; min-height: 110px;">
+            <div>
+                <div class="fw-bold mb-1" style="color: #e11d48; font-size: 0.75rem; letter-spacing: 0.5px;">BALANCE</div>
+                <div class="text-muted mb-2" style="font-size: 0.8rem;">Outstanding Fees</div>
+                <div class="fw-bold text-dark" style="font-size: 1.2rem;">@Money(Balance)</div>
+            </div>
+            <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; background-color: rgba(225, 29, 72, 0.1); color: #e11d48;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+            </div>
+        </div>
+    </div>
+
+    @if (Role == AppRoles.Accountant || Role == AppRoles.Administrator || Role == AppRoles.Director)
+    {
+        <!-- Card 5: Income -->
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="bg-white rounded shadow-sm p-3 d-flex align-items-center justify-content-between h-100" style="border-top: 3px solid #059669; min-height: 110px;">
+                <div>
+                    <div class="fw-bold mb-1" style="color: #059669; font-size: 0.75rem; letter-spacing: 0.5px;">INCOME</div>
+                    <div class="text-muted mb-2" style="font-size: 0.8rem;">Total Income</div>
+                    <div class="fw-bold text-dark" style="font-size: 1.2rem;">@Money(Income)</div>
+                </div>
+                <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; background-color: rgba(5, 150, 105, 0.1); color: #059669;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"></rect><circle cx="12" cy="12" r="2"></circle><path d="M6 12h.01M18 12h.01"></path></svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 6: Expenses -->
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="bg-white rounded shadow-sm p-3 d-flex align-items-center justify-content-between h-100" style="border-top: 3px solid #e11d48; min-height: 110px;">
+                <div>
+                    <div class="fw-bold mb-1" style="color: #e11d48; font-size: 0.75rem; letter-spacing: 0.5px;">EXPENSES</div>
+                    <div class="text-muted mb-2" style="font-size: 0.8rem;">Total Expenses</div>
+                    <div class="fw-bold text-dark" style="font-size: 1.2rem;">@Money(Expenses)</div>
+                </div>
+                <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; background-color: rgba(225, 29, 72, 0.1); color: #e11d48;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 7: Fund -->
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="bg-white rounded shadow-sm p-3 d-flex align-items-center justify-content-between h-100" style="border-top: 3px solid #10b981; min-height: 110px;">
+                <div>
+                    <div class="fw-bold mb-1" style="color: #10b981; font-size: 0.75rem; letter-spacing: 0.5px;">FUND</div>
+                    <div class="text-muted mb-2" style="font-size: 0.8rem;">Total Fund</div>
+                    <div class="fw-bold text-dark" style="font-size: 1.2rem;">@Money(Fund)</div>
+                </div>
+                <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; background-color: rgba(16, 185, 129, 0.1); color: #d97706;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"></rect><circle cx="12" cy="12" r="2"></circle><path d="M6 12h.01M18 12h.01"></path></svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 8: Highest -->
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="bg-white rounded shadow-sm p-3 d-flex align-items-center justify-content-between h-100" style="border-top: 3px solid #e11d48; min-height: 110px;">
+                <div>
+                    <div class="fw-bold mb-1" style="color: #e11d48; font-size: 0.75rem; letter-spacing: 0.5px;">HIGHEST</div>
+                    <div class="text-muted mb-2" style="font-size: 0.8rem;">Top Expense</div>
+                    <div class="fw-bold text-dark" style="font-size: 1.2rem;">@TopExpense</div>
+                </div>
+                <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; background-color: rgba(225, 29, 72, 0.1); color: #e11d48;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public string Role { get; set; } = "";
+    [Parameter] public int StudentCount { get; set; }
+    [Parameter] public int EmployeeCount { get; set; }
+    [Parameter] public decimal Revenue { get; set; }
+    [Parameter] public decimal Balance { get; set; }
+    [Parameter] public decimal Income { get; set; }
+    [Parameter] public decimal Expenses { get; set; }
+    [Parameter] public decimal Fund { get; set; }
+    [Parameter] public string TopExpense { get; set; } = "None";
+
+    private string Money(decimal value) => $"GHS {value:N2}";
+}

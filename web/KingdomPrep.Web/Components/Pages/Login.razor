@@ -1,56 +1,151 @@
 @page "/login"
 @attribute [AllowAnonymous]
+
+
 @layout BlankLayout
 @using System.ComponentModel.DataAnnotations
 @using System.Security.Claims
 @using Microsoft.AspNetCore.Authentication
 @using Microsoft.AspNetCore.Authentication.Cookies
+@implements IDisposable
 @inject IAuthService Auth
+@inject ILoginThrottle Throttle
 @inject NavigationManager Nav
 
-<PageTitle>Sign in - Kingdom Preparatory</PageTitle>
+<PageTitle>Sign in - Nyansapo ERP</PageTitle>
 
-<div class="login-wrap">
-    <h1>Kingdom Preparatory School</h1>
-    <h2>Sign in</h2>
-    @if (ShowError)
-    {
-        <p class="login-error">Invalid username or password.</p>
-    }
-    <EditForm Model="Input" method="post" OnValidSubmit="DoLogin" FormName="login">
-        <DataAnnotationsValidator />
-        <div class="login-field">
-            <label>Username</label>
-            <InputText @bind-Value="Input.Username" autocomplete="username" />
+<div class="login-container">
+    <!-- Left brand pane (mirrors frmlogin's BuildBrandPanel) -->
+    <div class="login-brand-panel">
+        <div class="brand-logo-container">
+            <img src="/images/brand_logo.png" alt="Nyansapo School ERP" class="brand-badge brand-badge-image" />
+            <img src="/images/icon_bg.png" alt="Nyansapo icon" class="brand-badge brand-badge-image brand-badge-secondary" />
         </div>
-        <div class="login-field">
-            <label>Password</label>
-            <InputText type="password" @bind-Value="Input.Password" autocomplete="current-password" />
+        <h1 class="brand-title">Nyansapo ERP</h1>
+        <div class="brand-divider"></div>
+        <h2 class="brand-subtitle">School Management System</h2>
+        <p class="brand-description">
+            Sign in to access student admissions, fee ledgers, academic session planners, and terminal report card sheets.
+        </p>
+        <span class="brand-footer">Secure staff &amp; parent access</span>
+    </div>
+
+    <!-- Right login form pane -->
+    <div class="login-form-panel">
+        <div class="login-card-wrap">
+            <h1>Welcome Back</h1>
+            <p class="login-subtitle">Enter your account credentials to continue.</p>
+
+            @if (ShowLocked)
+            {
+                <div class="login-error" role="alert">
+                    Too many failed attempts. Your account is temporarily locked. Please try again later.
+                </div>
+            }
+            else if (ShowError)
+            {
+                <div class="login-error" role="alert">
+                    Invalid username or password. Please try again.
+                </div>
+            }
+
+            <EditForm Model="Input" method="post" OnValidSubmit="DoLogin" FormName="login">
+                <DataAnnotationsValidator />
+
+                <div class="login-field">
+                    <KpInput
+                        @bind-Value="Input.Username"
+                        Label="Username"
+                        Placeholder="Username"
+                        Required="true"
+                        autocomplete="username">
+                        <LeftIcon>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--nyansapo-muted);">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="12" cy="7" r="4"></circle>
+                            </svg>
+                        </LeftIcon>
+                    </KpInput>
+                </div>
+
+                <div class="login-field">
+                    <KpInput
+                        @bind-Value="Input.Password"
+                        Id="login-password"
+                        Label="Password"
+                        Placeholder="Password"
+                        Type="password"
+                        Required="true"
+                        autocomplete="current-password">
+                        <LeftIcon>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--nyansapo-muted);">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                            </svg>
+                        </LeftIcon>
+                    </KpInput>
+                </div>
+
+                <div class="show-password-container">
+                    <input type="checkbox" id="showPassword" class="darker-border-checkbox form-check-input" onchange="document.getElementById('login-password').type = this.checked ? 'text' : 'password';" />
+                    <label for="showPassword">Show password</label>
+                </div>
+
+                <KpButton Type="submit" Variant="KpButton.ButtonVariant.Primary" Class="w-100 mt-2">
+                    Sign in
+                </KpButton>
+            </EditForm>
+
+            <div class="login-card-footer">
+                <a href="#" class="forgot-link">Create a new account</a>
+                <div class="login-footer-logos" aria-label="Brand and school logos">
+                    <img src="/images/icon_bg.png" alt="Nyansapo School ERP icon" />
+                    <img src="/images/brand_logo.png" alt="Nyansapo School ERP" />
+                </div>
+            </div>
         </div>
-        <button type="submit">Sign in</button>
-    </EditForm>
+    </div>
 </div>
 
+
+
 @code {
-    [SupplyParameterFromForm] private LoginInput Input { get; set; } = new();
-    [SupplyParameterFromQuery(Name = "error")] private string? ErrorFlag { get; set; }
-    [CascadingParameter] private HttpContext HttpContext { get; set; } = default!;
+    [SupplyParameterFromForm]
+    public LoginInput Input { get; set; } = default!;
+
+    [SupplyParameterFromQuery(Name = "error")]
+    public string? ErrorFlag { get; set; }
+
+    [CascadingParameter]
+    public HttpContext HttpContext { get; set; } = default!;
+
+    protected override void OnInitialized()
+    {
+        Input ??= new LoginInput();
+    }
 
     private bool ShowError => ErrorFlag == "1";
+    private bool ShowLocked => ErrorFlag == "locked";
 
     private async Task DoLogin()
     {
+        // Reject before hitting the credential store while locked out.
+        if (Throttle.IsLockedOut(Input.Username, out _))
+        {
+            Nav.NavigateTo("/login?error=locked", forceLoad: true);
+            return;
+        }
+
         var user = await Auth.AuthenticateAsync(Input.Username, Input.Password);
         if (user is null || user.Role == UserRole.Unknown)
         {
-            Nav.NavigateTo("/login?error=1", forceLoad: true);
+            Throttle.RecordFailure(Input.Username);
+            var flag = Throttle.IsLockedOut(Input.Username, out _) ? "locked" : "1";
+            Nav.NavigateTo($"/login?error={flag}", forceLoad: true);
             return;
         }
-        if (user.Role == UserRole.Accountant)
-        {
-            Nav.NavigateTo("/denied?accountant=1", forceLoad: true);
-            return;
-        }
+
+        Throttle.RecordSuccess(Input.Username);
 
         var claims = new List<Claim>
         {
@@ -61,11 +156,24 @@
         {
             claims.Add(new("EmploymentId", user.EmploymentId.Value.ToString()));
         }
+        if (user.SchoolId.HasValue)
+        {
+            claims.Add(new("SchoolId", user.SchoolId.Value.ToString()));
+        }
         var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
         await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme,
             new ClaimsPrincipal(identity));
 
-        Nav.NavigateTo("/", forceLoad: true);
+        string targetUrl = "/";
+        if (user.Role == UserRole.Accountant) targetUrl = "/finance/dashboard";
+        else if (user.Role == UserRole.Teacher) targetUrl = "/teacher/dashboard";
+        else if (user.Role == UserRole.Parent) targetUrl = "/parent/dashboard";
+
+        Nav.NavigateTo(targetUrl, forceLoad: true);
+    }
+
+    public void Dispose()
+    {
     }
 
     public sealed class LoginInput

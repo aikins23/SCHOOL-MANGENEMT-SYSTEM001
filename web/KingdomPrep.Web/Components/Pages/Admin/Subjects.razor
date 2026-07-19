@@ -1,0 +1,314 @@
+@page "/admin/subjects"
+@rendermode InteractiveServer
+@attribute [Authorize(Policy = WebPermission.AcademicClassStructureManage)]
+@using KingdomPrep.Web.Data
+@using KingdomPrep.Web.Data.Entities
+@inject IAcademicPortalRepository AcademicRepo
+@inject IPortalTenantContext TenantContext
+@inject AuthenticationStateProvider AuthStateProvider
+
+<PageTitle>Class Subjects - Nyansapo ERP</PageTitle>
+
+<div class="container-fluid mt-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h2 class="mb-1 fw-bold" style="color: #0b1f48;">Class Subjects</h2>
+            <p class="text-muted mb-0">Maintain the subject list teachers use for grading and report cards.</p>
+        </div>
+        <a class="btn btn-outline-primary fw-semibold" href="admin/exams/setup">Exam Setup</a>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(_message))
+    {
+        <div class="alert @(_isError ? "alert-danger" : "alert-success")">@_message</div>
+    }
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted text-uppercase fw-semibold small mb-2">Classes Covered</div>
+                    <div class="fs-3 fw-bold">@_summary.Count</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted text-uppercase fw-semibold small mb-2">Subject Rows</div>
+                    <div class="fs-3 fw-bold">@_subjects.Count</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted text-uppercase fw-semibold small mb-2">Average Per Class</div>
+                    <div class="fs-3 fw-bold">@AverageSubjects.ToString("N1")</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-xl-4">
+            @if (_canManageSubjects)
+            {
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white py-3">
+                        <h5 class="mb-0 fw-bold" style="color: #0b1f48;">@(_editingId == 0 ? "Add Subject" : "Edit Subject")</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold text-muted">Class</label>
+                            <input class="form-control" list="class-options" placeholder="e.g. BASIC 1" @bind="_formClass" />
+                            <datalist id="class-options">
+                                @foreach (var className in _classes)
+                                {
+                                    <option value="@className"></option>
+                                }
+                            </datalist>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold text-muted">Subject</label>
+                            <input class="form-control" placeholder="e.g. Mathematics" @bind="_formSubject" />
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold text-muted">Sort Order</label>
+                            <input type="number" class="form-control" @bind="_formSortOrder" min="0" />
+                        </div>
+                        <div class="d-flex gap-2 justify-content-end">
+                            @if (_editingId != 0)
+                            {
+                                <button class="btn btn-light fw-semibold" @onclick="ResetForm">Cancel</button>
+                            }
+                            <button class="btn btn-primary fw-semibold px-4" @onclick="SaveSubjectAsync" disabled="@_isSaving">
+                                @if (_isSaving)
+                                {
+                                    <span class="spinner-border spinner-border-sm"></span>
+                                }
+                                else
+                                {
+                                    <span>Save</span>
+                                }
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <div class="card border-0 shadow-sm mt-4">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0 fw-bold" style="color: #0b1f48;">Class Coverage</h5>
+                </div>
+                <div class="list-group list-group-flush">
+                    @if (!_summary.Any())
+                    {
+                        <div class="list-group-item text-muted">No subjects have been configured.</div>
+                    }
+                    else
+                    {
+                        @foreach (var row in _summary)
+                        {
+                            <button type="button" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" @onclick="() => SelectClass(row.ClassName)">
+                                <span class="fw-semibold">@row.ClassName</span>
+                                <span class="badge bg-primary rounded-pill">@row.SubjectCount</span>
+                            </button>
+                        }
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-8">
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-5">
+                            <label class="form-label fw-semibold text-muted">Search</label>
+                            <input class="form-control" placeholder="Subject or class" @bind="_searchTerm" @bind:event="oninput" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold text-muted">Class</label>
+                            <select class="form-select" @bind="_classFilter">
+                                <option value="">All classes</option>
+                                @foreach (var className in _classes)
+                                {
+                                    <option value="@className">@className</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-3 d-flex gap-2 justify-content-md-end">
+                            <button class="btn btn-primary fw-semibold" @onclick="LoadAsync">Apply</button>
+                            <button class="btn btn-light fw-semibold" @onclick="ClearFilters">Clear</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0 align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Class</th>
+                                    <th>Subject</th>
+                                    <th class="text-end">Sort</th>
+                                    @if (_canManageSubjects)
+                                    {
+                                        <th class="text-end">Actions</th>
+                                    }
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (_isLoading)
+                                {
+                                    <tr><td colspan="@SubjectTableColumnCount" class="text-center py-4"><span class="spinner-border spinner-border-sm"></span></td></tr>
+                                }
+                                else if (!_subjects.Any())
+                                {
+                                    <tr><td colspan="@SubjectTableColumnCount" class="text-center text-muted py-4">No subjects found.</td></tr>
+                                }
+                                else
+                                {
+                                    @foreach (var subject in _subjects)
+                                    {
+                                        <tr>
+                                            <td><span class="badge bg-secondary">@subject.ClassName</span></td>
+                                            <td class="fw-semibold">@subject.Subject</td>
+                                            <td class="text-end">@((subject.SortOrder ?? 0).ToString())</td>
+                                            @if (_canManageSubjects)
+                                            {
+                                                <td class="text-end">
+                                                    <button class="btn btn-sm btn-outline-primary me-2" @onclick="() => EditSubject(subject)">Edit</button>
+                                                    <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteSubjectAsync(subject)">Delete</button>
+                                                </td>
+                                            }
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<ClassSubjectEntity> _subjects = new();
+    private List<ClassSubjectSummary> _summary = new();
+    private List<string> _classes = new();
+    private string _searchTerm = "";
+    private string _classFilter = "";
+    private string _formClass = "";
+    private string _formSubject = "";
+    private int? _formSortOrder;
+    private int _editingId;
+    private bool _isLoading = true;
+    private bool _isSaving;
+    private string _message = "";
+    private bool _isError;
+    private Guid? _schoolId;
+    private bool _canManageSubjects;
+
+    private decimal AverageSubjects => _summary.Count == 0 ? 0 : Math.Round((decimal)_summary.Sum(s => s.SubjectCount) / _summary.Count, 1);
+    private int SubjectTableColumnCount => _canManageSubjects ? 4 : 3;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        _canManageSubjects = WebPermission.CanRenderAction(authState.User, WebPermission.AcademicClassStructureManage);
+        _schoolId = (await TenantContext.GetCurrentAsync()).SchoolId;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _isLoading = true;
+        _classes = await AcademicRepo.GetClassesAsync(_schoolId);
+        _summary = await AcademicRepo.GetClassSubjectSummaryAsync(_schoolId);
+        _subjects = await AcademicRepo.GetClassSubjectsAsync(_classFilter, _searchTerm, _schoolId);
+        _isLoading = false;
+    }
+
+    private async Task ClearFilters()
+    {
+        _searchTerm = "";
+        _classFilter = "";
+        await LoadAsync();
+    }
+
+    private async Task SaveSubjectAsync()
+    {
+        if (!_canManageSubjects) return;
+
+        _isSaving = true;
+        _message = "";
+        _isError = false;
+
+        try
+        {
+            await AcademicRepo.SaveClassSubjectAsync(new ClassSubjectEntity
+            {
+                Id = _editingId,
+                ClassName = _formClass,
+                Subject = _formSubject,
+                SortOrder = _formSortOrder
+            }, _schoolId);
+
+            _message = _editingId == 0 ? "Subject added." : "Subject updated.";
+            ResetForm();
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            _message = ex.Message;
+            _isError = true;
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private void EditSubject(ClassSubjectEntity subject)
+    {
+        if (!_canManageSubjects) return;
+
+        _editingId = subject.Id;
+        _formClass = subject.ClassName ?? "";
+        _formSubject = subject.Subject ?? "";
+        _formSortOrder = subject.SortOrder;
+        _message = "";
+    }
+
+    private async Task DeleteSubjectAsync(ClassSubjectEntity subject)
+    {
+        if (!_canManageSubjects) return;
+
+        await AcademicRepo.DeleteClassSubjectAsync(subject.Id, _schoolId);
+        _message = "Subject deleted.";
+        _isError = false;
+        if (_editingId == subject.Id) ResetForm();
+        await LoadAsync();
+    }
+
+    private async Task SelectClass(string className)
+    {
+        _classFilter = className;
+        await LoadAsync();
+    }
+
+    private void ResetForm()
+    {
+        if (!_canManageSubjects) return;
+
+        _editingId = 0;
+        _formClass = "";
+        _formSubject = "";
+        _formSortOrder = null;
+    }
+}

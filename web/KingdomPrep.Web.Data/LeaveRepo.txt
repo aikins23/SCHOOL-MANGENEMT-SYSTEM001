@@ -1,0 +1,39 @@
+
+
+public interface ILeavePortalRepository
+{
+    Task<List<LeaveEntity>> GetMyLeavesAsync(string employmentId);
+    Task SubmitLeaveAsync(LeaveEntity leave);
+}
+
+public class LeavePortalRepository(IDbContextFactory<AppDbContext> factory) : ILeavePortalRepository
+{
+    public async Task<List<LeaveEntity>> GetMyLeavesAsync(string employmentId)
+    {
+        using var db = await factory.CreateDbContextAsync();
+        return await db.Leaves.AsNoTracking()
+            .Where(l => l.EmploymentID == employmentId)
+            .OrderByDescending(l => l.StartDate)
+            .ToListAsync();
+    }
+
+    public async Task SubmitLeaveAsync(LeaveEntity leave)
+    {
+        using var db = await factory.CreateDbContextAsync();
+
+        var existing = await db.Leaves.FirstOrDefaultAsync(l => l.EmploymentID == leave.EmploymentID && l.StartDate == leave.StartDate);
+        if (existing == null)
+        {
+            db.Leaves.Add(leave);
+        }
+        else
+        {
+            existing.EndDate = leave.EndDate;
+            existing.Reasons = leave.Reasons;
+            existing.LeaveOption = leave.LeaveOption;
+            existing.Status = leave.Status;
+            db.Leaves.Update(existing);
+        }
+        await db.SaveChangesAsync();
+    }
+}

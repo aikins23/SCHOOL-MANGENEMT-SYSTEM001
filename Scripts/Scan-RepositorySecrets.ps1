@@ -70,6 +70,10 @@ $rules = @(
         Pattern = [regex]::new('(?i)(?:sqlserver|postgres(?:ql)?|mysql)://[^:/\s]+:(?<secret>[^@/\s]+)@')
     },
     [pscustomobject]@{
+        Name = "stripe-secret-key"
+        Pattern = [regex]::new('(?<![A-Za-z0-9])(?<secret>sk_(?:live|test)_[A-Za-z0-9]{16,})')
+    },
+    [pscustomobject]@{
         Name = "private-key"
         Pattern = [regex]::new('-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----')
     }

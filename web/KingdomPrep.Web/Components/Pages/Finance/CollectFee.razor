@@ -1,0 +1,237 @@
+@page "/finance/collect-fee"
+@rendermode InteractiveServer
+@attribute [Authorize(Policy = WebPermission.FeePaymentRecord)]
+@using KingdomPrep.Web.Data
+@using KingdomPrep.Web.Data.Entities
+@inject IFinancePortalRepository FinanceRepo
+@inject IStudentPortalRepository StudentRepo
+@inject NavigationManager NavManager
+@inject IPortalTenantContext TenantContext
+
+<PageTitle>Collect Fee - Nyansapo ERP</PageTitle>
+
+<div class="container-fluid mt-4" style="max-width: 900px; margin: 0 auto;">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h2 class="mb-1 fw-bold" style="color: #0b1f48;">Collect Fee</h2>
+            <p class="text-muted mb-0">Search for a student and record their payment.</p>
+        </div>
+    </div>
+
+    @if (_showSuccessMessage)
+    {
+        <div class="alert alert-success d-flex align-items-center mb-4" role="alert">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+            <div>Payment of <strong>@Money(_lastPaymentAmount)</strong> recorded successfully for <strong>@_lastStudentName</strong>.</div>
+        </div>
+    }
+
+    <div class="row g-4">
+        <!-- Search & Select Student -->
+        <div class="col-md-5">
+            <div class="card shadow-sm border-0 h-100" style="border-radius: 8px;">
+                <div class="card-header bg-white py-3 border-bottom-0">
+                    <h5 class="mb-0 fw-bold" style="color: #0b1f48;">Find Student</h5>
+                </div>
+                <div class="card-body px-4 pt-0">
+                    <div class="mb-4">
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></span>
+                            <input type="text" class="form-control border-start-0 bg-light" placeholder="Search by name..." @bind="_searchTerm" @bind:event="oninput" @onkeyup="ApplySearchFilter" />
+                        </div>
+                    </div>
+
+                    @if (_isLoadingStudents)
+                    {
+                        <div class="text-center py-4"><div class="spinner-border text-primary spinner-border-sm" role="status"></div></div>
+                    }
+                    else
+                    {
+                        <div class="list-group list-group-flush" style="max-height: 400px; overflow-y: auto;">
+                            @foreach (var student in _filteredStudents)
+                            {
+                                <button type="button" class="list-group-item list-group-item-action border-0 mb-1 rounded @(_selectedStudent?.StudentID == student.StudentID ? "active bg-primary text-white" : "bg-light")" @onclick="() => SelectStudent(student)">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h6 class="mb-1 fw-semibold">@student.FullName</h6>
+                                        <small>@student.ClassID</small>
+                                    </div>
+                                    <small class="@(_selectedStudent?.StudentID == student.StudentID ? "text-light" : "text-muted")">ID: @student.StudentID</small>
+                                </button>
+                            }
+                            @if (!_filteredStudents.Any())
+                            {
+                                <div class="text-center text-muted py-3">No students found.</div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Payment Form -->
+        <div class="col-md-7">
+            <div class="card shadow-sm border-0 h-100" style="border-radius: 8px;">
+                <div class="card-header bg-white py-3 border-bottom-0">
+                    <h5 class="mb-0 fw-bold" style="color: #0b1f48;">Payment Details</h5>
+                </div>
+                <div class="card-body p-4 pt-0">
+                    @if (_selectedStudent == null)
+                    {
+                        <div class="text-center text-muted py-5 mt-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="mb-3" style="color: #94a3b8;"><rect x="2" y="4" width="20" height="16" rx="2" ry="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line></svg>
+                            <h5>No Student Selected</h5>
+                            <p>Select a student from the list to record a payment.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info border-0" style="background-color: #f0f9ff; color: #0369a1;">
+                            <strong>Selected:</strong> @_selectedStudent.FullName (@_selectedStudent.ClassID)
+                        </div>
+
+                        <EditForm Model="_payment" OnValidSubmit="ProcessPayment">
+                            <DataAnnotationsValidator />
+
+                            <div class="row g-3 mb-3">
+                                <div class="col-sm-6">
+                                    <div class="border rounded p-3 bg-light">
+                                        <div class="small text-muted fw-semibold">Current Balance</div>
+                                        <div class="fs-4 fw-bold" style="color: #dc2626;">
+                                            @if (_isLoadingBalance)
+                                            {
+                                                <span class="spinner-border spinner-border-sm" role="status"></span>
+                                            }
+                                            else
+                                            {
+                                                @Money(_currentBalance)
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6">
+                                    <div class="border rounded p-3 bg-light">
+                                        <div class="small text-muted fw-semibold">Balance After Payment</div>
+                                        <div class="fs-4 fw-bold" style="color: #059669;">@Money(RemainingBalance)</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold text-muted">Amount Paying Today (GHS)</label>
+                                <InputNumber @bind-Value="_payment.AmountPaid" class="form-control form-control-lg fw-bold" style="color: #059669;" required min="1" />
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="form-label fw-semibold text-muted">Date of Payment</label>
+                                <InputDate @bind-Value="_payment.PaymentDate" class="form-control" required />
+                            </div>
+
+                            <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+                                <button type="button" class="btn btn-light fw-semibold px-4" @onclick="ClearSelection">Cancel</button>
+                                <button type="submit" class="btn text-white fw-semibold px-4 shadow-sm" style="background-color: #059669;" disabled="@_isSaving">
+                                    @if (_isSaving) { <span class="spinner-border spinner-border-sm"></span> } else { <span>Confirm Payment</span> }
+                                </button>
+                            </div>
+                        </EditForm>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private bool _isLoadingStudents = true;
+    private bool _isSaving = false;
+    private bool _showSuccessMessage = false;
+
+    private string _searchTerm = "";
+    private StudentEntity? _selectedStudent;
+    private decimal _currentBalance;
+    private bool _isLoadingBalance;
+
+    private List<StudentEntity> _allStudents = new();
+    private List<StudentEntity> _filteredStudents = new();
+
+    private PaymentRecordEntity _payment = new PaymentRecordEntity { PaymentDate = DateTime.Now };
+
+    private decimal _lastPaymentAmount;
+    private string _lastStudentName = "";
+    private Guid? _schoolId;
+    private string _actorUsername = "";
+    private decimal RemainingBalance => Math.Max(0, _currentBalance - _payment.AmountPaid);
+
+    protected override async Task OnInitializedAsync()
+    {
+        var tenant = await TenantContext.GetCurrentAsync();
+        _schoolId = tenant.SchoolId;
+        _actorUsername = tenant.Username ?? "system";
+        _allStudents = await StudentRepo.GetStudentsAsync(schoolId: _schoolId);
+        _filteredStudents = _allStudents.Take(50).ToList();
+        _isLoadingStudents = false;
+    }
+
+    private void ApplySearchFilter()
+    {
+        if (string.IsNullOrWhiteSpace(_searchTerm))
+        {
+            _filteredStudents = _allStudents.Take(50).ToList();
+        }
+        else
+        {
+            _filteredStudents = _allStudents
+                .Where(x => x.FullName.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                            x.StudentID.ToString() == _searchTerm)
+                .Take(50).ToList();
+        }
+    }
+
+    private async Task SelectStudent(StudentEntity student)
+    {
+        _selectedStudent = student;
+        _isLoadingBalance = true;
+        _payment = new PaymentRecordEntity
+        {
+            StudentID = student.StudentID,
+            StudentName = student.FullName,
+            ClassID = student.ClassID,
+            PaymentDate = DateTime.Now,
+            AmountPaid = 0,
+            SchoolId = _schoolId
+        };
+        _showSuccessMessage = false;
+        _currentBalance = await FinanceRepo.GetCurrentBalanceAsync(student.StudentID, _schoolId);
+        _isLoadingBalance = false;
+    }
+
+    private void ClearSelection()
+    {
+        _selectedStudent = null;
+        _currentBalance = 0;
+        _payment = new PaymentRecordEntity();
+    }
+
+    private async Task ProcessPayment()
+    {
+        if (_selectedStudent == null || _payment.AmountPaid <= 0) return;
+
+        _isSaving = true;
+        _payment.Balance = RemainingBalance;
+
+        await FinanceRepo.RecordFeeCollectionAsync(_payment, _payment.Balance, _schoolId, _actorUsername);
+
+        _lastPaymentAmount = _payment.AmountPaid;
+        _lastStudentName = _payment.StudentName ?? "Unknown";
+
+        _isSaving = false;
+        _showSuccessMessage = true;
+        ClearSelection();
+
+        StateHasChanged();
+        await Task.Delay(5000);
+        _showSuccessMessage = false;
+        StateHasChanged();
+    }
+
+    private string Money(decimal amount) => amount.ToString("C2", new System.Globalization.CultureInfo("en-GH"));
+}

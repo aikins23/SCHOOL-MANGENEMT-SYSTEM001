@@ -1,0 +1,206 @@
+@page "/admin/sync-conflicts"
+@rendermode InteractiveServer
+@attribute [Authorize(Policy = WebPermission.AdminUsersManage)]
+@using KingdomPrep.Web.Api
+@inject SyncInboxService SyncInboxService
+@inject IPortalTenantContext TenantContext
+@inject AuthenticationStateProvider AuthStateProvider
+
+<PageTitle>Sync Conflicts - Nyansapo ERP</PageTitle>
+
+<div class="container-fluid mt-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h2 class="mb-1 fw-bold" style="color: #0b1f48;">Sync Conflicts</h2>
+            <p class="text-muted mb-0">Review failed desktop sync rows, retry after fixing data issues, or mark resolved conflicts as reviewed.</p>
+        </div>
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <select class="form-select form-select-sm" style="width: 160px;" @bind="_statusFilter">
+                <option value="Conflict">Conflicts</option>
+                <option value="Reviewed">Reviewed</option>
+                <option value="Received">Received</option>
+                <option value="Applied">Applied</option>
+            </select>
+            <button class="btn btn-primary fw-semibold" @onclick="LoadAsync" disabled="@_isLoading">Refresh</button>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(_statusMessage))
+    {
+        <div class="alert @(_statusIsError ? "alert-danger" : "alert-success")">@_statusMessage</div>
+    }
+
+    @if (_isLoading)
+    {
+        <div class="text-center py-5"><span class="spinner-border"></span></div>
+    }
+    else
+    {
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <span class="fw-bold">@_statusFilter Rows</span>
+                <span class="badge bg-light text-dark">@_rows.Count record(s)</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Received</th>
+                                <th>Table / Record</th>
+                                <th>Device</th>
+                                <th>Reason</th>
+                                <th>Payload</th>
+                                @if (_canManageSync)
+                                {
+                                    <th class="text-end">Action</th>
+                                }
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (!_rows.Any())
+                            {
+                                <tr>
+                                    <td colspan="@ConflictTableColumnCount" class="text-center text-muted py-4">No sync inbox rows found.</td>
+                                </tr>
+                            }
+                            else
+                            {
+                                @foreach (var row in _rows)
+                                {
+                                    <tr>
+                                        <td>
+                                            <div class="fw-semibold">@DateText(row.ReceivedAtUtc)</div>
+                                            <div class="small text-muted">Inbox #@row.InboxId</div>
+                                        </td>
+                                        <td>
+                                            <div class="fw-semibold">@row.TableName</div>
+                                            <div class="small text-muted">@row.Operation - @row.PrimaryKeyName: @row.PrimaryKeyValue</div>
+                                            @if (row.RecordSyncId.HasValue)
+                                            {
+                                                <div class="small text-muted">SyncId: @row.RecordSyncId</div>
+                                            }
+                                        </td>
+                                        <td>
+                                            <div class="small text-muted">Device: @row.DeviceId</div>
+                                            <div class="small text-muted">Outbox: @row.DesktopOutboxId</div>
+                                        </td>
+                                        <td style="min-width: 220px;">
+                                            <span class="badge @StatusClass(row.Status)">@row.Status</span>
+                                            <div class="small text-danger mt-2">@(!string.IsNullOrWhiteSpace(row.ConflictReason) ? row.ConflictReason : "-")</div>
+                                        </td>
+                                        <td style="min-width: 260px;">
+                                            <details>
+                                                <summary class="small fw-semibold">View payload</summary>
+                                                <pre class="small mt-2 mb-0 p-2 bg-light border rounded" style="max-height: 220px; white-space: pre-wrap;">@PayloadText(row.Payload)</pre>
+                                            </details>
+                                        </td>
+                                        @if (_canManageSync)
+                                        {
+                                            <td class="text-end">
+                                                @if (row.Status == "Conflict")
+                                                {
+                                                    <div class="d-flex justify-content-end gap-2">
+                                                        <button class="btn btn-sm btn-outline-primary"
+                                                                disabled="@(_busyInboxId == row.InboxId)"
+                                                                @onclick="() => RetryAsync(row)">
+                                                            Retry
+                                                        </button>
+                                                        <button class="btn btn-sm btn-outline-secondary"
+                                                                disabled="@(_busyInboxId == row.InboxId)"
+                                                                @onclick="() => MarkReviewedAsync(row)">
+                                                            Reviewed
+                                                        </button>
+                                                    </div>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted small">No action</span>
+                                                }
+                                            </td>
+                                        }
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private List<SyncConflictReviewRow> _rows = [];
+    private bool _isLoading = true;
+    private Guid? _schoolId;
+    private string? _actorUsername;
+    private long? _busyInboxId;
+    private string _statusFilter = "Conflict";
+    private string? _statusMessage;
+    private bool _statusIsError;
+    private bool _canManageSync;
+    private int ConflictTableColumnCount => _canManageSync ? 6 : 5;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        _canManageSync = WebPermission.CanRenderAction(authState.User, WebPermission.AdminUsersManage);
+        var tenant = await TenantContext.GetCurrentAsync();
+        _schoolId = tenant.SchoolId;
+        _actorUsername = tenant.Username;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _isLoading = true;
+        _rows = await SyncInboxService.GetConflictReviewRowsAsync(_schoolId, _statusFilter, 100, CancellationToken.None);
+        _isLoading = false;
+    }
+
+    private async Task RetryAsync(SyncConflictReviewRow row)
+    {
+        if (!_canManageSync) return;
+
+        _busyInboxId = row.InboxId;
+        _statusMessage = null;
+        _statusIsError = false;
+
+        var result = await SyncInboxService.RetryInboxAsync(row.InboxId, _schoolId, _actorUsername, CancellationToken.None);
+        _statusMessage = result.Message;
+        _statusIsError = !result.Ok;
+        _busyInboxId = null;
+        await LoadAsync();
+    }
+
+    private async Task MarkReviewedAsync(SyncConflictReviewRow row)
+    {
+        if (!_canManageSync) return;
+
+        _busyInboxId = row.InboxId;
+        _statusMessage = null;
+        _statusIsError = false;
+
+        var result = await SyncInboxService.MarkReviewedAsync(row.InboxId, _schoolId, _actorUsername, CancellationToken.None);
+        _statusMessage = result.Message;
+        _statusIsError = !result.Ok;
+        _busyInboxId = null;
+        await LoadAsync();
+    }
+
+    private static string DateText(DateTime? value) =>
+        value.HasValue ? value.Value.ToLocalTime().ToString("dd MMM yyyy HH:mm") : "-";
+
+    private static string PayloadText(string? payload) =>
+        string.IsNullOrWhiteSpace(payload) ? "No payload stored." : payload;
+
+    private static string StatusClass(string status) => status switch
+    {
+        "Applied" => "bg-success",
+        "Conflict" => "bg-danger",
+        "Received" => "bg-warning text-dark",
+        "Reviewed" => "bg-secondary",
+        _ => "bg-light text-dark"
+    };
+}

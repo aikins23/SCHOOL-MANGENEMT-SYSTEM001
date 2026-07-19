@@ -2,19 +2,27 @@
     position: relative;
     display: flex;
     flex-direction: column;
+    min-height: 100vh;
+    background:
+        radial-gradient(circle at 7% 4%, rgba(79, 70, 229, 0.08), transparent 28rem),
+        radial-gradient(circle at 94% 0%, rgba(210, 151, 35, 0.08), transparent 24rem),
+        var(--nyansapo-bg);
 }
 
 main {
     flex: 1;
+    min-width: 0;
 }
 
 .sidebar {
-    background-image: linear-gradient(180deg, rgb(5, 39, 103) 0%, #3a0647 70%);
+    background: rgba(255, 255, 255, 0.72);
+    border-right: none;
+    color: var(--nyansapo-text);
 }
 
 .top-row {
-    background-color: #f7f7f7;
-    border-bottom: 1px solid #d6d5d5;
+    background-color: var(--nyansapo-surface);
+    border-bottom: 1px solid var(--nyansapo-border);
     justify-content: flex-end;
     height: 3.5rem;
     display: flex;
@@ -24,11 +32,13 @@ main {
     .top-row ::deep a, .top-row ::deep .btn-link {
         white-space: nowrap;
         margin-left: 1.5rem;
+        color: var(--nyansapo-navy);
         text-decoration: none;
     }
 
     .top-row ::deep a:hover, .top-row ::deep .btn-link:hover {
-        text-decoration: underline;
+        color: var(--nyansapo-gold);
+        text-decoration: none;
     }
 
     .top-row ::deep a:first-child {
@@ -36,13 +46,91 @@ main {
         text-overflow: ellipsis;
     }
 
+.pwa-install-button {
+    align-items: center;
+    background: linear-gradient(135deg, #3855ff 0%, #5c42f0 100%);
+    border: 0;
+    border-radius: 9999px;
+    box-shadow: 0 14px 28px rgba(56, 85, 255, 0.22);
+    color: #ffffff;
+    cursor: pointer;
+    display: inline-flex;
+    font-size: 0.86rem;
+    font-weight: 700;
+    gap: 0.45rem;
+    min-height: 2.35rem;
+    padding: 0.54rem 0.9rem;
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.pwa-install-button:hover {
+    box-shadow: 0 18px 34px rgba(56, 85, 255, 0.28);
+    transform: translateY(-1px);
+}
+
+.pwa-install-button[hidden] {
+    display: none !important;
+}
+
+/* Sidebar and Overlay */
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(10, 18, 34, 0.58);
+    backdrop-filter: blur(1px);
+    z-index: 1040;
+}
+
 @media (max-width: 640.98px) {
+    .sidebar {
+        position: fixed;
+        top: 0;
+        left: min(-86vw, -390px);
+        width: min(86vw, 390px);
+        height: 100vh;
+        z-index: 1050;
+        transition: left 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+        border-radius: 0 28px 28px 0;
+        background:
+            linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 255, 0.96));
+        border-right: 1px solid rgba(255, 255, 255, 0.78);
+        box-shadow: 22px 0 60px rgba(1, 15, 45, 0.2);
+        overflow: hidden;
+    }
+
+    .sidebar-toggler-checkbox:checked ~ .sidebar {
+        left: 0;
+    }
+
+    .sidebar-toggler-checkbox:checked ~ .sidebar-overlay {
+        display: block;
+    }
+
     .top-row {
         justify-content: space-between;
     }
 
     .top-row ::deep a, .top-row ::deep .btn-link {
         margin-left: 0;
+    }
+
+    .dashboard-title {
+        font-size: 1.4rem !important;
+    }
+
+    .pwa-install-button {
+        border-radius: 14px;
+        min-height: 2.25rem;
+        min-width: 2.25rem;
+        padding: 0.5rem;
+    }
+
+    .pwa-install-button span {
+        display: none;
     }
 }
 
@@ -52,10 +140,181 @@ main {
     }
 
     .sidebar {
-        width: 250px;
-        height: 100vh;
+        flex: 0 0 320px;
+        width: 320px;
+        min-width: 320px;
+        height: calc(100vh - 2rem);
+        margin: 1rem 0 1rem 1.25rem;
+        border-radius: 28px;
         position: sticky;
-        top: 0;
+        top: 1rem;
+        display: flex;
+        flex-direction: column;
+        transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        z-index: 100;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.78);
+        box-shadow:
+            0 24px 55px rgba(0, 24, 74, 0.13),
+            inset 0 1px 0 rgba(255, 255, 255, 0.82);
+        backdrop-filter: blur(20px);
+    }
+
+    .sidebar::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 3.5rem;
+        border-radius: 0 0 28px 28px;
+        background: linear-gradient(to bottom, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.94));
+        pointer-events: none;
+        z-index: 2;
+    }
+
+    .sidebar-toggler-checkbox:checked ~ .sidebar {
+        flex-basis: 76px;
+        min-width: 76px;
+        width: 76px;
+        overflow: visible;
+        border-radius: 30px;
+    }
+
+    .sidebar-toggler-checkbox:checked ~ .sidebar::after {
+        display: none;
+    }
+
+    .sidebar-toggler-checkbox:checked ~ .sidebar ::deep .nav-scrollable {
+        overflow: visible;
+    }
+
+    .sidebar-toggler-checkbox:checked ~ .sidebar ::deep .brand-display-name,
+    .sidebar-toggler-checkbox:checked ~ .sidebar ::deep .brand-sub-name,
+    .sidebar-toggler-checkbox:checked ~ .sidebar ::deep .nav-group-title,
+    .sidebar-toggler-checkbox:checked ~ .sidebar ::deep .user-details-text,
+    .sidebar-toggler-checkbox:checked ~ .sidebar ::deep .sidebar-user-footer form {
+        display: none !important;
+    }
+
+    .sidebar-toggler-checkbox:checked ~ .sidebar ::deep .brand-badge-mini {
+        margin-right: 0 !important;
+        width: 3rem;
+        height: 3rem;
+    }
+
+    .sidebar-toggler-checkbox:checked ~ .sidebar ::deep .brand-section {
+        justify-content: center;
+        padding-left: 0;
+        padding-right: 0;
+        border-bottom: 1px solid rgba(0, 24, 74, 0.08);
+    }
+
+    .sidebar-toggler-checkbox:checked ~ .sidebar ::deep .nav-item {
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+        padding-bottom: 0.45rem;
+        position: relative;
+    }
+
+    .sidebar-toggler-checkbox:checked ~ .sidebar ::deep .nav-section {
+        margin: 0 0 0.55rem 0;
+        padding-top: 0;
+    }
+
+    .sidebar-toggler-checkbox:checked ~ .sidebar ::deep .nav-section:not([open]) .nav-item {
+        display: block !important;
+    }
+
+    .sidebar-toggler-checkbox:checked ~ .sidebar ::deep .nav-section::before,
+    .sidebar-toggler-checkbox:checked ~ .sidebar ::deep .nav-section .nav-item::before {
+        display: none;
+    }
+
+    .sidebar-toggler-checkbox:checked ~ .sidebar ::deep .nav-link {
+        justify-content: center;
+        padding-left: 0;
+        padding-right: 0;
+        overflow: visible;
+        width: 48px;
+        min-height: 48px;
+        margin: 0 auto;
+        border-radius: 18px;
+    }
+
+    .sidebar-toggler-checkbox:checked ~ .sidebar ::deep .nav-icon {
+        margin-right: 0;
+    }
+
+    /* Tooltip styling for collapsed sidebar */
+    .sidebar-toggler-checkbox:checked ~ .sidebar ::deep .nav-link .nav-link-text {
+        position: absolute;
+        left: 58px;
+        top: 50%;
+        background-color: #111827;
+        color: #ffffff;
+        padding: 0.45rem 0.75rem;
+        border-radius: 10px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        white-space: nowrap;
+        opacity: 0;
+        visibility: hidden;
+        transform: translate(-8px, -50%);
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 16px 32px rgba(15, 23, 42, 0.28);
+        z-index: 2000;
+        pointer-events: none;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .sidebar-toggler-checkbox:checked ~ .sidebar ::deep .nav-link .nav-link-text::before {
+        content: "";
+        position: absolute;
+        left: -5px;
+        top: 50%;
+        width: 10px;
+        height: 10px;
+        background-color: #111827;
+        border-left: 1px solid rgba(255, 255, 255, 0.1);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        transform: translateY(-50%) rotate(45deg);
+    }
+
+    .sidebar-toggler-checkbox:checked ~ .sidebar ::deep .nav-link:hover .nav-link-text,
+    .sidebar-toggler-checkbox:checked ~ .sidebar ::deep .nav-link:focus-visible .nav-link-text {
+        opacity: 1;
+        visibility: visible;
+        transform: translate(0, -50%);
+    }
+
+    .sidebar-toggler-checkbox:checked ~ .sidebar ::deep .text-muted.text-uppercase {
+        display: none !important;
+    }
+
+    .sidebar-toggler-checkbox:checked ~ .sidebar ::deep a.active {
+        background: linear-gradient(135deg, #3855ff 0%, #5c42f0 100%) !important;
+        border: none !important;
+        border-radius: 18px !important;
+        width: 48px;
+        height: 48px;
+        margin: 0 auto;
+        padding: 0 !important;
+        box-shadow: 0 14px 28px rgba(56, 85, 255, 0.34) !important;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .sidebar-toggler-checkbox:checked ~ main .top-row,
+    .sidebar-toggler-checkbox:checked ~ main article {
+        padding-left: 1.5rem !important;
+    }
+
+    .sidebar-toggler-checkbox:checked ~ .sidebar ::deep a.active .nav-icon {
+        transform: scale(1.1);
+        color: #ffffff !important;
+        opacity: 1;
     }
 
     .top-row {
@@ -71,16 +330,40 @@ main {
     }
 
     .top-row, article {
-        padding-left: 2rem !important;
+        padding-left: 1.5rem !important;
         padding-right: 1.5rem !important;
     }
 }
 
+[data-theme='dark'] .page {
+    background:
+        radial-gradient(circle at 7% 4%, rgba(59, 91, 255, 0.14), transparent 28rem),
+        radial-gradient(circle at 94% 0%, rgba(250, 204, 21, 0.07), transparent 24rem),
+        var(--nyansapo-bg);
+}
+
+[data-theme='dark'] .sidebar {
+    background: rgba(2, 6, 23, 0.82);
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow:
+        0 28px 60px rgba(0, 0, 0, 0.32),
+        inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+[data-theme='dark'] .sidebar::after {
+    background: linear-gradient(to bottom, rgba(2, 6, 23, 0), rgba(2, 6, 23, 0.94));
+}
+
+[data-theme='dark'] .sidebar-toggler-checkbox:checked ~ .sidebar ::deep .brand-section {
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
 #blazor-error-ui {
     color-scheme: light only;
-    background: lightyellow;
+    background: var(--nyansapo-gold-soft);
     bottom: 0;
-    box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.2);
+    border-top: 1px solid var(--nyansapo-gold);
+    box-shadow: 0 -1px 2px rgba(17, 20, 106, 0.16);
     box-sizing: border-box;
     display: none;
     left: 0;

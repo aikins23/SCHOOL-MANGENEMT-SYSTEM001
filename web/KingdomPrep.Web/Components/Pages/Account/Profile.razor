@@ -1,0 +1,279 @@
+@page "/profile"
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Forms
+@inject AuthenticationStateProvider AuthStateProvider
+@inject KingdomPrep.Web.Data.IUserProfileService UserProfileService
+@inject IJSRuntime JSRuntime
+@attribute [Authorize(Policy = WebPermission.AccountSelfManage)]
+@rendermode InteractiveServer
+
+<div class="container py-4" style="max-width: 900px;">
+    <h2 class="h3 fw-bold text-slate-800 mb-4" style="font-family: 'Inter', 'Segoe UI', sans-serif;">My Profile</h2>
+
+    <div class="row g-4">
+        <!-- Profile Picture Card -->
+        <div class="col-md-4">
+            <div class="card border-0 premium-card rounded-4 text-center p-4">
+                <div class="profile-avatar-display mx-auto mb-3 rounded-circle d-flex align-items-center justify-content-center fw-bold shadow-sm overflow-hidden" style="width: 120px; height: 120px; background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color: white; font-size: 3rem; border: 4px solid #fff; position: relative;">
+                    @if (!string.IsNullOrEmpty(_avatarBase64))
+                    {
+                        <img src="@_avatarBase64" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover;" />
+                    }
+                    else
+                    {
+                        <span class="profile-initial-display">@_initial</span>
+                    }
+                </div>
+                <h5 class="fw-bold text-dark mb-1 profile-username-display">@_username</h5>
+                <p class="text-muted small mb-3">@_role Account</p>
+
+                <InputFile id="avatarUpload" OnChange="HandleAvatarUpload" class="d-none" accept="image/*" />
+                <button class="btn btn-outline-primary rounded-pill btn-sm w-100 fw-semibold" onclick="document.getElementById('avatarUpload').click();">
+                    @if (_isUploading)
+                    {
+                        <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                        <span>Uploading...</span>
+                    }
+                    else
+                    {
+                        <span>Change Avatar</span>
+                    }
+                </button>
+            </div>
+        </div>
+
+        <!-- Profile Details Card -->
+        <div class="col-md-8">
+            <div class="card border-0 premium-card rounded-4 p-4 h-100 position-relative">
+                <h5 class="fw-bold mb-4 border-bottom pb-3">Account Information</h5>
+
+                @if (_showSuccessMessage)
+                {
+                    <div class="alert alert-success d-flex align-items-center py-2 mb-4" role="alert">
+                        <i class="bi bi-check-circle-fill me-2"></i>
+                        <div>Profile updated successfully.</div>
+                    </div>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(_errorMessage))
+                {
+                    <div class="alert alert-danger py-2 mb-4" role="alert">
+                        @_errorMessage
+                    </div>
+                }
+
+                @if (_isEditing)
+                {
+                    <div class="row mb-3 align-items-center">
+                        <div class="col-sm-3 text-muted fw-semibold">Email / Username</div>
+                        <div class="col-sm-9">
+                            <input type="text" class="form-control" @bind="_editUsername" />
+                        </div>
+                    </div>
+
+                    <div class="row mb-3 align-items-center">
+                        <div class="col-sm-3 text-muted fw-semibold">Phone</div>
+                        <div class="col-sm-9">
+                            <input type="text" class="form-control" @bind="_editPhone" placeholder="Enter phone number" />
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="row mb-3">
+                        <div class="col-sm-3 text-muted fw-semibold">Email / Username</div>
+                        <div class="col-sm-9 text-dark fw-medium profile-username-display">@_username</div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-sm-3 text-muted fw-semibold">Phone</div>
+                        <div class="col-sm-9 text-dark fw-medium profile-phone-display">@_phone</div>
+                    </div>
+                }
+
+                <div class="row mb-3">
+                    <div class="col-sm-3 text-muted fw-semibold">Status</div>
+                    <div class="col-sm-9"><span class="badge bg-success bg-opacity-10 text-success px-3 py-2 rounded-pill">Active</span></div>
+                </div>
+
+                <div class="row mb-4">
+                    <div class="col-sm-3 text-muted fw-semibold">Access Level</div>
+                    <div class="col-sm-9"><span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-pill">@_role</span></div>
+                </div>
+
+                <div class="mt-auto">
+                    @if (_isEditing)
+                    {
+                        <div class="d-flex gap-2">
+                            <button class="btn text-white fw-semibold px-4 rounded-pill shadow-sm hover-lift" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none;" @onclick="SaveProfile">Save Changes</button>
+                            <button class="btn btn-light fw-semibold px-4 rounded-pill border" @onclick="CancelEdit">Cancel</button>
+                        </div>
+                    }
+                    else
+                    {
+                        <button class="btn text-white fw-semibold px-4 rounded-pill shadow-sm hover-lift" style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); border: none;" @onclick="StartEdit">Edit Profile</button>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string _authUsername = "";
+    private string _username = "";
+    private string _role = "";
+    private string _initial = "U";
+    private string _phone = "+233 (0) 55 123 4567";
+
+    // Edit state
+    private bool _isEditing = false;
+    private string _editUsername = "";
+    private string _editPhone = "";
+    private bool _showSuccessMessage = false;
+    private string _errorMessage = "";
+
+    // Avatar state
+    private string _avatarBase64 = "";
+    private bool _isUploading = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            _authUsername = user.Identity.Name ?? "Unknown";
+            _role = user.FindFirst(ClaimTypes.Role)?.Value ?? "User";
+            _username = _authUsername;
+            _initial = _username.FirstOrDefault().ToString().ToUpper();
+
+            // Fetch from Database
+            var dbProfile = await UserProfileService.GetProfileAsync(_authUsername);
+            if (dbProfile != null)
+            {
+                if (!string.IsNullOrWhiteSpace(dbProfile.FullName))
+                    _username = dbProfile.FullName;
+                if (!string.IsNullOrWhiteSpace(dbProfile.Phone))
+                    _phone = dbProfile.Phone;
+                if (!string.IsNullOrWhiteSpace(dbProfile.AvatarBase64))
+                    _avatarBase64 = dbProfile.AvatarBase64;
+
+                _initial = _username.FirstOrDefault().ToString().ToUpper();
+            }
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                // Force sync with local storage via JS
+                await JSRuntime.InvokeVoidAsync("window.applyProfileData");
+                StateHasChanged();
+            }
+            catch { /* Ignore JS errors during pre-rendering */ }
+        }
+    }
+
+    private void StartEdit()
+    {
+        _editUsername = _username;
+        _editPhone = _phone;
+        _isEditing = true;
+        _showSuccessMessage = false;
+        _errorMessage = "";
+    }
+
+    private void CancelEdit()
+    {
+        _isEditing = false;
+    }
+
+    private async Task SaveProfile()
+    {
+        _errorMessage = "";
+        var displayName = string.IsNullOrWhiteSpace(_editUsername) ? _authUsername : _editUsername.Trim();
+        var phone = _editPhone.Trim();
+
+        var updated = await UserProfileService.UpdateProfileAsync(_authUsername, displayName, phone, _avatarBase64);
+        if (!updated)
+        {
+            _errorMessage = "Profile could not be updated for this account.";
+            _showSuccessMessage = false;
+            return;
+        }
+
+        // Update local variables
+        _username = displayName;
+        _initial = _username.FirstOrDefault().ToString().ToUpper();
+        _phone = phone;
+        _isEditing = false;
+        _showSuccessMessage = true;
+
+        // Save to browser storage strictly so it persists on reload instantly for UI updates
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("window.saveProfileData", _username, _phone, _avatarBase64);
+        }
+        catch { /* Handle JS error */ }
+
+        // Hide success message after 3 seconds
+        await Task.Delay(3000);
+        _showSuccessMessage = false;
+        StateHasChanged();
+    }
+
+    private async Task HandleAvatarUpload(InputFileChangeEventArgs e)
+    {
+        _isUploading = true;
+        StateHasChanged();
+
+        try
+        {
+            var file = e.File;
+            if (file != null)
+            {
+                // Resize image for avatar to save memory
+                var resizedImage = await file.RequestImageFileAsync("image/jpeg", 400, 400);
+
+                using var stream = resizedImage.OpenReadStream(maxAllowedSize: 1024 * 1024 * 5); // 5MB limit
+                using var ms = new System.IO.MemoryStream();
+                await stream.CopyToAsync(ms);
+
+                var base64 = Convert.ToBase64String(ms.ToArray());
+                _avatarBase64 = $"data:image/jpeg;base64,{base64}";
+
+                // Save to local storage to persist across reloads
+                await JSRuntime.InvokeVoidAsync("localStorage.setItem", "user_avatar", _avatarBase64);
+            }
+        }
+        catch (Exception ex)
+        {
+            // Handle error (e.g., file too large)
+            Console.WriteLine($"Upload failed: {ex.Message}");
+        }
+        finally
+        {
+            _isUploading = false;
+        }
+    }
+}
+
+<style>
+    .text-slate-800 { color: #1e293b; }
+    .premium-card {
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+        background: #ffffff;
+    }
+    .hover-lift {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .hover-lift:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.1);
+    }
+</style>

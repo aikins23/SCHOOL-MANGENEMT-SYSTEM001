@@ -1,0 +1,196 @@
+@using Microsoft.AspNetCore.Components
+@using System.Linq.Expressions
+
+<div class="kp-table-wrapper">
+    <table class="@GetTableClass()" role="grid">
+        <thead>
+            <tr role="row">
+                @foreach (var column in Columns)
+                {
+                    <th
+                        scope="col"
+                        class="@GetHeaderClass(column)"
+                        style="@GetHeaderStyle(column)"
+                        @onclick="@(() => HandleSort(column))"
+                        aria-sort="@GetAriaSort(column)">
+                        <div class="kp-th-content">
+                            <span>@column.Title</span>
+                            @if (column.Sortable)
+                            {
+                                <span class="kp-sort-indicator" aria-hidden="true">
+                                    @GetSortIcon(column)
+                                </span>
+                            }
+                        </div>
+                    </th>
+                }
+            </tr>
+        </thead>
+        <tbody>
+            @if (Items == null || !Items.Any())
+            {
+                <tr>
+                    <td colspan="@Columns.Count" class="kp-table-empty">
+                        @EmptyText
+                    </td>
+                </tr>
+            }
+            else
+            {
+                @foreach (var item in Items)
+                {
+                    <tr class="@GetRowClass(item)" role="row" @onclick="@(() => RowClicked.InvokeAsync(item))">
+                        @foreach (var column in Columns)
+                        {
+                            <td class="@GetCellClass(column)" role="gridcell">
+                                @if (column.Template != null)
+                                {
+                                    @column.Template(item)
+                                }
+                                else if (column.Property != null)
+                                {
+                                    @GetPropertyValue(item, column.Property)
+                                }
+                            </td>
+                        }
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+
+    @if (ShowPagination && Items != null && Items.Any())
+    {
+        <div class="kp-table-pagination">
+            <span class="kp-pagination-info">
+                Showing @((CurrentPage - 1) * PageSize + 1) to @Math.Min(CurrentPage * PageSize, TotalItems) of @TotalItems entries
+            </span>
+            <div class="kp-pagination-controls">
+                <KpButton Variant="KpButton.ButtonVariant.OutlineSecondary" Size="KpButton.ButtonSize.Small" Disabled="@(CurrentPage <= 1)" OnClick="@(() => PageChanged.InvokeAsync(CurrentPage - 1))">
+                    Previous
+                </KpButton>
+                <KpButton Variant="KpButton.ButtonVariant.OutlineSecondary" Size="KpButton.ButtonSize.Small" Disabled="@(CurrentPage >= TotalPages)" OnClick="@(() => PageChanged.InvokeAsync(CurrentPage + 1))">
+                    Next
+                </KpButton>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public IEnumerable<object>? Items { get; set; }
+    [Parameter] public List<TableColumn> Columns { get; set; } = new();
+    [Parameter] public string EmptyText { get; set; } = "No data available";
+    [Parameter] public bool Striped { get; set; } = true;
+    [Parameter] public bool Bordered { get; set; } = true;
+    [Parameter] public bool Hoverable { get; set; } = true;
+    [Parameter] public bool ShowPagination { get; set; } = false;
+    [Parameter] public int PageSize { get; set; } = 10;
+    [Parameter] public int CurrentPage { get; set; } = 1;
+    [Parameter] public int TotalItems { get; set; }
+    [Parameter] public EventCallback<int> PageChanged { get; set; }
+    [Parameter] public EventCallback<object> RowClicked { get; set; }
+    [Parameter] public EventCallback<TableColumn> SortChanged { get; set; }
+    [Parameter] public string? Class { get; set; }
+
+    private TableColumn? _sortColumn;
+    private bool _sortAscending = true;
+
+    public class TableColumn
+    {
+        public string Title { get; set; } = "";
+        public string? Property { get; set; }
+        public RenderFragment<object>? Template { get; set; }
+        public bool Sortable { get; set; } = false;
+        public string? Width { get; set; }
+        public string? TextAlign { get; set; }
+        public string? CssClass { get; set; }
+    }
+
+    private int TotalPages => (int)Math.Ceiling((double)TotalItems / PageSize);
+
+    private string GetTableClass()
+    {
+        var classes = new List<string> { "kp-table" };
+        if (Striped) classes.Add("kp-table-striped");
+        if (Bordered) classes.Add("kp-table-bordered");
+        if (Hoverable) classes.Add("kp-table-hoverable");
+        if (!string.IsNullOrWhiteSpace(Class)) classes.Add(Class);
+        return string.Join(" ", classes);
+    }
+
+    private string GetHeaderClass(TableColumn column)
+    {
+        var classes = new List<string>();
+        if (column.Sortable) classes.Add("kp-th-sortable");
+        if (!string.IsNullOrWhiteSpace(column.CssClass)) classes.Add(column.CssClass);
+        return string.Join(" ", classes);
+    }
+
+    private string GetHeaderStyle(TableColumn column)
+    {
+        if (!string.IsNullOrWhiteSpace(column.Width))
+            return $"width: {column.Width};";
+        return "";
+    }
+
+    private string GetCellClass(TableColumn column)
+    {
+        var classes = new List<string>();
+        if (!string.IsNullOrWhiteSpace(column.TextAlign))
+            classes.Add($"kp-text-{column.TextAlign}");
+        if (!string.IsNullOrWhiteSpace(column.CssClass))
+            classes.Add(column.CssClass);
+        return string.Join(" ", classes);
+    }
+
+    private string GetRowClass(object item)
+    {
+        var classes = new List<string> { "kp-tr" };
+        if (RowClicked.HasDelegate) classes.Add("kp-tr-clickable");
+        return string.Join(" ", classes);
+    }
+
+    private string GetAriaSort(TableColumn column)
+    {
+        if (_sortColumn == column)
+            return _sortAscending ? "ascending" : "descending";
+        return "none";
+    }
+
+    private string GetSortIcon(TableColumn column)
+    {
+        if (_sortColumn != column) return "⇅";
+        return _sortAscending ? "↑" : "↓";
+    }
+
+    private object? GetPropertyValue(object item, string propertyName)
+    {
+        try
+        {
+            var prop = item.GetType().GetProperty(propertyName);
+            return prop?.GetValue(item);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private async Task HandleSort(TableColumn column)
+    {
+        if (!column.Sortable) return;
+
+        if (_sortColumn == column)
+        {
+            _sortAscending = !_sortAscending;
+        }
+        else
+        {
+            _sortColumn = column;
+            _sortAscending = true;
+        }
+
+        await SortChanged.InvokeAsync(column);
+    }
+}

@@ -1,0 +1,156 @@
+@page "/settings"
+@attribute [Authorize(Policy = WebPermission.AccountSelfManage)]
+@rendermode InteractiveServer
+@using System.ComponentModel.DataAnnotations
+@using System.Security.Claims
+@inject AuthenticationStateProvider AuthStateProvider
+@inject IUserAccountService AccountService
+@inject IPortalTenantContext TenantContext
+
+<PageTitle>Account Settings - Nyansapo ERP</PageTitle>
+
+<div class="container py-4" style="max-width: 960px;">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h2 class="h3 fw-bold text-slate-800 mb-1" style="font-family: 'Inter', 'Segoe UI', sans-serif;">Account Settings</h2>
+            <p class="text-muted mb-0">Manage your sign-in security and account access.</p>
+        </div>
+        <a class="btn btn-outline-primary fw-semibold" href="profile">My Profile</a>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-4">
+            <div class="card border-0 premium-card rounded-4 h-100">
+                <div class="card-body p-4">
+                    <div class="text-muted text-uppercase fw-semibold small mb-3">Signed in as</div>
+                    <div class="fw-bold fs-5 text-dark mb-1">@_username</div>
+                    <div class="text-muted">@_role</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <div class="card border-0 premium-card rounded-4">
+                <div class="card-body p-4 p-md-5">
+                    <h5 class="fw-bold mb-4 text-dark">Change Password</h5>
+
+                    @if (!string.IsNullOrWhiteSpace(_successMessage))
+                    {
+                        <div class="alert alert-success">@_successMessage</div>
+                    }
+
+                    @if (!string.IsNullOrWhiteSpace(_errorMessage))
+                    {
+                        <div class="alert alert-danger">@_errorMessage</div>
+                    }
+
+                    <EditForm Model="_input" OnValidSubmit="ChangePasswordAsync">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary />
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold text-muted">Current Password</label>
+                            <InputText type="password" class="form-control form-control-lg rounded-3 border-light bg-light" @bind-Value="_input.CurrentPassword" autocomplete="current-password" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold text-muted">New Password</label>
+                            <InputText type="password" class="form-control form-control-lg rounded-3 border-light bg-light" @bind-Value="_input.NewPassword" autocomplete="new-password" />
+                            <div class="form-text">Use at least 8 characters.</div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold text-muted">Confirm New Password</label>
+                            <InputText type="password" class="form-control form-control-lg rounded-3 border-light bg-light" @bind-Value="_input.ConfirmPassword" autocomplete="new-password" />
+                        </div>
+
+                        <button class="btn btn-primary fw-semibold px-4 py-2 rounded-pill shadow-sm" type="submit" disabled="@_isSaving">
+                            @if (_isSaving)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                <span>Updating...</span>
+                            }
+                            else
+                            {
+                                <span>Update Password</span>
+                            }
+                        </button>
+                    </EditForm>
+
+                    <hr class="my-5">
+
+                    <h5 class="fw-bold mb-3 text-dark">Security Notes</h5>
+                    <div class="d-grid gap-2 text-muted">
+                        <div>Passwords are stored with the current web hasher after change.</div>
+                        <div>Legacy desktop plain-text passwords are accepted only for verification, then upgraded when changed.</div>
+                        <div>Sign out after changing shared-device passwords.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private readonly PasswordInput _input = new();
+    private string _username = "";
+    private string _role = "User";
+    private string _successMessage = "";
+    private string _errorMessage = "";
+    private bool _isSaving;
+    private Guid? _schoolId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        _username = user.Identity?.Name ?? "";
+        _role = user.FindFirst(ClaimTypes.Role)?.Value ?? "User";
+        _schoolId = (await TenantContext.GetCurrentAsync()).SchoolId;
+    }
+
+    private async Task ChangePasswordAsync()
+    {
+        _successMessage = "";
+        _errorMessage = "";
+
+        if (_input.NewPassword != _input.ConfirmPassword)
+        {
+            _errorMessage = "New password and confirmation do not match.";
+            return;
+        }
+
+        _isSaving = true;
+        try
+        {
+            await AccountService.ChangePasswordAsync(_username, _input.CurrentPassword, _input.NewPassword, _schoolId, _username);
+            _input.CurrentPassword = "";
+            _input.NewPassword = "";
+            _input.ConfirmPassword = "";
+            _successMessage = "Password updated successfully.";
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.Message;
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private sealed class PasswordInput
+    {
+        [Required] public string CurrentPassword { get; set; } = "";
+        [Required, MinLength(8)] public string NewPassword { get; set; } = "";
+        [Required] public string ConfirmPassword { get; set; } = "";
+    }
+}
+
+<style>
+    .text-slate-800 { color: #1e293b; }
+    .premium-card {
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+        background: #ffffff;
+    }
+</style>

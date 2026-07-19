@@ -1,0 +1,203 @@
+@page "/admin/leave-approvals"
+@rendermode InteractiveServer
+@attribute [Authorize(Policy = WebPermission.LeaveApprove)]
+@using KingdomPrep.Web.Data
+@using KingdomPrep.Web.Data.Entities
+@inject ILeavePortalRepository LeaveRepo
+@inject IPortalTenantContext TenantContext
+@inject AuthenticationStateProvider AuthStateProvider
+
+<PageTitle>Leave Approvals - Nyansapo ERP</PageTitle>
+
+<div class="container-fluid mt-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h2 class="mb-1 fw-bold" style="color: #0b1f48;">Leave Approvals</h2>
+            <p class="text-muted mb-0">Review staff leave requests and update approval status.</p>
+        </div>
+        <a class="btn btn-outline-primary fw-semibold" href="admin/staff">Staff Directory</a>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(_message))
+    {
+        <div class="alert alert-success">@_message</div>
+    }
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted text-uppercase fw-semibold small mb-2">Requests</div>
+                    <div class="fs-3 fw-bold">@_leaves.Count</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted text-uppercase fw-semibold small mb-2">Pending</div>
+                    <div class="fs-3 fw-bold" style="color: #d97706;">@_leaves.Count(l => l.Status == "PENDING")</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted text-uppercase fw-semibold small mb-2">Approved</div>
+                    <div class="fs-3 fw-bold" style="color: #059669;">@_leaves.Count(l => l.Status == "APPROVED")</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted text-uppercase fw-semibold small mb-2">Rejected</div>
+                    <div class="fs-3 fw-bold" style="color: #dc2626;">@_leaves.Count(l => l.Status == "REJECTED")</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-5">
+                    <label class="form-label fw-semibold text-muted">Search</label>
+                    <input class="form-control" placeholder="Name, department, position, or leave type" @bind="_searchTerm" @bind:event="oninput" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold text-muted">Status</label>
+                    <select class="form-select" @bind="_statusFilter">
+                        <option value="">All statuses</option>
+                        <option value="PENDING">Pending</option>
+                        <option value="APPROVED">Approved</option>
+                        <option value="REJECTED">Rejected</option>
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex justify-content-md-end gap-2">
+                    <button class="btn btn-primary fw-semibold px-4" @onclick="LoadAsync" disabled="@_isLoading">Apply</button>
+                    <button class="btn btn-light fw-semibold px-4" @onclick="ClearFilters" disabled="@_isLoading">Clear</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Employee</th>
+                            <th>Leave Type</th>
+                            <th>Dates</th>
+                            <th class="text-end">Days</th>
+                            <th>Status</th>
+                            @if (_canApproveLeave)
+                            {
+                                <th class="text-end">Actions</th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (_isLoading)
+                        {
+                            <tr><td colspan="@LeaveTableColumnCount" class="text-center py-4"><span class="spinner-border spinner-border-sm"></span></td></tr>
+                        }
+                        else if (!_leaves.Any())
+                        {
+                            <tr><td colspan="@LeaveTableColumnCount" class="text-center text-muted py-4">No leave requests found.</td></tr>
+                        }
+                        else
+                        {
+                            @foreach (var leave in _leaves)
+                            {
+                                <tr>
+                                    <td>
+                                        <div class="fw-semibold">@leave.Name</div>
+                                        <div class="small text-muted">@leave.Department - @leave.Position</div>
+                                    </td>
+                                    <td>
+                                        <div>@leave.LeaveOption</div>
+                                        <div class="small text-muted">@leave.Reasons</div>
+                                    </td>
+                                    <td>@leave.StartDate.ToString("dd MMM yyyy") - @leave.EndDate.ToString("dd MMM yyyy")</td>
+                                    <td class="text-end">@InclusiveDays(leave)</td>
+                                    <td><span class="badge @LeaveStatusClass(leave.Status)">@leave.Status</span></td>
+                                    @if (_canApproveLeave)
+                                    {
+                                        <td class="text-end">
+                                            @if (leave.Status != "APPROVED")
+                                            {
+                                                <button class="btn btn-sm btn-outline-success me-2" @onclick='() => UpdateStatusAsync(leave, "APPROVED")'>Approve</button>
+                                            }
+                                            @if (leave.Status != "REJECTED")
+                                            {
+                                                <button class="btn btn-sm btn-outline-danger" @onclick='() => UpdateStatusAsync(leave, "REJECTED")'>Reject</button>
+                                            }
+                                        </td>
+                                    }
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<LeaveEntity> _leaves = new();
+    private string _searchTerm = "";
+    private string _statusFilter = "PENDING";
+    private string _message = "";
+    private bool _isLoading = true;
+    private Guid? _schoolId;
+    private string _actorUsername = "";
+    private bool _canApproveLeave;
+    private int LeaveTableColumnCount => _canApproveLeave ? 6 : 5;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        _canApproveLeave = WebPermission.CanRenderAction(authState.User, WebPermission.LeaveApprove);
+        var tenant = await TenantContext.GetCurrentAsync();
+        _schoolId = tenant.SchoolId;
+        _actorUsername = tenant.Username ?? "system";
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _isLoading = true;
+        _leaves = await LeaveRepo.GetLeavesAsync(_statusFilter, _searchTerm, _schoolId);
+        _isLoading = false;
+    }
+
+    private async Task ClearFilters()
+    {
+        _searchTerm = "";
+        _statusFilter = "";
+        await LoadAsync();
+    }
+
+    private async Task UpdateStatusAsync(LeaveEntity leave, string status)
+    {
+        if (!_canApproveLeave) return;
+
+        await LeaveRepo.UpdateLeaveStatusAsync(leave.EmploymentID, leave.StartDate, status, _schoolId, _actorUsername);
+        _message = $"Leave request for {leave.Name} marked {status.ToLowerInvariant()}.";
+        await LoadAsync();
+    }
+
+    private static int InclusiveDays(LeaveEntity leave) =>
+        Math.Max(1, (leave.EndDate.Date - leave.StartDate.Date).Days + 1);
+
+    private static string LeaveStatusClass(string status) => status switch
+    {
+        "APPROVED" => "bg-success",
+        "REJECTED" => "bg-danger",
+        _ => "bg-warning text-dark"
+    };
+}

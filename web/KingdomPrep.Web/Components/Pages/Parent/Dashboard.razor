@@ -1,0 +1,1046 @@
+@page "/parent/dashboard"
+@rendermode InteractiveServer
+@using KingdomPrep.Web.Data
+@using KingdomPrep.Web.Data.Entities
+@using KingdomPrep.Web.Core
+@using Microsoft.EntityFrameworkCore
+@inject IWardRepository WardRepo
+@inject IWardBillingRepository BillingRepo
+@inject IReportCardPortalRepository ReportRepo
+@inject IAttendancePortalRepository AttendanceRepo
+@inject WebReportCardGenerator ReportGenerator
+@inject ISchoolProfileService SchoolProfileService
+@inject AppDbContext Db
+@inject IJSRuntime JS
+@inject IPortalTenantContext TenantContext
+@attribute [Authorize(Roles = "Parent")]
+
+<PageTitle>My Ward - Parent Portal</PageTitle>
+
+<div class="container-fluid py-4" style="background-color: #f8fafc; min-height: 100vh;">
+    <!-- Breadcrumb / Top Bar -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <div class="text-muted small fw-medium" style="font-family: 'Inter', sans-serif;">Home <i class="bi bi-chevron-right mx-1" style="font-size: 0.7rem;"></i> <span class="text-dark fw-bold">Parents</span></div>
+            <h3 class="mb-0 mt-2 fw-bold text-dark">Welcome back, @_username!</h3>
+            <p class="text-muted small mb-0 mt-1">Here's what's happening with your children today</p>
+        </div>
+        @if (_wards != null && _wards.Any())
+        {
+            <div class="d-none d-md-block">
+                <div class="badge bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-pill">
+                    <i class="bi bi-people-fill me-1"></i> @_wards.Count @(_wards.Count == 1 ? "Child" : "Children")
+                </div>
+            </div>
+        }
+    </div>
+
+    @if (_isLoading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-3 text-muted fw-medium">Loading your ward's information...</p>
+        </div>
+    }
+    else if (_wards == null || !_wards.Any())
+    {
+        <div class="alert alert-warning shadow-sm border-0 d-flex align-items-center p-4 rounded-4" role="alert">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-3 text-warning"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+            <div>
+                <h5 class="alert-heading fw-bold mb-1">No Student Linked</h5>
+                <p class="mb-0 text-dark">We could not find any students linked to your account (@_username). Please contact the administration.</p>
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- Quick Action Alert for Outstanding Fees -->
+        @if (_totalFamilyOutstanding > 0)
+        {
+            <div class="alert border-0 shadow-sm rounded-4 mb-4 d-flex flex-column align-items-start justify-content-between gap-3 position-relative overflow-hidden" style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);">
+                <svg class="position-absolute" style="width: 8rem; height: 8rem; opacity: 0.08; right: -20px; top: -20px; color: #d97706;" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M10.29 3.86a2 2 0 0 1 3.42 0l8.49 14.14A2 2 0 0 1 20.49 21H3.51a2 2 0 0 1-1.71-3L10.29 3.86ZM11 9v5h2V9h-2Zm0 7v2h2v-2h-2Z" />
+                </svg>
+                <div class="d-flex align-items-start flex-grow-1 position-relative w-100">
+                    <div class="me-3 flex-shrink-0 d-flex align-items-center justify-content-center rounded-circle" style="width: 48px; height: 48px; background: rgba(217, 119, 6, 0.15);">
+                        <svg style="width: 26px; height: 26px; color: #d97706;" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                            <path d="M10.29 3.86a2 2 0 0 1 3.42 0l8.49 14.14A2 2 0 0 1 20.49 21H3.51a2 2 0 0 1-1.71-3L10.29 3.86ZM11 9v5h2V9h-2Zm0 7v2h2v-2h-2Z" />
+                        </svg>
+                    </div>
+                    <div class="flex-grow-1">
+                        <h6 class="mb-1 fw-bold text-dark d-flex flex-wrap align-items-center gap-2">
+                            <span>Outstanding Fees: GHS @_totalFamilyOutstanding.ToString("N0")</span>
+                            <span class="badge bg-danger text-white px-2 py-1 rounded-pill" style="font-size: 0.7rem;">Action Required</span>
+                        </h6>
+                        <p class="mb-0 small text-dark">You have pending fees that need to be cleared.</p>
+                    </div>
+                </div>
+                <a href="parent/fees" class="btn btn-warning fw-bold shadow-sm rounded-pill px-4 text-nowrap w-100 w-md-auto position-relative">
+                    <svg class="me-2" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <rect x="2" y="5" width="20" height="14" rx="2" />
+                        <path d="M2 10h20" />
+                    </svg>
+                    Pay Now
+                </a>
+            </div>
+        }
+
+        <div class="row g-4">
+            <!-- LEFT COLUMN -->
+            <div class="col-lg-5 col-xl-4">
+                @foreach (var (w, index) in _wards.Select((w, i) => (w, i)))
+                {
+                    var isSelected = _ward?.StudentID == w.StudentID;
+                    var cardOpacity = isSelected ? "1" : "0.7";
+                    var cardShadow = isSelected ? "shadow" : "shadow-sm";
+                    var cardBorder = isSelected ? "border border-2 border-warning" : "";
+                    <div class="card border-0 rounded-4 mb-4 premium-card hover-lift transition-all @cardBorder @cardShadow" style="cursor: pointer; position: relative; overflow: hidden; opacity: @cardOpacity;" @onclick="() => SelectWard(w)">
+                        @if (isSelected)
+                        {
+                            <div class="position-absolute glow-border" style="left:0; top:0; bottom:0; width:6px; background: linear-gradient(180deg, #f59e0b 0%, #d97706 100%); box-shadow: 0 0 15px rgba(245, 158, 11, 0.5);"></div>
+                        }
+                        else
+                        {
+                            <div class="position-absolute" style="left:0; top:0; bottom:0; width:6px; background: #e2e8f0;"></div>
+                        }
+
+                        <div class="card-header bg-white border-bottom-0 pt-4 pb-2 px-4 d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0 fw-bold text-dark fs-5">@w.FirstName @w.LastName</h6>
+                            <div class="d-flex gap-2">
+                                <span class="badge @(isSelected ? "bg-warning text-dark" : "bg-light text-muted") rounded-pill px-3">@(isSelected ? "Active View" : "Click to view")</span>
+                            </div>
+                        </div>
+                        <div class="card-body p-4">
+                            <div class="row align-items-center">
+                                <div class="col-12 col-md-5 text-center mb-4 mb-md-0">
+                                    @{
+                                        string initial = w.FirstName?.FirstOrDefault().ToString().ToUpper() ?? "U";
+                                        string bgGradient = w.Gender?.ToLower() == "female" ? "linear-gradient(135deg, #ec4899 0%, #be185d 100%)" : "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)";
+                                    }
+                                    <div class="mx-auto mb-3 rounded-circle d-flex align-items-center justify-content-center text-white shadow-sm border border-4 border-white" style="width: 110px; height: 110px; background: @bgGradient; font-size: 3rem; font-weight: bold;">
+                                        @initial
+                                    </div>
+                                    <div class="d-flex justify-content-center gap-2 border-top pt-3 mt-2 px-2">
+                                        @if (isSelected && _availableTerms != null && _availableTerms.Any())
+                                        {
+                                            var latestWardReport = _availableTerms.First();
+                                            <button class="btn btn-sm btn-primary rounded-pill px-3 py-1 hover-lift shadow-sm" style="font-size: 0.75rem;" title="Download Latest Report" @onclick:stopPropagation="true" @onclick="() => DownloadReportCard(latestWardReport.Term, latestWardReport.Year)" disabled="@_isDownloading">
+                                                @if (_isDownloading)
+                                                {
+                                                    <span class="spinner-border spinner-border-sm me-1" role="status" style="width: 0.6rem; height: 0.6rem;"></span>
+                                                    <span>Downloading...</span>
+                                                }
+                                                else
+                                                {
+                                                    <i class="bi bi-download me-1"></i>
+                                                    <span>Download Report</span>
+                                                }
+                                            </button>
+                                        }
+                                        else if (isSelected)
+                                        {
+                                            <small class="text-muted py-1">No reports available</small>
+                                        }
+                                        else
+                                        {
+                                            <small class="text-muted py-1">Select to view actions</small>
+                                        }
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-7">
+                                    <div class="bg-light p-3 rounded-4 border border-light shadow-sm">
+                                        <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                                            <span class="text-muted fw-semibold small">Student ID</span>
+                                            <span class="text-dark fw-bold text-end">#@w.StudentID</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                                            <span class="text-muted fw-semibold small">Class</span>
+                                            <span class="text-dark fw-bold text-end">@(w.ClassID ?? "N/A")</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                                            <span class="text-muted fw-semibold small">Gender</span>
+                                            <span class="text-dark fw-bold text-end">@(w.Gender ?? "N/A")</span>
+                                        </div>
+                                        @if (isSelected)
+                                        {
+                                            var wardBalance = _feeLedger.Sum(l => l.TotalExpectedAmount - l.TotalPaidAmount);
+                                            <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                                                <span class="text-muted fw-semibold small">Outstanding</span>
+                                                <span class="@(wardBalance > 0 ? "text-danger" : "text-success") fw-bold text-end">
+                                                    GHS @wardBalance.ToString("N0")
+                                                </span>
+                                            </div>
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <span class="text-muted fw-semibold small">Attendance</span>
+                                                <span class="text-dark fw-bold text-end">
+                                                    @if (_attendanceSummary != null && _attendanceSummary.TotalDays > 0)
+                                                    {
+                                                        <span class="@(_attendanceSummary.AttendancePercentage >= 80 ? "text-success" : _attendanceSummary.AttendancePercentage >= 60 ? "text-warning" : "text-danger")">
+                                                            @_attendanceSummary.AttendancePercentage.ToString("0")%
+                                                        </span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span>N/A</span>
+                                                    }
+                                                </span>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <span class="text-muted fw-semibold small">Date of Birth</span>
+                                                <span class="text-dark fw-bold text-end">@(w.DateOfBirth?.ToString("dd/MM/yyyy") ?? "N/A")</span>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                <!-- Quick Action Blocks (matching the 4 colored blocks) -->
+                <div class="row g-2 g-md-3 mb-4">
+                    <div class="col-6">
+                        <a href="parent/fees" class="text-decoration-none">
+                            <div class="parent-action-card parent-action-indigo">
+                                <svg class="parent-action-watermark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <path d="M19 7V6a2 2 0 0 0-2-2H5a3 3 0 0 0 0 6h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H5a3 3 0 0 1-3-3V7" />
+                                    <path d="M16 13h.01" />
+                                </svg>
+                                <div class="parent-action-icon-wrap">
+                                    <svg class="parent-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <path d="M19 7V6a2 2 0 0 0-2-2H5a3 3 0 0 0 0 6h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H5a3 3 0 0 1-3-3V7" />
+                                        <path d="M16 13h.01" />
+                                    </svg>
+                                </div>
+                                <div class="d-flex flex-column border-start-0 border-xl-start ps-0 ps-xl-3 border-light border-opacity-25 position-relative">
+                                    <span class="small opacity-75 text-uppercase fw-bold d-none d-xl-block" style="letter-spacing: 0.05em; font-size: 0.7rem;">Action</span>
+                                    <span class="fw-bold fs-6 fs-md-5">Pay Fees</span>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-6">
+                        <a href="parent/assignments" class="text-decoration-none">
+                            <div class="parent-action-card parent-action-sky">
+                                <svg class="parent-action-watermark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+                                    <path d="M9 7h6" />
+                                    <path d="M9 11h6" />
+                                </svg>
+                                <div class="parent-action-icon-wrap">
+                                    <svg class="parent-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+                                        <path d="M9 7h6" />
+                                        <path d="M9 11h6" />
+                                    </svg>
+                                </div>
+                                <div class="d-flex flex-column border-start-0 border-xl-start ps-0 ps-xl-3 border-light border-opacity-25 position-relative">
+                                    <span class="small opacity-75 text-uppercase fw-bold d-none d-xl-block" style="letter-spacing: 0.05em; font-size: 0.7rem;">Action</span>
+                                    <span class="fw-bold fs-6 fs-md-5">Homework</span>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-6">
+                        <a href="parent/requests" class="text-decoration-none">
+                            <div class="parent-action-card parent-action-red">
+                                <svg class="parent-action-watermark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <rect x="3" y="5" width="18" height="14" rx="2" />
+                                    <path d="m3 7 9 6 9-6" />
+                                </svg>
+                                <div class="parent-action-icon-wrap">
+                                    <svg class="parent-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <rect x="3" y="5" width="18" height="14" rx="2" />
+                                        <path d="m3 7 9 6 9-6" />
+                                    </svg>
+                                </div>
+                                <div class="d-flex flex-column border-start-0 border-xl-start ps-0 ps-xl-3 border-light border-opacity-25 position-relative">
+                                    <span class="small opacity-75 text-uppercase fw-bold d-none d-xl-block" style="letter-spacing: 0.05em; font-size: 0.7rem;">Action</span>
+                                    <span class="fw-bold fs-6 fs-md-5">Request</span>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-6">
+                        <a href="/settings" class="text-decoration-none">
+                            <div class="parent-action-card parent-action-cyan">
+                                <svg class="parent-action-watermark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <path d="M12 15.5A3.5 3.5 0 1 0 12 8a3.5 3.5 0 0 0 0 7.5Z" />
+                                    <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6V20a2 2 0 1 1-4 0v-.08a1.7 1.7 0 0 0-1-.52 1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1H4a2 2 0 1 1 0-4h.08a1.7 1.7 0 0 0 .52-1 1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6V4a2 2 0 1 1 4 0v.08a1.7 1.7 0 0 0 1 .52 1.7 1.7 0 0 0 1.88-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9c.23.34.43.68.6 1H20a2 2 0 1 1 0 4h-.08a1.7 1.7 0 0 0-.52 1Z" />
+                                </svg>
+                                <div class="parent-action-icon-wrap">
+                                    <svg class="parent-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <path d="M12 15.5A3.5 3.5 0 1 0 12 8a3.5 3.5 0 0 0 0 7.5Z" />
+                                        <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6V20a2 2 0 1 1-4 0v-.08a1.7 1.7 0 0 0-1-.52 1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1H4a2 2 0 1 1 0-4h.08a1.7 1.7 0 0 0 .52-1 1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6V4a2 2 0 1 1 4 0v.08a1.7 1.7 0 0 0 1 .52 1.7 1.7 0 0 0 1.88-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9c.23.34.43.68.6 1H20a2 2 0 1 1 0 4h-.08a1.7 1.7 0 0 0-.52 1Z" />
+                                    </svg>
+                                </div>
+                                <div class="d-flex flex-column border-start-0 border-xl-start ps-0 ps-xl-3 border-light border-opacity-25 position-relative">
+                                    <span class="small opacity-75 text-uppercase fw-bold d-none d-xl-block" style="letter-spacing: 0.05em; font-size: 0.7rem;">Action</span>
+                                    <span class="fw-bold fs-6 fs-md-5">Settings</span>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT COLUMN -->
+            <div class="col-lg-7 col-xl-8">
+                <!-- 4 Stat Cards -->
+                <!-- 4 Stat Cards -->
+                <div class="row g-4 mb-4">
+                    <div class="col-sm-6 col-md-6">
+                        <div class="card border-0 rounded-4 shadow-sm overflow-hidden h-100 hover-lift premium-card transition-all position-relative" style="cursor: pointer;" @onclick="() => NavigateToFees()">
+                            <div class="d-flex h-100">
+                                <div class="parent-metric-icon-panel text-white" style="width: 35%; background: linear-gradient(135deg, #f43f5e 0%, #be123c 100%);">
+                                    <svg class="parent-metric-watermark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <path d="M19 7V6a2 2 0 0 0-2-2H5a3 3 0 0 0 0 6h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H5a3 3 0 0 1-3-3V7" />
+                                        <path d="M16 13h.01" />
+                                    </svg>
+                                    <svg class="parent-metric-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <path d="M19 7V6a2 2 0 0 0-2-2H5a3 3 0 0 0 0 6h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H5a3 3 0 0 1-3-3V7" />
+                                        <path d="M16 13h.01" />
+                                    </svg>
+                                </div>
+                                <div class="bg-white p-4 d-flex flex-column justify-content-center" style="width: 65%;">
+                                    <h2 class="mb-1 fw-bold text-slate-800">GHS @_totalFamilyOutstanding.ToString("N0")</h2>
+                                    <span class="text-muted fw-semibold text-uppercase small d-block mb-2" style="letter-spacing: 0.05em;">Outstanding Balance</span>
+                                    @if (_totalFamilyOutstanding > 0)
+                                    {
+                                        <button class="btn btn-sm btn-danger rounded-pill mt-1 shadow-sm" style="font-size: 0.7rem;" @onclick:stopPropagation="true" @onclick="() => NavigateToFees()">
+                                            <i class="bi bi-credit-card me-1"></i> Pay Now
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-success bg-opacity-10 text-success rounded-pill mt-1 shadow-sm" style="font-size: 0.7rem;">
+                                            All Paid
+                                        </span>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-md-6">
+                        <div class="card border-0 rounded-4 shadow-sm overflow-hidden h-100 hover-lift premium-card transition-all position-relative">
+                            <div class="d-flex h-100">
+                                <div class="parent-metric-icon-panel text-white" style="width: 35%; background: linear-gradient(135deg, #10b981 0%, #047857 100%);">
+                                    <svg class="parent-metric-watermark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                        <path d="M14 2v6h6" />
+                                        <path d="M8 13h8" />
+                                        <path d="M8 17h6" />
+                                    </svg>
+                                    <svg class="parent-metric-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                        <path d="M14 2v6h6" />
+                                        <path d="M8 13h8" />
+                                        <path d="M8 17h6" />
+                                    </svg>
+                                </div>
+                                <div class="bg-white p-4 d-flex flex-column justify-content-center" style="width: 65%;">
+                                    <h2 class="mb-1 fw-bold text-slate-800">@(_availableTerms?.Count ?? 0)</h2>
+                                    <span class="text-muted fw-semibold text-uppercase small d-block mb-2" style="letter-spacing: 0.05em;">Terminal Reports</span>
+                                    @if ((_availableTerms?.Count ?? 0) > 0)
+                                    {
+                                        var latestReport = _availableTerms![0];
+                                        <button class="btn btn-sm btn-success rounded-pill mt-1 shadow-sm" style="font-size: 0.7rem;" @onclick="() => DownloadReportCard(latestReport.Term, latestReport.Year)" disabled="@_isDownloading">
+                                            @if (_isDownloading)
+                                            {
+                                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                                                <span>Downloading...</span>
+                                            }
+                                            else
+                                            {
+                                                <i class="bi bi-download me-1"></i>
+                                                <span>Download Latest</span>
+                                            }
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted small" style="font-size: 0.7rem;">No reports yet</span>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-md-6">
+                        <div class="card border-0 rounded-4 shadow-sm overflow-hidden h-100 hover-lift premium-card transition-all position-relative">
+                            <div class="d-flex h-100">
+                                <div class="parent-metric-icon-panel text-white" style="width: 35%; background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);">
+                                    <svg class="parent-metric-watermark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <path d="M20 6 9 17l-5-5" />
+                                        <path d="M21 12a9 9 0 1 1-3.2-6.9" />
+                                    </svg>
+                                    <svg class="parent-metric-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <path d="M20 6 9 17l-5-5" />
+                                        <path d="M21 12a9 9 0 1 1-3.2-6.9" />
+                                    </svg>
+                                </div>
+                                <div class="bg-white p-4 d-flex flex-column justify-content-center" style="width: 65%;">
+                                    <h2 class="mb-1 fw-bold text-slate-800">@_familyAverageAttendance.ToString("0")%</h2>
+                                    <span class="text-muted fw-semibold text-uppercase small" style="letter-spacing: 0.05em;">Avg Attendance</span>
+                                    <small class="text-muted mt-1" style="font-size: 0.65rem;">This Term</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-md-6">
+                        <div class="card border-0 rounded-4 shadow-sm overflow-hidden h-100 hover-lift premium-card transition-all position-relative">
+                            <div class="d-flex h-100">
+                                <div class="parent-metric-icon-panel text-white" style="width: 35%; background: linear-gradient(135deg, #06b6d4 0%, #0369a1 100%);">
+                                    <svg class="parent-metric-watermark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <rect x="2" y="6" width="20" height="12" rx="2" />
+                                        <circle cx="12" cy="12" r="3" />
+                                        <path d="M6 12h.01" />
+                                        <path d="M18 12h.01" />
+                                    </svg>
+                                    <svg class="parent-metric-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <rect x="2" y="6" width="20" height="12" rx="2" />
+                                        <circle cx="12" cy="12" r="3" />
+                                        <path d="M6 12h.01" />
+                                        <path d="M18 12h.01" />
+                                    </svg>
+                                </div>
+                                <div class="bg-white p-4 d-flex flex-column justify-content-center" style="width: 65%;">
+                                    <h2 class="mb-1 fw-bold text-slate-800">GHS @_totalFamilyPaid.ToString("N0")</h2>
+                                    <span class="text-muted fw-semibold text-uppercase small" style="letter-spacing: 0.05em;">Total Paid</span>
+                                    <small class="text-muted mt-1" style="font-size: 0.65rem;">All children combined</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Notice Board -->
+                <div class="card border-0 rounded-4 shadow-sm mb-4 premium-card">
+                    <div class="card-header bg-white border-bottom px-4 py-3 d-flex justify-content-between align-items-center rounded-top-4">
+                        <h5 class="mb-0 fw-bold text-slate-800">
+                            <i class="bi bi-megaphone me-2 text-primary"></i>Notice Board
+                        </h5>
+                        <div class="d-flex gap-2">
+                            <select class="form-select form-select-sm border-0 bg-light rounded-pill px-3" style="width: auto; font-size: 0.8rem;" @bind="_noticeFilter">
+                                <option value="all">All Notices</option>
+                                <option value="academic">Academic</option>
+                                <option value="financial">Financial</option>
+                                <option value="events">Events</option>
+                            </select>
+                            <button class="icon-btn-sm hover-lift bg-light" title="Refresh" @onclick="RefreshNotices">
+                                <i class="bi bi-arrow-repeat text-success"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body p-4" style="max-height: 450px; overflow-y: auto;">
+                        @if (_availableTerms != null && _availableTerms.Any())
+                        {
+                            var latestNoticeReport = _availableTerms.First();
+                            <div class="mb-4 position-relative ps-4 py-2 notice-item border-start border-4 border-primary rounded-end" style="background: linear-gradient(90deg, rgba(59, 130, 246, 0.05) 0%, transparent 100%);">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <div>
+                                        <div class="fw-bold" style="color: #4f46e5; font-size: 1rem;">System Admin</div>
+                                        <div class="text-muted small fw-medium"><i class="bi bi-calendar3 me-1"></i> @DateTime.Now.ToString("dd MMM, yyyy") <span class="mx-2">•</span> <i class="bi bi-clock me-1"></i> Just now</div>
+                                    </div>
+                                    <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill px-2 py-1" style="font-size: 0.7rem;">Academic</span>
+                                </div>
+                                <p class="text-slate-800 fw-medium small mb-2 mt-2">Terminal reports for the latest term have been published. Please check the reports section to download them.</p>
+                                <button class="btn btn-sm btn-primary rounded-pill px-3 mt-1" style="font-size: 0.75rem;" @onclick="() => DownloadReportCard(latestNoticeReport.Term, latestNoticeReport.Year)">
+                                    <i class="bi bi-download me-1"></i> Download Report
+                                </button>
+                            </div>
+                        }
+
+                        <div class="mb-4 position-relative ps-4 py-2 notice-item border-start border-4 border-warning rounded-end" style="background: linear-gradient(90deg, rgba(245, 158, 11, 0.05) 0%, transparent 100%);">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                    <div class="fw-bold" style="color: #d97706; font-size: 1rem;">Headmaster</div>
+                                    <div class="text-muted small fw-medium"><i class="bi bi-calendar3 me-1"></i> 16 May, 2026 <span class="mx-2">•</span> <i class="bi bi-clock me-1"></i> 2 days ago</div>
+                                </div>
+                                <span class="badge bg-warning bg-opacity-10 text-warning rounded-pill px-2 py-1" style="font-size: 0.7rem;">Events</span>
+                            </div>
+                            <p class="text-slate-800 fw-medium small mb-0 mt-2">PTA Meeting is scheduled for next week Friday. All parents are encouraged to attend.</p>
+                        </div>
+
+                        <div class="mb-0 position-relative ps-4 py-2 notice-item border-start border-4 border-success rounded-end" style="background: linear-gradient(90deg, rgba(16, 185, 129, 0.05) 0%, transparent 100%);">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                    <div class="fw-bold" style="color: #059669; font-size: 1rem;">Accountant</div>
+                                    <div class="text-muted small fw-medium"><i class="bi bi-calendar3 me-1"></i> 10 May, 2026 <span class="mx-2">•</span> <i class="bi bi-clock me-1"></i> 1 week ago</div>
+                                </div>
+                                <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-2 py-1" style="font-size: 0.7rem;">Financial</span>
+                            </div>
+                            <p class="text-slate-800 fw-medium small mb-2 mt-2">Please note that all pending fees must be cleared before the commencement of the final exams.</p>
+                            @if (_totalFamilyOutstanding > 0)
+                            {
+                                <a href="parent/fees" class="btn btn-sm btn-success rounded-pill px-3 mt-1 text-decoration-none" style="font-size: 0.75rem;">
+                                    Pay Outstanding (GHS @_totalFamilyOutstanding.ToString("N0"))
+                                </a>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Payment History -->
+                <div class="card border-0 rounded-4 shadow-sm premium-card">
+                    <div class="card-header bg-white border-bottom px-4 py-3 d-flex flex-wrap justify-content-between align-items-center rounded-top-4 gap-3">
+                        <h5 class="mb-0 fw-bold text-slate-800">
+                            <i class="bi bi-receipt me-2 text-primary"></i>Payment History
+                            @if (_ward != null)
+                            {
+                                <span class="badge bg-primary bg-opacity-10 text-primary ms-2 fs-6">@_ward.FirstName @_ward.LastName</span>
+                            }
+                        </h5>
+                        <div class="d-flex flex-wrap gap-2 align-items-center">
+                            <div class="input-group input-group-sm rounded-pill overflow-hidden shadow-sm border" style="width: 250px;">
+                                <span class="input-group-text bg-white border-0 text-muted"><i class="bi bi-search"></i></span>
+                                <input type="text" class="form-control border-0 bg-white shadow-none" placeholder="Search by ID or Date..." style="font-size: 0.85rem;" @bind="_searchQuery" @bind:event="oninput" />
+                                <button class="btn btn-primary px-3 fw-bold" style="background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%); font-size: 0.8rem;" @onclick="SearchPayments">SEARCH</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0 align-middle" style="white-space: nowrap;">
+                                <thead class="bg-light">
+                                    <tr>
+                                        <th class="fw-semibold py-3 ps-4 text-slate-800 border-bottom-0">Category <i class="bi bi-chevron-expand opacity-50 ms-1"></i></th>
+                                        <th class="fw-semibold py-3 text-slate-800 border-bottom-0">Description</th>
+                                        <th class="fw-semibold py-3 text-slate-800 border-bottom-0">Amount (GHS)</th>
+                                        <th class="fw-semibold py-3 text-slate-800 border-bottom-0">Paid (GHS)</th>
+                                        <th class="fw-semibold py-3 text-slate-800 border-bottom-0">Balance (GHS)</th>
+                                        <th class="fw-semibold py-3 pe-4 text-slate-800 border-bottom-0">Status & Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="border-top-0">
+                                    @if (_feeBreakdown != null && _feeBreakdown.Any())
+                                    {
+                                        bool isAlternate = false;
+                                        @foreach(var item in _feeBreakdown)
+                                        {
+                                            var isCleared = item.Outstanding <= 0;
+                                            var rowClass = isAlternate ? "table-row-alternate" : "";
+                                            <tr class="transition-all table-row-hover @rowClass">
+                                                <td class="py-3 ps-4 text-dark fw-bold">
+                                                    @if (item.Category == "Additional Fee")
+                                                    {
+                                                        <span class="badge bg-warning bg-opacity-10 text-warning rounded-pill me-2 px-2 py-1">One-Off</span>
+                                                    }
+                                                    else if (item.Category == "Previous Debit")
+                                                    {
+                                                        <span class="badge bg-danger bg-opacity-10 text-danger rounded-pill me-2 px-2 py-1">Arrears</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill me-2 px-2 py-1">Term Fee</span>
+                                                    }
+                                                    @item.Category
+                                                </td>
+                                                <td class="py-3 text-muted">@item.Description</td>
+                                                <td class="py-3 fw-bold text-dark">GHS @item.Amount.ToString("N2")</td>
+                                                <td class="py-3 fw-semibold text-success">GHS @item.Paid.ToString("N2")</td>
+                                                <td class="py-3 fw-bold @(item.Outstanding > 0 ? "text-danger" : "text-dark")">GHS @item.Outstanding.ToString("N2")</td>
+                                                <td class="py-3 pe-4">
+                                                    <div class="d-flex align-items-center gap-2">
+                                                        @if (isCleared)
+                                                        {
+                                                            <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-3 py-2 fw-bold">Cleared</span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="badge bg-danger bg-opacity-10 text-danger rounded-pill px-3 py-2 fw-bold me-1">Due GHS @item.Outstanding.ToString("N0")</span>
+                                                            <a href="parent/fees" class="btn btn-sm btn-primary rounded-pill px-3" style="font-size: 0.75rem;">
+                                                                Pay Now
+                                                            </a>
+                                                        }
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            isAlternate = !isAlternate;
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <tr>
+                                            <td colspan="6" class="text-center py-5 text-muted">
+                                                No fee breakdown items found for this ward.
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    @if (_feeBreakdown != null && _feeBreakdown.Any())
+                    {
+                        <div class="card-footer bg-light border-top px-4 py-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <small class="text-muted fw-semibold">
+                                    Total Outstanding: <span class="text-danger fw-bold">GHS @_feeBreakdown.Sum(l => l.Outstanding).ToString("N2")</span>
+                                </small>
+                                <small class="text-muted fw-semibold">
+                                    Total Paid: <span class="text-success fw-bold">GHS @_feeBreakdown.Sum(l => l.Paid).ToString("N2")</span>
+                                </small>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    .text-slate-800 { color: #1e293b; }
+    .transition-all { transition: all 0.2s ease-in-out; }
+
+    .hover-lift {
+        transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .hover-lift:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+        z-index: 10;
+    }
+
+    .premium-card {
+        background: #ffffff;
+        border: 1px solid rgba(226, 232, 240, 0.8) !important;
+    }
+
+    .parent-metric-icon-panel {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        min-height: 100%;
+    }
+
+    .parent-metric-icon {
+        position: relative;
+        width: 48px;
+        height: 48px;
+        opacity: 0.96;
+        z-index: 2;
+    }
+
+    .parent-metric-watermark {
+        position: absolute;
+        width: 112px;
+        height: 112px;
+        right: -28px;
+        bottom: -28px;
+        opacity: 0.14;
+        z-index: 1;
+    }
+
+    .parent-action-card {
+        align-items: center;
+        border-radius: 1rem;
+        box-shadow: 0 10px 22px rgba(15, 23, 42, 0.12);
+        color: #ffffff;
+        display: flex;
+        gap: 0.85rem;
+        min-height: 6.25rem;
+        overflow: hidden;
+        padding: 1rem;
+        position: relative;
+        text-align: left;
+        transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .parent-action-indigo {
+        background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%);
+    }
+
+    .parent-action-sky {
+        background: linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%);
+    }
+
+    .parent-action-red {
+        background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+    }
+
+    .parent-action-cyan {
+        background: linear-gradient(135deg, #06b6d4 0%, #0e7490 100%);
+    }
+
+    .parent-action-icon-wrap {
+        align-items: center;
+        background: rgba(255, 255, 255, 0.16);
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        border-radius: 9999px;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16);
+        display: flex;
+        flex: 0 0 3.1rem;
+        height: 3.1rem;
+        justify-content: center;
+        position: relative;
+        width: 3.1rem;
+        z-index: 2;
+    }
+
+    .parent-action-icon {
+        height: 1.75rem;
+        width: 1.75rem;
+    }
+
+    .parent-action-watermark {
+        bottom: -1.35rem;
+        height: 6.6rem;
+        opacity: 0.12;
+        position: absolute;
+        right: -1.35rem;
+        width: 6.6rem;
+        z-index: 1;
+    }
+
+    .icon-btn-sm {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background-color: #f1f5f9;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .icon-btn-sm:hover {
+        background-color: #e2e8f0;
+        transform: scale(1.1);
+    }
+
+    .table-row-hover {
+        transition: background-color 0.15s ease-in-out;
+    }
+
+    .table-row-hover:hover {
+        background-color: #f8fafc !important;
+        cursor: pointer;
+    }
+
+    .table-row-alternate {
+        background-color: rgba(248, 250, 252, 0.5);
+    }
+
+    .notice-item {
+        transition: all 0.2s ease-in-out;
+    }
+
+    .notice-item:hover {
+        background: linear-gradient(90deg, rgba(59, 130, 246, 0.08) 0%, transparent 100%) !important;
+        transform: translateX(4px);
+    }
+
+    .glow-border {
+        animation: pulse-glow 2s ease-in-out infinite;
+    }
+
+    @@keyframes pulse-glow {
+        0%, 100% {
+            box-shadow: 0 0 15px rgba(245, 158, 11, 0.5);
+        }
+        50% {
+            box-shadow: 0 0 25px rgba(245, 158, 11, 0.8);
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .premium-card .d-flex.h-100 {
+            flex-direction: column !important;
+        }
+
+        .premium-card .d-flex.h-100 > div:first-child {
+            width: 100% !important;
+            height: 80px;
+        }
+
+        .parent-metric-icon-panel {
+            min-height: 80px;
+        }
+
+        .parent-action-card {
+            align-items: center;
+            flex-direction: column;
+            justify-content: center;
+            min-height: 6rem;
+            text-align: center;
+        }
+
+        .premium-card .d-flex.h-100 > div:last-child {
+            width: 100% !important;
+        }
+    }
+
+    @@media (min-width: 768px) {
+        .w-md-auto {
+            width: auto !important;
+        }
+    }
+</style>
+
+@code {
+    private bool _isLoading = true;
+    private string _username = "";
+    private int _studentId;
+    private Guid? _schoolId;
+
+    private List<StudentEntity> _wards = new();
+    private StudentEntity? _ward;
+    private List<StudentFeeLedgerEntity> _feeLedger = new();
+    private List<WardFeeBreakdownItem> _feeBreakdown = new();
+    private List<(string Term, string Year)> _availableTerms = new();
+    private AttendanceSummaryDto? _attendanceSummary;
+    private List<AttendanceEntity> _attendanceRecords = new();
+
+    private decimal _totalFamilyOutstanding = 0;
+    private decimal _totalFamilyPaid = 0;
+    private decimal _familyAverageAttendance = 0;
+
+    private bool _isDownloading = false;
+    private string _downloadingTerm = "";
+    private string _downloadingYear = "";
+    private string? _downloadError = null;
+    private string _noticeFilter = "all";
+    private string _searchQuery = "";
+
+    private void SearchPayments()
+    {
+        // Search functionality placeholder
+        StateHasChanged();
+    }
+
+    private void RefreshNotices()
+    {
+        // Refresh functionality placeholder
+        StateHasChanged();
+    }
+
+    private void NavigateToFees()
+    {
+        // Navigation handled by button onclick
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var tenant = await TenantContext.GetCurrentAsync();
+        _username = tenant.Username ?? "";
+        _schoolId = tenant.SchoolId;
+
+        _wards = await WardRepo.GetWardsForParentAsync(_username, _schoolId);
+
+        if (_wards.Count == 0)
+        {
+            _studentId = ParseStudentId(_username);
+            if (_studentId > 0)
+            {
+                var fallback = await WardRepo.GetWardAsync(_studentId, _schoolId);
+                if (fallback != null) _wards.Add(fallback);
+            }
+        }
+
+        if (_wards.Count > 0)
+        {
+            decimal totalOutstanding = 0;
+            decimal totalPaid = 0;
+            decimal totalAttendance = 0;
+            int validAttendanceWards = 0;
+
+            foreach(var w in _wards)
+            {
+                var breakdown = await BillingRepo.GetFeeBreakdownAsync(w.StudentID.ToString(), _schoolId);
+                if (breakdown != null && breakdown.Any())
+                {
+                    totalOutstanding += breakdown.Sum(x => x.Outstanding);
+                    totalPaid += breakdown.Sum(x => x.Paid);
+                }
+
+                var att = await AttendanceRepo.GetAttendanceSummaryAsync(w.StudentID.ToString(), _schoolId);
+                if (att != null && att.TotalDays > 0)
+                {
+                    totalAttendance += att.AttendancePercentage;
+                    validAttendanceWards++;
+                }
+            }
+
+            _totalFamilyOutstanding = totalOutstanding;
+            _totalFamilyPaid = totalPaid;
+            _familyAverageAttendance = validAttendanceWards > 0 ? totalAttendance / validAttendanceWards : 0;
+
+            _ward = _wards.First();
+            await LoadActiveWardDataAsync();
+        }
+        else
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task SelectWard(StudentEntity ward)
+    {
+        _ward = ward;
+        _isLoading = true;
+        StateHasChanged();
+        await LoadActiveWardDataAsync();
+    }
+
+    private int ParseStudentId(string username)
+    {
+        if (username.StartsWith("ns", StringComparison.OrdinalIgnoreCase))
+        {
+            if (int.TryParse(username.Substring(2), out int id))
+                return id;
+        }
+        if (int.TryParse(username, out int raw)) return raw;
+        return 0;
+    }
+
+    private async Task LoadActiveWardDataAsync()
+    {
+        if (_ward != null)
+        {
+            _feeLedger = await BillingRepo.GetFeeLedgerAsync(_ward.StudentID.ToString(), _schoolId);
+            _feeBreakdown = await BillingRepo.GetFeeBreakdownAsync(_ward.StudentID.ToString(), _schoolId);
+            _availableTerms = await ReportRepo.GetAvailableTermsAsync(_ward.StudentID.ToString(), _schoolId);
+            _attendanceSummary = await AttendanceRepo.GetAttendanceSummaryAsync(_ward.StudentID.ToString(), _schoolId);
+            _attendanceRecords = await AttendanceRepo.GetAttendanceRecordsAsync(_ward.StudentID.ToString(), _schoolId);
+        }
+        _isLoading = false;
+    }
+
+    private async Task DownloadReportCard(string term, string year)
+    {
+        if (_ward == null) return;
+
+        _isDownloading = true;
+        _downloadingTerm = term;
+        _downloadingYear = year;
+        StateHasChanged();
+
+        try
+        {
+            var studentList = new List<StudentEntity> { _ward };
+            var classResults = await ReportRepo.GetClassResultsAsync(_ward.ClassID ?? "", term, year, _schoolId);
+
+            // Compute positions per subject for the entire class to give this student their rank
+            var subjectPositions = new Dictionary<string, Dictionary<int, int>>();
+            var bySubject = classResults.Where(r => r.Subject != null && r.StudentId.HasValue).GroupBy(r => r.Subject!);
+            foreach (var subGroup in bySubject)
+            {
+                var ordered = subGroup.OrderByDescending(r => r.TotalScore ?? 0).ToList();
+                var posDict = new Dictionary<int, int>();
+                int currentPos = 1;
+                for (int i = 0; i < ordered.Count; i++)
+                {
+                    if (i > 0 && ordered[i].TotalScore < ordered[i - 1].TotalScore)
+                        currentPos = i + 1;
+                    posDict[ordered[i].StudentId!.Value] = currentPos;
+                }
+                subjectPositions[subGroup.Key] = posDict;
+            }
+
+            // Compute overall position
+            var overallScores = classResults.Where(r => r.StudentId.HasValue)
+                                            .GroupBy(r => r.StudentId!.Value)
+                                            .Select(g => new { StudentId = g.Key, Total = g.Sum(r => r.TotalScore ?? 0) })
+                                            .OrderByDescending(x => x.Total)
+                                            .ToList();
+            var overallPositions = new Dictionary<int, int>();
+            int overallPos = 1;
+            for (int i = 0; i < overallScores.Count; i++)
+            {
+                if (i > 0 && overallScores[i].Total < overallScores[i - 1].Total)
+                    overallPos = i + 1;
+                overallPositions[overallScores[i].StudentId] = overallPos;
+            }
+
+            var results = classResults.Where(r => r.StudentId == _ward.StudentID).ToList();
+            var remarks = await ReportRepo.GetRemarksAsync(_ward.StudentID.ToString(), term, year, _schoolId);
+            var oPos = overallPositions.TryGetValue(_ward.StudentID, out var p) ? p : 0;
+            var termOptions = await Db.AcademicTerms.AsNoTracking()
+                .Where(t => t.SchoolId == _schoolId)
+                .OrderByDescending(t => t.StartDate)
+                .ToListAsync();
+            var termInfo = termOptions.FirstOrDefault(t => TermsMatch(t.TermName, term));
+
+            var dto = new ReportCardStudentDto
+            {
+                StudentId = _ward.StudentID.ToString(),
+                FullName = _ward.FullName ?? "",
+                HeadTeacherRemark = remarks?.HeadTeacherRemarks ?? "",
+                TeacherRemark = remarks?.ClassTeacherRemarks ?? "",
+                Attitude = remarks?.Attitude ?? "",
+                Interest = remarks?.Interest ?? "",
+                Conduct = remarks?.Conduct ?? "",
+                TotalStudentsInClass = overallScores.Count > 0 ? overallScores.Count : 1,
+                Gender = _ward.Gender ?? "",
+                OverallPosition = oPos,
+                TermClosingDate = termInfo?.EndDate,
+                TermReopeningDate = termInfo?.ReopeningDate,
+                Grades = results.Select(r => new ReportCardGradeDto
+                {
+                    Subject = r.Subject ?? "",
+                    CategoryTotal = (decimal)(r.CategoryTotal ?? 0),
+                    ExamScore = (decimal)(r.ExamScore ?? 0),
+                    TotalScore = (decimal)(r.TotalScore ?? 0),
+                    Grade = r.Grade ?? "",
+                    Remark = r.Remark ?? "",
+                    PositionInClass = r.Subject != null && subjectPositions.ContainsKey(r.Subject) && subjectPositions[r.Subject].ContainsKey(_ward.StudentID)
+                                      ? subjectPositions[r.Subject][_ward.StudentID] : 0
+                }).ToList()
+            };
+
+            var dtoList = new List<ReportCardStudentDto> { dto };
+
+            var schoolProfile = await SchoolProfileService.GetSchoolProfileAsync();
+            var printableProfile = new WebSchoolProfileDto
+            {
+                Name = schoolProfile?.Name ?? "",
+                Address = schoolProfile?.Address ?? "",
+                PhoneNumbers = schoolProfile?.Phones ?? "",
+                Logo = schoolProfile?.Logo
+            };
+
+            var pdfBytes = await Task.Run(() => ReportGenerator.GenerateBatchReportCards(_ward.ClassID ?? "", term, year, dtoList, printableProfile));
+
+            using var stream = new System.IO.MemoryStream(pdfBytes);
+            using var streamRef = new DotNetStreamReference(stream);
+            var fileName = $"ReportCard_{_ward.FirstName}_{_ward.LastName}_Term_{term}_{year}.pdf";
+            await JS.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
+        }
+        catch (Exception ex)
+        {
+            // Log error
+            Console.WriteLine(ex.Message);
+            _downloadError = ex.Message;
+        }
+        finally
+        {
+            _isDownloading = false;
+            StateHasChanged();
+        }
+    }
+
+    private static bool TermsMatch(string? left, string? right)
+    {
+        return NormalizeTerm(left) == NormalizeTerm(right);
+    }
+
+    private static string NormalizeTerm(string? term)
+    {
+        var value = (term ?? "").Trim().ToUpperInvariant();
+        return value switch
+        {
+            "TERM 1" or "1ST TERM" or "FIRST TERM" => "FIRST",
+            "TERM 2" or "2ND TERM" or "SECOND TERM" => "SECOND",
+            "TERM 3" or "3RD TERM" or "THIRD TERM" => "THIRD",
+            _ => value
+        };
+    }
+}

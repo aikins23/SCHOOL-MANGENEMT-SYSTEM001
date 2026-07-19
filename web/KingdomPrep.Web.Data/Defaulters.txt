@@ -1,0 +1,63 @@
+
+
+public class DefaulterDto
+{
+    public int StudentId { get; set; }
+    public string FullName { get; set; } = "";
+    public string ClassID { get; set; } = "";
+    public decimal Arrears { get; set; }
+    public decimal TotalExpected { get; set; }
+    public decimal TotalPaid { get; set; }
+}
+
+public interface IDefaulterPortalRepository
+{
+    Task<List<DefaulterDto>> GetClassDefaultersAsync(string classId, Guid? schoolId = null);
+}
+
+public class DefaulterPortalRepository(IDbContextFactory<AppDbContext> factory) : IDefaulterPortalRepository
+{
+    public async Task<List<DefaulterDto>> GetClassDefaultersAsync(string classId, Guid? schoolId = null)
+    {
+        using var db = await factory.CreateDbContextAsync();
+
+        var query = db.Students.AsNoTracking().Where(s => s.ClassID == classId);
+        if (schoolId.HasValue) query = query.Where(s => s.SchoolId == schoolId.Value || s.SchoolId == null);
+        var students = await query.ToListAsync();
+
+        var studentIds = students.Select(s => s.StudentID.ToString()).ToList();
+
+        var ledgers = await db.StudentFeeLedgers.AsNoTracking()
+            .Where(l => studentIds.Contains(l.StudentID))
+            .GroupBy(l => l.StudentID)
+            .Select(g => new {
+                StudentID = g.Key,
+                TotalExpected = g.Sum(x => x.TotalExpectedAmount),
+                TotalPaid = g.Sum(x => x.TotalPaidAmount)
+            }).ToListAsync();
+
+        var defaulters = new List<DefaulterDto>();
+        foreach (var s in students)
+        {
+            var l = ledgers.FirstOrDefault(x => x.StudentID == s.StudentID.ToString());
+            decimal expected = l?.TotalExpected ?? 0;
+            decimal paid = l?.TotalPaid ?? 0;
+            decimal arrears = expected - paid;
+
+            if (arrears > 0)
+            {
+                defaulters.Add(new DefaulterDto
+                {
+                    StudentId = s.StudentID,
+                    FullName = s.FullName ?? "Unknown",
+                    ClassID = s.ClassID ?? "",
+                    TotalExpected = expected,
+                    TotalPaid = paid,
+                    Arrears = arrears
+                });
+            }
+        }
+
+        return defaulters.OrderByDescending(d => d.Arrears).ToList();
+    }
+}

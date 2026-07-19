@@ -1,0 +1,227 @@
+@page "/admin/payment-settings"
+@rendermode InteractiveServer
+@attribute [Authorize(Policy = WebPermission.PaymentSettingsManage)]
+@using System.ComponentModel.DataAnnotations
+@using System.Security.Claims
+@inject IPaymentGatewaySettingsService PaymentSettingsService
+@inject IPortalTenantContext TenantContext
+@inject AuthenticationStateProvider AuthStateProvider
+
+<PageTitle>Payment Settings - Nyansapo ERP</PageTitle>
+
+<div class="container-fluid mt-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h2 class="mb-1 fw-bold" style="color: #0b1f48;">Payment Settings</h2>
+            <p class="text-muted mb-0">Configure private Paystack and direct MTN MoMo credentials for this school.</p>
+        </div>
+        <button class="btn btn-outline-primary fw-semibold" @onclick="LoadAsync" disabled="@_isLoading">Refresh</button>
+    </div>
+
+    @if (_isLoading)
+    {
+        <div class="text-center py-5"><span class="spinner-border"></span></div>
+    }
+    else if (!_schoolId.HasValue)
+    {
+        <div class="alert alert-warning border-0 shadow-sm">
+            Your account is not assigned to a school profile. Private gateway settings cannot be saved until the account is linked to a school.
+        </div>
+    }
+    else
+    {
+        @if (!string.IsNullOrWhiteSpace(_successMessage))
+        {
+            <div class="alert alert-success">@_successMessage</div>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(_errorMessage))
+        {
+            <div class="alert alert-danger">@_errorMessage</div>
+        }
+
+        <div class="row g-3 mb-4">
+            <div class="col-md-6">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body">
+                        <div class="text-muted text-uppercase fw-semibold small mb-2">Paystack</div>
+                        <div class="fs-4 fw-bold @(CurrentSettings?.PaystackConfigured == true ? "text-success" : "text-warning")">
+                            @(CurrentSettings?.PaystackConfigured == true ? "Configured" : "Not configured")
+                        </div>
+                        <div class="small text-muted mt-2">Public key and secret key are required for verified online card/bank payments.</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body">
+                        <div class="text-muted text-uppercase fw-semibold small mb-2">MTN MoMo</div>
+                        <div class="fs-4 fw-bold @(CurrentSettings?.MomoConfigured == true ? "text-success" : "text-warning")">
+                            @(CurrentSettings?.MomoConfigured == true ? "Configured" : "Not configured")
+                        </div>
+                        <div class="small text-muted mt-2">Subscription key, API user, and API key are required for request-to-pay prompts.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <EditForm Model="_form" OnValidSubmit="SaveAsync">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            <div class="row g-4">
+                <div class="col-lg-6">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-header bg-white fw-bold">Paystack</div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Public Key</label>
+                                <InputText class="form-control" @bind-Value="_form.PaystackPublicKey" placeholder="pk_live_..." autocomplete="off" />
+                                <div class="form-text">This key is safe to use in the checkout browser script.</div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Secret Key</label>
+                                <InputText type="password" class="form-control" @bind-Value="_form.PaystackSecretKey" placeholder="@SecretPlaceholder(CurrentSettings?.HasPaystackSecretKey == true)" autocomplete="new-password" />
+                                <div class="form-text">Leave blank to keep the saved secret key.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-6">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-header bg-white fw-bold">Direct MTN MoMo</div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold">Target Environment</label>
+                                    <InputSelect class="form-select" @bind-Value="_form.MomoTargetEnvironment">
+                                        <option value="sandbox">Sandbox</option>
+                                        <option value="mtnghana">Production</option>
+                                    </InputSelect>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold">Base URL</label>
+                                    <InputText class="form-control" @bind-Value="_form.MomoBaseUrl" placeholder="https://sandbox.momodeveloper.mtn.com" autocomplete="off" />
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label fw-semibold">Subscription Key</label>
+                                    <InputText type="password" class="form-control" @bind-Value="_form.MomoSubscriptionKey" placeholder="@SecretPlaceholder(CurrentSettings?.HasMomoSubscriptionKey == true)" autocomplete="new-password" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold">API User</label>
+                                    <InputText type="password" class="form-control" @bind-Value="_form.MomoApiUser" placeholder="@SecretPlaceholder(CurrentSettings?.HasMomoApiUser == true)" autocomplete="new-password" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold">API Key</label>
+                                    <InputText type="password" class="form-control" @bind-Value="_form.MomoApiKey" placeholder="@SecretPlaceholder(CurrentSettings?.HasMomoApiKey == true)" autocomplete="new-password" />
+                                </div>
+                            </div>
+                            <div class="form-text mt-3">Secret values are never displayed after saving. Enter a new value only when replacing it.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-end mt-4">
+                <button class="btn btn-primary fw-semibold px-4 py-2 rounded-pill" type="submit" disabled="@_isSaving">
+                    @if (_isSaving)
+                    {
+                        <span class="spinner-border spinner-border-sm me-2"></span>
+                    }
+                    Save Payment Settings
+                </button>
+            </div>
+        </EditForm>
+    }
+</div>
+
+@code {
+    private PaymentGatewaySettingsView? CurrentSettings;
+    private PaymentGatewayForm _form = new();
+    private Guid? _schoolId;
+    private string _actorUsername = "";
+    private bool _isLoading = true;
+    private bool _isSaving;
+    private string _successMessage = "";
+    private string _errorMessage = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var tenant = await TenantContext.GetCurrentAsync();
+        _schoolId = tenant.SchoolId;
+
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        _actorUsername = authState.User.Identity?.Name ?? "";
+
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _isLoading = true;
+        _successMessage = "";
+        _errorMessage = "";
+        try
+        {
+            CurrentSettings = await PaymentSettingsService.GetForEditAsync(_schoolId);
+            _form = new PaymentGatewayForm
+            {
+                PaystackPublicKey = CurrentSettings.PaystackPublicKey,
+                MomoTargetEnvironment = string.IsNullOrWhiteSpace(CurrentSettings.MomoTargetEnvironment) ? "sandbox" : CurrentSettings.MomoTargetEnvironment,
+                MomoBaseUrl = string.IsNullOrWhiteSpace(CurrentSettings.MomoBaseUrl) ? "https://sandbox.momodeveloper.mtn.com" : CurrentSettings.MomoBaseUrl
+            };
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.Message;
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        _isSaving = true;
+        _successMessage = "";
+        _errorMessage = "";
+        try
+        {
+            await PaymentSettingsService.SaveAsync(_schoolId, new PaymentGatewaySettingsUpdate(
+                _form.PaystackPublicKey,
+                _form.PaystackSecretKey,
+                _form.MomoSubscriptionKey,
+                _form.MomoApiUser,
+                _form.MomoApiKey,
+                _form.MomoTargetEnvironment,
+                _form.MomoBaseUrl), _actorUsername);
+
+            _successMessage = "Payment settings saved.";
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.Message;
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private static string SecretPlaceholder(bool configured)
+        => configured ? "Saved - leave blank to keep current" : "Not configured";
+
+    private sealed class PaymentGatewayForm
+    {
+        [MaxLength(200)] public string PaystackPublicKey { get; set; } = "";
+        [MaxLength(500)] public string PaystackSecretKey { get; set; } = "";
+        [MaxLength(500)] public string MomoSubscriptionKey { get; set; } = "";
+        [MaxLength(200)] public string MomoApiUser { get; set; } = "";
+        [MaxLength(500)] public string MomoApiKey { get; set; } = "";
+        [Required, MaxLength(50)] public string MomoTargetEnvironment { get; set; } = "sandbox";
+        [Required, MaxLength(300)] public string MomoBaseUrl { get; set; } = "https://sandbox.momodeveloper.mtn.com";
+    }
+}

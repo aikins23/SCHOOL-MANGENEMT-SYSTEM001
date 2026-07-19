@@ -1,0 +1,299 @@
+@page "/admin/sync-health"
+@rendermode InteractiveServer
+@attribute [Authorize(Policy = WebPermission.AdminUsersManage)]
+@using KingdomPrep.Web.Api
+@inject SyncHealthService SyncHealthService
+@inject SyncDeviceRegistryService SyncDeviceRegistryService
+@inject IPortalTenantContext TenantContext
+@inject AuthenticationStateProvider AuthStateProvider
+
+<PageTitle>Sync Health - Nyansapo ERP</PageTitle>
+
+<div class="container-fluid mt-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h2 class="mb-1 fw-bold" style="color: #0b1f48;">Sync Health</h2>
+            <p class="text-muted mb-0">Monitor desktop-to-web sync devices, inbox processing, and pull checkpoints.</p>
+        </div>
+        <button class="btn btn-primary fw-semibold" @onclick="LoadAsync" disabled="@_isLoading">Refresh</button>
+    </div>
+
+    @if (_isLoading)
+    {
+        <div class="text-center py-5"><span class="spinner-border"></span></div>
+    }
+    else if (_summary == null)
+    {
+        <div class="alert alert-warning">Sync health is not available.</div>
+    }
+    else
+    {
+        @if (!string.IsNullOrWhiteSpace(_statusMessage))
+        {
+            <div class="alert @(_statusIsError ? "alert-danger" : "alert-success")">@_statusMessage</div>
+        }
+
+        <div class="alert @HealthAlertClass(_summary.HealthStatus)">
+            <strong>@_summary.HealthStatus</strong>
+            <span class="ms-2">@HealthMessage(_summary)</span>
+        </div>
+
+        <div class="row g-3 mb-4">
+            <div class="col-md-3">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body">
+                        <div class="text-muted text-uppercase fw-semibold small mb-2">Sync Configured</div>
+                        <div class="fs-4 fw-bold">@(_summary.SyncConfigured ? "Yes" : "No")</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body">
+                        <div class="text-muted text-uppercase fw-semibold small mb-2">Active Devices</div>
+                        <div class="fs-3 fw-bold">@_summary.ActiveDeviceCount</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body">
+                        <div class="text-muted text-uppercase fw-semibold small mb-2">Inbox Conflicts</div>
+                        <div class="fs-3 fw-bold" style="color: #dc2626;">@_summary.InboxConflict</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body">
+                        <div class="text-muted text-uppercase fw-semibold small mb-2">Allowed Tables</div>
+                        <div class="fs-3 fw-bold">@_summary.AllowedTableCount</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4 mb-4">
+            <div class="col-lg-5">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-header bg-white fw-bold">Registered Devices</div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0 align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Device</th>
+                                        <th>Status</th>
+                                        <th>Last Seen</th>
+                                        @if (_canManageSync)
+                                        {
+                                            <th class="text-end">Action</th>
+                                        }
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (!_summary.Devices.Any())
+                                    {
+                                        <tr><td colspan="@DeviceTableColumnCount" class="text-center text-muted py-4">No registered devices.</td></tr>
+                                    }
+                                    else
+                                    {
+                                        @foreach (var device in _summary.Devices)
+                                        {
+                                            <tr>
+                                                <td>
+                                                    <div class="fw-semibold">@(string.IsNullOrWhiteSpace(device.DeviceName) ? "Unnamed device" : device.DeviceName)</div>
+                                                    <div class="small text-muted">@device.DeviceId</div>
+                                                    <div class="small text-muted">Key: @MaskKey(device.ApiKeyLast4)</div>
+                                                </td>
+                                                <td>
+                                                    <span class="badge @(device.IsActive ? "bg-success" : "bg-danger")">@(device.IsActive ? "Active" : "Inactive")</span>
+                                                    <div class="small text-muted mt-1">@device.LicenseStatus</div>
+                                                </td>
+                                                <td>@DateText(device.LastSeenAtUtc)</td>
+                                                @if (_canManageSync)
+                                                {
+                                                    <td class="text-end">
+                                                        <button class="btn btn-sm @(device.IsActive ? "btn-outline-danger" : "btn-outline-success")"
+                                                                disabled="@(_busyDeviceId == device.DeviceId)"
+                                                                @onclick="() => ToggleDeviceAsync(device)">
+                                                            @if (_busyDeviceId == device.DeviceId)
+                                                            {
+                                                                <span class="spinner-border spinner-border-sm me-1"></span>
+                                                            }
+                                                            @(device.IsActive ? "Deactivate" : "Activate")
+                                                        </button>
+                                                    </td>
+                                                }
+                                            </tr>
+                                        }
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-7">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-header bg-white fw-bold">Recent Sync Inbox</div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0 align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Received</th>
+                                        <th>Table</th>
+                                        <th>Operation</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (!_summary.RecentInbox.Any())
+                                    {
+                                        <tr><td colspan="4" class="text-center text-muted py-4">No inbox events yet.</td></tr>
+                                    }
+                                    else
+                                    {
+                                        @foreach (var row in _summary.RecentInbox)
+                                        {
+                                            <tr>
+                                                <td>@DateText(row.ReceivedAtUtc)</td>
+                                                <td>
+                                                    <div class="fw-semibold">@row.TableName</div>
+                                                    @if (!string.IsNullOrWhiteSpace(row.ConflictReason))
+                                                    {
+                                                        <div class="small text-danger">@row.ConflictReason</div>
+                                                    }
+                                                </td>
+                                                <td>@row.Operation</td>
+                                                <td><span class="badge @InboxStatusClass(row.Status)">@row.Status</span></td>
+                                            </tr>
+                                        }
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white fw-bold">Desktop Pull Checkpoints</div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0 align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Table</th>
+                                <th>Last Pulled</th>
+                                <th>Updated</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (!_summary.Checkpoints.Any())
+                            {
+                                <tr><td colspan="3" class="text-center text-muted py-4">No pull checkpoints found.</td></tr>
+                            }
+                            else
+                            {
+                                @foreach (var checkpoint in _summary.Checkpoints)
+                                {
+                                    <tr>
+                                        <td class="fw-semibold">@checkpoint.TableName</td>
+                                        <td>@DateText(checkpoint.LastPulledAtUtc)</td>
+                                        <td>@DateText(checkpoint.UpdatedAtUtc)</td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private SyncHealthSummary? _summary;
+    private bool _isLoading = true;
+    private Guid? _schoolId;
+    private string? _actorUsername;
+    private Guid? _busyDeviceId;
+    private string? _statusMessage;
+    private bool _statusIsError;
+    private bool _canManageSync;
+    private int DeviceTableColumnCount => _canManageSync ? 4 : 3;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        _canManageSync = WebPermission.CanRenderAction(authState.User, WebPermission.AdminUsersManage);
+        var tenant = await TenantContext.GetCurrentAsync();
+        _schoolId = tenant.SchoolId;
+        _actorUsername = tenant.Username;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _isLoading = true;
+        _summary = await SyncHealthService.GetSummaryAsync(_schoolId);
+        _isLoading = false;
+    }
+
+    private async Task ToggleDeviceAsync(SyncDeviceHealthRow device)
+    {
+        if (!_canManageSync) return;
+
+        _busyDeviceId = device.DeviceId;
+        _statusMessage = null;
+        _statusIsError = false;
+
+        var result = await SyncDeviceRegistryService.SetDeviceActiveAsync(
+            device.SchoolId,
+            device.DeviceId,
+            !device.IsActive,
+            _actorUsername,
+            CancellationToken.None);
+
+        _statusMessage = result.Message;
+        _statusIsError = !result.Ok;
+        _busyDeviceId = null;
+
+        await LoadAsync();
+    }
+
+    private static string DateText(DateTime? value) =>
+        value.HasValue ? value.Value.ToLocalTime().ToString("dd MMM yyyy HH:mm") : "-";
+
+    private static string MaskKey(string value) =>
+        string.IsNullOrWhiteSpace(value) ? "none" : $"...{value}";
+
+    private static string InboxStatusClass(string status) => status switch
+    {
+        "Applied" => "bg-success",
+        "Conflict" => "bg-danger",
+        "Received" => "bg-warning text-dark",
+        _ => "bg-secondary"
+    };
+
+    private static string HealthAlertClass(string status) => status switch
+    {
+        "Healthy" => "alert-success",
+        "Stale" => "alert-warning",
+        "Needs attention" => "alert-danger",
+        _ => "alert-info"
+    };
+
+    private static string HealthMessage(SyncHealthSummary summary) => summary.HealthStatus switch
+    {
+        "Healthy" => $"Last device contact: {DateText(summary.LastDeviceSeenAtUtc)}.",
+        "Needs attention" => $"{summary.InboxConflict} inbox conflict(s) need review.",
+        "Stale" => $"No device contact since {DateText(summary.LastDeviceSeenAtUtc)}.",
+        "No active devices" => "Register and activate at least one desktop sync device.",
+        _ => "Waiting for the first successful desktop sync contact."
+    };
+}

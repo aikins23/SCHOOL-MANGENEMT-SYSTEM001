@@ -1,0 +1,215 @@
+@page "/students/report-cards"
+@rendermode InteractiveServer
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Administrator,Headmaster,Director")]
+@using KingdomPrep.Web.Data
+@using KingdomPrep.Web.Core
+@using Microsoft.EntityFrameworkCore
+@inject IStudentPortalRepository StudentRepo
+@inject IReportCardPortalRepository ReportRepo
+@inject ISchoolProfileService SchoolProfileService
+@inject WebReportCardGenerator Generator
+@inject AppDbContext Db
+@inject IJSRuntime JS
+@inject IPortalTenantContext TenantContext
+
+<PageTitle>Batch Report Cards - Nyansapo ERP</PageTitle>
+
+<div class="container-fluid mt-4" style="max-width: 900px; margin: 0 auto;">
+    <div class="card shadow-sm border-0" style="border-radius: 8px;">
+        <div class="card-header bg-white py-3 border-bottom-0">
+            <h4 class="mb-0 fw-bold" style="color: #0b1f48;">Generate Batch Report Cards</h4>
+            <p class="text-muted mb-0" style="font-size: 0.9rem;">Generate and download PDF report cards for an entire class.</p>
+        </div>
+        <div class="card-body p-4">
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold text-muted">Class / Grade</label>
+                    <select class="form-select" @bind="_selectedClass">
+                        <option value="">-- Select Class --</option>
+                        @foreach (var c in _classes)
+                        {
+                            <option value="@c">@c</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold text-muted">Academic Term</label>
+                    <select class="form-select" @bind="_selectedTerm">
+                        <option value="Term 1">Term 1</option>
+                        <option value="Term 2">Term 2</option>
+                        <option value="Term 3">Term 3</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold text-muted">Academic Year</label>
+                    <input type="number" class="form-control" @bind="_selectedYear" />
+                </div>
+            </div>
+
+            <div class="mt-4 pt-3 border-top text-end">
+                <button class="btn btn-primary fw-semibold px-4 shadow-sm" @onclick="GeneratePdf" disabled="@(!CanGenerate)">
+                    @if (_isGenerating)
+                    {
+                        <span class="spinner-border spinner-border-sm me-2"></span>
+                        <span>Generating PDF...</span>
+                    }
+                    else
+                    {
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                        <span>Download Batch Report</span>
+                    }
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<string> _classes = new();
+    private string _selectedClass = "";
+    private string _selectedTerm = "Term 1";
+    private int _selectedYear = DateTime.Now.Year;
+    private Guid? _schoolId;
+
+    private bool _isGenerating = false;
+    private bool CanGenerate => !string.IsNullOrEmpty(_selectedClass) && !_isGenerating;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _schoolId = (await TenantContext.GetCurrentAsync()).SchoolId;
+        var students = await StudentRepo.GetStudentsAsync(schoolId: _schoolId);
+        _classes = students.Where(s => !string.IsNullOrEmpty(s.ClassID))
+                           .Select(s => s.ClassID!)
+                           .Distinct()
+                           .OrderBy(c => c)
+                           .ToList();
+    }
+
+    private async Task GeneratePdf()
+    {
+        if (!CanGenerate) return;
+
+        _isGenerating = true;
+        StateHasChanged();
+
+        var yearStr = _selectedYear.ToString();
+        var students = await StudentRepo.GetStudentsAsync(classFilter: _selectedClass, schoolId: _schoolId);
+        var classResults = await ReportRepo.GetClassResultsAsync(_selectedClass, _selectedTerm, yearStr, _schoolId);
+
+        // Compute positions per subject
+        var subjectPositions = new Dictionary<string, Dictionary<int, int>>();
+        var bySubject = classResults.Where(r => r.Subject != null && r.StudentId.HasValue).GroupBy(r => r.Subject!);
+        foreach (var subGroup in bySubject)
+        {
+            var ordered = subGroup.OrderByDescending(r => r.TotalScore ?? 0).ToList();
+            var posDict = new Dictionary<int, int>();
+            int currentPos = 1;
+            for (int i = 0; i < ordered.Count; i++)
+            {
+                if (i > 0 && ordered[i].TotalScore < ordered[i - 1].TotalScore)
+                    currentPos = i + 1;
+                posDict[ordered[i].StudentId!.Value] = currentPos;
+            }
+            subjectPositions[subGroup.Key] = posDict;
+        }
+
+        // Compute overall position
+        var overallScores = classResults.Where(r => r.StudentId.HasValue)
+                                        .GroupBy(r => r.StudentId!.Value)
+                                        .Select(g => new { StudentId = g.Key, Total = g.Sum(r => r.TotalScore ?? 0) })
+                                        .OrderByDescending(x => x.Total)
+                                        .ToList();
+        var overallPositions = new Dictionary<int, int>();
+        int overallPos = 1;
+        for (int i = 0; i < overallScores.Count; i++)
+        {
+            if (i > 0 && overallScores[i].Total < overallScores[i - 1].Total)
+                overallPos = i + 1;
+            overallPositions[overallScores[i].StudentId] = overallPos;
+        }
+
+        var dtoList = new List<ReportCardStudentDto>();
+        var termOptions = await Db.AcademicTerms.AsNoTracking()
+            .Where(t => t.SchoolId == _schoolId)
+            .OrderByDescending(t => t.StartDate)
+            .ToListAsync();
+        var termInfo = termOptions.FirstOrDefault(t => TermsMatch(t.TermName, _selectedTerm));
+
+        foreach (var student in students)
+        {
+            var results = classResults.Where(r => r.StudentId == student.StudentID).ToList();
+            if (!results.Any()) continue;
+
+            var remarks = await ReportRepo.GetRemarksAsync(student.StudentID.ToString(), _selectedTerm, yearStr, _schoolId);
+            var oPos = overallPositions.TryGetValue(student.StudentID, out var p) ? p : 0;
+
+            var dto = new ReportCardStudentDto
+            {
+                StudentId = student.StudentID.ToString(),
+                FullName = student.FullName ?? "",
+                HeadTeacherRemark = remarks?.HeadTeacherRemarks ?? "",
+                TeacherRemark = remarks?.ClassTeacherRemarks ?? "",
+                Attitude = remarks?.Attitude ?? "",
+                Interest = remarks?.Interest ?? "",
+                Conduct = remarks?.Conduct ?? "",
+                TotalStudentsInClass = students.Count(),
+                Gender = student.Gender ?? "",
+                OverallPosition = oPos,
+                TermClosingDate = termInfo?.EndDate,
+                TermReopeningDate = termInfo?.ReopeningDate,
+                Grades = results.Select(r => new ReportCardGradeDto
+                {
+                    Subject = r.Subject ?? "",
+                    CategoryTotal = (decimal)(r.CategoryTotal ?? 0),
+                    ExamScore = (decimal)(r.ExamScore ?? 0),
+                    TotalScore = (decimal)(r.TotalScore ?? 0),
+                    Grade = r.Grade ?? "",
+                    Remark = r.Remark ?? "",
+                    PositionInClass = r.Subject != null && subjectPositions.ContainsKey(r.Subject) && subjectPositions[r.Subject].ContainsKey(student.StudentID)
+                                      ? subjectPositions[r.Subject][student.StudentID] : 0
+                }).ToList()
+            };
+            dtoList.Add(dto);
+        }
+
+        var schoolProfile = await SchoolProfileService.GetSchoolProfileAsync();
+        var printableProfile = new WebSchoolProfileDto
+        {
+            Name = schoolProfile?.Name ?? "",
+            Address = schoolProfile?.Address ?? "",
+            PhoneNumbers = schoolProfile?.Phones ?? "",
+            Logo = schoolProfile?.Logo
+        };
+
+        // Offload PDF generation to a background thread
+        var pdfBytes = await Task.Run(() => Generator.GenerateBatchReportCards(_selectedClass, _selectedTerm, yearStr, dtoList, printableProfile));
+
+        // Use JS interop to trigger the file download via stream
+        using var stream = new System.IO.MemoryStream(pdfBytes);
+        using var streamRef = new DotNetStreamReference(stream);
+        var fileName = $"ReportCards_{_selectedClass.Replace(" ", "_")}_{_selectedTerm.Replace(" ", "_")}_{_selectedYear}.pdf";
+
+        await JS.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
+
+        _isGenerating = false;
+        StateHasChanged();
+    }
+
+    private static bool TermsMatch(string? left, string? right)
+    {
+        return NormalizeTerm(left) == NormalizeTerm(right);
+    }
+
+    private static string NormalizeTerm(string? term)
+    {
+        var value = (term ?? "").Trim().ToUpperInvariant();
+        return value switch
+        {
+            "TERM 1" or "1ST TERM" or "FIRST TERM" => "FIRST",
+            "TERM 2" or "2ND TERM" or "SECOND TERM" => "SECOND",
+            "TERM 3" or "3RD TERM" or "THIRD TERM" => "THIRD",
+            _ => value
+        };
+    }
+
+}

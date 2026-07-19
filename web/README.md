@@ -1,47 +1,85 @@
-# KingdomPrep.Web — Progress Web Platform (Phase 0: Foundation)
+# KingdomPrep.Web - Nyansapo ERP Companion Platform
 
-Blazor Server web platform for Kingdom Preparatory School. Phase 0 is the
-foundation: role-based login over the existing `Neat_Academy` database, plus a
-role-gated app shell. No module features and no writes yet (later phases).
+Blazor Server web platform for Kingdom Preparatory School. This companion portal
+provides role-based access for parents, teachers, accountants, administrators,
+headmasters, and directors against the central `Neat_Academy` database.
+
+## Current Status
+
+- Named authorization policies protect real write surfaces instead of scattered role strings.
+- Parent fee payment requires Paystack public and secret keys, plus server-side transaction verification.
+- Desktop sync endpoints use per-device API keys and school/device scoping.
+- The desktop app still owns the main legacy school schema.
 
 ## Projects
-- **KingdomPrep.Web** — Blazor Server app (UI, auth wiring, DI).
-- **KingdomPrep.Web.Core** — auth logic: `UserRole`, `RoleParser`, `PasswordHasher` (PBKDF2-SHA1, desktop-compatible), `AuthService`.
-- **KingdomPrep.Web.Data** — EF Core `AppDbContext` + repositories mapped to the existing legacy schema (read-only).
-- **KingdomPrep.Web.Tests** — xUnit tests (run with `dotnet test`).
+
+- **KingdomPrep.Web** - Main Blazor Server application, UI, auth, sync API, deployment schema initializer.
+- **KingdomPrep.DesignSystem** - Shared UI components and Nyansapo ERP branding.
+- **KingdomPrep.Web.Core** - Business logic, authorization policy constants, authentication, reporting.
+- **KingdomPrep.Web.Data** - EF Core `AppDbContext` and repositories over the existing school schema.
+- **KingdomPrep.Web.Tests** - Unit and repository tests.
 
 ## Prerequisites
-- .NET 10 SDK (LTS).
-- SQL Server LocalDB running with the `Neat_Academy` database (the desktop app's DB).
 
-## Run (development)
+- .NET 10 SDK.
+- SQL Server database initialized with the desktop-owned `Neat_Academy` schema.
+- Production configuration for:
+  - `ConnectionStrings:Default`
+  - `Paystack:PublicKey`
+  - `Paystack:SecretKey`
+  - `Sync:ProvisioningKey`
+  - `Sync:AllowSharedApiKeyFallback=false`
+  - `Security:AllowLegacyPlainTextPasswords=false`
+  - `Security:SyncUploadMaxBytes`
+  - `ForwardedHeaders:KnownProxies` when behind a trusted reverse proxy
+  - restricted `AllowedHosts`
+
+In non-development environments the app fails fast when production-critical
+configuration is missing or unsafe. Production must not use LocalDB, localhost,
+blank Paystack keys, blank sync provisioning keys, wildcard `AllowedHosts`, or
+shared sync-key fallback. It also blocks legacy plaintext password fallback and
+invalid sync upload size limits in production.
+
+## Running the Portal
+
 ```bash
 cd web
-dotnet test                       # all unit tests pass
+dotnet build
 cd KingdomPrep.Web
-dotnet run                        # or: dotnet run --urls http://localhost:5099
+dotnet run
 ```
-Open the printed URL. You are redirected to `/login`. Sign in with the **same
-username/password as the desktop app** (the web verifies the existing PBKDF2
-hashes). Accountant accounts are blocked (redirected to `/denied`). Parents log
-in to a placeholder (their child's progress arrives in Phase 1).
 
-Dev connection string is in `KingdomPrep.Web/appsettings.json`
-(`ConnectionStrings:Default` → `(localdb)\MSSQLLocalDB / Neat_Academy`).
+Log in using standard school credentials. Permissions are enforced by named
+policies from `KingdomPrep.Web.Core.Auth.WebPermission`.
 
-## Production (Azure SQL + App Service) — outline
-1. Create an **Azure SQL Database**; add a firewall rule for the App Service.
-2. Migrate `Neat_Academy` to it (e.g. export a **BACPAC** from LocalDB via
-   SqlPackage / SSMS, import into Azure SQL).
-3. Deploy `KingdomPrep.Web` to **Azure App Service**; set
-   `ConnectionStrings:Default` (and any secrets) as App Service configuration —
-   never in source.
-4. At cutover, **repoint the desktop app's connection string** to the same
-   Azure SQL DB so desktop and web share one source of truth.
-5. Ensure HTTPS only (the app already enforces HSTS + secure cookies).
+## Deployment Schema
 
-## Notes
-- The EF context is **read-only** for the existing schema. Do **not** run
-  `dotnet ef migrations` against it — the desktop app owns the schema.
-- Password compatibility is covered by a known-answer test in
-  `KingdomPrep.Web.Tests/PasswordHasherTests.cs`.
+The web app does not run EF migrations. At startup it only ensures web-owned
+support tables exist:
+
+- `ExamSetups`
+- `AuditLogs`
+- `SyncRegisteredDevices`
+- `SyncInbox`
+- sync support tables used by desktop/web synchronization
+
+Main tables such as `Students`, `Users`, `payment_record`, `emp_leave`,
+`examss`, and other desktop-owned tables must already exist before deployment.
+
+## Synchronization
+
+The web portal serves as the cloud anchor. The desktop application uses the sync
+API to push offline changes to the web database and pull web changes back down.
+
+Device registration requires `Sync:ProvisioningKey`. Each registered device
+must use a unique sync API key with at least 32 characters.
+
+Desktop installations must keep their local database for offline operation.
+The web database is the central synchronization target, not a replacement for
+the desktop runtime database.
+
+## Developer Notes
+
+- Do not add EF migrations for desktop-owned tables.
+- Web-owned support schema is initialized by `WebSchemaInitializer`.
+- Write pages should use named policies, not hard-coded role strings.

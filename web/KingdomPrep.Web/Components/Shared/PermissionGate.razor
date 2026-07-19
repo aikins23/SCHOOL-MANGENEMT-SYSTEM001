@@ -1,0 +1,16 @@
+@using Microsoft.AspNetCore.Components.Authorization
+@using KingdomPrep.Web.Core.Auth
+
+<AuthorizeView>
+    <Authorized Context="auth">
+        @if (WebPermission.CanRenderAction(auth.User, Policy))
+        {
+            @ChildContent
+        }
+    </Authorized>
+</AuthorizeView>
+
+@code {
+    [Parameter, EditorRequired] public string Policy { get; set; } = "";
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

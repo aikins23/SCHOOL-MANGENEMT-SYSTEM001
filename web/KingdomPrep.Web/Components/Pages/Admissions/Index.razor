@@ -1,0 +1,250 @@
+@page "/admissions"
+@rendermode InteractiveServer
+@using KingdomPrep.Web.Data
+@using KingdomPrep.Web.Data.Entities
+@using Microsoft.AspNetCore.Components.Authorization
+@inject IAdmissionRepository AdmissionRepo
+@inject IJSRuntime JSRuntime
+@inject NavigationManager NavManager
+@inject IPortalTenantContext TenantContext
+@attribute [Authorize(Policy = WebPermission.AdmissionsManage)]
+
+<PageTitle>Admissions</PageTitle>
+
+<div class="container-fluid mt-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h2 class="mb-1 fw-bold" style="color: #0b1f48;">Pending Admissions</h2>
+            <p class="text-muted mb-0">Review draft admissions and enroll approved students.</p>
+        </div>
+    </div>
+
+    @if (!_canWrite)
+    {
+        <div class="alert alert-info" role="alert">
+            You have read-only access to admissions. Approving or rejecting admissions is handled by an administrator.
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(_feedbackMessage))
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @_feedbackMessage
+            <button type="button" class="btn-close" @onclick="() => _feedbackMessage = string.Empty"></button>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(_errorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @_errorMessage
+            <button type="button" class="btn-close" @onclick="() => _errorMessage = string.Empty"></button>
+        </div>
+    }
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted text-uppercase fw-semibold small mb-2">Pending</div>
+                    <div class="fs-3 fw-bold">@(_drafts?.Count ?? 0)</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted text-uppercase fw-semibold small mb-2">Classes</div>
+                    <div class="fs-3 fw-bold">@_classOptions.Count</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted text-uppercase fw-semibold small mb-2">Write Access</div>
+                    <div class="fs-5 fw-bold">@(_canWrite ? "Enabled" : "Read only")</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-5">
+                    <label class="form-label fw-semibold text-muted">Search</label>
+                    <input class="form-control" placeholder="Student, guardian, email, or contact" @bind="_searchTerm" @bind:event="oninput" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold text-muted">Class</label>
+                    <select class="form-select" @bind="_classFilter">
+                        <option value="">All classes</option>
+                        @foreach (var classId in _classOptions)
+                        {
+                            <option value="@classId">@classId</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex justify-content-md-end gap-2">
+                    <button class="btn btn-primary fw-semibold px-4" @onclick="LoadDrafts" disabled="@_isLoading">Apply</button>
+                    <button class="btn btn-light fw-semibold px-4" @onclick="ClearFilters" disabled="@_isLoading">Clear</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Student Name</th>
+                            <th>Class</th>
+                            <th>DOB</th>
+                            <th>Guardian</th>
+                            <th>Contact</th>
+                            <th>Date</th>
+                            @if (_canWrite)
+                            {
+                                <th class="text-end">Actions</th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (_isLoading)
+                        {
+                            <tr><td colspan="@_colCount" class="text-center py-4">Loading pending admissions...</td></tr>
+                        }
+                        else if (_drafts == null || !_drafts.Any())
+                        {
+                            <tr><td colspan="@_colCount" class="text-center py-4">No pending admissions found.</td></tr>
+                        }
+                        else
+                        {
+                            @foreach (var d in _drafts)
+                            {
+                                <tr>
+                                    <td class="align-middle fw-bold">@($"{d.FirstName} {d.LastName}")</td>
+                                    <td class="align-middle"><span class="badge bg-secondary">@d.ClassID</span></td>
+                                    <td class="align-middle">@(d.DOB?.ToString("MMM dd, yyyy") ?? "N/A")</td>
+                                    <td class="align-middle">@d.GuidanceName</td>
+                                    <td class="align-middle">@d.EmergencyContact</td>
+                                    <td class="align-middle">@(d.AdmissionDate?.ToString("MMM dd, yyyy") ?? "N/A")</td>
+                                    @if (_canWrite)
+                                    {
+                                        <td class="text-end align-middle">
+                                            <button class="btn btn-sm btn-outline-success" @onclick="() => ApproveAdmission(d.DraftID)">
+                                                Approve
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger ms-1" @onclick="() => DeleteDraft(d.DraftID)">
+                                                Reject
+                                            </button>
+                                        </td>
+                                    }
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    private List<DraftAdmissionEntity>? _drafts;
+    private List<string> _classOptions = new();
+    private string _searchTerm = "";
+    private string _classFilter = "";
+    private string _feedbackMessage = string.Empty;
+    private string _errorMessage = string.Empty;
+    private bool _canWrite;
+    private bool _isLoading = true;
+    private int _colCount => _canWrite ? 7 : 6;
+    private Guid? _schoolId;
+    private string _actorUsername = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateTask;
+        var user = authState?.User;
+        if (user == null || !user.Identity?.IsAuthenticated == true)
+        {
+            NavManager.NavigateTo("/login");
+            return;
+        }
+
+        _actorUsername = user.Identity?.Name ?? "system";
+        _schoolId = (await TenantContext.GetCurrentAsync()).SchoolId;
+        _canWrite = WebPermission.CanRenderAction(user, WebPermission.AdmissionsManage);
+
+        await LoadDrafts();
+    }
+
+    private async Task LoadDrafts()
+    {
+        _isLoading = true;
+        _drafts = await AdmissionRepo.GetPendingAdmissionsAsync(_schoolId, _searchTerm, _classFilter);
+        var allDrafts = await AdmissionRepo.GetPendingAdmissionsAsync(_schoolId);
+        _classOptions = allDrafts
+            .Where(d => !string.IsNullOrWhiteSpace(d.ClassID))
+            .Select(d => d.ClassID!)
+            .Distinct()
+            .OrderBy(c => c)
+            .ToList();
+        _isLoading = false;
+    }
+
+    private async Task ApproveAdmission(int id)
+    {
+        if (!_canWrite) return;
+        bool confirmed = await JSRuntime.InvokeAsync<bool>("confirm", "Are you sure you want to approve this admission? The student will be officially enrolled.");
+        if (confirmed)
+        {
+            try
+            {
+                await AdmissionRepo.ApproveAdmissionAsync(id, _schoolId, _actorUsername);
+                _feedbackMessage = "Admission approved and student officially enrolled.";
+                _errorMessage = string.Empty;
+                await LoadDrafts();
+            }
+            catch (Exception ex)
+            {
+                _feedbackMessage = string.Empty;
+                _errorMessage = ex.Message;
+            }
+        }
+    }
+
+    private async Task DeleteDraft(int id)
+    {
+        if (!_canWrite) return;
+        bool confirmed = await JSRuntime.InvokeAsync<bool>("confirm", "Are you sure you want to reject and delete this admission?");
+        if (confirmed)
+        {
+            try
+            {
+                await AdmissionRepo.DeleteDraftAsync(id, _schoolId, _actorUsername);
+                _feedbackMessage = "Admission draft rejected and deleted.";
+                _errorMessage = string.Empty;
+                await LoadDrafts();
+            }
+            catch (Exception ex)
+            {
+                _feedbackMessage = string.Empty;
+                _errorMessage = ex.Message;
+            }
+        }
+    }
+
+    private async Task ClearFilters()
+    {
+        _searchTerm = "";
+        _classFilter = "";
+        await LoadDrafts();
+    }
+}

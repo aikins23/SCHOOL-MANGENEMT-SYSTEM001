@@ -1,0 +1,59 @@
+@page "/module/{ModuleName}"
+@rendermode InteractiveServer
+@attribute [Authorize]
+@inject NavigationManager Nav
+
+<PageTitle>@GetDisplayTitle() - Nyansapo ERP</PageTitle>
+
+<div class="container py-5">
+    <div class="d-flex justify-content-center align-items-center" style="min-height: 60vh;">
+        <KpCard Variant="KpCard.CardVariant.Default" Hoverable="true" Style="max-width: 500px; width: 100%; text-align: center; padding: 2.5rem 2rem;">
+            <Body>
+                <div class="mb-4 d-flex justify-content-center">
+                    <div style="background-color: var(--nyansapo-gold-soft); width: 68px; height: 68px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--nyansapo-navy);">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                        </svg>
+                    </div>
+                </div>
+
+                <h2 class="text-primary mb-3" style="font-size: 1.5rem; font-weight: 700; font-family: 'Georgia', serif;">
+                    @GetDisplayTitle()
+                </h2>
+
+                <h4 class="text-accent mb-3" style="font-size: 0.95rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--nyansapo-gold);">
+                    Module Scheduled for Phase 1
+                </h4>
+
+                <p class="text-secondary mb-4" style="font-size: 0.95rem; line-height: 1.6;">
+                    The web implementation of the <strong>@GetDisplayTitle()</strong> workflow is scheduled for the next development phase.
+                    Please use the desktop application for active record management, admissions, and financial operations.
+                </p>
+
+                <KpButton Variant="KpButton.ButtonVariant.Primary" Class="w-100" OnClick="BackToDashboard">
+                    Return to Dashboard
+                </KpButton>
+            </Body>
+        </KpCard>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public string? ModuleName { get; set; }
+
+    private string GetDisplayTitle()
+    {
+        if (string.IsNullOrWhiteSpace(ModuleName)) return "Module";
+
+        // Split camelCase or PascalCase into readable titles
+        var title = System.Text.RegularExpressions.Regex.Replace(ModuleName, "([a-z])([A-Z])", "$1 $2");
+        return title;
+    }
+
+    private void BackToDashboard()
+    {
+        Nav.NavigateTo("/");
+    }
+}

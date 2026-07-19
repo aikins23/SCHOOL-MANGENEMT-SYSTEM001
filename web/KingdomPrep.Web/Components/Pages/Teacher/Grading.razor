@@ -1,0 +1,642 @@
+@page "/teacher/grading"
+@rendermode InteractiveServer
+@attribute [Authorize(Policy = WebPermission.TeacherGradesManage)]
+@using KingdomPrep.Web.Data
+@using KingdomPrep.Web.Data.Entities
+@using Microsoft.EntityFrameworkCore
+@inject ITeacherPortalRepository TeacherRepo
+@inject IStudentPortalRepository StudentRepo
+@inject IGradingPortalRepository GradingRepo
+@inject AppDbContext DbContext
+@inject NavigationManager NavManager
+@inject IPortalTenantContext TenantContext
+
+<PageTitle>Grading & Examinations - Nyansapo ERP</PageTitle>
+
+<div class="container-fluid py-4" style="background-color: #f6f8fb; min-height: calc(100vh - 5rem);">
+
+    <!-- HEADER & ACTIONS -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h2 class="mb-1" style="font-weight: 600; color: #11233a; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 2rem;">Grading</h2>
+            <p class="mb-0 text-muted" style="font-size: 0.95rem;">Enter continuous assessments and exams by Subject or Student</p>
+        </div>
+        <div class="d-flex flex-wrap gap-3 align-items-center mt-2 mt-md-0">
+            <!-- ENTRY MODE TOGGLE -->
+            <div class="btn-group shadow-sm" role="group">
+                <input type="radio" class="btn-check" name="btnradio" id="btnSubject" autocomplete="off" checked="@(_entryMode == "Subject")" @onchange="@(() => ChangeMode("Subject"))">
+                <label class="btn btn-outline-secondary fw-semibold px-4" for="btnSubject" style="@(_entryMode == "Subject" ? "background-color: #e2e8f0; color: #0f172a;" : "")">By Subject</label>
+
+                <input type="radio" class="btn-check" name="btnradio" id="btnStudent" autocomplete="off" checked="@(_entryMode == "Student")" @onchange="@(() => ChangeMode("Student"))">
+                <label class="btn btn-outline-secondary fw-semibold px-4" for="btnStudent" style="@(_entryMode == "Student" ? "background-color: #e2e8f0; color: #0f172a;" : "")">By Student</label>
+            </div>
+
+            <button class="btn text-white fw-semibold px-4 shadow-sm" style="background-color: #11233a; border-radius: 4px;" @onclick="SaveGrades" disabled="@_isSaving">
+                @if (_isSaving) { <span class="spinner-border spinner-border-sm"></span> } else { <span>Save Grades</span> }
+            </button>
+        </div>
+    </div>
+
+    <!-- FILTER BAR -->
+    <div class="card border-0 mb-3" style="border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+        <div class="card-body p-3">
+            <div class="row align-items-end g-3">
+                <div class="col-md-2">
+                    <label class="form-label text-muted mb-1" style="font-size: 0.8rem; font-weight: 600;">Class</label>
+                    <select class="form-select fw-semibold" style="font-size: 0.95rem; background-color: #f1f5f9; color: #475569;" disabled>
+                        <option>@(string.IsNullOrEmpty(_selectedClass) ? "No Class Assigned" : _selectedClass)</option>
+                    </select>
+                </div>
+
+                @if (_entryMode == "Subject")
+                {
+                    <div class="col-md-3">
+                        <label class="form-label text-muted mb-1" style="font-size: 0.8rem; font-weight: 600;">Subject</label>
+                        <select class="form-select fw-semibold" style="font-size: 0.95rem;" @bind="_selectedSubject" @bind:after="LoadGrades">
+                            <option value="">-- Select Subject --</option>
+                            @foreach (var sub in _subjects) { <option value="@sub">@sub</option> }
+                        </select>
+                    </div>
+                }
+                else
+                {
+                    <div class="col-md-3">
+                        <label class="form-label text-muted mb-1" style="font-size: 0.8rem; font-weight: 600;">Student</label>
+                        <select class="form-select fw-semibold" style="font-size: 0.95rem;" @bind="_selectedStudentId" @bind:after="LoadGrades">
+                            <option value="0">-- Select Student --</option>
+                            @foreach (var st in _students) { <option value="@st.StudentID">@st.FullName</option> }
+                        </select>
+                    </div>
+                }
+
+                <div class="col-md-2">
+                    <label class="form-label text-muted mb-1" style="font-size: 0.8rem; font-weight: 600;">Academic Term</label>
+                    <select class="form-select fw-semibold" style="font-size: 0.95rem; background-color: #f1f5f9; color: #475569;" disabled>
+                        <option>@(string.IsNullOrEmpty(_selectedTerm) ? "N/A" : _selectedTerm)</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label text-muted mb-1" style="font-size: 0.8rem; font-weight: 600;">Academic Year</label>
+                    <select class="form-select fw-semibold" style="font-size: 0.95rem; background-color: #f1f5f9; color: #475569;" disabled>
+                        <option>@(string.IsNullOrEmpty(_selectedYear) ? "N/A" : _selectedYear)</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label text-muted mb-1" style="font-size: 0.8rem; font-weight: 600;">Assessment</label>
+                    <select class="form-select fw-semibold" style="font-size: 0.95rem; background-color: #f1f5f9; color: #475569;" disabled>
+                        <option>@_selectedAssessmentLabel</option>
+                    </select>
+                </div>
+
+                @if (_entryMode == "Subject")
+                {
+                    <div class="col-md-1">
+                        <label class="form-label text-muted mb-1" style="font-size: 0.8rem; font-weight: 600;">Search Students</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" style="font-size: 0.95rem;" placeholder="Search by name…" @bind="_searchTerm" @bind:event="oninput" @onkeyup="ApplySearchFilter" />
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+        <div style="height: 1px; background-color: #dbe2ec; width: 100%;"></div>
+    </div>
+
+    <!-- DATA GRID -->
+    <div class="card border-0" style="border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid #dbe2ec !important;">
+        <div class="card-body p-0">
+            @if (_isPortalClosed)
+            {
+                <div class="text-center py-5">
+                    <i class="bi bi-lock-fill text-danger mb-3" style="font-size: 3rem; opacity: 0.8;"></i>
+                    <h5 class="fw-bold text-danger mb-2">Grading Portal Closed</h5>
+                    <p class="text-muted mb-0" style="font-size: 0.95rem;">The Administrator has not opened or has closed the grading portal for this academic term.</p>
+                </div>
+            }
+            else if (_entryMode == "Subject" && string.IsNullOrEmpty(_selectedSubject))
+            {
+                <div class="text-center text-muted py-5"><h5>Select a Subject</h5><p>Please select a subject to start entering grades.</p></div>
+            }
+            else if (_entryMode == "Student" && _selectedStudentId == 0)
+            {
+                <div class="text-center text-muted py-5"><h5>Select a Student</h5><p>Please select a student to enter all their subject grades.</p></div>
+            }
+            else if (_isLoading)
+            {
+                <div class="d-flex justify-content-center py-5"><div class="spinner-border text-primary" role="status"></div></div>
+            }
+            else
+            {
+                <div class="table-responsive" style="max-height: calc(100vh - 300px); overflow-y: auto;">
+                    <table class="table table-hover mb-0 align-middle table-bordered" style="font-size: 0.95rem;">
+                        <thead style="position: sticky; top: 0; z-index: 1;">
+                            <tr style="background-color: #11233a; color: white;">
+                                <th class="border-0 px-3 py-3" style="width: 250px; font-weight: 600;">
+                                    @(_entryMode == "Subject" ? "Student Name" : "Subject Name")
+                                </th>
+                                @if (IsEndOfTermExam)
+                                {
+                                    <th class="border-0 px-2 py-3 text-center" style="width: 80px; font-weight: 600;" title="Assessment 1">CLASS-TEST<br>(40MARKS)</th>
+                                    <th class="border-0 px-2 py-3 text-center" style="width: 80px; font-weight: 600;" title="Assessment 2">GROUP-WORK<br>(10MARKS)</th>
+                                    <th class="border-0 px-2 py-3 text-center" style="width: 80px; font-weight: 600;" title="Assessment 3">PROJECT-WORK<br>(10MARKS)</th>
+                                    <th class="border-0 px-2 py-3 text-center" style="width: 90px; font-weight: 600; background-color: #1e3a5f;color: #ffffff;" title="SBA Total (50%)">SBA<br>(50%)</th>
+                                    <th class="border-0 px-2 py-3 text-center" style="width: 110px; font-weight: 600; background-color: #b91c1c;color: #ffffff;" title="Raw Exam Score (100%)">EXAMS<br>(100%)</th>
+                                    <th class="border-0 px-2 py-3 text-center" style="width: 90px; font-weight: 600; background-color: #1e3a5f;color: #ffffff;" title="Scaled Exam Score (50%)">EXAMS<br>(50%)</th>
+                                }
+                                else
+                                {
+                                    <th class="border-0 px-3 py-3 text-center" style="width: 220px; font-weight: 600; background-color: #b91c1c;color: #ffffff;" title="Total Obtainable Score">SCORE<br>(OUT OF @_selectedExamWeight MARKS)</th>
+                                }
+                                <th class="border-0 px-2 py-3 text-center" style="width: 100px; font-weight: 600; background-color: #0f172a;color: #ffffff;" title="Grand Total">TOTAL</th>
+                                <th class="border-0 px-2 py-3 text-center" style="width: 80px; font-weight: 600;">GRADE</th>
+                                <th class="border-0 px-3 py-3" style="width: 200px; font-weight: 600;">REMARKS</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (_entryMode == "Subject")
+                            {
+                                @foreach (var student in _filteredStudents)
+                                {
+                                    var record = GetGradeRecord(student.StudentID.ToString());
+                                    @RenderGridRow(record, student.FullName)
+                                }
+                            }
+                            else
+                            {
+                                @foreach (var subject in _subjects)
+                                {
+                                    var record = GetGradeRecord(subject);
+                                    @RenderGridRow(record, subject)
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@if (_showSuccessMessage)
+{
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1050">
+        <div class="toast show border-0" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-body d-flex align-items-center fw-semibold" style="background-color: #22c55e; color: white; border-radius: 6px;">
+                Grades saved successfully.
+            </div>
+        </div>
+    </div>
+}
+
+@if (_showErrorMessage)
+{
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1050">
+        <div class="toast show border-0" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-body d-flex align-items-center fw-semibold bg-danger text-white" style="border-radius: 6px;">
+                <i class="bi bi-x-circle-fill me-2"></i> @_gradingErrorText
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private bool _isLoading = false;
+    private bool _isSaving = false;
+    private bool _showSuccessMessage = false;
+    private bool _showErrorMessage = false;
+    private bool _isPortalClosed = false;
+    private string _gradingErrorText = "The grading portal for this term is closed or not created.";
+
+    private int _employmentId;
+    private Guid? _schoolId;
+
+    private string _entryMode = "Subject"; // "Subject" or "Student"
+    private List<ClassAssignmentEntity> _assignedClasses = new();
+    private string _selectedClass = "";
+    private List<string> _subjects = new();
+    private string _selectedSubject = "";
+    private int _selectedStudentId = 0;
+
+    private string _selectedTerm = "First Term";
+    private string _selectedYear = "2025/2026";
+    private int? _selectedExamTypeId;
+    private int? _selectedAssessmentNumber;
+    private string _selectedAssessmentLabel = "End of Term Examination";
+    private int _selectedClassWeight = 50;
+    private int _selectedExamWeight = 50;
+    private bool IsEndOfTermExam => _selectedClassWeight > 0 || _selectedExamTypeId == null || string.Equals(_selectedAssessmentLabel, "End of Term Examination", StringComparison.OrdinalIgnoreCase);
+    private string _searchTerm = "";
+
+    private List<StudentEntity> _students = new();
+    private List<KingdomPrep.Web.Data.Entities.GradingSchemeEntity> _gradingScheme = new();
+    private List<StudentEntity> _filteredStudents = new();
+
+    // Dictionary key is StudentID (if by Subject) OR Subject Name (if by Student)
+    private Dictionary<string, ExamResultEntity> _gradeRecords = new();
+
+    // Helper dictionary to store the Raw Exam Score (out of 100) before scaling to 50%
+    private Dictionary<string, double?> _rawExamScores = new();
+
+    private (string Term, string Year) GetCurrentAcademicPeriod()
+    {
+        var date = DateTime.Today;
+        int year = date.Year;
+        int m = date.Month;
+
+        if (m >= 9) return ("First Term", $"{year}/{year + 1}");
+        if (m <= 4) return ("Second Term", $"{year - 1}/{year}");
+        return ("Third Term", $"{year - 1}/{year}");
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var tenant = await TenantContext.GetCurrentAsync();
+        if (!tenant.EmploymentId.HasValue)
+        {
+            NavManager.NavigateTo("/login");
+            return;
+        }
+
+        _employmentId = tenant.EmploymentId.Value;
+        _schoolId = tenant.SchoolId;
+
+        _assignedClasses = await TeacherRepo.GetAssignedClassesAsync(_employmentId, _schoolId);
+        if (_assignedClasses.Any()) _selectedClass = _assignedClasses.First().ClassName;
+
+        _students = await StudentRepo.GetStudentsAsync(classFilter: _selectedClass, schoolId: _schoolId);
+        _subjects = await GradingRepo.GetSubjectsAsync(_selectedClass, _schoolId);
+
+        _gradingScheme = await DbContext.GradingSchemes
+            .Where(g => g.SchoolId == _schoolId)
+            .OrderByDescending(g => g.MinScore)
+            .ToListAsync();
+
+        // Fallback to legacy if empty
+        if (!_gradingScheme.Any())
+        {
+            _gradingScheme = new List<KingdomPrep.Web.Data.Entities.GradingSchemeEntity>
+            {
+                new() { MinScore = 80, Code = "1", Label = "Advance(A)" },
+                new() { MinScore = 75, Code = "2", Label = "Proficiency(P)" },
+                new() { MinScore = 70, Code = "3", Label = "Approaching Proficiency(AP)" },
+                new() { MinScore = 65, Code = "4", Label = "Developing" },
+                new() { MinScore = 0,  Code = "5", Label = "Beginning" }
+            };
+        }
+
+        var openSetup = await GradingRepo.GetOpenExamSetupAsync(_schoolId);
+        if (openSetup != null)
+        {
+            ApplySelectedSetup(openSetup);
+        }
+        else
+        {
+            var latestSetup = await GradingRepo.GetLatestExamSetupAsync(_schoolId);
+            if (latestSetup != null)
+            {
+                ApplySelectedSetup(latestSetup);
+            }
+            else
+            {
+                var currentPeriod = GetCurrentAcademicPeriod();
+                _selectedTerm = currentPeriod.Term;
+                _selectedYear = currentPeriod.Year;
+            }
+        }
+
+        ApplySearchFilter();
+
+        // Trigger initial load to lock portal if empty
+        await LoadGrades();
+    }
+
+    private void ApplySelectedSetup(ExamSetupEntity setup)
+    {
+        _selectedTerm = setup.Term ?? _selectedTerm;
+        _selectedYear = setup.Year ?? _selectedYear;
+        _selectedExamTypeId = setup.ExamTypeId;
+        _selectedAssessmentNumber = setup.AssessmentNumber;
+        _selectedAssessmentLabel = string.IsNullOrWhiteSpace(setup.AssessmentLabel)
+            ? "End of Term Examination"
+            : setup.AssessmentLabel!;
+        _selectedClassWeight = setup.ClassWeight;
+        _selectedExamWeight = setup.ExamWeight > 0 ? setup.ExamWeight : 100;
+    }
+
+    private void ChangeMode(string mode)
+    {
+        _entryMode = mode;
+        _gradeRecords.Clear();
+        _rawExamScores.Clear();
+        // Reset selections to avoid confusion
+        if (mode == "Subject") _selectedSubject = "";
+        if (mode == "Student") _selectedStudentId = 0;
+    }
+
+    private async Task LoadGrades()
+    {
+        _isLoading = true;
+        _isPortalClosed = false;
+
+        bool isGradingOpen = await GradingRepo.IsGradingOpenAsync(
+            _selectedTerm,
+            _selectedYear,
+            _schoolId,
+            examTypeId: _selectedExamTypeId,
+            assessmentNumber: _selectedAssessmentNumber);
+        if (!isGradingOpen)
+        {
+            _isPortalClosed = true;
+            _isLoading = false;
+            return;
+        }
+
+        if (_entryMode == "Subject" && string.IsNullOrEmpty(_selectedSubject))
+        {
+            _isLoading = false;
+            return;
+        }
+        if (_entryMode == "Student" && _selectedStudentId == 0)
+        {
+            _isLoading = false;
+            return;
+        }
+
+        _gradeRecords.Clear();
+        _rawExamScores.Clear();
+
+        if (_entryMode == "Subject")
+        {
+            var existingGrades = await GradingRepo.GetClassGradesAsync(
+                _selectedClass,
+                _selectedSubject,
+                _selectedTerm,
+                _selectedYear,
+                _schoolId,
+                _selectedExamTypeId,
+                _selectedAssessmentNumber);
+            foreach (var s in _students)
+            {
+                var existing = existingGrades.FirstOrDefault(e => e.StudentId == s.StudentID);
+                if (existing != null)
+                {
+                    _gradeRecords[s.StudentID.ToString()] = existing;
+                    if (IsEndOfTermExam)
+                        _rawExamScores[s.StudentID.ToString()] = existing.ExamScore * 2; // Reverse 50% back to 100%
+                    else
+                        _rawExamScores[s.StudentID.ToString()] = existing.ExamScore;
+                }
+                else
+                {
+                    _gradeRecords[s.StudentID.ToString()] = new ExamResultEntity
+                    {
+                        StudentId = s.StudentID, StudentName = s.FullName, ClassId = _selectedClass,
+                        Subject = _selectedSubject, Term = _selectedTerm, Year = _selectedYear,
+                        ExamTypeId = _selectedExamTypeId,
+                        AssessmentNumber = _selectedAssessmentNumber,
+                        AssessmentLabel = _selectedAssessmentLabel,
+                        SchoolId = _schoolId
+                    };
+                }
+            }
+        }
+        else // By Student
+        {
+            var targetStudent = _students.FirstOrDefault(s => s.StudentID == _selectedStudentId);
+            if (targetStudent != null)
+            {
+                var allClassGrades = await GradingRepo.GetClassGradesAsync(
+                    _selectedClass,
+                    _selectedTerm,
+                    _selectedYear,
+                    _schoolId,
+                    _selectedExamTypeId,
+                    _selectedAssessmentNumber);
+                var studentGrades = allClassGrades.Where(e => e.StudentId == _selectedStudentId).ToList();
+
+                foreach (var sub in _subjects)
+                {
+                    var existing = studentGrades.FirstOrDefault(e => e.Subject == sub);
+                    if (existing != null)
+                    {
+                        _gradeRecords[sub] = existing;
+                        if (IsEndOfTermExam)
+                            _rawExamScores[sub] = existing.ExamScore * 2;
+                        else
+                            _rawExamScores[sub] = existing.ExamScore;
+                    }
+                    else
+                    {
+                        _gradeRecords[sub] = new ExamResultEntity
+                        {
+                            StudentId = _selectedStudentId, StudentName = targetStudent.FullName, ClassId = _selectedClass,
+                            Subject = sub, Term = _selectedTerm, Year = _selectedYear,
+                            ExamTypeId = _selectedExamTypeId,
+                            AssessmentNumber = _selectedAssessmentNumber,
+                            AssessmentLabel = _selectedAssessmentLabel,
+                            SchoolId = _schoolId
+                        };
+                    }
+                }
+            }
+        }
+
+        _isLoading = false;
+    }
+
+    private void ApplySearchFilter()
+    {
+        if (string.IsNullOrWhiteSpace(_searchTerm)) _filteredStudents = _students.ToList();
+        else _filteredStudents = _students.Where(x => x.FullName.ToLower().Contains(_searchTerm.ToLower())).ToList();
+    }
+
+    private ExamResultEntity GetGradeRecord(string key)
+    {
+        if (!_gradeRecords.ContainsKey(key)) _gradeRecords[key] = new ExamResultEntity();
+        return _gradeRecords[key];
+    }
+
+    private void UpdateScore(string key, ExamResultEntity record, string field, object? value)
+    {
+        double.TryParse(value?.ToString(), out double parsed);
+
+        switch (field)
+        {
+            case "C1":
+                if (parsed > 40) parsed = 40;
+                record.ClassScore1 = parsed;
+                break;
+            case "C2":
+                if (parsed > 10) parsed = 10;
+                record.ClassScore2 = parsed;
+                break;
+            case "C3":
+                if (parsed > 10) parsed = 10;
+                record.ClassScore3 = parsed;
+                break;
+            case "RAW_EX":
+                if (IsEndOfTermExam)
+                {
+                    if (parsed > 100) parsed = 100;
+                    _rawExamScores[key] = parsed;
+                    record.ExamScore = Math.Round(parsed / 2.0, 1); // Calculate 50% Exam
+                }
+                else
+                {
+                    if (parsed > _selectedExamWeight) parsed = _selectedExamWeight;
+                    _rawExamScores[key] = parsed;
+                    record.ExamScore = parsed;
+                    record.ClassScore1 = 0;
+                    record.ClassScore2 = 0;
+                    record.ClassScore3 = 0;
+                }
+                break;
+        }
+
+        // Calculate Totals dynamically
+        if (IsEndOfTermExam)
+        {
+            var rawCategoryTotal = (record.ClassScore1 ?? 0) + (record.ClassScore2 ?? 0) + (record.ClassScore3 ?? 0);
+            record.CategoryTotal = Math.Round(Math.Clamp(rawCategoryTotal, 0, 60) / 60.0 * 50.0, 2);
+            record.ExamScore = Math.Round(Math.Clamp(record.ExamScore ?? 0, 0, 50), 2);
+            record.TotalScore = Math.Round(Math.Clamp((record.CategoryTotal ?? 0) + (record.ExamScore ?? 0), 0, 100), 2);
+        }
+        else
+        {
+            record.CategoryTotal = 0;
+            record.TotalScore = Math.Round(Math.Clamp(record.ExamScore ?? 0, 0, _selectedExamWeight), 2);
+        }
+
+        // Auto Grade
+        double total = record.TotalScore ?? 0;
+        var band = _gradingScheme.FirstOrDefault(b => total >= b.MinScore) ?? _gradingScheme.LastOrDefault();
+
+        string autoRemark = band?.Label ?? "";
+        record.Grade = band?.Code ?? "F";
+
+        // Auto Remark
+        if (string.IsNullOrWhiteSpace(record.Remark) || record.Remark == "-" || record.Remark == "Advance"
+            || record.Remark == "Proficiency" || record.Remark == "Approaching Proficiency" || record.Remark == "Developing"
+            || record.Remark == "Beginning" || record.Remark.Contains(autoRemark) || autoRemark.Contains(record.Remark)
+            || _gradingScheme.Any(b => b.Label == record.Remark))
+        {
+            record.Remark = autoRemark;
+        }
+    }
+
+    private async Task SaveGrades()
+    {
+        _isSaving = true;
+        _showSuccessMessage = false;
+        _showErrorMessage = false;
+
+        if (!HasAssignedSelectedClass())
+        {
+            _gradingErrorText = "You are not assigned to this class.";
+            _showErrorMessage = true;
+            _isSaving = false;
+            return;
+        }
+
+        bool isGradingOpen = await GradingRepo.IsGradingOpenAsync(
+            _selectedTerm,
+            _selectedYear,
+            _schoolId,
+            examTypeId: _selectedExamTypeId,
+            assessmentNumber: _selectedAssessmentNumber);
+        if (!isGradingOpen)
+        {
+            _gradingErrorText = "The grading portal for this term is outside its configured entry window.";
+            _showErrorMessage = true;
+            _isSaving = false;
+            _ = Task.Delay(4000).ContinueWith(_ => { _showErrorMessage = false; InvokeAsync(StateHasChanged); });
+            return;
+        }
+
+        var studentIds = _students.Select(s => s.StudentID).ToHashSet();
+        var subjects = _subjects.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var recordsToSave = _gradeRecords.Values
+            .Where(g =>
+                g.StudentId.HasValue &&
+                studentIds.Contains(g.StudentId.Value) &&
+                string.Equals(g.ClassId, _selectedClass, StringComparison.OrdinalIgnoreCase) &&
+                !string.IsNullOrWhiteSpace(g.Subject) &&
+                subjects.Contains(g.Subject) &&
+                (g.TotalScore > 0 || g.ClassScore1 > 0 || g.ExamScore > 0))
+            .ToList();
+
+        foreach (var record in recordsToSave)
+        {
+            record.Term = _selectedTerm;
+            record.Year = _selectedYear;
+            record.ExamTypeId = _selectedExamTypeId;
+            record.AssessmentNumber = _selectedAssessmentNumber;
+            record.AssessmentLabel = _selectedAssessmentLabel;
+            record.SchoolId = _schoolId;
+        }
+
+        if (recordsToSave.Any())
+        {
+            await GradingRepo.SaveGradesAsync(recordsToSave);
+            _showSuccessMessage = true;
+            _ = Task.Delay(3000).ContinueWith(_ => { _showSuccessMessage = false; InvokeAsync(StateHasChanged); });
+        }
+
+        _isSaving = false;
+    }
+
+    private bool HasAssignedSelectedClass() =>
+        !string.IsNullOrWhiteSpace(_selectedClass) &&
+        _assignedClasses.Any(c => c.ClassName == _selectedClass);
+
+    private RenderFragment RenderGridRow(ExamResultEntity record, string displayLabel) => __builder =>
+    {
+        var rowKey = _entryMode == "Subject" ? record.StudentId.ToString()! : record.Subject!;
+        var rawExam = _rawExamScores.ContainsKey(rowKey) ? _rawExamScores[rowKey] : null;
+
+        <tr>
+            <td class="px-3 fw-semibold" style="color: #192431; white-space: nowrap;">@displayLabel</td>
+            @if (IsEndOfTermExam)
+            {
+                <td class="px-1 text-center">
+                    <input type="number" min="0" max="40" class="form-control form-control-sm text-center fw-bold" style="background-color: #f8fafc;"
+                           value="@record.ClassScore1" @oninput="@(e => UpdateScore(rowKey, record, "C1", e.Value))" />
+                </td>
+                <td class="px-1 text-center">
+                    <input type="number" min="0" max="10" class="form-control form-control-sm text-center fw-bold" style="background-color: #f8fafc;"
+                           value="@record.ClassScore2" @oninput="@(e => UpdateScore(rowKey, record, "C2", e.Value))" />
+                </td>
+                <td class="px-1 text-center">
+                    <input type="number" min="0" max="10" class="form-control form-control-sm text-center fw-bold" style="background-color: #f8fafc;"
+                           value="@record.ClassScore3" @oninput="@(e => UpdateScore(rowKey, record, "C3", e.Value))" />
+                </td>
+                <td class="px-1 text-center" style="background-color: #f1f5f9;">
+                    <span class="fw-bold" style="color: #0f172a;">@record.CategoryTotal</span>
+                </td>
+                <td class="px-1 text-center">
+                    <!-- RAW EXAM (100%) -->
+                    <input type="number" min="0" max="100" class="form-control form-control-sm text-center fw-bold text-danger" style="background-color: #fef2f2;"
+                           value="@rawExam" @oninput="@(e => UpdateScore(rowKey, record, "RAW_EX", e.Value))" />
+                </td>
+                <td class="px-1 text-center" style="background-color: #f1f5f9;">
+                    <!-- 50% SCALED EXAM -->
+                    <span class="fw-bold" style="color: #1e40af;">@record.ExamScore</span>
+                </td>
+            }
+            else
+            {
+                <td class="px-1 text-center">
+                    <input type="number" min="0" max="@_selectedExamWeight" class="form-control form-control-sm text-center fw-bold text-danger fs-6" style="background-color: #fef2f2;"
+                           value="@rawExam" @oninput="@(e => UpdateScore(rowKey, record, "RAW_EX", e.Value))" />
+                </td>
+            }
+            <td class="px-1 text-center" style="background-color: #f8fafc;">
+                <span class="fw-bold fs-6" style="color: #0f172a;">@record.TotalScore</span>
+            </td>
+            <td class="px-1 text-center fw-bold fs-5" style="color: #b91c1c;">@record.Grade</td>
+            <td class="px-2">
+                <input type="text" class="form-control form-control-sm border-0 bg-transparent" placeholder="..." @bind="record.Remark" />
+            </td>
+        </tr>
+    };
+}

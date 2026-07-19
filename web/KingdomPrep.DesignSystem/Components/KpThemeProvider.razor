@@ -1,0 +1,69 @@
+@using Microsoft.AspNetCore.Components
+@using Microsoft.JSInterop
+@inject IJSRuntime JS
+
+<CascadingValue Value="this">
+    @ChildContent
+</CascadingValue>
+
+@code {
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public bool EnableDarkMode { get; set; } = true;
+    [Parameter] public bool EnableReducedMotion { get; set; } = true;
+    [Parameter] public bool EnableHighContrast { get; set; } = true;
+
+    private bool _isDarkMode;
+    private bool _prefersReducedMotion;
+    private bool _prefersHighContrast;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (EnableDarkMode)
+        {
+            _isDarkMode = await JS.InvokeAsync<bool>("matchMedia", "(prefers-color-scheme: dark)");
+        }
+
+        if (EnableReducedMotion)
+        {
+            _prefersReducedMotion = await JS.InvokeAsync<bool>("matchMedia", "(prefers-reduced-motion: reduce)");
+        }
+
+        if (EnableHighContrast)
+        {
+            _prefersHighContrast = await JS.InvokeAsync<bool>("matchMedia", "(prefers-contrast: high)");
+        }
+
+        ApplyTheme();
+    }
+
+    public bool IsDarkMode => _isDarkMode;
+    public bool PrefersReducedMotion => _prefersReducedMotion;
+    public bool PrefersHighContrast => _prefersHighContrast;
+
+    public void ToggleDarkMode()
+    {
+        _isDarkMode = !_isDarkMode;
+        ApplyTheme();
+    }
+
+    public void SetDarkMode(bool dark)
+    {
+        _isDarkMode = dark;
+        ApplyTheme();
+    }
+
+    private void ApplyTheme()
+    {
+        var root = "document.documentElement";
+        if (_isDarkMode)
+        {
+            JS.InvokeVoidAsync("eval", $"{root}.setAttribute('data-theme', 'dark')");
+        }
+        else
+        {
+            JS.InvokeVoidAsync("eval", $"{root}.removeAttribute('data-theme')");
+        }
+    }
+
+    public string GetCssVariable(string name) => $"var(--{name})";
+}

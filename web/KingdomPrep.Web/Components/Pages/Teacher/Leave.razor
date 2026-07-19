@@ -1,0 +1,285 @@
+@page "/teacher/leave"
+@rendermode InteractiveServer
+@attribute [Authorize(Policy = WebPermission.TeacherLeaveSubmit)]
+@using KingdomPrep.Web.Data
+@using KingdomPrep.Web.Data.Entities
+@inject ILeavePortalRepository LeaveRepo
+@inject NavigationManager NavManager
+@inject IPortalTenantContext TenantContext
+
+<PageTitle>Leave Management - Nyansapo ERP</PageTitle>
+
+<div class="container-fluid py-4" style="background-color: #f6f8fb; min-height: calc(100vh - 5rem);">
+
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h2 class="mb-1" style="font-weight: 600; color: #11233a; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 2rem;">Leave Applications</h2>
+            <p class="mb-0 text-muted" style="font-size: 0.95rem;">Request time off and track your leave status</p>
+        </div>
+        <div>
+            @if (!_showForm)
+            {
+                <button class="btn text-white fw-semibold px-4 shadow-sm" style="background-color: #11233a; border-radius: 4px;" @onclick="ToggleForm">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-1"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg> Apply for Leave
+                </button>
+            }
+        </div>
+    </div>
+
+    <!-- LEAVE BALANCE STATS -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card border-0 p-4 shadow-sm" style="border-radius: 8px; border-left: 4px solid #1e3a5f !important;">
+                <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem; letter-spacing: 0.05em;">Annual Allowance</h6>
+                <h2 class="mb-0 text-dark fw-bold">21 <span class="fs-6 fw-normal text-muted">Days</span></h2>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 p-4 shadow-sm" style="border-radius: 8px; border-left: 4px solid #dc2626 !important;">
+                <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem; letter-spacing: 0.05em;">Days Used (Approved)</h6>
+                <h2 class="mb-0 fw-bold" style="color: #dc2626;">@_usedLeaveDays <span class="fs-6 fw-normal text-muted">Days</span></h2>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 p-4 shadow-sm" style="border-radius: 8px; border-left: 4px solid #16a34a !important;">
+                <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem; letter-spacing: 0.05em;">Remaining Balance</h6>
+                <h2 class="mb-0 fw-bold" style="color: #16a34a;">@_remainingLeaveDays <span class="fs-6 fw-normal text-muted">Days</span></h2>
+            </div>
+        </div>
+    </div>
+
+    @if (_showForm)
+    {
+        <div class="card border-0 mb-4 shadow-sm" style="border-radius: 8px;">
+            <div class="card-header bg-white border-bottom-0 pt-4 pb-0 px-4">
+                <h5 class="mb-0" style="color: #11233a; font-weight: 600;">New Leave Application</h5>
+            </div>
+            <div class="card-body p-4">
+                @if (!string.IsNullOrWhiteSpace(_errorMessage))
+                {
+                    <div class="alert alert-danger">@_errorMessage</div>
+                }
+                <div class="row g-3 mb-3">
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold text-muted mb-1" style="font-size: 0.85rem;">Leave Type</label>
+                        <select class="form-select fw-semibold" @bind="_newLeave.LeaveOption">
+                            <option value="">-- Select Leave Type --</option>
+                            <option value="Sick Leave">Sick Leave</option>
+                            <option value="Casual Leave">Casual Leave</option>
+                            <option value="Maternity Leave">Maternity Leave</option>
+                            <option value="Paternity Leave">Paternity Leave</option>
+                            <option value="Study Leave">Study Leave</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold text-muted mb-1" style="font-size: 0.85rem;">Start Date</label>
+                        <input type="date" class="form-control" @bind="_newLeave.StartDate" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold text-muted mb-1" style="font-size: 0.85rem;">End Date</label>
+                        <input type="date" class="form-control" @bind="_newLeave.EndDate" />
+                    </div>
+                </div>
+                <div class="row g-3 mb-4">
+                    <div class="col-12">
+                        <label class="form-label fw-semibold text-muted mb-1" style="font-size: 0.85rem;">Reason / Details</label>
+                        <textarea class="form-control" rows="3" placeholder="Please provide specific details..." @bind="_newLeave.Reasons"></textarea>
+                    </div>
+                </div>
+                <div class="d-flex justify-content-end gap-2">
+                    <button class="btn btn-light fw-semibold px-4" @onclick="ToggleForm" style="color: #475569;">Cancel</button>
+                    <button class="btn text-white fw-semibold px-4" style="background-color: #16a34a;" @onclick="SubmitLeave" disabled="@_isSaving">
+                        @if (_isSaving) { <span class="spinner-border spinner-border-sm"></span> } else { <span>Submit Request</span> }
+                    </button>
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (_isLoading)
+    {
+        <div class="d-flex justify-content-center py-5"><div class="spinner-border text-primary" role="status"></div></div>
+    }
+    else if (!_myLeaves.Any())
+    {
+        <div class="text-center text-muted py-5 mt-4 bg-white rounded shadow-sm border-0">
+            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="mb-3" style="color: #94a3b8;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+            <h5>No Leave History</h5>
+            <p>You haven't requested any time off yet.</p>
+        </div>
+    }
+    else
+    {
+        <div class="card border-0 shadow-sm" style="border-radius: 8px; border: 1px solid #dbe2ec !important;">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0 align-middle">
+                        <thead style="background-color: #f8fafc; color: #475569;">
+                            <tr>
+                                <th class="border-bottom px-4 py-3" style="font-weight: 600; text-transform: uppercase; font-size: 0.8rem;">Leave Type</th>
+                                <th class="border-bottom px-3 py-3" style="font-weight: 600; text-transform: uppercase; font-size: 0.8rem;">Start Date</th>
+                                <th class="border-bottom px-3 py-3" style="font-weight: 600; text-transform: uppercase; font-size: 0.8rem;">End Date</th>
+                                <th class="border-bottom px-3 py-3" style="font-weight: 600; text-transform: uppercase; font-size: 0.8rem;">Reason</th>
+                                <th class="border-bottom px-4 py-3 text-end" style="font-weight: 600; text-transform: uppercase; font-size: 0.8rem;">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var leave in _myLeaves)
+                            {
+                                <tr style="background-color: #fffefc;">
+                                    <td class="px-4 fw-semibold" style="color: #0f172a;">@leave.LeaveOption</td>
+                                    <td class="px-3" style="color: #475569;">@leave.StartDate.ToString("MMM dd, yyyy")</td>
+                                    <td class="px-3" style="color: #475569;">@leave.EndDate.ToString("MMM dd, yyyy")</td>
+                                    <td class="px-3 text-muted" style="max-width: 300px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="@leave.Reasons">
+                                        @leave.Reasons
+                                    </td>
+                                    <td class="px-4 text-end">
+                                        @if (leave.Status.ToUpper() == "APPROVED")
+                                        {
+                                            <span class="badge" style="background-color: #dcfce7; color: #166534; border: 1px solid #bbf7d0; font-size: 0.75rem; padding: 0.4rem 0.6rem;">APPROVED</span>
+                                        }
+                                        else if (leave.Status.ToUpper() == "REJECTED")
+                                        {
+                                            <span class="badge" style="background-color: #fee2e2; color: #991b1b; border: 1px solid #fecaca; font-size: 0.75rem; padding: 0.4rem 0.6rem;">REJECTED</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge" style="background-color: #fef3c7; color: #92400e; border: 1px solid #fde68a; font-size: 0.75rem; padding: 0.4rem 0.6rem;">PENDING</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@if (_showSuccessMessage)
+{
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1050">
+        <div class="toast show border-0" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-body d-flex align-items-center fw-semibold" style="background-color: #22c55e; color: white; border-radius: 6px;">
+                Leave application submitted successfully!
+            </div>
+        </div>
+    </div>
+}
+
+@if (!string.IsNullOrWhiteSpace(_toastErrorMessage))
+{
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1050">
+        <div class="toast show border-0" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-body d-flex align-items-center fw-semibold bg-danger text-white" style="border-radius: 6px;">
+                @_toastErrorMessage
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private bool _isLoading = true;
+    private bool _showForm = false;
+    private bool _isSaving = false;
+    private bool _showSuccessMessage = false;
+    private string _errorMessage = "";
+    private string _toastErrorMessage = "";
+
+    private int _employmentId;
+    private Guid? _schoolId;
+    private string _teacherName = "";
+
+    private int _usedLeaveDays = 0;
+    private int _remainingLeaveDays = 21;
+
+    private List<LeaveEntity> _myLeaves = new();
+    private LeaveEntity _newLeave = new LeaveEntity { StartDate = DateTime.Today.AddDays(1), EndDate = DateTime.Today.AddDays(2) };
+
+    protected override async Task OnInitializedAsync()
+    {
+        var tenant = await TenantContext.GetCurrentAsync();
+        if (!tenant.EmploymentId.HasValue)
+        {
+            NavManager.NavigateTo("/login");
+            return;
+        }
+
+        _employmentId = tenant.EmploymentId.Value;
+        _schoolId = tenant.SchoolId;
+        _teacherName = tenant.Username ?? "";
+
+        await LoadLeaves();
+    }
+
+    private async Task LoadLeaves()
+    {
+        _isLoading = true;
+        _myLeaves = await LeaveRepo.GetMyLeavesAsync(_employmentId, _schoolId);
+
+        // Calculate leave balance based on APPROVED leaves
+        _usedLeaveDays = _myLeaves
+            .Where(l => l.Status.ToUpper() == "APPROVED" && l.StartDate.Year == DateTime.Today.Year)
+            .Sum(l => (int)(l.EndDate - l.StartDate).TotalDays + 1); // +1 to include both start and end dates
+
+        _remainingLeaveDays = Math.Max(0, 21 - _usedLeaveDays);
+
+        _isLoading = false;
+    }
+
+    private void ToggleForm()
+    {
+        _showForm = !_showForm;
+        _errorMessage = "";
+        if (_showForm)
+        {
+            _newLeave = new LeaveEntity
+            {
+                EmploymentID = _employmentId,
+                Name = _teacherName,
+                Department = "Teaching",
+                Position = "Teacher",
+                StartDate = DateTime.Today.AddDays(1),
+                EndDate = DateTime.Today.AddDays(2),
+                Status = "PENDING",
+                SchoolId = _schoolId
+            };
+        }
+    }
+
+    private async Task SubmitLeave()
+    {
+        _isSaving = true;
+        _errorMessage = "";
+        _toastErrorMessage = "";
+
+        try
+        {
+            _newLeave.EmploymentID = _employmentId;
+            _newLeave.Name = _teacherName;
+            _newLeave.Department = "Teaching";
+            _newLeave.Position = "Teacher";
+            _newLeave.Status = "PENDING";
+            _newLeave.SchoolId = _schoolId;
+            await LeaveRepo.SubmitLeaveAsync(_newLeave);
+
+            _showForm = false;
+            _showSuccessMessage = true;
+            _ = Task.Delay(3000).ContinueWith(_ => { _showSuccessMessage = false; InvokeAsync(StateHasChanged); });
+
+            await LoadLeaves();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.Message;
+            _toastErrorMessage = ex.Message;
+            _ = Task.Delay(4000).ContinueWith(_ => { _toastErrorMessage = ""; InvokeAsync(StateHasChanged); });
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+}

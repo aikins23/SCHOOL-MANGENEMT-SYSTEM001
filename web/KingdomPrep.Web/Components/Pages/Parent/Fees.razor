@@ -1,0 +1,663 @@
+@page "/parent/fees"
+@using KingdomPrep.Web.Data
+@using KingdomPrep.Web.Data.Entities
+@using Microsoft.JSInterop
+@inject IWardRepository WardRepo
+@inject IWardBillingRepository BillingRepo
+@inject IFinancePortalRepository FinanceRepo
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+@inject IPortalTenantContext TenantContext
+@inject IPaystackPaymentVerifier PaystackVerifier
+@inject IMomoPaymentService MomoPaymentService
+@inject IPaymentGatewaySettingsService PaymentSettingsService
+@inject IOnlinePaymentIntentRepository PaymentIntentRepo
+@attribute [Authorize(Policy = WebPermission.ParentFeePayment)]
+@rendermode InteractiveServer
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-1 text-primary">Fee Payments</h2>
+        <p class="text-muted mb-0">View outstanding balances and pay online securely via Paystack or direct MTN MoMo.</p>
+    </div>
+</div>
+
+@if (_isLoading)
+{
+    <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status"></div>
+    </div>
+}
+else if (!_wards.Any())
+{
+    <div class="alert alert-warning shadow-sm border-0 d-flex align-items-center p-4 rounded-3" role="alert">
+        <div>
+            <h5 class="alert-heading fw-bold mb-1">No Wards Found</h5>
+            <p class="mb-0 text-dark">You have no students linked to this account.</p>
+        </div>
+    </div>
+}
+else
+{
+    <div class="row g-4">
+        @foreach (var ward in _wards)
+        {
+            var arrears = _balances.ContainsKey(ward.StudentID) ? _balances[ward.StudentID] : 0;
+            var breakdown = _breakdowns.TryGetValue(ward.StudentID, out var rows) ? rows : new List<WardFeeBreakdownItem>();
+            var outstandingBreakdown = breakdown.Where(x => x.Outstanding > 0).ToList();
+
+            <div class="col-md-6 col-lg-4">
+                <div class="card border-0 shadow-sm rounded-4 h-100 bg-white">
+                    <div class="card-body p-4">
+                        <div class="text-center">
+                        <div class="parent-fee-avatar mx-auto mb-3" aria-hidden="true">
+                            @GetWardInitial(ward)
+                        </div>
+                        <h5 class="fw-bold text-slate-800 mb-1">@ward.FullName</h5>
+                        <p class="text-muted small mb-3">Class: @ward.ClassID | ID: @ward.StudentID</p>
+
+                        <div class="p-3 bg-light rounded-3 mb-4">
+                            <span class="d-block text-muted small fw-semibold text-uppercase mb-1">Outstanding Balance</span>
+                            <h3 class="fw-bold mb-0 @(arrears > 0 ? "text-danger" : "text-success")">
+                                GHS @arrears.ToString("N2")
+                            </h3>
+                        </div>
+                        </div>
+
+                        @if (outstandingBreakdown.Any())
+                        {
+                            <div class="border rounded-3 overflow-hidden mb-4">
+                                <div class="bg-white px-3 py-2 border-bottom d-flex justify-content-between align-items-center">
+                                    <span class="small fw-bold text-uppercase text-muted">Balance Breakdown</span>
+                                    <span class="small text-muted">@outstandingBreakdown.Count item(s)</span>
+                                </div>
+                                <div class="list-group list-group-flush">
+                                    @foreach (var item in outstandingBreakdown)
+                                    {
+                                        <div class="list-group-item px-3 py-2">
+                                            <div class="parent-fee-breakdown-row">
+                                                <div class="parent-fee-breakdown-label">
+                                                    <div class="fw-semibold small text-slate-800">@item.Category</div>
+                                                    <div class="text-muted small text-truncate" title="@item.Description">@item.Description</div>
+                                                </div>
+                                                <div class="parent-fee-breakdown-amount">
+                                                    <div class="fw-bold small">GHS @item.Outstanding.ToString("N2")</div>
+                                                    @if (item.Paid > 0)
+                                                    {
+                                                        <div class="text-success small">Paid GHS @item.Paid.ToString("N2")</div>
+                                                    }
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+
+                        @if (arrears > 0)
+                        {
+                            @if (HasAnyOnlineGateway)
+                            {
+                                <button class="btn btn-primary w-100 rounded-pill fw-semibold" @onclick="() => InitiatePayment(ward, arrears)">
+                                    <i class="bi bi-credit-card me-2"></i>Pay Online
+                                </button>
+                            }
+                            else
+                            {
+                                <button class="btn btn-secondary w-100 rounded-pill fw-semibold" disabled>
+                                    <i class="bi bi-lock me-2"></i>Online Payment Not Set Up
+                                </button>
+                                <div class="small text-muted mt-2">Please contact the school office for payment options.</div>
+                            }
+                        }
+                        else
+                        {
+                            <button class="btn btn-success w-100 rounded-pill fw-semibold disabled">
+                                <i class="bi bi-check-circle me-2"></i>Fully Paid
+                            </button>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@if (_showPaymentModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+                <div class="modal-header bg-primary text-white border-0 py-3">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-wallet2 me-2"></i>Make Payment</h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="() => _showPaymentModal = false"></button>
+                </div>
+                <div class="modal-body p-4 text-center">
+                    <h6 class="text-muted mb-1">Paying fees for</h6>
+                    <h4 class="fw-bold mb-4">@_selectedWard?.FullName</h4>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold text-secondary">Amount to Pay (GHS)</label>
+                        <div class="input-group input-group-lg shadow-sm">
+                            <span class="input-group-text bg-white border-end-0">₵</span>
+                            <input type="number" class="form-control border-start-0 ps-0 fw-bold fs-4" @bind="_paymentAmount" min="1" step="0.01" />
+                        </div>
+                        <div class="form-text mt-2 text-start">Outstanding: GHS @_selectedArrears.ToString("N2")</div>
+                    </div>
+
+                    <div class="mb-4 text-start">
+                        <label class="form-label fw-semibold text-secondary">Payment Method</label>
+                        <div class="d-grid gap-2">
+                            <button type="button"
+                                    class="btn text-start rounded-3 @(_paymentMethod == PaymentMethod.Paystack ? "btn-primary" : "btn-outline-primary")"
+                                    @onclick="() => SelectPaymentMethod(PaymentMethod.Paystack)">
+                                <i class="bi bi-credit-card me-2"></i>Paystack card, bank, or mobile money
+                            </button>
+                            <button type="button"
+                                    class="btn text-start rounded-3 @(_paymentMethod == PaymentMethod.Momo ? "btn-primary" : "btn-outline-primary")"
+                                    @onclick="() => SelectPaymentMethod(PaymentMethod.Momo)">
+                                <i class="bi bi-phone me-2"></i>Direct MTN MoMo prompt
+                            </button>
+                        </div>
+                    </div>
+
+                    @if (_paymentMethod == PaymentMethod.Paystack && !HasPaystackKey)
+                    {
+                        <div class="alert alert-warning text-start">
+                            Paystack payments are not available yet. Please contact the school administrator to complete Payment Settings.
+                        </div>
+                    }
+
+                    @if (_paymentMethod == PaymentMethod.Momo)
+                    {
+                        <div class="mb-4 text-start">
+                            <label class="form-label fw-semibold text-secondary">MTN MoMo Number</label>
+                            <input class="form-control form-control-lg" placeholder="024XXXXXXX" @bind="_momoPhone" />
+                            <div class="form-text">The parent must approve the payment prompt on this phone.</div>
+                        </div>
+
+                        @if (!HasMomoConfig)
+                        {
+                            <div class="alert alert-warning text-start">
+                                Direct MTN MoMo is not available yet. Please contact the school administrator to complete Payment Settings.
+                            </div>
+                        }
+
+                        @if (!string.IsNullOrEmpty(_momoReference))
+                        {
+                            <div class="alert alert-info text-start">
+                                MoMo request sent. Approve it on the phone, then check payment status.
+                            </div>
+                        }
+                    }
+
+                    @if (!string.IsNullOrEmpty(_paymentInfo))
+                    {
+                        <div class="alert alert-info py-2 text-start">@_paymentInfo</div>
+                    }
+
+                    @if (!string.IsNullOrEmpty(_paymentError))
+                    {
+                        <div class="alert alert-danger py-2 text-start">@_paymentError</div>
+                    }
+                </div>
+                <div class="modal-footer border-0 bg-light py-3">
+                    <button type="button" class="btn btn-light border-secondary-subtle" @onclick="ClosePaymentModal">Cancel</button>
+                    @if (_paymentMethod == PaymentMethod.Paystack)
+                    {
+                        <button type="button" class="btn btn-primary px-4 fw-semibold" @onclick="ProceedToPaystack" disabled="@(!HasPaystackKey || _isPaying)">
+                            @if (_isPaying)
+                            {
+                                <span class="spinner-border spinner-border-sm me-1"></span>
+                            }
+                            <i class="bi bi-lock-fill me-1"></i> Proceed to Pay GHS @_paymentAmount.ToString("N2")
+                        </button>
+                    }
+                    else
+                    {
+                        @if (string.IsNullOrEmpty(_momoReference))
+                        {
+                            <button type="button" class="btn btn-primary px-4 fw-semibold" @onclick="StartMomoPayment" disabled="@(!HasMomoConfig || _isPaying)">
+                                @if (_isPaying)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-1"></span>
+                                }
+                                Send MoMo Prompt
+                            </button>
+                        }
+                        else
+                        {
+                            <button type="button" class="btn btn-success px-4 fw-semibold" @onclick="CheckMomoPaymentStatus" disabled="@_isCheckingMomo">
+                                @if (_isCheckingMomo)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-1"></span>
+                                }
+                                Check Status
+                            </button>
+                        }
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (_paymentSuccess)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4 text-center p-5">
+                <div class="mb-4">
+                    <div class="bg-success bg-opacity-10 text-success d-inline-flex p-3 rounded-circle">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M20 6 9 17l-5-5" />
+                        </svg>
+                    </div>
+                </div>
+                <h3 class="fw-bold text-success mb-2">Payment Successful!</h3>
+                <p class="text-muted mb-4">Your payment of GHS @_lastAmountPaid.ToString("N2") for @_selectedWard?.FullName has been securely processed and recorded.</p>
+                <button class="btn btn-primary rounded-pill px-5" @onclick="CloseSuccessModal">Done</button>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .parent-fee-avatar {
+        align-items: center;
+        background: linear-gradient(135deg, rgba(37, 99, 235, 0.14), rgba(79, 70, 229, 0.22));
+        border: 1px solid rgba(37, 99, 235, 0.16);
+        border-radius: 999px;
+        color: #1d4ed8;
+        display: flex;
+        font-size: 1.35rem;
+        font-weight: 800;
+        height: 48px;
+        justify-content: center;
+        letter-spacing: 0;
+        width: 48px;
+    }
+
+    .parent-fee-breakdown-row {
+        align-items: flex-start;
+        display: grid;
+        gap: 0.75rem;
+        grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .parent-fee-breakdown-label {
+        min-width: 0;
+    }
+
+    .parent-fee-breakdown-amount {
+        min-width: 96px;
+        text-align: right;
+        white-space: nowrap;
+    }
+
+    @@media (max-width: 575.98px) {
+        .parent-fee-breakdown-amount {
+            min-width: 82px;
+        }
+    }
+</style>
+
+@code {
+    private bool _isLoading = true;
+    private string _username = "";
+    private string _email = "";
+    private Guid? _schoolId;
+
+    private List<StudentEntity> _wards = new();
+    private Dictionary<int, decimal> _balances = new();
+    private Dictionary<int, List<WardFeeBreakdownItem>> _breakdowns = new();
+
+    private bool _showPaymentModal = false;
+    private bool _paymentSuccess = false;
+    private string _paymentError = "";
+    private string _paymentInfo = "";
+
+    private StudentEntity? _selectedWard;
+    private decimal _selectedArrears;
+    private decimal _paymentAmount;
+    private decimal _lastAmountPaid;
+    private string _paystackKey = "";
+    private string _pendingPaymentReference = "";
+    private string _momoPhone = "";
+    private string _momoReference = "";
+    private PaymentMethod _paymentMethod = PaymentMethod.Paystack;
+    private bool _isPaying;
+    private bool _isCheckingMomo;
+    private PaymentGatewaySettingsView? _gatewaySettings;
+    private bool HasPaystackKey => _paystackKey.StartsWith("pk_", StringComparison.Ordinal);
+    private bool HasMomoConfig => _gatewaySettings?.MomoConfigured == true;
+    private bool HasAnyOnlineGateway => HasPaystackKey || HasMomoConfig;
+
+    private DotNetObjectReference<Fees>? _objRef;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var tenant = await TenantContext.GetCurrentAsync();
+        _username = tenant.Username ?? "";
+        // Default email for testing, since Identity might not have an email claim
+        _email = tenant.Email ?? $"{_username}@parent.test.com";
+        _schoolId = tenant.SchoolId;
+        _gatewaySettings = await PaymentSettingsService.GetForEditAsync(_schoolId);
+        _paystackKey = _gatewaySettings.PaystackPublicKey.Trim();
+
+        _objRef = DotNetObjectReference.Create(this);
+
+        await LoadData();
+        _isLoading = false;
+    }
+
+    private async Task LoadData()
+    {
+        _wards = await WardRepo.GetWardsForParentAsync(_username, _schoolId);
+        _balances.Clear();
+        _breakdowns.Clear();
+        foreach (var w in _wards)
+        {
+            var breakdown = await BillingRepo.GetFeeBreakdownAsync(w.StudentID.ToString(), _schoolId);
+            decimal arrears = breakdown.Sum(l => l.Outstanding);
+            if (arrears < 0) arrears = 0;
+            _balances[w.StudentID] = arrears;
+            _breakdowns[w.StudentID] = breakdown;
+        }
+    }
+
+    private static string GetWardInitial(StudentEntity ward)
+    {
+        var source = !string.IsNullOrWhiteSpace(ward.FirstName)
+            ? ward.FirstName
+            : !string.IsNullOrWhiteSpace(ward.FullName)
+                ? ward.FullName
+                : "S";
+        return source.Trim()[0].ToString().ToUpperInvariant();
+    }
+
+    private void InitiatePayment(StudentEntity ward, decimal arrears)
+    {
+        _selectedWard = ward;
+        _selectedArrears = arrears;
+        _paymentAmount = arrears; // Default to full amount
+        _paymentError = "";
+        _paymentInfo = "";
+        _pendingPaymentReference = "";
+        _momoReference = "";
+        _momoPhone = ward.EmergencyContact ?? "";
+        _paymentMethod = HasPaystackKey ? PaymentMethod.Paystack : PaymentMethod.Momo;
+        _showPaymentModal = true;
+    }
+
+    private void SelectPaymentMethod(PaymentMethod method)
+    {
+        _paymentMethod = method;
+        _paymentError = "";
+        _paymentInfo = "";
+    }
+
+    private void ClosePaymentModal()
+    {
+        _showPaymentModal = false;
+        _paymentError = "";
+        _paymentInfo = "";
+        _pendingPaymentReference = "";
+        _momoReference = "";
+        _isPaying = false;
+        _isCheckingMomo = false;
+    }
+
+    private async Task ProceedToPaystack()
+    {
+        if (!ValidatePaymentRequest()) return;
+
+        if (!HasPaystackKey)
+        {
+            _paymentError = "Paystack payments are not available yet. Contact the school administrator.";
+            return;
+        }
+
+        _paymentError = "";
+        _paymentInfo = "";
+        var refId = $"FEE-{_selectedWard!.StudentID}-{DateTime.Now.Ticks}";
+        _pendingPaymentReference = refId;
+
+        try
+        {
+            _isPaying = true;
+            await CreatePaymentIntentAsync(refId, PaymentMethod.Paystack);
+            await JS.InvokeVoidAsync("payWithPaystack", _email, _paymentAmount, refId, _paystackKey, _objRef);
+        }
+        catch (Exception ex)
+        {
+            _pendingPaymentReference = "";
+            _paymentError = "Could not initialize Paystack. Make sure your public key is configured. Error: " + ex.Message;
+        }
+        finally
+        {
+            _isPaying = false;
+        }
+    }
+
+    private async Task StartMomoPayment()
+    {
+        if (!ValidatePaymentRequest()) return;
+
+        if (!HasMomoConfig)
+        {
+            _paymentError = "Direct MTN MoMo is not available yet. Contact the school administrator.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_momoPhone))
+        {
+            _paymentError = "Enter the MTN MoMo number to receive the payment prompt.";
+            return;
+        }
+
+        _paymentError = "";
+        _paymentInfo = "";
+        _momoReference = "";
+        var externalId = $"FEE-{_selectedWard!.StudentID}-{DateTime.Now.Ticks}";
+
+        try
+        {
+            _isPaying = true;
+            var result = await MomoPaymentService.RequestToPayAsync(
+                _momoPhone,
+                _paymentAmount,
+                externalId,
+                $"School fee payment for {_selectedWard.FullName}",
+                "Nyansapo school fee payment",
+                _schoolId);
+
+            if (!result.IsSuccess || string.IsNullOrWhiteSpace(result.ReferenceId))
+            {
+                _paymentError = result.ErrorMessage ?? "Could not start MTN MoMo payment.";
+                return;
+            }
+
+            _momoReference = result.ReferenceId;
+            await CreatePaymentIntentAsync(_momoReference, PaymentMethod.Momo);
+            _paymentInfo = "MoMo prompt sent. Approve the payment on the phone, then click Check Status.";
+        }
+        finally
+        {
+            _isPaying = false;
+        }
+    }
+
+    private async Task CheckMomoPaymentStatus()
+    {
+        if (_selectedWard == null || string.IsNullOrWhiteSpace(_momoReference)) return;
+
+        _paymentError = "";
+        _paymentInfo = "";
+        _isCheckingMomo = true;
+        try
+        {
+            var result = await MomoPaymentService.CheckStatusAsync(_momoReference, _schoolId);
+            if (!result.IsValid)
+            {
+                _paymentInfo = result.ErrorMessage ?? "Payment has not been confirmed yet.";
+                return;
+            }
+
+            if (result.Amount > 0 && Math.Abs(result.Amount - _paymentAmount) > 0.01m)
+            {
+                _paymentError = "Confirmed MoMo amount does not match the expected fee amount.";
+                return;
+            }
+
+            await RecordSuccessfulPaymentAsync(_momoReference);
+        }
+        finally
+        {
+            _isCheckingMomo = false;
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnPaymentSuccess(string reference)
+    {
+        if (_selectedWard == null) return;
+
+        var intent = await PaymentIntentRepo.GetByReferenceAsync(reference);
+        if (intent == null || intent.SchoolId != _schoolId || intent.StudentID != _selectedWard.StudentID)
+        {
+            _paymentError = "Payment reference could not be matched to this school account.";
+            _pendingPaymentReference = "";
+            StateHasChanged();
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(reference) || reference != _pendingPaymentReference)
+        {
+            _paymentError = "Payment reference could not be verified.";
+            _pendingPaymentReference = "";
+            StateHasChanged();
+            return;
+        }
+
+        if (!_wards.Any(w => w.StudentID == _selectedWard.StudentID))
+        {
+            _paymentError = "Selected ward is invalid.";
+            _pendingPaymentReference = "";
+            StateHasChanged();
+            return;
+        }
+
+        if (_paymentAmount <= 0 || _paymentAmount > _selectedArrears)
+        {
+            _paymentError = "Payment amount is invalid.";
+            _pendingPaymentReference = "";
+            StateHasChanged();
+            return;
+        }
+
+        var verification = await PaystackVerifier.VerifyAsync(reference, _paymentAmount, _schoolId);
+        if (!verification.IsValid)
+        {
+            _paymentError = verification.ErrorMessage ?? "Payment could not be verified.";
+            _pendingPaymentReference = "";
+            StateHasChanged();
+            return;
+        }
+
+        await RecordSuccessfulPaymentAsync(reference);
+    }
+
+    private bool ValidatePaymentRequest()
+    {
+        if (_paymentAmount <= 0)
+        {
+            _paymentError = "Please enter a valid amount.";
+            return false;
+        }
+
+        if (_selectedWard == null || !_wards.Any(w => w.StudentID == _selectedWard.StudentID))
+        {
+            _paymentError = "Selected ward is invalid.";
+            return false;
+        }
+
+        if (_paymentAmount > _selectedArrears)
+        {
+            _paymentError = "Payment amount cannot exceed the outstanding balance.";
+            return false;
+        }
+
+        return true;
+    }
+
+    private async Task RecordSuccessfulPaymentAsync(string reference)
+    {
+        if (_selectedWard == null) return;
+
+        var newRecord = new PaymentRecordEntity
+        {
+            StudentID = _selectedWard.StudentID,
+            ClassID = _selectedWard.ClassID,
+            StudentName = _selectedWard.FullName,
+            AmountPaid = _paymentAmount,
+            Balance = _selectedArrears - _paymentAmount < 0 ? 0 : _selectedArrears - _paymentAmount,
+            PaymentDate = DateTime.Now,
+            SchoolId = _schoolId,
+            PaymentReference = reference
+        };
+
+        await FinanceRepo.RecordFeeCollectionAsync(newRecord, newRecord.Balance, _schoolId, $"parent:{_username}");
+        await PaymentIntentRepo.MarkCompletedAsync(reference);
+
+        _lastAmountPaid = _paymentAmount;
+        _pendingPaymentReference = "";
+        _momoReference = "";
+        _showPaymentModal = false;
+        _paymentSuccess = true;
+
+        await LoadData();
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public void OnPaymentClosed()
+    {
+        _pendingPaymentReference = "";
+    }
+
+    private void CloseSuccessModal()
+    {
+        _paymentSuccess = false;
+        _selectedWard = null;
+    }
+
+    public void Dispose()
+    {
+        _objRef?.Dispose();
+    }
+
+    private enum PaymentMethod
+    {
+        Paystack,
+        Momo
+    }
+
+    private async Task CreatePaymentIntentAsync(string reference, PaymentMethod method)
+    {
+        if (_selectedWard == null) return;
+
+        await PaymentIntentRepo.CreateAsync(new OnlinePaymentIntentEntity
+        {
+            Reference = reference,
+            SchoolId = _schoolId,
+            StudentID = _selectedWard.StudentID,
+            ClassID = _selectedWard.ClassID,
+            StudentName = _selectedWard.FullName,
+            Amount = _paymentAmount,
+            BalanceBeforePayment = _selectedArrears,
+            Gateway = method.ToString(),
+            CreatedBy = $"parent:{_username}"
+        });
+    }
+}

@@ -1,0 +1,73 @@
+@using KingdomPrep.Web.Data
+
+<!-- Class Enrollment -->
+<div class="bg-white rounded shadow-sm overflow-hidden mb-4">
+    <div class="p-2 text-white fw-semibold" style="background-color: #0b1f48; font-size: 0.95rem;">
+        <span class="ps-2">Class Enrollment</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-borderless table-striped mb-0" style="font-size: 0.8rem; border-top: 2px solid #d4af37;">
+            <thead style="background-color: #0b1f48; color: white;">
+                <tr>
+                    <th class="fw-normal py-2 px-3">Class</th>
+                    <th class="fw-normal py-2 text-center">Enrollment</th>
+                    <th class="fw-normal py-2">Class Teacher</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var c in ClassEnrollments.Take(5))
+                {
+                    <tr>
+                        <td class="px-3">@c.ClassName</td>
+                        <td class="text-center">@c.Count</td>
+                        <td>@c.Teacher</td>
+                    </tr>
+                }
+                @if (!ClassEnrollments.Any())
+                {
+                    <tr><td colspan="3" class="text-center text-muted py-3">No classes found.</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Academic And Leave Insight -->
+<div class="bg-white rounded shadow-sm overflow-hidden flex-fill">
+    <div class="p-2 text-white fw-semibold" style="background-color: #0b1f48; font-size: 0.95rem;">
+        <span class="ps-2">Academic And Leave Insight</span>
+    </div>
+    <div class="p-4" style="border-top: 2px solid #d4af37;">
+        <div class="d-flex align-items-center justify-content-between mb-4">
+            <div class="text-center">
+                <div class="text-muted small mb-1">Average Score</div>
+                <div class="fw-bold" style="font-size: 1.5rem; color: #0b1f48;">@AverageScore.ToString("0.0")%</div>
+            </div>
+            <div class="bg-light rounded p-2 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+            </div>
+            <div class="text-center">
+                <div class="text-muted small mb-1">Top Class</div>
+                <div class="bg-light rounded p-2 d-inline-flex align-items-center justify-content-center mx-auto" style="width: 40px; height: 40px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex align-items-center justify-content-between border-top pt-4">
+            <div>
+                <div class="text-muted small mb-1">Pending Leave</div>
+                <div class="fw-bold" style="font-size: 1.5rem; color: #0b1f48;">@PendingLeaves</div>
+            </div>
+            <div class="bg-light rounded p-2 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public List<ClassEnrollmentStat> ClassEnrollments { get; set; } = new();
+    [Parameter] public decimal AverageScore { get; set; }
+    [Parameter] public int PendingLeaves { get; set; }
+}

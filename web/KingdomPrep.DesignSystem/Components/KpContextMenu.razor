@@ -1,0 +1,136 @@
+@using Microsoft.AspNetCore.Components
+@using Microsoft.JSInterop
+@inject IJSRuntime JS
+
+<div class="kp-context-menu @GetPositionClass()" style="@GetPositionStyle()" @ref="MenuRef" role="menu" tabindex="-1">
+    @foreach (var item in Items)
+    {
+        if (item.IsSeparator)
+        {
+            <div class="kp-context-menu-separator" role="separator"></div>
+        }
+        else
+        {
+            <button
+                type="button"
+                class="@GetItemClass(item)"
+                role="menuitem"
+                disabled="@item.Disabled"
+                @onclick="@(() => OnItemClick(item))"
+                @onkeydown="@((e) => OnItemKeyDown(e, item))">
+                @if (item.Icon != null)
+                {
+                    <span class="kp-context-menu-icon" aria-hidden="true">@item.Icon</span>
+                }
+                <span class="kp-context-menu-label">@item.Label</span>
+                @if (item.Shortcut != null)
+                {
+                    <span class="kp-context-menu-shortcut">@item.Shortcut</span>
+                }
+                @if (item.HasSubmenu)
+                {
+                    <span class="kp-context-menu-submenu-arrow" aria-hidden="true">►</span>
+                }
+            </button>
+
+            @if (item.HasSubmenu && item.SubmenuItems != null)
+            {
+                <div class="kp-context-menu-submenu" role="menu">
+                    @foreach (var subItem in item.SubmenuItems)
+                    {
+                        if (subItem.IsSeparator)
+                        {
+                            <div class="kp-context-menu-separator" role="separator"></div>
+                        }
+                        else
+                        {
+                            <button
+                                type="button"
+                                class="@GetItemClass(subItem)"
+                                role="menuitem"
+                                disabled="@subItem.Disabled"
+                                @onclick="@(() => OnItemClick(subItem))">
+                                @if (subItem.Icon != null)
+                                {
+                                    <span class="kp-context-menu-icon" aria-hidden="true">@subItem.Icon</span>
+                                }
+                                <span class="kp-context-menu-label">@subItem.Label</span>
+                                @if (subItem.Shortcut != null)
+                                {
+                                    <span class="kp-context-menu-shortcut">@subItem.Shortcut</span>
+                                }
+                            </button>
+                        }
+                    }
+                </div>
+            }
+        }
+    }
+</div>
+
+@code {
+    [Parameter] public bool IsOpen { get; set; }
+    [Parameter] public List<ContextMenuItem> Items { get; set; } = new();
+    [Parameter] public double X { get; set; }
+    [Parameter] public double Y { get; set; }
+    [Parameter] public EventCallback<ContextMenuItem> ItemClicked { get; set; }
+    [Parameter] public EventCallback Closed { get; set; }
+
+    private ElementReference MenuRef;
+
+    public class ContextMenuItem
+    {
+        public string Label { get; set; } = "";
+        public string? Icon { get; set; }
+        public string? Shortcut { get; set; }
+        public bool Disabled { get; set; }
+        public bool IsSeparator { get; set; }
+        public bool HasSubmenu { get; set; }
+        public List<ContextMenuItem>? SubmenuItems { get; set; }
+        public object? Tag { get; set; }
+    }
+
+    private string GetPositionStyle() => $"left: {X}px; top: {Y}px;";
+
+    private string GetPositionClass()
+    {
+        var classes = new List<string>();
+        // Could add positioning logic here for viewport edges
+        return string.Join(" ", classes);
+    }
+
+    private string GetItemClass(ContextMenuItem item)
+    {
+        var classes = new List<string> { "kp-context-menu-item" };
+        if (item.Disabled) classes.Add("kp-context-menu-item-disabled");
+        return string.Join(" ", classes);
+    }
+
+    private async Task OnItemClick(ContextMenuItem item)
+    {
+        if (item.Disabled) return;
+
+        await ItemClicked.InvokeAsync(item);
+        await Closed.InvokeAsync();
+    }
+
+    private async Task OnItemKeyDown(KeyboardEventArgs e, ContextMenuItem item)
+    {
+        if (e.Key == "Enter" || e.Key == " ")
+        {
+            await OnItemClick(item);
+        }
+        else if (e.Key == "Escape")
+        {
+            await Closed.InvokeAsync();
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && IsOpen)
+        {
+            await MenuRef.FocusAsync();
+        }
+    }
+}

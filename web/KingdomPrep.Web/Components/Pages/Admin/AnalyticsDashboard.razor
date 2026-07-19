@@ -1,0 +1,734 @@
+@page "/admin/analytics"
+@page "/analytics"
+@rendermode InteractiveServer
+@attribute [Authorize]
+@using KingdomPrep.Web.Data
+@using KingdomPrep.Web.Core
+@inject IDashboardStats DashStats
+@inject IJSRuntime JSRuntime
+@inject IPortalTenantContext TenantContext
+
+<PageTitle>Analytics Dashboard</PageTitle>
+
+<style>
+    .analytics-hero {
+        background: linear-gradient(135deg, #0b1f48 0%, #173269 50%, #0b1f48 100%);
+        border-radius: 16px;
+        border-bottom: 4px solid #d4af37;
+        padding: 2.25rem 2.5rem;
+        color: white;
+        box-shadow: 0 10px 25px rgba(11, 31, 72, 0.25);
+        position: relative;
+        overflow: hidden;
+    }
+    .analytics-hero::after {
+        content: "";
+        position: absolute;
+        top: -50%;
+        right: -10%;
+        width: 350px;
+        height: 350px;
+        background: radial-gradient(circle, rgba(212, 175, 55, 0.15) 0%, rgba(255,255,255,0) 70%);
+        border-radius: 50%;
+        pointer-events: none;
+    }
+    .stat-card-modern {
+        background: white;
+        border-radius: 14px;
+        padding: 1.25rem 1.5rem;
+        box-shadow: 0 4px 18px rgba(0, 0, 0, 0.04);
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+    .stat-card-modern:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(11, 31, 72, 0.08);
+        border-color: #d4af37;
+    }
+    .stat-icon-wrapper {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+    }
+    .chart-card-modern {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.05);
+        border: 1px solid #e2e8f0;
+        border-top: 3px solid #0b1f48;
+        padding: 1.5rem;
+        margin-bottom: 1.75rem;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+    .chart-card-modern:hover {
+        box-shadow: 0 10px 28px rgba(0, 0, 0, 0.08);
+    }
+    .chart-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1.25rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid #f1f5f9;
+    }
+    .chart-title {
+        font-weight: 700;
+        font-size: 1.1rem;
+        color: #0b1f48;
+        margin-bottom: 0.2rem;
+    }
+    .chart-subtitle {
+        font-size: 0.825rem;
+        color: #64748b;
+        margin: 0;
+    }
+    .tab-pill-btn {
+        padding: 0.6rem 1.25rem;
+        border-radius: 30px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        border: 1px solid rgba(255,255,255,0.2);
+        background: rgba(255,255,255,0.1);
+        color: white;
+        transition: all 0.2s ease;
+        cursor: pointer;
+    }
+    .tab-pill-btn:hover, .tab-pill-btn.active {
+        background: #d4af37;
+        color: #0b1f48;
+        border-color: #d4af37;
+        box-shadow: 0 4px 12px rgba(212, 175, 55, 0.4);
+    }
+    .css-bar-container {
+        width: 100%;
+        background: #f1f5f9;
+        border-radius: 6px;
+        height: 10px;
+        overflow: hidden;
+        margin-top: 4px;
+    }
+    .css-bar-fill {
+        height: 100%;
+        border-radius: 6px;
+        transition: width 0.8s ease-in-out;
+    }
+    .btn-gold {
+        background: #d4af37;
+        color: #0b1f48;
+        font-weight: 600;
+        border: none;
+        padding: 0.5rem 1.25rem;
+        border-radius: 8px;
+        transition: all 0.2s ease;
+    }
+    .btn-gold:hover {
+        background: #f5c742;
+        color: #0b1f48;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(212, 175, 55, 0.4);
+    }
+</style>
+
+<div class="analytics-hero mb-4 d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-4">
+    <div>
+        <div class="d-flex align-items-center gap-2 mb-2">
+            <span class="badge bg-warning text-dark px-3 py-1 fw-bold" style="border-radius: 20px; font-size: 0.75rem; letter-spacing: 0.5px;">EXECUTIVE PORTAL</span>
+            <span class="text-white-50 small">| Visual Analytics Engine v2.0</span>
+        </div>
+        <h1 class="fw-bold mb-2 text-white" style="font-size: 2.25rem; letter-spacing: -0.5px;">
+            Analytics Dashboard
+        </h1>
+        <p class="mb-0 text-white" style="opacity: 0.9; max-width: 650px; font-size: 0.95rem; line-height: 1.5;">
+            Real-time visual intelligence across 20 comprehensive modules mirroring the desktop analytics system.
+        </p>
+    </div>
+    <div class="d-flex flex-wrap align-items-center gap-2">
+        <button class="btn btn-gold d-flex align-items-center gap-2" @onclick="RefreshData" disabled="@_isLoading">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="@(_isLoading ? "spin-icon" : "")"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path><path d="M16 21h5v-5"></path></svg>
+            <span>@(_isLoading ? "Refreshing..." : "Refresh Charts")</span>
+        </button>
+        <button class="btn btn-outline-light d-flex align-items-center gap-2 style='border-radius: 8px;'" @onclick="PrintReport">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"></path><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><path d="M6 14h12v8H6z"></path></svg>
+            <span>Print Report</span>
+        </button>
+    </div>
+</div>
+
+<!-- Top Executive Summary Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3 col-xl-3">
+        <div class="stat-card-modern">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <div>
+                    <span class="text-muted small fw-semibold text-uppercase" style="letter-spacing: 0.5px;">Total Enrollment</span>
+                    <h3 class="fw-bold mb-0 mt-1" style="color: #0b1f48; font-size: 1.75rem;">@_data.StudentCount</h3>
+                </div>
+                <div class="stat-icon-wrapper" style="background: rgba(14, 165, 233, 0.1); color: #0ea5e9;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                </div>
+            </div>
+            <div class="d-flex align-items-center gap-1 text-success small fw-semibold">
+                <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"></circle></svg>
+                <span>Active Academic Year</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3 col-xl-3">
+        <div class="stat-card-modern">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <div>
+                    <span class="text-muted small fw-semibold text-uppercase" style="letter-spacing: 0.5px;">Staff & Faculty</span>
+                    <h3 class="fw-bold mb-0 mt-1" style="color: #0b1f48; font-size: 1.75rem;">@_data.EmployeeCount</h3>
+                </div>
+                <div class="stat-icon-wrapper" style="background: rgba(139, 92, 246, 0.1); color: #8b5cf6;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+                </div>
+            </div>
+            <div class="d-flex align-items-center gap-1 text-muted small">
+                <span>5 Departments active</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3 col-xl-3">
+        <div class="stat-card-modern">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <div>
+                    <span class="text-muted small fw-semibold text-uppercase" style="letter-spacing: 0.5px;">Fee Revenue</span>
+                    <h3 class="fw-bold mb-0 mt-1" style="color: #10b981; font-size: 1.55rem;">GHS @(_data.TotalRevenue.ToString("N0"))</h3>
+                </div>
+                <div class="stat-icon-wrapper" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                </div>
+            </div>
+            <div class="d-flex align-items-center gap-1 text-success small fw-semibold">
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
+                <span>Total collections to date</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3 col-xl-3">
+        <div class="stat-card-modern">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <div>
+                    <span class="text-muted small fw-semibold text-uppercase" style="letter-spacing: 0.5px;">Outstanding Fees</span>
+                    <h3 class="fw-bold mb-0 mt-1" style="color: #f43f5e; font-size: 1.55rem;">GHS @(_data.TotalBalance.ToString("N0"))</h3>
+                </div>
+                <div class="stat-icon-wrapper" style="background: rgba(244, 63, 94, 0.1); color: #f43f5e;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                </div>
+            </div>
+            <div class="d-flex align-items-center gap-1 text-danger small fw-semibold">
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                <span>Action required</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3 col-xl-3">
+        <div class="stat-card-modern">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <div>
+                    <span class="text-muted small fw-semibold text-uppercase" style="letter-spacing: 0.5px;">Total Expenses</span>
+                    <h3 class="fw-bold mb-0 mt-1" style="color: #64748b; font-size: 1.55rem;">GHS @(_data.TotalExpenses.ToString("N0"))</h3>
+                </div>
+                <div class="stat-icon-wrapper" style="background: rgba(100, 116, 139, 0.1); color: #64748b;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+                </div>
+            </div>
+            <div class="d-flex align-items-center gap-1 text-muted small">
+                <span>Current term spending</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3 col-xl-3">
+        <div class="stat-card-modern">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <div>
+                    <span class="text-muted small fw-semibold text-uppercase" style="letter-spacing: 0.5px;">Net School Fund</span>
+                    <h3 class="fw-bold mb-0 mt-1" style="color: #0b1f48; font-size: 1.55rem;">GHS @(_data.NetFund.ToString("N0"))</h3>
+                </div>
+                <div class="stat-icon-wrapper" style="background: rgba(212, 175, 55, 0.15); color: #d4af37;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"></path><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                </div>
+            </div>
+            <div class="d-flex align-items-center gap-1 text-success small fw-semibold">
+                <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"></circle></svg>
+                <span>Surplus reserves</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3 col-xl-3">
+        <div class="stat-card-modern">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <div>
+                    <span class="text-muted small fw-semibold text-uppercase" style="letter-spacing: 0.5px;">Average Score</span>
+                    <h3 class="fw-bold mb-0 mt-1" style="color: #0ea5e9; font-size: 1.75rem;">@(_data.AverageExamScore.ToString("0.0"))%</h3>
+                </div>
+                <div class="stat-icon-wrapper" style="background: rgba(14, 165, 233, 0.1); color: #0ea5e9;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"></path><path d="M6 12v5c3 3 9 3 12 0v-5"></path></svg>
+                </div>
+            </div>
+            <div class="d-flex align-items-center gap-1 text-primary small fw-semibold">
+                <span>Across all subjects</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3 col-xl-3">
+        <div class="stat-card-modern">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <div>
+                    <span class="text-muted small fw-semibold text-uppercase" style="letter-spacing: 0.5px;">Attendance Rate</span>
+                    <h3 class="fw-bold mb-0 mt-1" style="color: #10b981; font-size: 1.75rem;">@(_data.AttendanceRateToday.ToString("0.0"))%</h3>
+                </div>
+                <div class="stat-icon-wrapper" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                </div>
+            </div>
+            <div class="d-flex align-items-center gap-1 text-success small fw-semibold">
+                <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"></circle></svg>
+                <span>Live today</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Tabs -->
+<div class="d-flex flex-wrap gap-2 mb-4 p-3 rounded-4" style="background: #0b1f48; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+    <button class="tab-pill-btn d-flex align-items-center gap-2 @(_selectedTab == "all" ? "active" : "")" @onclick="@(() => SetTab("all"))">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"></rect><rect width="7" height="7" x="14" y="3" rx="1"></rect><rect width="7" height="7" x="14" y="14" rx="1"></rect><rect width="7" height="7" x="3" y="14" rx="1"></rect></svg>
+        <span>All Analytics (20)</span>
+    </button>
+    <button class="tab-pill-btn d-flex align-items-center gap-2 @(_selectedTab == "finance" ? "active" : "")" @onclick="@(() => SetTab("finance"))">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+        <span>Financial & Fees (6)</span>
+    </button>
+    <button class="tab-pill-btn d-flex align-items-center gap-2 @(_selectedTab == "academics" ? "active" : "")" @onclick="@(() => SetTab("academics"))">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"></path><path d="M6 12v5c3 3 9 3 12 0v-5"></path></svg>
+        <span>Academics & Exams (4)</span>
+    </button>
+    <button class="tab-pill-btn d-flex align-items-center gap-2 @(_selectedTab == "enrollment" ? "active" : "")" @onclick="@(() => SetTab("enrollment"))">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+        <span>Enrollment & Demography (4)</span>
+    </button>
+    <button class="tab-pill-btn d-flex align-items-center gap-2 @(_selectedTab == "staff" ? "active" : "")" @onclick="@(() => SetTab("staff"))">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+        <span>Staff & Attendance (6)</span>
+    </button>
+</div>
+
+<!-- Chart Grid -->
+<div class="row g-4 mb-5">
+    @if (ShowTab("finance"))
+    {
+        <!-- 1. Fee Collection Status -->
+        <div class="col-12 col-lg-6">
+            <div class="chart-card-modern">
+                <div class="chart-header">
+                    <div>
+                        <h3 class="chart-title">Fees — Collected vs Outstanding</h3>
+                        <p class="chart-subtitle">Overall fee recovery status across all classes</p>
+                    </div>
+                    <span class="badge bg-light text-dark fw-bold border">Feature #1</span>
+                </div>
+                <div style="height: 280px; position: relative;">
+                    <canvas id="chartFeeStatus"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. Monthly Fee Collection Trend -->
+        <div class="col-12 col-lg-6">
+            <div class="chart-card-modern">
+                <div class="chart-header">
+                    <div>
+                        <h3 class="chart-title">Monthly Fee Collection Trend</h3>
+                        <p class="chart-subtitle">Cash flow trajectory over the current academic year</p>
+                    </div>
+                    <span class="badge bg-light text-dark fw-bold border">Feature #4</span>
+                </div>
+                <div style="height: 280px; position: relative;">
+                    <canvas id="chartFeeTrend"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- 6. Income vs Expenses -->
+        <div class="col-12 col-lg-6">
+            <div class="chart-card-modern">
+                <div class="chart-header">
+                    <div>
+                        <h3 class="chart-title">Income vs Expenses (Monthly)</h3>
+                        <p class="chart-subtitle">Comparative financial health and monthly operational profit</p>
+                    </div>
+                    <span class="badge bg-light text-dark fw-bold border">Feature #6</span>
+                </div>
+                <div style="height: 280px; position: relative;">
+                    <canvas id="chartIncomeExpense"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- 10. Outstanding Fees by Class -->
+        <div class="col-12 col-lg-6">
+            <div class="chart-card-modern">
+                <div class="chart-header">
+                    <div>
+                        <h3 class="chart-title">Outstanding Fees by Class</h3>
+                        <p class="chart-subtitle">Total unpaid balance categorized by classroom</p>
+                    </div>
+                    <span class="badge bg-light text-dark fw-bold border">Feature #10</span>
+                </div>
+                <div style="height: 280px; position: relative;">
+                    <canvas id="chartOutstandingByClass"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- 11. Payment Method Breakdown -->
+        <div class="col-12 col-lg-6">
+            <div class="chart-card-modern">
+                <div class="chart-header">
+                    <div>
+                        <h3 class="chart-title">Payment Method Breakdown</h3>
+                        <p class="chart-subtitle">Distribution of bank transfer, cash, mobile money & cheques</p>
+                    </div>
+                    <span class="badge bg-light text-dark fw-bold border">Feature #11</span>
+                </div>
+                <div style="height: 280px; position: relative;">
+                    <canvas id="chartPaymentMethod"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- 13. Expense Breakdown by Category -->
+        <div class="col-12 col-lg-6">
+            <div class="chart-card-modern">
+                <div class="chart-header">
+                    <div>
+                        <h3 class="chart-title">Expense Breakdown by Category</h3>
+                        <p class="chart-subtitle">Top operational expenditures and administrative allocations</p>
+                    </div>
+                    <span class="badge bg-light text-dark fw-bold border">Feature #13</span>
+                </div>
+                <div style="height: 280px; position: relative;">
+                    <canvas id="chartExpenseCategory"></canvas>
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (ShowTab("academics"))
+    {
+        <!-- 3. Average Exam Score by Subject -->
+        <div class="col-12 col-lg-6">
+            <div class="chart-card-modern">
+                <div class="chart-header">
+                    <div>
+                        <h3 class="chart-title">Average Exam Score by Subject</h3>
+                        <p class="chart-subtitle">Academic performance comparison across curriculum disciplines</p>
+                    </div>
+                    <span class="badge bg-light text-dark fw-bold border">Feature #3</span>
+                </div>
+                <div style="height: 280px; position: relative;">
+                    <canvas id="chartExamScores"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- 8. Exam Grade Distribution -->
+        <div class="col-12 col-lg-6">
+            <div class="chart-card-modern">
+                <div class="chart-header">
+                    <div>
+                        <h3 class="chart-title">Exam Grade Distribution</h3>
+                        <p class="chart-subtitle">Overall letter grade breakdown (A, B+, B, C, D, F)</p>
+                    </div>
+                    <span class="badge bg-light text-dark fw-bold border">Feature #8</span>
+                </div>
+                <div style="height: 280px; position: relative;">
+                    <canvas id="chartGradeDist"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- 15. Class Average Score Comparison -->
+        <div class="col-12 col-lg-6">
+            <div class="chart-card-modern">
+                <div class="chart-header">
+                    <div>
+                        <h3 class="chart-title">Class Average Score Comparison</h3>
+                        <p class="chart-subtitle">Benchmarking grade-level achievement and proficiency</p>
+                    </div>
+                    <span class="badge bg-light text-dark fw-bold border">Feature #15</span>
+                </div>
+                <div style="height: 280px; position: relative;">
+                    <canvas id="chartClassAvg"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- 21. Subject Pass/Fail Rate -->
+        <div class="col-12 col-lg-6">
+            <div class="chart-card-modern">
+                <div class="chart-header">
+                    <div>
+                        <h3 class="chart-title">Subject Pass/Fail Rate (Pass ≥ 50%)</h3>
+                        <p class="chart-subtitle">Success ratio vs intervention requirements per subject</p>
+                    </div>
+                    <span class="badge bg-light text-dark fw-bold border">Feature #21</span>
+                </div>
+                <div style="height: 280px; position: relative;">
+                    <canvas id="chartSubjectPassFail"></canvas>
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (ShowTab("enrollment"))
+    {
+        <!-- 2. Student Enrollment by Class -->
+        <div class="col-12 col-lg-6">
+            <div class="chart-card-modern">
+                <div class="chart-header">
+                    <div>
+                        <h3 class="chart-title">Student Enrollment by Class</h3>
+                        <p class="chart-subtitle">Student headcount distribution across grade levels</p>
+                    </div>
+                    <span class="badge bg-light text-dark fw-bold border">Feature #2</span>
+                </div>
+                <div style="height: 280px; position: relative;">
+                    <canvas id="chartEnrollment"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- 16. Student Gender Distribution -->
+        <div class="col-12 col-lg-6">
+            <div class="chart-card-modern">
+                <div class="chart-header">
+                    <div>
+                        <h3 class="chart-title">Student Gender Distribution</h3>
+                        <p class="chart-subtitle">Male vs Female student demographic balance</p>
+                    </div>
+                    <span class="badge bg-light text-dark fw-bold border">Feature #16</span>
+                </div>
+                <div style="height: 280px; position: relative;">
+                    <canvas id="chartGender"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- 18. Admissions per Year -->
+        <div class="col-12 col-lg-6">
+            <div class="chart-card-modern">
+                <div class="chart-header">
+                    <div>
+                        <h3 class="chart-title">Admissions per Year</h3>
+                        <p class="chart-subtitle">Historical new student intake and school growth trajectory</p>
+                    </div>
+                    <span class="badge bg-light text-dark fw-bold border">Feature #18</span>
+                </div>
+                <div style="height: 280px; position: relative;">
+                    <canvas id="chartAdmissionsYear"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- 19. Active vs Rolled-out Students -->
+        <div class="col-12 col-lg-6">
+            <div class="chart-card-modern">
+                <div class="chart-header">
+                    <div>
+                        <h3 class="chart-title">Active vs Rolled-out Students</h3>
+                        <p class="chart-subtitle">Currently enrolled vs alumni / graduated / transferred status</p>
+                    </div>
+                    <span class="badge bg-light text-dark fw-bold border">Feature #19</span>
+                </div>
+                <div style="height: 280px; position: relative;">
+                    <canvas id="chartActiveRolledOut"></canvas>
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (ShowTab("staff"))
+    {
+        <!-- 5. Monthly Attendance Rate (%) -->
+        <div class="col-12 col-lg-6">
+            <div class="chart-card-modern">
+                <div class="chart-header">
+                    <div>
+                        <h3 class="chart-title">Monthly Attendance Rate (%)</h3>
+                        <p class="chart-subtitle">School-wide attendance consistency over the academic year</p>
+                    </div>
+                    <span class="badge bg-light text-dark fw-bold border">Feature #5</span>
+                </div>
+                <div style="height: 280px; position: relative;">
+                    <canvas id="chartAttendanceTrend"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- 9. Attendance Rate by Class (%) -->
+        <div class="col-12 col-lg-6">
+            <div class="chart-card-modern">
+                <div class="chart-header">
+                    <div>
+                        <h3 class="chart-title">Attendance Rate by Class (%)</h3>
+                        <p class="chart-subtitle">Classroom attendance reliability and engagement rating</p>
+                    </div>
+                    <span class="badge bg-light text-dark fw-bold border">Feature #9</span>
+                </div>
+                <div style="height: 280px; position: relative;">
+                    <canvas id="chartAttendanceByClass"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- 14. Top 10 Most-Absent Students -->
+        <div class="col-12 col-lg-6">
+            <div class="chart-card-modern">
+                <div class="chart-header">
+                    <div>
+                        <h3 class="chart-title">Top 10 Most-Absent Students</h3>
+                        <p class="chart-subtitle">Students requiring guidance counseling and parental intervention</p>
+                    </div>
+                    <span class="badge bg-light text-dark fw-bold border">Feature #14</span>
+                </div>
+                <div style="height: 280px; position: relative;">
+                    <canvas id="chartTopAbsent"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- 7. Staff Leave Status -->
+        <div class="col-12 col-lg-6">
+            <div class="chart-card-modern">
+                <div class="chart-header">
+                    <div>
+                        <h3 class="chart-title">Staff Leave Status</h3>
+                        <p class="chart-subtitle">Breakdown of approved, pending, and rejected staff leave requests</p>
+                    </div>
+                    <span class="badge bg-light text-dark fw-bold border">Feature #7</span>
+                </div>
+                <div style="height: 280px; position: relative;">
+                    <canvas id="chartLeaveStatus"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- 12. Staff by Department -->
+        <div class="col-12 col-lg-6">
+            <div class="chart-card-modern">
+                <div class="chart-header">
+                    <div>
+                        <h3 class="chart-title">Staff by Department</h3>
+                        <p class="chart-subtitle">Human resource distribution across teaching and administrative units</p>
+                    </div>
+                    <span class="badge bg-light text-dark fw-bold border">Feature #12</span>
+                </div>
+                <div style="height: 280px; position: relative;">
+                    <canvas id="chartStaffDept"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- 20. Salary Spend by Department -->
+        <div class="col-12 col-lg-6">
+            <div class="chart-card-modern">
+                <div class="chart-header">
+                    <div>
+                        <h3 class="chart-title">Salary Spend by Department</h3>
+                        <p class="chart-subtitle">Payroll expenditure allocation across institutional faculties</p>
+                    </div>
+                    <span class="badge bg-light text-dark fw-bold border">Feature #20</span>
+                </div>
+                <div style="height: 280px; position: relative;">
+                    <canvas id="chartSalaryDept"></canvas>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private WebAnalyticsData _data = new();
+    private bool _isLoading = false;
+    private string _selectedTab = "all";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAnalyticsAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender || _data.StudentCount > 0)
+        {
+            await RenderCharts();
+        }
+    }
+
+    private async Task LoadAnalyticsAsync()
+    {
+        _isLoading = true;
+        try
+        {
+            var tenant = await TenantContext.GetCurrentAsync();
+            var schoolId = tenant.SchoolId;
+            _data = await DashStats.GetAnalyticsDataAsync(schoolId);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading analytics data: {ex.Message}");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task RefreshData()
+    {
+        await LoadAnalyticsAsync();
+        await RenderCharts();
+    }
+
+    private async Task SetTab(string tab)
+    {
+        _selectedTab = tab;
+        await Task.Delay(50); // allow DOM to update canvases
+        await RenderCharts();
+    }
+
+    private bool ShowTab(string category)
+    {
+        return _selectedTab == "all" || _selectedTab == category;
+    }
+
+    private async Task RenderCharts()
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("renderNyansapoAnalyticsCharts", _data);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"JS Chart render note: {ex.Message}");
+        }
+    }
+
+    private async Task PrintReport()
+    {
+        await JSRuntime.InvokeVoidAsync("print");
+    }
+}

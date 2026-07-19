@@ -11,5 +11,5 @@ public interface IAuthService
 /// </summary>
 public interface IUserLookup
 {
-    Task<(string Password, string? UserType, int? EmploymentId)?> FindAsync(string username);
+    Task<(string Password, string? UserType, int? EmploymentId, Guid? SchoolId)?> FindAsync(string username);
 }

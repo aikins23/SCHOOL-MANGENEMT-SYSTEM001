@@ -1,0 +1,159 @@
+@page "/admin/audit-log"
+@rendermode InteractiveServer
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Administrator,Headmaster,Director")]
+@using KingdomPrep.Web.Data
+@using KingdomPrep.Web.Data.Entities
+@inject IAuditLogService AuditLogService
+@inject IPortalTenantContext TenantContext
+
+<PageTitle>Audit Log - Nyansapo ERP</PageTitle>
+
+<div class="container-fluid mt-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h2 class="mb-1 fw-bold" style="color: #0b1f48;">Audit Log</h2>
+            <p class="text-muted mb-0">Track important administrative actions across the web portal.</p>
+        </div>
+        <a class="btn btn-outline-primary fw-semibold" href="admin/users">User Accounts</a>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted text-uppercase fw-semibold small mb-2">Events</div>
+                    <div class="fs-3 fw-bold">@_logs.Count</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted text-uppercase fw-semibold small mb-2">Actors</div>
+                    <div class="fs-3 fw-bold">@_logs.Select(l => l.ActorUsername).Distinct().Count()</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted text-uppercase fw-semibold small mb-2">Actions</div>
+                    <div class="fs-3 fw-bold">@_logs.Select(l => l.Action).Distinct().Count()</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted text-uppercase fw-semibold small mb-2">Latest</div>
+                    <div class="fs-6 fw-bold">@(_logs.FirstOrDefault()?.CreatedAt.ToLocalTime().ToString("dd MMM, HH:mm") ?? "-")</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold text-muted">Search</label>
+                    <input class="form-control" placeholder="Actor, action, entity, or summary" @bind="_searchTerm" @bind:event="oninput" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold text-muted">Action</label>
+                    <input class="form-control" placeholder="e.g. PasswordChanged" @bind="_actionFilter" @bind:event="oninput" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label fw-semibold text-muted">From</label>
+                    <InputDate class="form-control" @bind-Value="_from" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label fw-semibold text-muted">To</label>
+                    <InputDate class="form-control" @bind-Value="_to" />
+                </div>
+                <div class="col-md-1 d-flex justify-content-md-end gap-2">
+                    <button class="btn btn-primary fw-semibold" @onclick="LoadAsync" disabled="@_isLoading">Apply</button>
+                </div>
+            </div>
+            <div class="d-flex justify-content-end mt-3">
+                <button class="btn btn-light fw-semibold px-4" @onclick="ClearFilters" disabled="@_isLoading">Clear</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Time</th>
+                            <th>Actor</th>
+                            <th>Action</th>
+                            <th>Entity</th>
+                            <th>Summary</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (_isLoading)
+                        {
+                            <tr><td colspan="5" class="text-center py-4"><span class="spinner-border spinner-border-sm"></span></td></tr>
+                        }
+                        else if (!_logs.Any())
+                        {
+                            <tr><td colspan="5" class="text-center text-muted py-4">No audit events found.</td></tr>
+                        }
+                        else
+                        {
+                            @foreach (var log in _logs)
+                            {
+                                <tr>
+                                    <td class="text-muted">@log.CreatedAt.ToLocalTime().ToString("dd MMM yyyy HH:mm")</td>
+                                    <td class="fw-semibold">@log.ActorUsername</td>
+                                    <td><span class="badge bg-primary">@log.Action</span></td>
+                                    <td>
+                                        <div>@log.EntityType</div>
+                                        <div class="small text-muted">@log.EntityId</div>
+                                    </td>
+                                    <td>@log.Summary</td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<AuditLogEntity> _logs = new();
+    private string _searchTerm = "";
+    private string _actionFilter = "";
+    private DateTime? _from;
+    private DateTime? _to;
+    private bool _isLoading = true;
+    private Guid? _schoolId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _schoolId = (await TenantContext.GetCurrentAsync()).SchoolId;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _isLoading = true;
+        _logs = await AuditLogService.GetLogsAsync(_searchTerm, _actionFilter, _from, _to, _schoolId);
+        _isLoading = false;
+    }
+
+    private async Task ClearFilters()
+    {
+        _searchTerm = "";
+        _actionFilter = "";
+        _from = null;
+        _to = null;
+        await LoadAsync();
+    }
+}

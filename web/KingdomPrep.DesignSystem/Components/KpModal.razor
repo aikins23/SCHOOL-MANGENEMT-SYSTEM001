@@ -1,0 +1,76 @@
+@using Microsoft.AspNetCore.Components
+
+@if (IsOpen)
+{
+    <div class="kp-modal-overlay" @onclick="@Close" @onclick:stopPropagation="true">
+        <div class="kp-modal @SizeClass" @onclick:stopPropagation="true" role="dialog" aria-modal="true" aria-labelledby="@TitleId" aria-describedby="@BodyId">
+            @if (!string.IsNullOrWhiteSpace(Title))
+            {
+                <div class="kp-modal-header">
+                    <h2 id="@TitleId" class="kp-modal-title">@Title</h2>
+                    <button
+                        type="button"
+                        class="kp-modal-close"
+                        @onclick="@Close"
+                        aria-label="Close dialog">
+                        ✕
+                    </button>
+                </div>
+            }
+
+            <div id="@BodyId" class="kp-modal-body">
+                @Body
+            </div>
+
+            @if (Footer != null)
+            {
+                <div class="kp-modal-footer">
+                    @Footer
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool IsOpen { get; set; }
+    [Parameter] public EventCallback<bool> IsOpenChanged { get; set; }
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public RenderFragment? Body { get; set; }
+    [Parameter] public RenderFragment? Footer { get; set; }
+    [Parameter] public ModalSize Size { get; set; } = ModalSize.Medium;
+    [Parameter] public bool CloseOnOverlayClick { get; set; } = true;
+    [Parameter] public bool CloseOnEscape { get; set; } = true;
+
+    public enum ModalSize { Small, Medium, Large, FullScreen }
+
+    private string TitleId => $"kp-modal-title-{Guid.NewGuid().ToString()[..8]}";
+    private string BodyId => $"kp-modal-body-{Guid.NewGuid().ToString()[..8]}";
+    private string SizeClass => Size switch
+    {
+        ModalSize.Small => "kp-modal-sm",
+        ModalSize.Medium => "kp-modal-md",
+        ModalSize.Large => "kp-modal-lg",
+        ModalSize.FullScreen => "kp-modal-fullscreen",
+        _ => "kp-modal-md"
+    };
+
+    private async Task Close()
+    {
+        if (!CloseOnOverlayClick) return;
+        await CloseAsync();
+    }
+
+    public async Task CloseAsync()
+    {
+        await IsOpenChanged.InvokeAsync(false);
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (IsOpen && CloseOnEscape)
+        {
+            // Escape key handling would be done via JS interop in a real implementation
+        }
+    }
+}

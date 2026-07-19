@@ -1,0 +1,153 @@
+@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Components.Forms
+@inherits InputBase<string>
+
+<div class="kp-form-field">
+    @if (!string.IsNullOrWhiteSpace(Label))
+    {
+        <label class="kp-form-label" for="@InputId">@Label</label>
+    }
+
+    <div class="kp-input-wrapper">
+        @if (LeftIcon != null)
+        {
+            <span class="kp-input-icon kp-input-icon-left" aria-hidden="true">@LeftIcon</span>
+        }
+
+        <input
+            id="@InputId"
+            name="@NameAttributeValue"
+            type="@Type"
+            class="@GetInputClass()"
+            value="@CurrentValueAsString"
+            placeholder="@Placeholder"
+            disabled="@Disabled"
+            readonly="@ReadOnly"
+            required="@Required"
+            aria-invalid="@AriaInvalid.ToString().ToLower()"
+            aria-describedby="@GetAriaDescribedBy()"
+            @oninput="OnInputChanged"
+            @onblur="OnBlur"
+            @onfocus="OnFocus"
+            @attributes="AdditionalAttributes" />
+
+        @if (RightIcon != null)
+        {
+            <span class="kp-input-icon kp-input-icon-right" aria-hidden="true">@RightIcon</span>
+        }
+
+        @if (ShowClearButton && !string.IsNullOrWhiteSpace(CurrentValueAsString) && !Disabled && !ReadOnly)
+        {
+            <button
+                type="button"
+                class="kp-input-clear"
+                @onclick="ClearValue"
+                aria-label="Clear input">
+                ✕
+            </button>
+        }
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(HelperText))
+    {
+        <span class="kp-form-text" id="@HelperTextId">@HelperText</span>
+    }
+    else if (ShowValidationMessage && HasValidationMessage)
+    {
+        <span class="kp-validation-message" id="@ValidationMessageId" role="alert">@GetValidationMessage()</span>
+    }
+</div>
+
+@code {
+    private readonly string _generatedInputId = $"kp-input-{Guid.NewGuid().ToString()[..8]}";
+
+    [Parameter] public string? Id { get; set; }
+    [Parameter] public string? Label { get; set; }
+    [Parameter] public string? Placeholder { get; set; }
+    [Parameter] public string? Type { get; set; } = "text";
+    [Parameter] public RenderFragment? LeftIcon { get; set; }
+    [Parameter] public RenderFragment? RightIcon { get; set; }
+    [Parameter] public string? HelperText { get; set; }
+    [Parameter] public bool ShowValidationMessage { get; set; } = true;
+    [Parameter] public bool ShowClearButton { get; set; } = false;
+    [Parameter] public bool Disabled { get; set; }
+    [Parameter] public bool ReadOnly { get; set; }
+    [Parameter] public bool Required { get; set; }
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public InputSize Size { get; set; } = InputSize.Medium;
+    [Parameter] public EventCallback<FocusEventArgs> OnBlur { get; set; }
+    [Parameter] public EventCallback<FocusEventArgs> OnFocus { get; set; }
+
+    public enum InputSize { Small, Medium, Large }
+
+    private string InputId => string.IsNullOrWhiteSpace(Id) ? _generatedInputId : Id;
+    private string HelperTextId => $"{InputId}-helper";
+    private string ValidationMessageId => $"{InputId}-validation";
+
+    private bool AriaInvalid => EditContext != null && EditContext.GetValidationMessages(FieldIdentifier).Any();
+    private bool HasValidationMessage => EditContext != null && EditContext.GetValidationMessages(FieldIdentifier).Any();
+
+    private string GetValidationMessage()
+    {
+        if (EditContext == null) return "";
+        return EditContext.GetValidationMessages(FieldIdentifier).FirstOrDefault() ?? "";
+    }
+
+    protected override bool TryParseValueFromString(string? value, out string result, [System.Diagnostics.CodeAnalysis.NotNullWhen(false)] out string? validationErrorMessage)
+    {
+        result = value ?? "";
+        validationErrorMessage = null;
+        return true;
+    }
+
+    private void OnInputChanged(ChangeEventArgs e)
+    {
+        CurrentValueAsString = e.Value?.ToString() ?? "";
+    }
+
+    private void ClearValue()
+    {
+        CurrentValueAsString = "";
+    }
+
+    private string GetInputClass()
+    {
+        var classes = new List<string> { "kp-input" };
+
+        classes.Add(Size switch
+        {
+            InputSize.Small => "kp-input-sm",
+            InputSize.Medium => "kp-input-md",
+            InputSize.Large => "kp-input-lg",
+            _ => "kp-input-md"
+        });
+
+        if (Disabled) classes.Add("kp-input-disabled");
+        if (ReadOnly) classes.Add("kp-input-readonly");
+
+        if (EditContext != null)
+        {
+            var fieldClass = EditContext.FieldCssClass(FieldIdentifier);
+            if (fieldClass.Contains("invalid"))
+            {
+                classes.Add("kp-input-invalid");
+            }
+            else if (fieldClass.Contains("valid"))
+            {
+                classes.Add("kp-input-valid");
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(Class)) classes.Add(Class);
+
+        return string.Join(" ", classes);
+    }
+
+    private string GetAriaDescribedBy()
+    {
+        var ids = new List<string>();
+        if (!string.IsNullOrWhiteSpace(HelperText)) ids.Add(HelperTextId);
+        if (ShowValidationMessage && HasValidationMessage) ids.Add(ValidationMessageId);
+        return ids.Count > 0 ? string.Join(" ", ids) : "";
+    }
+}

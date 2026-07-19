@@ -1,0 +1,54 @@
+@using KingdomPrep.Web.Data.Entities
+@using KingdomPrep.Web.Data
+@inject ISchoolProfileService SchoolProfileService
+
+<div class="bg-white rounded shadow-sm overflow-hidden h-100">
+    <div class="p-2 text-white fw-semibold" style="background-color: #0b1f48; font-size: 0.95rem;">
+        <span class="ps-2">Recent Payments</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-borderless table-striped mb-0" style="font-size: 0.8rem; border-top: 2px solid #d4af37;">
+            <thead style="background-color: #0b1f48; color: white;">
+                <tr>
+                    <th class="fw-normal py-2 px-3">ID</th>
+                    <th class="fw-normal py-2">Student</th>
+                    <th class="fw-normal py-2">Class</th>
+                    <th class="fw-normal py-2">Paid</th>
+                    <th class="fw-normal py-2">Balance</th>
+                    <th class="fw-normal py-2">Date</th>
+                    <th class="fw-normal py-2">Mode</th>
+                    <th class="fw-normal py-2">Bursar</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var p in Payments)
+                {
+                    <tr>
+                        <td class="px-3">@SchoolBranding.FormatStudentId(p.StudentID, _schoolProfile)</td>
+                        <td>@p.StudentName</td>
+                        <td>@(string.IsNullOrWhiteSpace(p.ClassID) ? "—" : p.ClassID)</td>
+                        <td>@p.AmountPaid.ToString("0.00")</td>
+                        <td>@p.Balance.ToString("0.00")</td>
+                        <td>@(p.PaymentDate?.ToString("dd/MM/yyyy") ?? "—")</td>
+                        <td>—</td>
+                        <td>—</td>
+                    </tr>
+                }
+                @if (!Payments.Any())
+                {
+                    <tr><td colspan="8" class="text-center text-muted py-3">No recent payments found.</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@code {
+    [Parameter] public List<PaymentRecordEntity> Payments { get; set; } = new();
+    private SchoolInfoEntity? _schoolProfile;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _schoolProfile = await SchoolProfileService.GetSchoolProfileAsync();
+    }
+}

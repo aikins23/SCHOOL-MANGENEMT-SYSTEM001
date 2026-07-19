@@ -1,0 +1,256 @@
+@page "/parent/requests"
+@using KingdomPrep.Web.Data
+@using KingdomPrep.Web.Data.Entities
+@inject IParentPortalRepository RequestRepo
+@inject IWardRepository WardRepo
+@inject NavigationManager Nav
+@inject IPortalTenantContext TenantContext
+@attribute [Authorize(Policy = WebPermission.ParentRequestSubmit)]
+@rendermode InteractiveServer
+
+<div class="container py-4" style="max-width: 1000px;">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4 pb-3 border-bottom">
+        <div>
+            <h2 class="h3 fw-bold text-slate-800 mb-1" style="font-family: 'Inter', 'Segoe UI', sans-serif;">My Requests</h2>
+            <p class="text-muted mb-0" style="font-size: 0.95rem;">Submit and track requests for your wards.</p>
+        </div>
+        <button class="btn text-white fw-semibold px-4 rounded-pill shadow-sm hover-lift mt-2 mt-md-0" style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); border: none;" @onclick="() => _showModal = true">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> New Request
+        </button>
+    </div>
+
+@if (_isLoading)
+{
+    <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+else if (!_requests.Any())
+{
+    <div class="card border-0 rounded-4 text-center py-5 premium-card hover-lift">
+        <div class="card-body py-5">
+            <div class="mx-auto mb-4 icon-circle icon-primary" style="width: 80px; height: 80px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+            </div>
+            <h4 class="fw-bold text-slate-800 mb-2">No Requests Yet</h4>
+            <p class="text-muted mb-4">You have not submitted any requests for your wards.</p>
+            <button class="btn btn-light fw-semibold px-4 rounded-pill shadow-sm" style="color: #3b82f6; border: 1px solid #e2e8f0;" @onclick="() => _showModal = true">Submit a Request</button>
+        </div>
+    </div>
+}
+else
+{
+    <div class="card border-0 premium-card rounded-4">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" style="font-size: 0.95rem;">
+                <thead style="background-color: #f8fafc; color: #475569;">
+                    <tr>
+                        <th class="ps-4 border-0 py-3 fw-semibold">Date</th>
+                        <th class="border-0 py-3 fw-semibold">Ward</th>
+                        <th class="border-0 py-3 fw-semibold">Request Type</th>
+                        <th class="border-0 py-3 fw-semibold">Details</th>
+                        <th class="pe-4 text-end border-0 py-3 fw-semibold">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var req in _requests)
+                    {
+                        var studentName = _wards.FirstOrDefault(w => w.StudentID == req.StudentID)?.FullName ?? "Unknown";
+                        <tr>
+                            <td class="ps-4 text-muted">@req.CreatedDate.ToString("MMM dd, yyyy")</td>
+                            <td>
+                                <div class="fw-bold text-slate-800">@studentName</div>
+                            </td>
+                            <td>
+                                @if(req.RequestType == "TransferLetter")
+                                {
+                                    <span class="text-info fw-semibold"><i class="bi bi-file-earmark-text me-1"></i>Transfer Letter</span>
+                                }
+                                else if(req.RequestType == "InformationChange")
+                                {
+                                    <span class="text-warning fw-semibold"><i class="bi bi-pencil-square me-1"></i>Change Info</span>
+                                }
+                                else
+                                {
+                                    <span class="fw-semibold">@req.RequestType</span>
+                                }
+                            </td>
+                            <td class="text-muted" style="max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                @req.Details
+                            </td>
+                            <td class="pe-4 text-end">
+                                @if (req.Status == "Pending")
+                                {
+                                    <span class="badge bg-warning bg-opacity-10 text-warning px-3 py-2 rounded-pill border border-warning border-opacity-25"><i class="bi bi-hourglass-split me-1"></i> Pending</span>
+                                }
+                                else if (req.Status == "Approved")
+                                {
+                                    <span class="badge bg-success bg-opacity-10 text-success px-3 py-2 rounded-pill border border-success border-opacity-25"><i class="bi bi-check-circle me-1"></i> Approved</span>
+                                }
+                                else if (req.Status == "Rejected")
+                                {
+                                    <span class="badge bg-danger bg-opacity-10 text-danger px-3 py-2 rounded-pill border border-danger border-opacity-25"><i class="bi bi-x-circle me-1"></i> Rejected</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+</div>
+
+@if (_showModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+                <div class="modal-header bg-primary text-white border-0 py-3">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-plus-circle me-2"></i>Submit New Request</h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="() => _showModal = false"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold text-secondary">Select Ward</label>
+                        <select class="form-select" @bind="_newRequest.StudentID">
+                            <option value="0">-- Select a Ward --</option>
+                            @foreach (var ward in _wards)
+                            {
+                                <option value="@ward.StudentID">@ward.FullName (@ward.ClassID)</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold text-secondary">Request Type</label>
+                        <select class="form-select" @bind="_newRequest.RequestType">
+                            <option value="">-- Select Type --</option>
+                            <option value="InformationChange">Change Ward Information</option>
+                            <option value="TransferLetter">Request Transfer Letter</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold text-secondary">Details / Reason</label>
+                        <textarea class="form-control" rows="4" @bind="_newRequest.Details" placeholder="Provide details (e.g., the new address, or reason for transfer...)"></textarea>
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(_submitError))
+                    {
+                        <div class="alert alert-danger py-2">@_submitError</div>
+                    }
+                </div>
+                <div class="modal-footer border-0 bg-light py-3">
+                    <button type="button" class="btn btn-light border-secondary-subtle" @onclick="() => _showModal = false">Cancel</button>
+                    <button type="button" class="btn btn-primary px-4" @onclick="SubmitRequest" disabled="@_isSubmitting">
+                        @if (_isSubmitting)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                            <span>Submitting...</span>
+                        }
+                        else
+                        {
+                            <span>Submit Request</span>
+                        }
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private bool _isLoading = true;
+    private bool _showModal = false;
+    private bool _isSubmitting = false;
+    private string _submitError = "";
+    private string _username = "";
+    private Guid? _schoolId;
+
+    private List<StudentEntity> _wards = new();
+    private List<ParentRequestEntity> _requests = new();
+
+    private ParentRequestEntity _newRequest = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var tenant = await TenantContext.GetCurrentAsync();
+        _username = tenant.Username ?? "";
+        _schoolId = tenant.SchoolId;
+
+        _wards = await WardRepo.GetWardsForParentAsync(_username, _schoolId);
+        await LoadRequests();
+
+        _isLoading = false;
+    }
+
+    private async Task LoadRequests()
+    {
+        _requests = await RequestRepo.GetRequestsAsync(_username, _schoolId);
+    }
+
+    private async Task SubmitRequest()
+    {
+        _submitError = "";
+        if (_newRequest.StudentID == 0)
+        {
+            _submitError = "Please select a ward.";
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(_newRequest.RequestType))
+        {
+            _submitError = "Please select a request type.";
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(_newRequest.Details))
+        {
+            _submitError = "Please provide details for the request.";
+            return;
+        }
+
+        _isSubmitting = true;
+        try
+        {
+            _newRequest.ParentUsername = _username;
+            _newRequest.SchoolId = _schoolId;
+            _newRequest.Status = "Pending";
+
+            await RequestRepo.SubmitRequestAsync(_newRequest);
+
+            _showModal = false;
+            _newRequest = new(); // Reset form
+            await LoadRequests(); // Refresh list
+        }
+        catch (Exception ex)
+        {
+            _submitError = ex.Message;
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
+    }
+}
+
+<style>
+    .text-slate-800 { color: #1e293b; }
+    .hover-lift {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .hover-lift:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+    }
+    .premium-card {
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+        background: #ffffff;
+    }
+    .icon-circle {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+    }
+    .icon-primary { background: rgba(59, 130, 246, 0.1); color: #3b82f6; }
+</style>

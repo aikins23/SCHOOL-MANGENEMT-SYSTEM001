@@ -1,0 +1,99 @@
+@page "/notifications"
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Components.Authorization
+@using KingdomPrep.Web.Data
+@using KingdomPrep.Web.Data.Entities
+@inject AuthenticationStateProvider AuthStateProvider
+@inject IParentPortalRepository ParentRepo
+@attribute [Authorize]
+@rendermode InteractiveServer
+
+<div class="container py-4" style="max-width: 800px;">
+    <div class="d-flex align-items-center justify-content-between mb-4 pb-3 border-bottom">
+        <h2 class="h3 fw-bold text-slate-800 mb-0" style="font-family: 'Inter', 'Segoe UI', sans-serif;">Notifications</h2>
+        <button class="btn btn-sm btn-outline-secondary rounded-pill fw-semibold">Mark all as read</button>
+    </div>
+
+    <div class="card border-0 premium-card rounded-4">
+        <div class="list-group list-group-flush rounded-4">
+
+            @if (_role == "Parent" && _parentRequests.Any())
+            {
+                @foreach(var req in _parentRequests.OrderByDescending(r => r.CreatedDate))
+                {
+                    var isApproved = req.Status == "Approved";
+                    var isPending = req.Status == "Pending";
+                    var isRejected = req.Status == "Rejected";
+
+                    <a href="/parent/requests" class="list-group-item list-group-item-action py-4 border-bottom p-4 @(isApproved ? "bg-light" : "")">
+                        <div class="d-flex gap-3">
+                            <div class="icon-circle @(isApproved ? "bg-success text-success" : isRejected ? "bg-danger text-danger" : "bg-warning text-warning") bg-opacity-10 flex-shrink-0 d-flex align-items-center justify-content-center rounded-circle" style="width: 48px; height: 48px;">
+                                @if (isApproved)
+                                {
+                                    <i class="bi bi-check-circle-fill fs-5"></i>
+                                }
+                                else if (isRejected)
+                                {
+                                    <i class="bi bi-x-circle-fill fs-5"></i>
+                                }
+                                else
+                                {
+                                    <i class="bi bi-hourglass-split fs-5"></i>
+                                }
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <h6 class="mb-0 fw-bold text-dark">Request @req.Status</h6>
+                                    <small class="text-muted">@req.CreatedDate.ToString("MMM dd, yyyy")</small>
+                                </div>
+                                <p class="mb-0 text-muted">Your request for "@req.RequestType" is currently @req.Status.ToLower().</p>
+                            </div>
+                        </div>
+                    </a>
+                }
+            }
+            else
+            {
+                <div class="p-5 text-center text-muted">
+                    <i class="bi bi-bell-slash fs-1 mb-3 d-block"></i>
+                    <h5>No New Notifications</h5>
+                    <p>You're all caught up!</p>
+                </div>
+            }
+
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<ParentRequestEntity> _parentRequests = new();
+    private string _role = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            _role = user.FindFirst(ClaimTypes.Role)?.Value ?? "";
+            var username = user.Identity.Name;
+
+            if (_role == "Parent" && !string.IsNullOrEmpty(username))
+            {
+                var schoolIdStr = user.FindFirst("SchoolId")?.Value;
+                Guid? schoolId = null;
+                if (Guid.TryParse(schoolIdStr, out var sid)) schoolId = sid;
+
+                _parentRequests = await ParentRepo.GetRequestsAsync(username, schoolId);
+            }
+        }
+    }
+}
+
+<style>
+    .text-slate-800 { color: #1e293b; }
+    .premium-card {
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+        background: #ffffff;
+    }
+</style>

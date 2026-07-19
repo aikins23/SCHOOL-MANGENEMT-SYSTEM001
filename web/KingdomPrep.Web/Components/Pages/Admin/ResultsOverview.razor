@@ -1,0 +1,184 @@
+@page "/admin/results-overview"
+@rendermode InteractiveServer
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Administrator,Headmaster,Director")]
+@using KingdomPrep.Web.Data
+@inject IAcademicPortalRepository AcademicRepo
+@inject IGradingPortalRepository GradingRepo
+@inject IPortalTenantContext TenantContext
+
+<PageTitle>Results Overview - Nyansapo ERP</PageTitle>
+
+<div class="container-fluid mt-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h2 class="mb-1 fw-bold" style="color: #0b1f48;">Results Overview</h2>
+            <p class="text-muted mb-0">Track grading completion by class and subject.</p>
+        </div>
+        <a class="btn btn-outline-primary fw-semibold" href="admin/exams/setup">Exam Setup</a>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold text-muted">Term</label>
+                    <select class="form-select" @bind="_term">
+                        <option value="First Term">First Term</option>
+                        <option value="Second Term">Second Term</option>
+                        <option value="Third Term">Third Term</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold text-muted">Academic Year</label>
+                    <select class="form-select" @bind="_year">
+                        <option value="2024/2025">2024/2025</option>
+                        <option value="2025/2026">2025/2026</option>
+                        <option value="2026/2027">2026/2027</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold text-muted">Class</label>
+                    <select class="form-select" @bind="_classFilter">
+                        <option value="">All classes</option>
+                        @foreach (var className in _classes)
+                        {
+                            <option value="@className">@className</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex justify-content-md-end">
+                    <button class="btn btn-primary fw-semibold px-4" @onclick="LoadAsync" disabled="@_isLoading">Apply</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted text-uppercase fw-semibold small mb-2">Class Subjects</div>
+                    <div class="fs-3 fw-bold">@_overview.Count</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted text-uppercase fw-semibold small mb-2">Expected Grades</div>
+                    <div class="fs-3 fw-bold">@ExpectedGrades</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted text-uppercase fw-semibold small mb-2">Recorded Grades</div>
+                    <div class="fs-3 fw-bold" style="color: #059669;">@RecordedGrades</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted text-uppercase fw-semibold small mb-2">Overall Completion</div>
+                    <div class="fs-3 fw-bold" style="color: @CompletionColor(OverallCompletion);">@OverallCompletion.ToString("N1")%</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Class</th>
+                            <th>Subject</th>
+                            <th class="text-end">Students</th>
+                            <th class="text-end">Recorded</th>
+                            <th class="text-end">Missing</th>
+                            <th class="text-end">Average</th>
+                            <th style="width: 220px;">Completion</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (_isLoading)
+                        {
+                            <tr><td colspan="7" class="text-center py-4"><span class="spinner-border spinner-border-sm"></span></td></tr>
+                        }
+                        else if (!_overview.Any())
+                        {
+                            <tr><td colspan="7" class="text-center text-muted py-4">No class subjects found for this filter.</td></tr>
+                        }
+                        else
+                        {
+                            @foreach (var row in _overview)
+                            {
+                                <tr>
+                                    <td><span class="badge bg-secondary">@row.ClassName</span></td>
+                                    <td class="fw-semibold">@row.Subject</td>
+                                    <td class="text-end">@row.StudentCount</td>
+                                    <td class="text-end fw-bold" style="color: #059669;">@row.RecordedCount</td>
+                                    <td class="text-end fw-bold" style="color: @(row.MissingCount == 0 ? "#64748b" : "#dc2626");">@row.MissingCount</td>
+                                    <td class="text-end">@row.AverageScore.ToString("N1")%</td>
+                                    <td>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <div class="progress flex-grow-1" style="height: 8px;">
+                                                <div class="progress-bar" role="progressbar" style="width: @row.CompletionRate%; background-color: @CompletionColor(row.CompletionRate);"></div>
+                                            </div>
+                                            <span class="small fw-bold" style="width: 48px; color: @CompletionColor(row.CompletionRate);">@row.CompletionRate.ToString("N1")%</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<AcademicResultsOverview> _overview = new();
+    private List<string> _classes = new();
+    private string _term = "First Term";
+    private string _year = "2025/2026";
+    private string _classFilter = "";
+    private bool _isLoading = true;
+    private Guid? _schoolId;
+
+    private int ExpectedGrades => _overview.Sum(o => o.StudentCount);
+    private int RecordedGrades => _overview.Sum(o => o.RecordedCount);
+    private decimal OverallCompletion => ExpectedGrades == 0 ? 0 : Math.Round((decimal)RecordedGrades / ExpectedGrades * 100m, 1);
+
+    protected override async Task OnInitializedAsync()
+    {
+        _schoolId = (await TenantContext.GetCurrentAsync()).SchoolId;
+        var setup = await GradingRepo.GetLatestExamSetupAsync(_schoolId);
+        if (setup != null)
+        {
+            _term = setup.Term ?? _term;
+            _year = setup.Year ?? _year;
+        }
+
+        _classes = await AcademicRepo.GetClassesAsync(_schoolId);
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _isLoading = true;
+        _overview = await AcademicRepo.GetResultsOverviewAsync(_term, _year, string.IsNullOrWhiteSpace(_classFilter) ? null : _classFilter, _schoolId);
+        _isLoading = false;
+    }
+
+    private static string CompletionColor(decimal value)
+    {
+        if (value >= 90) return "#059669";
+        if (value >= 60) return "#d97706";
+        return "#dc2626";
+    }
+}

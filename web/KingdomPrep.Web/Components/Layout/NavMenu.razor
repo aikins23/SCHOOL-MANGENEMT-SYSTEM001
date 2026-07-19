@@ -1,19 +1,681 @@
-<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="/">Kingdom Preparatory</a>
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Components.Authorization
+@using KingdomPrep.Web.Data
+@inject ISchoolProfileService SchoolProfileService
+
+<div class="brand-section position-relative">
+    @if (!string.IsNullOrEmpty(_schoolLogoBase64))
+    {
+        <img src="data:image/png;base64,@_schoolLogoBase64" alt="School Logo" class="brand-badge-mini me-2" style="object-fit: contain; background: transparent; box-shadow: none;" />
+    }
+    else
+    {
+        <div class="brand-badge-mini me-2">@_schoolInitials</div>
+    }
+    <div class="brand-copy d-flex flex-column">
+        <span class="brand-display-name">@_schoolName</span>
+        <span class="brand-sub-name">School Portal</span>
     </div>
+    <label for="sidebar-toggler" class="sidebar-mobile-close" title="Close menu" aria-label="Close menu">
+        <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 6 6 18"></path>
+            <path d="m6 6 12 12"></path>
+        </svg>
+    </label>
 </div>
 
-<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
+<div class="nav-scrollable w-100">
+    <nav class="nav flex-column" style="padding-top: 1.5rem;">
+        @if (!IsTeacher && !IsParent)
+        {
+            <details class="nav-section nav-main" open>
+                <summary class="nav-group-title">
+                    <svg class="nav-group-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m3 10 9-7 9 7"></path>
+                        <path d="M5 10v10h14V10"></path>
+                        <path d="M9 20v-6h6v6"></path>
+                    </svg>
+                    <span>Main</span>
+                </summary>
 
-<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
-    <nav class="nav flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">Dashboard</NavLink>
+                <!-- Dashboard -->
+                <div class="nav-item px-3 mb-1">
+                    <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="nav-icon">
+                            <rect x="3" y="3" width="7" height="9"></rect>
+                            <rect x="14" y="3" width="7" height="5"></rect>
+                            <rect x="14" y="12" width="7" height="9"></rect>
+                            <rect x="3" y="16" width="7" height="5"></rect>
+                        </svg>
+                        <span class="nav-link-text">Dashboard</span>
+                    </NavLink>
+                </div>
+                <div class="nav-item px-3 mb-1">
+                    <NavLink class="nav-link" href="admin/analytics">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="nav-icon">
+                            <line x1="18" y1="20" x2="18" y2="10"></line>
+                            <line x1="12" y1="20" x2="12" y2="4"></line>
+                            <line x1="6" y1="20" x2="6" y2="14"></line>
+                        </svg>
+                        <span class="nav-link-text">Analytics</span>
+                    </NavLink>
+                </div>
+            </details>
+        }
+
+        @if (IsAdmin || IsHead || IsDirector)
+        {
+            <details class="nav-section nav-academics" open>
+                <summary class="nav-group-title">
+                    <svg class="nav-group-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                    </svg>
+                    <span>Academics</span>
+                </summary>
+
+            <!-- Headmaster Dashboard -->
+            <div class="nav-item px-3 mb-1">
+                <NavLink class="nav-link" href="headmaster">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="nav-icon">
+                        <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+                        <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+                    </svg>
+                    <span class="nav-link-text">Headmaster Portal</span>
+                </NavLink>
+            </div>
+
+            <!-- Students -->
+            <div class="nav-item px-3 mb-1">
+                <NavLink class="nav-link" href="students">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="nav-icon">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
+                    <span class="nav-link-text">Students</span>
+                </NavLink>
+            </div>
+
+            <div class="nav-item px-3 mb-1">
+                <NavLink class="nav-link" href="students/report-cards">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="nav-icon">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                        <polyline points="10 9 9 9 8 9"></polyline>
+                    </svg>
+                    <span class="nav-link-text">Report Cards</span>
+                </NavLink>
+            </div>
+
+            @if (CanManageExamSetup)
+            {
+                <div class="nav-item px-3 mb-1">
+                    <NavLink class="nav-link" href="admin/exams/setup">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="nav-icon">
+                            <rect x="5" y="4" width="14" height="18" rx="2"></rect>
+                            <path d="M9 4a3 3 0 0 1 6 0"></path>
+                            <path d="M9 11l1.5 1.5L14 9"></path>
+                            <path d="M9 17h6"></path>
+                        </svg>
+                        <span class="nav-link-text">Setup Exams</span>
+                    </NavLink>
+                </div>
+            }
+            <div class="nav-item px-3 mb-1">
+                <NavLink class="nav-link" href="admin/subjects">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="nav-icon">
+                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                        <path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5z"></path>
+                    </svg>
+                    <span class="nav-link-text">Class Subjects</span>
+                </NavLink>
+            </div>
+            <div class="nav-item px-3 mb-1">
+                <NavLink class="nav-link" href="admin/results-overview">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="nav-icon">
+                        <line x1="18" y1="20" x2="18" y2="10"></line>
+                        <line x1="12" y1="20" x2="12" y2="4"></line>
+                        <line x1="6" y1="20" x2="6" y2="14"></line>
+                    </svg>
+                    <span class="nav-link-text">Results Overview</span>
+                </NavLink>
+            </div>
+            <div class="nav-item px-3 mb-1">
+                <NavLink class="nav-link" href="headmaster/performance-approvals">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="nav-icon">
+                        <path d="M9 11l3 3L22 4"></path>
+                        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                        <path d="M7 8h5"></path>
+                        <path d="M7 16h8"></path>
+                    </svg>
+                    <span class="nav-link-text">Performance Approvals</span>
+                </NavLink>
+            </div>
+            <div class="nav-item px-3 mb-1">
+                <NavLink class="nav-link" href="headmaster/student-remarks">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="nav-icon">
+                        <path d="M21 15a4 4 0 0 1-4 4H7l-4 4V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path>
+                        <path d="M8 9h8"></path>
+                        <path d="M8 13h5"></path>
+                        <path d="m15 13 2 2 4-4"></path>
+                    </svg>
+                    <span class="nav-link-text">Headteacher Remarks</span>
+                </NavLink>
+            </div>
+            </details>
+
+            <details class="nav-section nav-administration" open>
+                <summary class="nav-group-title">
+                    <svg class="nav-group-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m3 10 9-7 9 7"></path>
+                        <path d="M5 10v10h14V10"></path>
+                        <path d="M15 21v-4a3 3 0 0 0-6 0v4"></path>
+                        <path d="M19 3v4"></path>
+                    </svg>
+                    <span>Administration</span>
+                </summary>
+
+            <div class="nav-item px-3 mb-1">
+                <NavLink class="nav-link" href="admin/analytics">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="nav-icon">
+                        <line x1="18" y1="20" x2="18" y2="10"></line>
+                        <line x1="12" y1="20" x2="12" y2="4"></line>
+                        <line x1="6" y1="20" x2="6" y2="14"></line>
+                    </svg>
+                    <span class="nav-link-text">Analytics Dashboard</span>
+                </NavLink>
+            </div>
+            <div class="nav-item px-3 mb-1">
+                <NavLink class="nav-link" href="admin/staff">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="nav-icon">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                    </svg>
+                    <span class="nav-link-text">Staff Directory</span>
+                </NavLink>
+            </div>
+            <div class="nav-item px-3 mb-1">
+                <NavLink class="nav-link" href="admin/staff-attendance">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="nav-icon">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="8.5" cy="7" r="4"></circle>
+                        <polyline points="17 11 19 13 23 9"></polyline>
+                    </svg>
+                    <span class="nav-link-text">Staff Attendance & Geofence</span>
+                </NavLink>
+            </div>
+            <div class="nav-item px-3 mb-1">
+                <NavLink class="nav-link" href="admin/leave-approvals">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="nav-icon">
+                        <path d="M9 11l3 3L22 4"></path>
+                        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                    </svg>
+                    <span class="nav-link-text">Leave Approvals</span>
+                </NavLink>
+            </div>
+            @if (CanManageParentRequests)
+            {
+                <div class="nav-item px-3 mb-1">
+                    <NavLink class="nav-link" href="admin/parent-requests">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="nav-icon">
+                            <path d="M21 15a4 4 0 0 1-4 4H7l-4 4V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path>
+                            <path d="M8 9h8"></path>
+                            <path d="M8 13h5"></path>
+                        </svg>
+                        <span class="nav-link-text">Parent Requests</span>
+                    </NavLink>
+                </div>
+            }
+            <div class="nav-item px-3 mb-1">
+                <NavLink class="nav-link" href="admin/users">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="nav-icon">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="8.5" cy="7" r="4"></circle>
+                        <path d="M20 8v6"></path>
+                        <path d="M23 11h-6"></path>
+                    </svg>
+                    <span class="nav-link-text">User Accounts</span>
+                </NavLink>
+            </div>
+            <div class="nav-item px-3 mb-1">
+                <NavLink class="nav-link" href="admin/payment-settings">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="nav-icon">
+                        <rect x="2" y="5" width="20" height="14" rx="2"></rect>
+                        <path d="M2 10h20"></path>
+                        <path d="M7 15h3"></path>
+                        <path d="M17 15h.01"></path>
+                    </svg>
+                    <span class="nav-link-text">Payment Settings</span>
+                </NavLink>
+            </div>
+            <div class="nav-item px-3 mb-1">
+                <NavLink class="nav-link" href="admin/audit-log">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="nav-icon">
+                        <path d="M9 11l3 3L22 4"></path>
+                        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                        <path d="M7 8h5"></path>
+                        <path d="M7 16h8"></path>
+                    </svg>
+                    <span class="nav-link-text">Audit Log</span>
+                </NavLink>
+            </div>
+            <div class="nav-item px-3 mb-1">
+                <NavLink class="nav-link" href="admin/sync-health">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="nav-icon">
+                        <path d="M21 12a9 9 0 0 1-9 9"></path>
+                        <path d="M3 12a9 9 0 0 1 9-9"></path>
+                        <path d="M16 5h-4V1"></path>
+                        <path d="M8 19h4v4"></path>
+                    </svg>
+                    <span class="nav-link-text">Sync Health</span>
+                </NavLink>
+            </div>
+            <div class="nav-item px-3 mb-1">
+                <NavLink class="nav-link" href="admin/sync-conflicts">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="nav-icon">
+                        <path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"></path>
+                        <path d="M12 9v4"></path>
+                        <path d="M12 17h.01"></path>
+                    </svg>
+                    <span class="nav-link-text">Sync Conflicts</span>
+                </NavLink>
+            </div>
+            </details>
+        }
+
+
+
+        @if (CanManageAdmissions)
+        {
+            <details class="nav-section nav-admissions" open>
+                <summary class="nav-group-title">
+                    <svg class="nav-group-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M19 8v6"></path>
+                        <path d="M22 11h-6"></path>
+                    </svg>
+                    <span>Admissions</span>
+                </summary>
+
+            <!-- Admissions -->
+            <div class="nav-item px-3 mb-1">
+                <NavLink class="nav-link" href="admissions">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="nav-icon">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <polyline points="16 11 18 13 22 9"></polyline>
+                    </svg>
+                    <span class="nav-link-text">Admissions</span>
+                </NavLink>
+            </div>
+            </details>
+        }
+
+        @if (IsAdmin || IsAccountant || IsDirector)
+        {
+            <!-- Finance -->
+            <details class="nav-section nav-finance" open>
+            <summary class="nav-group-title">
+                <svg class="nav-group-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M19 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-2"></path>
+                    <path d="M3 7h16a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H3"></path>
+                    <path d="M17 12h.01"></path>
+                </svg>
+                <span>Finance</span>
+            </summary>
+            <div class="nav-item px-3 mb-1">
+                <NavLink class="nav-link" href="finance/dashboard">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="nav-icon">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="16"></line>
+                        <line x1="8" y1="12" x2="16" y2="12"></line>
+                    </svg>
+                    <span class="nav-link-text">Finance Dashboard</span>
+                </NavLink>
+            </div>
+            @if (CanRecordFee)
+            {
+                <div class="nav-item px-3 mb-1">
+                    <NavLink class="nav-link" href="finance/collect-fee">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="nav-icon">
+                            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                        </svg>
+                        <span class="nav-link-text">Collect Fee</span>
+                    </NavLink>
+                </div>
+            }
+            <div class="nav-item px-3 mb-1">
+                <NavLink class="nav-link" href="finance/payment-history">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="nav-icon">
+                        <path d="M3 3v18h18"></path>
+                        <path d="M7 14l3-3 3 2 5-6"></path>
+                    </svg>
+                    <span class="nav-link-text">Payment History</span>
+                </NavLink>
+            </div>
+            @if (CanRecordExpense)
+            {
+                <div class="nav-item px-3 mb-1">
+                    <NavLink class="nav-link" href="finance/record-expense">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="nav-icon">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                            <line x1="16" y1="13" x2="8" y2="13"></line>
+                            <line x1="16" y1="17" x2="8" y2="17"></line>
+                            <polyline points="10 9 9 9 8 9"></polyline>
+                        </svg>
+                        <span class="nav-link-text">Record Expense</span>
+                    </NavLink>
+                </div>
+            }
+            <div class="nav-item px-3 mb-1">
+                <NavLink class="nav-link" href="finance/expenses">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="nav-icon">
+                        <path d="M4 5h16"></path>
+                        <path d="M4 12h16"></path>
+                        <path d="M4 19h16"></path>
+                        <path d="M8 5v14"></path>
+                    </svg>
+                    <span class="nav-link-text">Expense Register</span>
+                </NavLink>
+            </div>
+            </details>
+        }
+
+
+
+        @if (IsTeacher)
+        {
+            <details class="nav-section nav-academics" open>
+            <summary class="nav-group-title">
+                <svg class="nav-group-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 10v6"></path>
+                    <path d="M2 10l10-5 10 5-10 5z"></path>
+                    <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
+                </svg>
+                <span>Teacher Portal</span>
+            </summary>
+
+            <div class="nav-item px-3 mb-1">
+                <NavLink class="nav-link" href="teacher/dashboard">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="nav-icon">
+                        <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                        <line x1="8" y1="21" x2="16" y2="21"></line>
+                        <line x1="12" y1="17" x2="12" y2="21"></line>
+                    </svg>
+                    <span class="nav-link-text">Teacher Dashboard</span>
+                </NavLink>
+            </div>
+
+            <div class="nav-item px-3 mb-1">
+                <NavLink class="nav-link" href="teacher/attendance">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="nav-icon">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                    </svg>
+                    <span class="nav-link-text">Attendance</span>
+                </NavLink>
+            </div>
+
+            <div class="nav-item px-3 mb-1">
+                <NavLink class="nav-link" href="teacher/grading">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="nav-icon">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                        <polyline points="10 9 9 9 8 9"></polyline>
+                    </svg>
+                    <span class="nav-link-text">Grading</span>
+                </NavLink>
+            </div>
+
+            <div class="nav-item px-3 mb-1">
+                <NavLink class="nav-link" href="teacher/remarks">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="nav-icon">
+                        <path d="M21 15a4 4 0 0 1-4 4H7l-4 4V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path>
+                        <path d="M8 9h8"></path>
+                        <path d="M8 13h5"></path>
+                    </svg>
+                    <span class="nav-link-text">Student Remarks</span>
+                </NavLink>
+            </div>
+
+            <div class="nav-item px-3 mb-1">
+                <NavLink class="nav-link" href="teacher/performance-reports">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="nav-icon">
+                        <path d="M3 3v18h18"></path>
+                        <path d="M7 14l3-3 3 2 5-6"></path>
+                    </svg>
+                    <span class="nav-link-text">Performance Reports</span>
+                </NavLink>
+            </div>
+
+            <div class="nav-item px-3 mb-1">
+                <NavLink class="nav-link" href="teacher/results">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="nav-icon">
+                        <line x1="18" y1="20" x2="18" y2="10"></line>
+                        <line x1="12" y1="20" x2="12" y2="4"></line>
+                        <line x1="6" y1="20" x2="6" y2="14"></line>
+                    </svg>
+                    <span class="nav-link-text">Student Results</span>
+                </NavLink>
+            </div>
+
+            <div class="nav-item px-3 mb-1">
+                <NavLink class="nav-link" href="teacher/assignments">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="nav-icon">
+                        <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+                        <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+                    </svg>
+                    <span class="nav-link-text">Assignments</span>
+                </NavLink>
+            </div>
+
+            <div class="nav-item px-3 mb-1">
+                <NavLink class="nav-link" href="teacher/defaulters">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="nav-icon">
+                        <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                    </svg>
+                    <span class="nav-link-text">Defaulters List</span>
+                </NavLink>
+            </div>
+
+            <div class="nav-item px-3 mb-1">
+                <NavLink class="nav-link" href="teacher/leave">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="nav-icon">
+                        <path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.2-1.1.6L3 8l6 4-3 3-3-1-1 1 4 4 1-1-1-3 3-3 4 6l1.2-.7c.4-.2.7-.6.6-1.1z"></path>
+                    </svg>
+                    <span class="nav-link-text">Apply for Leave</span>
+                </NavLink>
+            </div>
+            </details>
+        }
+
+        @if (IsParent)
+        {
+            <details class="nav-section nav-main" open>
+            <summary class="nav-group-title">
+                <svg class="nav-group-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="m3 10 9-7 9 7"></path>
+                    <path d="M5 10v10h14V10"></path>
+                    <path d="M8 21v-5a4 4 0 0 1 8 0v5"></path>
+                </svg>
+                <span>Parent Portal</span>
+            </summary>
+
+            <div class="nav-item px-3 mb-1">
+                <NavLink class="nav-link" href="parent/dashboard" Match="NavLinkMatch.All">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="nav-icon">
+                        <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                        <line x1="8" y1="21" x2="16" y2="21"></line>
+                        <line x1="12" y1="17" x2="12" y2="21"></line>
+                    </svg>
+                    <span class="nav-link-text">My Ward</span>
+                </NavLink>
+            </div>
+
+            <div class="nav-item px-3 mb-1">
+                <NavLink class="nav-link" href="parent/assignments">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="nav-icon">
+                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                    </svg>
+                    <span class="nav-link-text">Homework</span>
+                </NavLink>
+            </div>
+
+            <div class="nav-item px-3 mb-1">
+                <NavLink class="nav-link" href="parent/performance-reports">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="nav-icon">
+                        <path d="M3 3v18h18"></path>
+                        <path d="M7 14l3-3 3 2 5-6"></path>
+                    </svg>
+                    <span class="nav-link-text">Performance Reports</span>
+                </NavLink>
+            </div>
+
+            <div class="nav-item px-3 mb-1">
+                <NavLink class="nav-link" href="parent/requests">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="nav-icon">
+                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                        <polyline points="22,6 12,13 2,6"></polyline>
+                    </svg>
+                    <span class="nav-link-text">Make Request</span>
+                </NavLink>
+            </div>
+
+            <div class="nav-item px-3 mb-1">
+                <NavLink class="nav-link" href="parent/fees">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="nav-icon">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="16"></line>
+                        <line x1="8" y1="12" x2="16" y2="12"></line>
+                    </svg>
+                    <span class="nav-link-text">Pay Fees</span>
+                </NavLink>
+            </div>
+            </details>
+        }
+
+        <details class="nav-section nav-account" open>
+            <summary class="nav-group-title">
+                <svg class="nav-group-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="8" r="4"></circle>
+                    <path d="M4 21a8 8 0 0 1 16 0"></path>
+                </svg>
+                <span>Account</span>
+            </summary>
+            <div class="nav-item px-3 mb-1">
+                <NavLink class="nav-link" href="profile">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="nav-icon">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                    <span class="nav-link-text">Profile</span>
+                </NavLink>
+            </div>
+            @if (IsStaff)
+            {
+                <div class="nav-item px-3 mb-1">
+                    <NavLink class="nav-link" href="staff/attendance">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="nav-icon">
+                            <path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z"></path>
+                            <circle cx="12" cy="10" r="3"></circle>
+                        </svg>
+                        <span class="nav-link-text">My Attendance</span>
+                    </NavLink>
+                </div>
+            }
+            <div class="nav-item px-3 mb-1">
+                <NavLink class="nav-link" href="settings">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="nav-icon">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1A2 2 0 1 1 4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.6-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1A2 2 0 1 1 7.1 4.2l.1.1a1.7 1.7 0 0 0 1.9.3h.1a1.7 1.7 0 0 0 1-1.6V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.6h.1a1.7 1.7 0 0 0 1.9-.3l.1-.1A2 2 0 1 1 19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9v.1a1.7 1.7 0 0 0 1.6 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path>
+                    </svg>
+                    <span class="nav-link-text">Settings</span>
+                </NavLink>
+            </div>
+        </details>
+
+        <!-- Global Sign Out -->
+        <div class="nav-item px-3 mt-4 mb-4">
+            <form method="post" action="/logout">
+                <button type="submit" class="nav-link border-0 bg-transparent w-100 text-start" style="cursor: pointer; color: #ef4444;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="nav-icon" style="color: #ef4444;">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                        <polyline points="16 17 21 12 16 7"></polyline>
+                        <line x1="21" y1="12" x2="9" y2="12"></line>
+                    </svg>
+                    <span class="nav-link-text fw-semibold">Sign out</span>
+                </button>
+            </form>
         </div>
-        <div class="nav-item px-3"><span class="nav-link disabled">Students (soon)</span></div>
-        <div class="nav-item px-3"><span class="nav-link disabled">Academic (soon)</span></div>
-        <div class="nav-item px-3"><span class="nav-link disabled">Attendance (soon)</span></div>
-        <div class="nav-item px-3"><span class="nav-link disabled">HR &amp; Leave (soon)</span></div>
+
     </nav>
 </div>
+
+@code {
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    private ClaimsPrincipal? _user;
+    private string _schoolName = SchoolBranding.ProductName;
+    private string _schoolInitials = SchoolBranding.Initials(SchoolBranding.ProductName);
+    private string? _schoolLogoBase64 = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateTask;
+        _user = authState?.User;
+
+        var profile = await SchoolProfileService.GetSchoolProfileAsync();
+        if (profile != null)
+        {
+            if (!string.IsNullOrWhiteSpace(profile.Name))
+            {
+                _schoolName = SchoolBranding.DisplayName(profile);
+                _schoolInitials = SchoolBranding.Initials(profile);
+            }
+            if (profile.Logo != null && profile.Logo.Length > 0)
+            {
+                _schoolLogoBase64 = Convert.ToBase64String(profile.Logo);
+            }
+        }
+    }
+
+    private bool IsInRole(string role) => _user?.IsInRole(role) ?? false;
+    private bool IsAdmin => IsInRole("Administrator");
+    private bool IsHead => IsInRole("Headmaster");
+    private bool IsDirector => IsInRole("Director");
+    private bool IsAccountant => IsInRole("Accountant");
+    private bool IsTeacher => IsInRole("Teacher");
+    private bool IsParent => IsInRole("Parent");
+    private bool IsStaff => IsAdmin || IsHead || IsDirector || IsAccountant || IsTeacher;
+    private bool CanRecordFee => HasPermission(WebPermission.FeePaymentRecord);
+    private bool CanRecordExpense => HasPermission(WebPermission.ExpenseManage);
+    private bool CanManageAdmissions => HasPermission(WebPermission.AdmissionsManage);
+    private bool CanManageExamSetup => HasPermission(WebPermission.SettingsExamSetupManage);
+    private bool CanManageParentRequests => HasPermission(WebPermission.AdminUsersManage);
+
+    private bool HasPermission(string policyName) => WebPermission.CanRenderAction(_user, policyName);
+
+    private string GetUserRole()
+    {
+        return _user?.FindFirst(ClaimTypes.Role)?.Value ?? "User";
+    }
+
+    private string GetUserInitial()
+    {
+        var name = _user?.Identity?.Name;
+        return string.IsNullOrWhiteSpace(name) ? "U" : name[0].ToString().ToUpper();
+    }
+}

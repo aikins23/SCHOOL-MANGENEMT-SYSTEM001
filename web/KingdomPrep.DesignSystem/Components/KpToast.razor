@@ -1,0 +1,138 @@
+@using Microsoft.AspNetCore.Components
+
+<div class="kp-toast-container @PositionClass" @ref="ContainerRef" role="region" aria-live="polite" aria-label="Notifications">
+    @foreach (var toast in Toasts)
+    {
+        <div class="@GetToastClass(toast)" role="alert" @onclick="@(() => RemoveToast(toast.Id))">
+            <div class="kp-toast-content">
+                <div class="kp-toast-icon" aria-hidden="true">
+                    @GetToastIcon(toast.Type)
+                </div>
+                <div class="kp-toast-message">
+                    <div class="kp-toast-title">@toast.Title</div>
+                    @if (!string.IsNullOrWhiteSpace(toast.Message))
+                    {
+                        <div class="kp-toast-text">@toast.Message</div>
+                    }
+                </div>
+            </div>
+            <button
+                class="kp-toast-close"
+                @onclick="@(() => RemoveToast(toast.Id))"
+                aria-label="Dismiss notification">
+                ✕
+            </button>
+            @if (toast.ShowProgress)
+            {
+                <div class="kp-toast-progress" style="width: @(toast.ProgressPercent)%"></div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public ToastPosition Position { get; set; } = ToastPosition.TopRight;
+    [Parameter] public int MaxToasts { get; set; } = 5;
+    [Parameter] public int DefaultDuration { get; set; } = 5000;
+
+    private List<ToastItem> Toasts { get; } = new();
+    private ElementReference ContainerRef;
+
+    public enum ToastPosition { TopRight, TopLeft, BottomRight, BottomLeft, TopCenter, BottomCenter }
+    public enum ToastType { Success, Error, Warning, Info }
+
+    public class ToastItem
+    {
+        public string Id { get; set; } = Guid.NewGuid().ToString();
+        public string Title { get; set; } = "";
+        public string? Message { get; set; }
+        public ToastType Type { get; set; } = ToastType.Info;
+        public int Duration { get; set; }
+        public bool ShowProgress { get; set; } = true;
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public double ProgressPercent => Duration > 0 ? Math.Max(0, 100 - (DateTime.Now - CreatedAt).TotalMilliseconds / Duration * 100) : 0;
+    }
+
+    private string PositionClass => Position switch
+    {
+        ToastPosition.TopRight => "kp-toast-top-right",
+        ToastPosition.TopLeft => "kp-toast-top-left",
+        ToastPosition.BottomRight => "kp-toast-bottom-right",
+        ToastPosition.BottomLeft => "kp-toast-bottom-left",
+        ToastPosition.TopCenter => "kp-toast-top-center",
+        ToastPosition.BottomCenter => "kp-toast-bottom-center",
+        _ => "kp-toast-top-right"
+    };
+
+    public async Task ShowAsync(string title, string? message = null, ToastType type = ToastType.Info, int? duration = null)
+    {
+        var toast = new ToastItem
+        {
+            Title = title,
+            Message = message,
+            Type = type,
+            Duration = duration ?? DefaultDuration
+        };
+
+        Toasts.Insert(0, toast);
+
+        if (Toasts.Count > MaxToasts)
+        {
+            Toasts.RemoveAt(Toasts.Count - 1);
+        }
+
+        if (toast.Duration > 0)
+        {
+            _ = AutoRemoveAsync(toast.Id, toast.Duration);
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public async Task SuccessAsync(string title, string? message = null, int? duration = null)
+        => await ShowAsync(title, message, ToastType.Success, duration);
+
+    public async Task ErrorAsync(string title, string? message = null, int? duration = null)
+        => await ShowAsync(title, message, ToastType.Error, duration);
+
+    public async Task WarningAsync(string title, string? message = null, int? duration = null)
+        => await ShowAsync(title, message, ToastType.Warning, duration);
+
+    public async Task InfoAsync(string title, string? message = null, int? duration = null)
+        => await ShowAsync(title, message, ToastType.Info, duration);
+
+    private async Task RemoveToast(string id)
+    {
+        var toast = Toasts.FirstOrDefault(t => t.Id == id);
+        if (toast != null)
+        {
+            Toasts.Remove(toast);
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task AutoRemoveAsync(string id, int delay)
+    {
+        await Task.Delay(delay);
+        await RemoveToast(id);
+    }
+
+    private string GetToastClass(ToastItem toast)
+    {
+        var classes = new List<string> { "kp-toast" };
+        classes.Add($"kp-toast-{toast.Type.ToString().ToLower()}");
+        return string.Join(" ", classes);
+    }
+
+    private string GetToastIcon(ToastType type)
+    {
+        return type switch
+        {
+            ToastType.Success => "✓",
+            ToastType.Error => "✕",
+            ToastType.Warning => "⚠",
+            ToastType.Info => "ℹ",
+            _ => "ℹ"
+        };
+    }
+}

@@ -1,0 +1,12 @@
+/* Design System - KingdomPrep ERP
+ * Foundation for web application design system
+ * Aligned with desktop application visual identity
+ */
+
+/* Import design system layers in order */
+@import './tokens/colors.css';
+@import './typography/fonts.css';
+@import './components/base.css';
+@import './components/all.css';
+@import './utilities/responsive.css';
+@import './utilities/accessibility.css';

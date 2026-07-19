@@ -1,0 +1,164 @@
+@page "/parent/assignments"
+@using KingdomPrep.Web.Data
+@using KingdomPrep.Web.Data.Entities
+@inject IWardRepository WardRepo
+@inject IParentPortalRepository ParentRepo
+@inject IPortalTenantContext TenantContext
+@attribute [Authorize(Roles = "Parent")]
+@rendermode InteractiveServer
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-1 text-primary">Homework & Assignments</h2>
+        <p class="text-muted mb-0">Track all class assignments and due dates for your wards.</p>
+    </div>
+</div>
+
+@if (_isLoading)
+{
+    <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status"></div>
+    </div>
+}
+else if (!_wards.Any())
+{
+    <div class="alert alert-warning shadow-sm border-0 d-flex align-items-center p-4 rounded-3" role="alert">
+        <div>
+            <h5 class="alert-heading fw-bold mb-1">No Wards Found</h5>
+            <p class="mb-0 text-dark">You have no students linked to this account.</p>
+        </div>
+    </div>
+}
+else
+{
+    <ul class="nav nav-pills mb-4 gap-2 bg-light p-2 rounded-pill d-inline-flex" id="pills-tab" role="tablist">
+        @for (int i = 0; i < _wards.Count; i++)
+        {
+            var ward = _wards[i];
+            var isSelected = _selectedWardId == ward.StudentID;
+            <li class="nav-item" role="presentation">
+                <button class="nav-link rounded-pill fw-semibold @(isSelected ? "active shadow-sm" : "text-muted hover-bg-white")"
+                        @onclick="() => SelectWard(ward)" type="button">
+                    <i class="bi bi-person-fill me-1"></i> @ward.FullName
+                </button>
+            </li>
+        }
+    </ul>
+
+    @if (_selectedWard != null)
+    {
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm rounded-4 bg-white sticky-top" style="top: 2rem;">
+                    <div class="card-body p-4 text-center">
+                        <div class="bg-primary bg-opacity-10 d-inline-block p-4 rounded-circle mb-3">
+                            <i class="bi bi-book text-primary" style="font-size: 2rem;"></i>
+                        </div>
+                        <h4 class="fw-bold text-slate-800 mb-1">@_selectedWard.FullName</h4>
+                        <span class="badge bg-secondary mb-3">Class: @_selectedWard.ClassID</span>
+                        <hr class="border-secondary-subtle mx-4" />
+                        <div class="d-flex justify-content-around text-center mt-3">
+                            <div>
+                                <h5 class="fw-bold mb-0 text-primary">@_wardAssignments.Count(a => a.DueDate >= DateTime.Today)</h5>
+                                <small class="text-muted text-uppercase" style="font-size: 0.7rem;">Active</small>
+                            </div>
+                            <div class="border-start"></div>
+                            <div>
+                                <h5 class="fw-bold mb-0 text-secondary">@_wardAssignments.Count(a => a.DueDate < DateTime.Today)</h5>
+                                <small class="text-muted text-uppercase" style="font-size: 0.7rem;">Past Due</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-8">
+                @if (!_wardAssignments.Any())
+                {
+                    <div class="text-center py-5 bg-white rounded-4 shadow-sm border-0">
+                        <i class="bi bi-clipboard-x text-muted mb-3 d-block" style="font-size: 3rem;"></i>
+                        <h5 class="text-muted fw-bold">No Assignments Yet</h5>
+                        <p class="text-muted small">Teachers haven't posted any homework for class @_selectedWard.ClassID yet.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="d-flex flex-column gap-3">
+                        @foreach (var assignment in _wardAssignments)
+                        {
+                            var isPastDue = assignment.DueDate < DateTime.Today;
+                            var dueClass = isPastDue ? "text-danger bg-danger bg-opacity-10" : "text-success bg-success bg-opacity-10";
+                            var iconClass = isPastDue ? "bi-clock-history text-danger" : "bi-clock text-success";
+
+                            <div class="card border-0 shadow-sm rounded-4 bg-white hover-shadow transition-all">
+                                <div class="card-body p-4">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <div>
+                                            <span class="badge bg-primary bg-opacity-10 text-primary mb-2 fw-semibold">@assignment.Subject</span>
+                                            <h5 class="fw-bold text-slate-800 mb-1">@assignment.Title</h5>
+                                        </div>
+                                        <div class="text-end">
+                                            <span class="badge rounded-pill @dueClass px-3 py-2">
+                                                <i class="bi @iconClass me-1"></i>
+                                                @(isPastDue ? "Past Due" : "Due") @assignment.DueDate.ToString("MMM dd")
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <p class="text-muted small mb-3">@assignment.Description</p>
+
+                                    <div class="d-flex justify-content-between align-items-center pt-3 border-top border-secondary-subtle">
+                                        <small class="text-muted"><i class="bi bi-calendar-plus me-1"></i> Posted: @assignment.CreatedDate.ToString("MMM dd, yyyy")</small>
+                                        <span class="badge rounded-pill @(isPastDue ? "bg-secondary" : "bg-primary")">@((isPastDue ? "Closed" : "Open"))</span>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    }
+}
+
+@code {
+    private bool _isLoading = true;
+    private string _username = "";
+    private Guid? _schoolId;
+
+    private List<StudentEntity> _wards = new();
+    private List<AssignmentEntity> _wardAssignments = new();
+
+    private int _selectedWardId;
+    private StudentEntity? _selectedWard;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var tenant = await TenantContext.GetCurrentAsync();
+        _username = tenant.Username ?? "";
+        _schoolId = tenant.SchoolId;
+
+        _wards = await WardRepo.GetWardsForParentAsync(_username, _schoolId);
+
+        if (_wards.Any())
+        {
+            await SelectWard(_wards.First());
+        }
+
+        _isLoading = false;
+    }
+
+    private async Task SelectWard(StudentEntity ward)
+    {
+        _selectedWardId = ward.StudentID;
+        _selectedWard = ward;
+
+        if (!string.IsNullOrEmpty(ward.ClassID))
+        {
+            _wardAssignments = await ParentRepo.GetClassAssignmentsAsync(ward.ClassID, _schoolId);
+        }
+        else
+        {
+            _wardAssignments.Clear();
+        }
+    }
+}

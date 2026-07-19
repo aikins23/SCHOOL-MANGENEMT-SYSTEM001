@@ -1,0 +1,961 @@
+@page "/admin/exams/setup"
+@rendermode InteractiveServer
+@attribute [Authorize(Roles = "Administrator,Director,Headmaster")]
+@using KingdomPrep.Web.Core.Auth
+@using KingdomPrep.Web.Data
+@using KingdomPrep.Web.Data.Entities
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.EntityFrameworkCore
+@inject AppDbContext DbContext
+@inject IAcademicPortalRepository AcademicRepo
+@inject NavigationManager NavManager
+@inject IPortalTenantContext TenantContext
+@inject AuthenticationStateProvider AuthStateProvider
+
+<PageTitle>Exam Administration - Nyansapo ERP</PageTitle>
+
+<div class="container-fluid py-4" style="background-color: #f6f8fb; min-height: calc(100vh - 5rem);">
+
+    <!-- HEADER & ACTIONS -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h2 class="mb-1" style="font-weight: 600; color: #11233a; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 2rem;">Exam Administration</h2>
+            <p class="mb-0 text-muted" style="font-size: 0.95rem;">Configure academic grading terms, weights, and notify teachers</p>
+        </div>
+        <div class="d-flex gap-3 align-items-center">
+            @if (_canManageSetup && _editingSetupId > 0) {
+                <button class="btn btn-outline-secondary fw-semibold px-3 shadow-sm me-2" @onclick="CancelEditSetup">Cancel</button>
+            }
+            @if (_canManageSetup)
+            {
+                <button class="btn text-white fw-semibold px-4 shadow-sm" style="background-color: #11233a; border-radius: 4px;" @onclick="SaveSetup" disabled="@_isSaving">
+                    @if (_isSaving) { <span class="spinner-border spinner-border-sm"></span> } else { <span><i class="bi bi-save me-2"></i>@(_editingSetupId > 0 ? "Update Setup" : "Save & Setup")</span> }
+                </button>
+            }
+        </div>
+    </div>
+
+    @if (_isLoading)
+    {
+        <div class="d-flex justify-content-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="card border-0 shadow-sm rounded-4 mb-4">
+                    <div class="card-header bg-white border-0 pt-4 pb-0 px-4">
+                        <h5 class="fw-bold" style="color: #192431;">New Exam Period</h5>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="row g-4">
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold text-secondary">Academic Term</label>
+                                <select class="form-select" @bind="_setup.Term" disabled="@(!_canManageSetup)">
+                                    <option value="First Term">First Term</option>
+                                    <option value="Second Term">Second Term</option>
+                                    <option value="Third Term">Third Term</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold text-secondary">Academic Year</label>
+                                <select class="form-select" @bind="_setup.Year" disabled="@(!_canManageSetup)">
+                                    <option value="2023/2024">2023/2024</option>
+                                    <option value="2024/2025">2024/2025</option>
+                                    <option value="2025/2026">2025/2026</option>
+                                    <option value="2026/2027">2026/2027</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold text-secondary">Exam Type</label>
+                                <select class="form-select" @bind="SelectedExamTypeId" disabled="@(!_canManageSetup)">
+                                    <option value="0">-- Select exam type --</option>
+                                    @foreach (var type in _examTypes.Where(t => t.IsActive))
+                                    {
+                                        <option value="@type.ExamTypeId">@type.Name</option>
+                                    }
+                                </select>
+                            </div>
+                            @if (!IsEndOfTermSelected())
+                            {
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold text-secondary">Assessment Number</label>
+                                    <input type="number" class="form-control" @bind="_setup.AssessmentNumber" min="1" max="20" disabled="@(!_canManageSetup)" />
+                                    <small class="text-muted">Preview: @BuildAssessmentLabel(_setup)</small>
+                                </div>
+                            }
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold text-secondary">Start Date (System opens for entry)</label>
+                                <input type="date" class="form-control" @bind="_setup.StartDate" disabled="@(!_canManageSetup)" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold text-secondary">End Date (System closes)</label>
+                                <input type="date" class="form-control" @bind="_setup.EndDate" disabled="@(!_canManageSetup)" />
+                            </div>
+
+                            <div class="col-12 mt-4">
+                                @if (IsEndOfTermSelected())
+                                {
+                                    <h6 class="fw-bold mb-3" style="color: #192431;">Grading Policy Weighting</h6>
+                                    <div class="p-4 bg-light rounded-3 border">
+                                        <div class="row align-items-center">
+                                            <div class="col-md-5">
+                                                <label class="form-label text-muted fw-semibold mb-1">Class Score Weight (%)</label>
+                                                <input type="number" class="form-control fw-bold fs-5 text-primary" @bind="_setup.ClassWeight" @bind:after="RecalculateWeights" min="0" max="100" disabled="@(!_canManageSetup)" />
+                                            </div>
+                                            <div class="col-md-2 text-center text-muted fw-bold fs-4">+</div>
+                                            <div class="col-md-5">
+                                                <label class="form-label text-muted fw-semibold mb-1">Exam Score Weight (%)</label>
+                                                <input type="number" class="form-control fw-bold fs-5 text-danger" @bind="_setup.ExamWeight" readonly />
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <h6 class="fw-bold mb-3" style="color: #192431;">Assessment Total Score (Max Marks)</h6>
+                                    <div class="p-4 bg-light rounded-3 border">
+                                        <div class="row align-items-center">
+                                            <div class="col-md-6">
+                                                <label class="form-label text-muted fw-semibold mb-1">Total Maximum Score</label>
+                                                <input type="number" class="form-control fw-bold fs-5 text-primary" @bind="_setup.ExamWeight" @bind:after="RecalculateWeights" min="1" max="1000" disabled="@(!_canManageSetup)" />
+                                                <small class="text-muted mt-1 d-block">For non-terminal assessments (Mock, Mid-Term, Class Tests), there is no class score component. Enter the total obtainable marks (e.g. 100, 50, 40).</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+
+                        @if (_showSuccessMessage)
+                        {
+                            <div class="alert alert-success mt-4 mb-0 py-3 fw-semibold">
+                                <i class="bi bi-check-circle-fill me-2"></i>Exam Period setup successfully! Teachers will be notified to begin grading.
+                            </div>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(_setupMessage))
+                        {
+                            <div class="alert @(_setupMessageIsError ? "alert-danger" : "alert-info") mt-4 mb-0 py-3 fw-semibold">
+                                @_setupMessage
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="card border-0 shadow-sm rounded-4 mb-4">
+                    <div class="card-header bg-white border-0 pt-4 pb-0 px-4">
+                        <div class="d-flex justify-content-between align-items-start gap-3">
+                            <div>
+                                <h5 class="fw-bold mb-1" style="color: #192431;">Exam Types</h5>
+                                <p class="text-muted small mb-0">Create mock, mid-term, class test, and school-specific exams</p>
+                            </div>
+                            @if (_canManageSetup)
+                            {
+                                <button class="btn btn-sm btn-outline-primary" @onclick="ResetExamTypeForm">New</button>
+                            }
+                        </div>
+                    </div>
+                    <div class="card-body p-4">
+                        @if (!string.IsNullOrWhiteSpace(_examTypeMessage))
+                        {
+                            <div class="alert @(_examTypeMessageIsError ? "alert-danger" : "alert-success") py-2 small">@_examTypeMessage</div>
+                        }
+
+                        <div class="list-group list-group-flush mb-3" style="max-height: 260px; overflow-y: auto;">
+                            @foreach (var type in _examTypes)
+                            {
+                                <button type="button" class="list-group-item list-group-item-action px-0 py-3 @(type.ExamTypeId == _examTypeForm.ExamTypeId ? "active" : "")" @onclick="() => StartEditExamType(type)">
+                                    <div class="d-flex justify-content-between gap-2">
+                                        <span class="fw-semibold">@type.Name</span>
+                                        <span class="badge @(type.IsActive ? "bg-light text-dark" : "bg-secondary")">@type.Code</span>
+                                    </div>
+                                    <small class="d-block @(type.ExamTypeId == _examTypeForm.ExamTypeId ? "text-white-50" : "text-muted")">
+                                        @type.WeightPercentage.ToString("0.#")% weight
+                                        @if (type.IncludeInReportCard)
+                                        {
+                                            <span> | report card</span>
+                                        }
+                                        @if (type.IsSystemType)
+                                        {
+                                            <span> | system</span>
+                                        }
+                                    </small>
+                                </button>
+                            }
+                        </div>
+
+                        <div class="p-3 bg-light rounded border">
+                            <div class="row g-2">
+                                <div class="col-8">
+                                    <label class="form-label small fw-semibold text-muted">Name</label>
+                                    <input class="form-control form-control-sm" @bind="_examTypeForm.Name" disabled="@(!_canManageSetup)" placeholder="Mock Examination" />
+                                </div>
+                                <div class="col-4">
+                                    <label class="form-label small fw-semibold text-muted">Code</label>
+                                    <input class="form-control form-control-sm text-uppercase" @bind="_examTypeForm.Code" disabled="@(_examTypeForm.IsSystemType || !_canManageSetup)" placeholder="MOCK" />
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label small fw-semibold text-muted">Weight %</label>
+                                    <input type="number" class="form-control form-control-sm" @bind="_examTypeForm.WeightPercentage" min="0" max="100" disabled="@(!_canManageSetup)" />
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label small fw-semibold text-muted">Sort Order</label>
+                                    <input type="number" class="form-control form-control-sm" @bind="_examTypeForm.DisplayOrder" min="0" disabled="@(!_canManageSetup)" />
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label small fw-semibold text-muted">Description</label>
+                                    <textarea class="form-control form-control-sm" rows="2" @bind="_examTypeForm.Description" disabled="@(!_canManageSetup)"></textarea>
+                                </div>
+                                <div class="col-12 d-flex flex-wrap gap-3 small">
+                                    <label class="form-check-label">
+                                        <input type="checkbox" class="form-check-input me-1" @bind="_examTypeForm.IsGradedExam" disabled="@(!_canManageSetup)" />
+                                        Graded
+                                    </label>
+                                    <label class="form-check-label">
+                                        <input type="checkbox" class="form-check-input me-1" @bind="_examTypeForm.IncludeInReportCard" disabled="@(!_canManageSetup)" />
+                                        Report card
+                                    </label>
+                                    <label class="form-check-label">
+                                        <input type="checkbox" class="form-check-input me-1" @bind="_examTypeForm.IsActive" disabled="@(_examTypeForm.IsSystemType || !_canManageSetup)" />
+                                        Active
+                                    </label>
+                                </div>
+                                <div class="col-12 d-flex gap-2 mt-2">
+                                    @if (_canManageSetup)
+                                    {
+                                        <button class="btn btn-sm btn-primary" @onclick="SaveExamType" disabled="@_isSavingExamType">
+                                            @(_examTypeForm.ExamTypeId > 0 ? "Update Type" : "Add Type")
+                                        </button>
+                                    }
+                                    @if (_examTypeForm.ExamTypeId > 0 && !_examTypeForm.IsSystemType && _canManageSetup)
+                                    {
+                                        <button class="btn btn-sm btn-outline-danger" @onclick="DeactivateExamType">Deactivate</button>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card border-0 shadow-sm rounded-4 mb-4">
+                    <div class="card-header bg-white border-0 pt-4 pb-0 px-4">
+                        <h5 class="fw-bold" style="color: #192431;">Recent Exam Periods</h5>
+                    </div>
+                    <div class="card-body p-4">
+                        @if (!_history.Any())
+                        {
+                            <p class="text-muted">No past exam periods found.</p>
+                        }
+                        else
+                        {
+                            <div class="list-group list-group-flush">
+                                @foreach (var h in _history)
+                                {
+                                    <div class="list-group-item px-0 py-3">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div>
+                                                <h6 class="mb-1 fw-bold text-dark">@AssessmentDisplayName(h)</h6>
+                                                <small class="text-primary fw-semibold d-block">@h.Term - @h.Year</small>
+                                                <small class="text-muted d-block">
+                                                    @(IsEndOfTermSetup(h) ? $"Class: {h.ClassWeight}% | Exam: {h.ExamWeight}%" : $"Total Obtainable Score: {h.ExamWeight} marks")
+                                                </small>
+                                                @if (h.IsPublishedToPortal)
+                                                {
+                                                    <small class="text-success fw-semibold d-block">
+                                                        Published to parent portal @(h.PublishedAt?.ToString("MMM dd, yyyy h:mm tt") ?? "")
+                                                    </small>
+                                                }
+                                                <small class="text-muted d-block">
+                                                    @(h.StartDate?.ToString("MMM dd") ?? "N/A") to @(h.EndDate?.ToString("MMM dd") ?? "N/A")
+                                                </small>
+                                            </div>
+                                            @if (h.EndDate >= DateTime.Today)
+                                            {
+                                                <span class="badge bg-success rounded-pill px-3">Active</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-secondary rounded-pill px-3">Closed</span>
+                                            }
+                                        </div>
+                                        <div class="d-flex gap-2 mt-2">
+                                            @if (_canManageSetup)
+                                            {
+                                                <button class="btn btn-sm btn-outline-primary py-0" @onclick="() => StartEditSetup(h)">Edit</button>
+                                                <button class="btn btn-sm btn-outline-danger py-0" @onclick="() => DeleteSetup(h)">Delete</button>
+                                            }
+                                            @if (_canPublishPortal)
+                                            {
+                                                <button class="btn btn-sm @(h.IsPublishedToPortal ? "btn-outline-secondary" : "btn-success") py-0" @onclick="() => TogglePublishSetup(h)">
+                                                    @(h.IsPublishedToPortal ? "Unpublish" : "Upload to Parent Portal")
+                                                </button>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+                <div class="card border-0 shadow-sm rounded-4 mt-4 mb-4">
+                    <div class="card-header bg-white border-0 pt-4 pb-0 px-4">
+                        <h5 class="fw-bold" style="color: #192431;">Verify Synced Subjects</h5>
+                        <p class="text-muted small mb-0">Used by grading, report cards, and teacher result entry</p>
+                    </div>
+                    <div class="card-body p-4">
+                        @if (!string.IsNullOrWhiteSpace(_subjectMessage))
+                        {
+                            <div class="alert @(_subjectMessageIsError ? "alert-danger" : "alert-success") py-2 small">@_subjectMessage</div>
+                        }
+
+                        @if (!_syncedSubjects.Any())
+                        {
+                            <div class="alert alert-warning">
+                                <i class="bi bi-exclamation-triangle me-2"></i>No subjects found. Ensure the Desktop App is running and syncing.
+                            </div>
+                            @if (_canManageSetup)
+                            {
+                                <button class="btn btn-sm btn-outline-primary" @onclick="ToggleAddSubjectMode">
+                                    <i class="bi bi-plus-circle me-1"></i>Add Subject
+                                </button>
+                            }
+                        }
+
+                        <div class="mb-3 mt-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <label class="form-label text-muted small fw-bold mb-0">Filter by Class</label>
+                                @if (_canManageSetup)
+                                {
+                                    <button class="btn btn-sm btn-outline-primary" @onclick="ToggleAddSubjectMode">
+                                        <i class="bi bi-plus-circle me-1"></i>Add Subject
+                                    </button>
+                                }
+                            </div>
+                            <select class="form-select form-select-sm" @bind="_selectedClassFilter">
+                                <option value="">-- All Classes --</option>
+                                @foreach (var c in _syncedSubjects.Select(x => x.ClassName).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct().OrderBy(x => x))
+                                {
+                                    <option value="@c">@c</option>
+                                }
+                            </select>
+                        </div>
+
+                        @if (_canManageSetup && _isAddingSubject)
+                        {
+                            <div class="p-3 mb-3 bg-light rounded border">
+                                <h6 class="fw-bold mb-3 small">Add New Subject</h6>
+                                <div class="row g-2">
+                                    <div class="col-md-5">
+                                        <input type="text" class="form-control form-control-sm" placeholder="Class Name (e.g. BASIC 1)" @bind="_newSubjectClass" />
+                                    </div>
+                                    <div class="col-md-5">
+                                        <input type="text" class="form-control form-control-sm" placeholder="Subject Name" @bind="_newSubjectName" />
+                                    </div>
+                                    <div class="col-md-2">
+                                        <button class="btn btn-sm btn-success w-100" @onclick="SaveNewSubject">Save</button>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+
+                        @if (_syncedSubjects.Any())
+                        {
+                            <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+                                <table class="table table-sm table-hover border-top">
+                                    <thead class="table-light sticky-top">
+                                        <tr>
+                                            <th>Class</th>
+                                            <th>Subject</th>
+                                            @if (_canManageSetup)
+                                            {
+                                                <th class="text-end">Actions</th>
+                                            }
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var s in _syncedSubjects.Where(x => string.IsNullOrEmpty(_selectedClassFilter) || x.ClassName == _selectedClassFilter).OrderBy(x => x.ClassName).ThenBy(x => x.Subject))
+                                        {
+                                            <tr>
+                                                <td class="fw-semibold text-secondary">
+                                                    @if (_editingSubjectId == s.Id) {
+                                                        <input type="text" class="form-control form-control-sm" @bind="_editSubjectClass" />
+                                                    } else {
+                                                        @s.ClassName
+                                                    }
+                                                </td>
+                                                <td>
+                                                    @if (_editingSubjectId == s.Id) {
+                                                        <input type="text" class="form-control form-control-sm" @bind="_editSubjectName" />
+                                                    } else {
+                                                        @s.Subject
+                                                    }
+                                                </td>
+                                                @if (_canManageSetup)
+                                                {
+                                                    <td class="text-end">
+                                                        @if (_editingSubjectId == s.Id)
+                                                        {
+                                                            <button class="btn btn-sm btn-success py-0 px-2" @onclick="() => SaveEditSubject(s)">Save</button>
+                                                            <button class="btn btn-sm btn-secondary py-0 px-2" @onclick="CancelEditSubject">Cancel</button>
+                                                        }
+                                                        else
+                                                        {
+                                                            <button class="btn btn-sm btn-outline-primary py-0 px-2 me-1" @onclick="() => StartEditSubject(s)">Edit</button>
+                                                            <button class="btn btn-sm btn-outline-danger py-0 px-2" @onclick="() => DeleteSubject(s)">Remove</button>
+                                                        }
+                                                    </td>
+                                                }
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="text-end mt-2">
+                                <small class="text-muted fw-bold">Showing: @(_syncedSubjects.Count(x => string.IsNullOrEmpty(_selectedClassFilter) || x.ClassName == _selectedClassFilter)) of @_syncedSubjects.Count</small>
+                            </div>
+                            <div class="text-end mt-2">
+                                <a href="admin/subjects" class="small fw-semibold">Open full subject manager</a>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private bool _isLoading = true;
+    private bool _isSaving = false;
+    private bool _showSuccessMessage = false;
+    private string _setupMessage = "";
+    private bool _setupMessageIsError;
+    private Guid? _schoolId;
+    private bool _canManageSetup;
+    private bool _canPublishPortal;
+    private string _currentUsername = "system";
+    private string _selectedClassFilter = "";
+
+    private ExamSetupEntity _setup = new()
+    {
+        Term = "First Term",
+        Year = "2025/2026",
+        StartDate = DateTime.Today,
+        EndDate = DateTime.Today.AddDays(14),
+        ClassWeight = 50,
+        ExamWeight = 50
+    };
+
+    private List<ExamSetupEntity> _history = new();
+    private List<ClassSubjectEntity> _syncedSubjects = new();
+
+    private bool _isAddingSubject = false;
+    private string _newSubjectClass = "";
+    private string _newSubjectName = "";
+    private string _subjectMessage = "";
+    private bool _subjectMessageIsError;
+
+    private int _editingSubjectId = 0;
+    private string _editSubjectClass = "";
+    private string _editSubjectName = "";
+
+    private int _editingSetupId = 0;
+    private List<ExamTypeEntity> _examTypes = new();
+    private ExamTypeEntity _examTypeForm = NewExamTypeForm();
+    private bool _isSavingExamType;
+    private string _examTypeMessage = "";
+    private bool _examTypeMessageIsError;
+
+    private int SelectedExamTypeId
+    {
+        get => _setup.ExamTypeId ?? 0;
+        set
+        {
+            _setup.ExamTypeId = value <= 0 ? null : value;
+            if (IsEndOfTermSelected())
+            {
+                _setup.AssessmentNumber = null;
+                if (_setup.ClassWeight + _setup.ExamWeight != 100)
+                {
+                    _setup.ClassWeight = 50;
+                    _setup.ExamWeight = 50;
+                }
+            }
+            else
+            {
+                if (!_setup.AssessmentNumber.HasValue || _setup.AssessmentNumber.Value < 1)
+                {
+                    _setup.AssessmentNumber = 1;
+                }
+                _setup.ClassWeight = 0;
+                if (_setup.ExamWeight == 0) _setup.ExamWeight = 100;
+            }
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        _canManageSetup = WebPermission.CanRenderAction(authState.User, WebPermission.SettingsExamSetupManage);
+        _canPublishPortal = WebPermission.CanRenderAction(authState.User, WebPermission.AcademicResultsPublish);
+        _currentUsername = authState.User.Identity?.Name ?? "system";
+        _schoolId = (await TenantContext.GetCurrentAsync()).SchoolId;
+
+        await LoadExamTypes();
+        await LoadHistory();
+        await LoadSubjects();
+        _isLoading = false;
+    }
+
+    private static ExamTypeEntity NewExamTypeForm() => new()
+    {
+        IsActive = true,
+        IsGradedExam = true,
+        IncludeInReportCard = true,
+        DisplayOrder = 100
+    };
+
+    private void RecalculateWeights()
+    {
+        if (IsEndOfTermSelected())
+        {
+            if (_setup.ClassWeight > 100) _setup.ClassWeight = 100;
+            if (_setup.ClassWeight < 0) _setup.ClassWeight = 0;
+            _setup.ExamWeight = 100 - _setup.ClassWeight;
+        }
+        else
+        {
+            _setup.ClassWeight = 0;
+            if (_setup.ExamWeight < 1) _setup.ExamWeight = 100;
+        }
+    }
+
+    private async Task LoadHistory()
+    {
+        _history = await DbContext.ExamSetups
+            .Where(e => e.SchoolId == _schoolId)
+            .OrderByDescending(e => e.SetupID)
+            .Take(10)
+            .ToListAsync();
+    }
+
+    private async Task LoadSubjects()
+    {
+        _syncedSubjects = await AcademicRepo.GetClassSubjectsAsync(schoolId: _schoolId);
+    }
+
+    private async Task LoadExamTypes()
+    {
+        _examTypes = await AcademicRepo.GetExamTypesAsync(includeInactive: true, schoolId: _schoolId);
+        if (!_setup.ExamTypeId.HasValue)
+        {
+            _setup.ExamTypeId = DefaultExamTypeId();
+        }
+    }
+
+    private int? DefaultExamTypeId()
+    {
+        var defaultType = _examTypes.FirstOrDefault(t => t.IsActive && t.Code == "EOT")
+            ?? _examTypes.FirstOrDefault(t => t.IsActive);
+        return defaultType?.ExamTypeId;
+    }
+
+    private string ExamTypeName(int? examTypeId)
+    {
+        if (!examTypeId.HasValue) return "End of Term Examination";
+        return _examTypes.FirstOrDefault(t => t.ExamTypeId == examTypeId.Value)?.Name ?? "Unknown exam type";
+    }
+
+    private ExamTypeEntity? SelectedExamType() =>
+        _setup.ExamTypeId.HasValue
+            ? _examTypes.FirstOrDefault(t => t.ExamTypeId == _setup.ExamTypeId.Value)
+            : null;
+
+    private bool IsEndOfTermSelected()
+    {
+        var type = SelectedExamType();
+        return type == null || string.Equals(type.Code, "EOT", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private bool IsEndOfTermSetup(ExamSetupEntity setup)
+    {
+        if (!setup.ExamTypeId.HasValue) return true;
+        var type = _examTypes.FirstOrDefault(t => t.ExamTypeId == setup.ExamTypeId.Value);
+        return type == null || string.Equals(type.Code, "EOT", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private string BuildAssessmentLabel(ExamSetupEntity setup)
+    {
+        var examType = ExamTypeName(setup.ExamTypeId);
+        if (IsEndOfTermSetup(setup)) return examType;
+
+        var number = setup.AssessmentNumber.GetValueOrDefault(1);
+        return $"{examType} {number}";
+    }
+
+    private string AssessmentDisplayName(ExamSetupEntity setup)
+    {
+        var label = string.IsNullOrWhiteSpace(setup.AssessmentLabel)
+            ? BuildAssessmentLabel(setup)
+            : setup.AssessmentLabel!;
+        return $"{label} - {setup.Term} {setup.Year}";
+    }
+
+    private void ResetExamTypeForm()
+    {
+        _examTypeForm = NewExamTypeForm();
+        _examTypeMessage = "";
+        _examTypeMessageIsError = false;
+    }
+
+    private void StartEditExamType(ExamTypeEntity type)
+    {
+        _examTypeForm = new ExamTypeEntity
+        {
+            ExamTypeId = type.ExamTypeId,
+            Name = type.Name,
+            Code = type.Code,
+            Description = type.Description,
+            WeightPercentage = type.WeightPercentage,
+            IsGradedExam = type.IsGradedExam,
+            IncludeInReportCard = type.IncludeInReportCard,
+            DisplayOrder = type.DisplayOrder,
+            SchoolId = type.SchoolId,
+            IsSystemType = type.IsSystemType,
+            IsActive = type.IsActive,
+            CreatedDate = type.CreatedDate,
+            CreatedBy = type.CreatedBy
+        };
+        _examTypeMessage = "";
+        _examTypeMessageIsError = false;
+    }
+
+    private async Task SaveExamType()
+    {
+        if (!_canManageSetup) return;
+
+        _isSavingExamType = true;
+        _examTypeMessage = "";
+        _examTypeMessageIsError = false;
+
+        try
+        {
+            var wasEditing = _examTypeForm.ExamTypeId > 0;
+            await AcademicRepo.SaveExamTypeAsync(_examTypeForm, _schoolId);
+            await LoadExamTypes();
+            ResetExamTypeForm();
+            _examTypeMessage = wasEditing ? "Exam type updated." : "Exam type added.";
+        }
+        catch (Exception ex)
+        {
+            _examTypeMessage = ex.Message;
+            _examTypeMessageIsError = true;
+        }
+        finally
+        {
+            _isSavingExamType = false;
+        }
+    }
+
+    private async Task DeactivateExamType()
+    {
+        if (!_canManageSetup) return;
+        if (_examTypeForm.ExamTypeId == 0) return;
+
+        try
+        {
+            await AcademicRepo.DeactivateExamTypeAsync(_examTypeForm.ExamTypeId);
+            await LoadExamTypes();
+            if (_setup.ExamTypeId == _examTypeForm.ExamTypeId)
+            {
+                _setup.ExamTypeId = DefaultExamTypeId();
+            }
+            ResetExamTypeForm();
+            _examTypeMessage = "Exam type deactivated.";
+        }
+        catch (Exception ex)
+        {
+            _examTypeMessage = ex.Message;
+            _examTypeMessageIsError = true;
+        }
+    }
+
+    private void ToggleAddSubjectMode()
+    {
+        if (!_canManageSetup) return;
+        _isAddingSubject = !_isAddingSubject;
+    }
+
+    private async Task SaveNewSubject()
+    {
+        if (!_canManageSetup) return;
+
+        _subjectMessage = "";
+        _subjectMessageIsError = false;
+
+        try
+        {
+            await AcademicRepo.SaveClassSubjectAsync(new ClassSubjectEntity
+            {
+                ClassName = _newSubjectClass,
+                Subject = _newSubjectName
+            }, _schoolId);
+
+            _newSubjectClass = "";
+            _newSubjectName = "";
+            _isAddingSubject = false;
+            _subjectMessage = "Subject added.";
+            await LoadSubjects();
+        }
+        catch (Exception ex)
+        {
+            _subjectMessage = ex.Message;
+            _subjectMessageIsError = true;
+        }
+    }
+
+    private void StartEditSubject(ClassSubjectEntity s)
+    {
+        if (!_canManageSetup) return;
+
+        _editingSubjectId = s.Id;
+        _editSubjectClass = s.ClassName ?? "";
+        _editSubjectName = s.Subject ?? "";
+    }
+
+    private void CancelEditSubject()
+    {
+        if (!_canManageSetup) return;
+
+        _editingSubjectId = 0;
+    }
+
+    private async Task SaveEditSubject(ClassSubjectEntity s)
+    {
+        if (!_canManageSetup) return;
+
+        _subjectMessage = "";
+        _subjectMessageIsError = false;
+
+        try
+        {
+            await AcademicRepo.SaveClassSubjectAsync(new ClassSubjectEntity
+            {
+                Id = s.Id,
+                ClassName = _editSubjectClass,
+                Subject = _editSubjectName,
+                SortOrder = s.SortOrder
+            }, _schoolId);
+
+            _editingSubjectId = 0;
+            _subjectMessage = "Subject updated.";
+            await LoadSubjects();
+        }
+        catch (Exception ex)
+        {
+            _subjectMessage = ex.Message;
+            _subjectMessageIsError = true;
+        }
+    }
+
+    private async Task DeleteSubject(ClassSubjectEntity s)
+    {
+        if (!_canManageSetup) return;
+
+        await AcademicRepo.DeleteClassSubjectAsync(s.Id, _schoolId);
+        _subjectMessage = "Subject removed.";
+        _subjectMessageIsError = false;
+        await LoadSubjects();
+    }
+
+    private void StartEditSetup(ExamSetupEntity h)
+    {
+        if (!_canManageSetup) return;
+
+        _editingSetupId = h.SetupID;
+        _setup = new ExamSetupEntity
+        {
+            Term = h.Term,
+            Year = h.Year,
+            ExamTypeId = h.ExamTypeId,
+            AssessmentNumber = h.AssessmentNumber,
+            AssessmentLabel = h.AssessmentLabel,
+            StartDate = h.StartDate,
+            EndDate = h.EndDate,
+            ClassWeight = h.ClassWeight,
+            ExamWeight = h.ExamWeight,
+            IsPublishedToPortal = h.IsPublishedToPortal,
+            PublishedAt = h.PublishedAt,
+            PublishedBy = h.PublishedBy
+        };
+    }
+
+    private void CancelEditSetup()
+    {
+        _editingSetupId = 0;
+        _setup = new ExamSetupEntity
+        {
+            Term = "First Term",
+            Year = "2025/2026",
+            ExamTypeId = DefaultExamTypeId(),
+            AssessmentNumber = null,
+            AssessmentLabel = null,
+            StartDate = DateTime.Today,
+            EndDate = DateTime.Today.AddDays(14),
+            ClassWeight = 50,
+            ExamWeight = 50
+        };
+    }
+
+    private async Task DeleteSetup(ExamSetupEntity h)
+    {
+        if (!_canManageSetup) return;
+
+        DbContext.ExamSetups.Remove(h);
+        await DbContext.SaveChangesAsync();
+        await LoadHistory();
+    }
+
+    private async Task TogglePublishSetup(ExamSetupEntity setup)
+    {
+        if (!_canPublishPortal) return;
+
+        var existing = await DbContext.ExamSetups.FindAsync(setup.SetupID);
+        if (existing == null) return;
+
+        existing.IsPublishedToPortal = !existing.IsPublishedToPortal;
+        existing.PublishedAt = existing.IsPublishedToPortal ? DateTime.UtcNow : null;
+        existing.PublishedBy = existing.IsPublishedToPortal ? _currentUsername : null;
+        existing.UpdatedAt = DateTime.UtcNow;
+        DbContext.ExamSetups.Update(existing);
+        await DbContext.SaveChangesAsync();
+
+        _setupMessage = existing.IsPublishedToPortal
+            ? $"{AssessmentDisplayName(existing)} uploaded to the parent portal."
+            : $"{AssessmentDisplayName(existing)} removed from the parent portal.";
+        _setupMessageIsError = false;
+        await LoadHistory();
+    }
+
+    private async Task SaveSetup()
+    {
+        if (!_canManageSetup) return;
+
+        _isSaving = true;
+        _showSuccessMessage = false;
+        _setupMessage = "";
+        _setupMessageIsError = false;
+
+        RecalculateWeights();
+
+        if (string.IsNullOrWhiteSpace(_setup.Term) || string.IsNullOrWhiteSpace(_setup.Year))
+        {
+            _setupMessage = "Term and academic year are required.";
+            _setupMessageIsError = true;
+            _isSaving = false;
+            return;
+        }
+
+        if (!_setup.ExamTypeId.HasValue)
+        {
+            _setupMessage = "Exam type is required.";
+            _setupMessageIsError = true;
+            _isSaving = false;
+            return;
+        }
+
+        if (IsEndOfTermSelected())
+        {
+            _setup.AssessmentNumber = null;
+        }
+        else if (!_setup.AssessmentNumber.HasValue || _setup.AssessmentNumber.Value < 1)
+        {
+            _setupMessage = "Assessment number is required for non-end-of-term exams.";
+            _setupMessageIsError = true;
+            _isSaving = false;
+            return;
+        }
+
+        _setup.AssessmentLabel = BuildAssessmentLabel(_setup);
+
+        if (!_setup.StartDate.HasValue || !_setup.EndDate.HasValue)
+        {
+            _setupMessage = "Start date and end date are required.";
+            _setupMessageIsError = true;
+            _isSaving = false;
+            return;
+        }
+
+        if (_setup.StartDate.Value.Date > _setup.EndDate.Value.Date)
+        {
+            _setupMessage = "Start date cannot be after end date.";
+            _setupMessageIsError = true;
+            _isSaving = false;
+            return;
+        }
+
+        var duplicateExists = await DbContext.ExamSetups.AnyAsync(e =>
+            e.SetupID != _editingSetupId &&
+            e.Term == _setup.Term &&
+            e.Year == _setup.Year &&
+            e.ExamTypeId == _setup.ExamTypeId &&
+            e.AssessmentNumber == _setup.AssessmentNumber &&
+            e.SchoolId == _schoolId);
+        if (duplicateExists)
+        {
+            _setupMessage = "An exam setup already exists for this term, year, exam type, and assessment number.";
+            _setupMessageIsError = true;
+            _isSaving = false;
+            return;
+        }
+
+        if (_editingSetupId > 0)
+        {
+            var existing = await DbContext.ExamSetups.FindAsync(_editingSetupId);
+            if (existing != null)
+            {
+                var now = DateTime.UtcNow;
+                existing.Term = _setup.Term;
+                existing.Year = _setup.Year;
+                existing.ExamTypeId = _setup.ExamTypeId;
+                existing.AssessmentNumber = _setup.AssessmentNumber;
+                existing.AssessmentLabel = _setup.AssessmentLabel;
+                existing.StartDate = _setup.StartDate;
+                existing.EndDate = _setup.EndDate;
+                existing.ClassWeight = _setup.ClassWeight;
+                existing.ExamWeight = _setup.ExamWeight;
+                existing.UpdatedAt = now;
+                DbContext.ExamSetups.Update(existing);
+                await DbContext.SaveChangesAsync();
+            }
+        }
+        else
+        {
+            _setup.SchoolId = _schoolId;
+            _setup.UpdatedAt = DateTime.UtcNow;
+            DbContext.ExamSetups.Add(_setup);
+            await DbContext.SaveChangesAsync();
+
+            var teachers = await DbContext.Employees.Where(e => e.Position == "Teacher" && e.SchoolId == _schoolId).ToListAsync();
+            foreach (var teacher in teachers)
+            {
+                if (!string.IsNullOrEmpty(teacher.Contact))
+                {
+                    var message = $"Dear {teacher.FullName}, the {_setup.Term} grading portal is now OPEN. Please submit all grades by {_setup.EndDate?.ToString("MMM dd")}. Class weight: {_setup.ClassWeight}%, Exam weight: {_setup.ExamWeight}%.";
+                    Console.WriteLine($"[SMS Outbox] To: {teacher.Contact} - {message}");
+                }
+            }
+        }
+
+        CancelEditSetup();
+        await LoadHistory();
+
+        _showSuccessMessage = true;
+        _isSaving = false;
+
+        _ = Task.Delay(4000).ContinueWith(_ => { _showSuccessMessage = false; InvokeAsync(StateHasChanged); });
+    }
+}

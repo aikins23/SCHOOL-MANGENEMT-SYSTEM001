@@ -1,0 +1,336 @@
+@page "/headmaster/student-remarks"
+@rendermode InteractiveServer
+@attribute [Authorize(Policy = WebPermission.AcademicResultsPublish)]
+@using KingdomPrep.Web.Data
+@using KingdomPrep.Web.Data.Entities
+@inject IAcademicPortalRepository AcademicRepo
+@inject IStudentRepository StudentRepo
+@inject IStudentRemarksRepository RemarksRepo
+@inject IGradingPortalRepository GradingRepo
+@inject IPortalTenantContext TenantContext
+
+<PageTitle>Headteacher Remarks - Nyansapo ERP</PageTitle>
+
+<div class="container-fluid py-4" style="background-color: #f6f8fb; min-height: calc(100vh - 5rem);">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h2 class="mb-1 fw-bold" style="color: #11233a;">Headteacher Remarks</h2>
+            <p class="mb-0 text-muted">Review teacher conduct, attitude, and remarks before adding final report-card comments.</p>
+        </div>
+        <button class="btn btn-outline-primary fw-semibold" @onclick="LoadClassSession" disabled="@_isLoading">Refresh</button>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-3">
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold text-muted">Class</label>
+                    <select class="form-select fw-semibold" @bind="_selectedClass" @bind:after="LoadClassSession">
+                        @foreach (var className in _classes)
+                        {
+                            <option value="@className">@className</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold text-muted">Term</label>
+                    <select class="form-select" @bind="_selectedTerm" @bind:after="LoadClassSession">
+                        <option value="First Term">First Term</option>
+                        <option value="Second Term">Second Term</option>
+                        <option value="Third Term">Third Term</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label fw-semibold text-muted">Year</label>
+                    <input class="form-control" @bind="_selectedYear" @bind:event="oninput" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label fw-semibold text-muted">Search</label>
+                    <input class="form-control" placeholder="Student name..." @bind="_searchTerm" @bind:event="oninput" />
+                </div>
+                <div class="col-md-2 text-md-end">
+                    <span class="badge rounded-pill bg-light text-dark px-3 py-2">@HeadRemarkCount / @_students.Count finalized</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(_message))
+    {
+        <div class="alert @(_messageIsError ? "alert-danger" : "alert-success") py-2">@_message</div>
+    }
+
+    @if (_isLoading)
+    {
+        <div class="d-flex justify-content-center py-5"><div class="spinner-border text-primary" role="status"></div></div>
+    }
+    else if (!_classes.Any())
+    {
+        <div class="card border-0 shadow-sm"><div class="card-body p-5 text-center text-muted">No classes are available for this school.</div></div>
+    }
+    else
+    {
+        <div class="row g-3">
+            <div class="col-lg-4 col-xl-3">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-header bg-white border-0 px-3 pt-3 pb-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h6 class="fw-bold mb-0" style="color: #11233a;">Students</h6>
+                            <span class="badge bg-primary-subtle text-primary">@TeacherRemarkCount teacher remarks</span>
+                        </div>
+                    </div>
+                    <div class="list-group list-group-flush" style="max-height: calc(100vh - 330px); overflow-y: auto;">
+                        @if (!FilteredStudents.Any())
+                        {
+                            <div class="px-3 py-4 text-muted small">No students found for this class and search.</div>
+                        }
+                        @foreach (var student in FilteredStudents)
+                        {
+                            var selected = student.StudentID == _selectedStudentId;
+                            var remarks = GetRemarks(student.StudentID);
+                            <button type="button" class="list-group-item list-group-item-action px-3 py-3 @(selected ? "active" : "")" @onclick="() => SelectStudent(student.StudentID)">
+                                <div class="d-flex justify-content-between align-items-start gap-2">
+                                    <div>
+                                        <div class="fw-semibold">@student.FullName</div>
+                                        <small class="@(selected ? "text-white-50" : "text-muted")">ID @student.StudentID</small>
+                                    </div>
+                                    <span class="badge rounded-pill @(HasHeadRemark(remarks) ? "bg-success" : HasTeacherRemark(remarks) ? "bg-warning text-dark" : "bg-light text-dark")">
+                                        @(HasHeadRemark(remarks) ? "Final" : HasTeacherRemark(remarks) ? "Review" : "Open")
+                                    </span>
+                                </div>
+                            </button>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-8 col-xl-9">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white border-0 px-4 pt-4 pb-2">
+                        <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+                            <div>
+                                <h5 class="fw-bold mb-1" style="color: #11233a;">@(CurrentStudent?.FullName ?? "Select student")</h5>
+                                <p class="text-muted mb-0 small">@_selectedClass | @_selectedTerm @_selectedYear</p>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-outline-secondary btn-sm" @onclick="() => SaveAndMove(-1)" disabled="@(CurrentStudent == null || CurrentIndex <= 0)">Previous</button>
+                                <button class="btn btn-outline-primary btn-sm" @onclick="() => SaveAndMove(1)" disabled="@(CurrentStudent == null || CurrentIndex >= _students.Count - 1)">Save & Next</button>
+                                <button class="btn btn-primary btn-sm fw-semibold" @onclick="SaveCurrentHeadRemark" disabled="@(CurrentStudent == null || _isSaving)">
+                                    @if (_isSaving)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-1"></span>
+                                    }
+                                    Save
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body p-4">
+                        @if (CurrentStudent == null)
+                        {
+                            <div class="text-center text-muted py-5">
+                                @(_students.Count == 0 ? "No students were found for the selected class." : "Select a student from the list to review remarks.")
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="row g-3 mb-4">
+                                @ReadOnlyRemarkCard("Conduct", CurrentRemarks?.Conduct)
+                                @ReadOnlyRemarkCard("Attitude", CurrentRemarks?.Attitude)
+                                @ReadOnlyRemarkCard("Interest / Effort", CurrentRemarks?.Interest)
+                                @ReadOnlyRemarkCard("Class Teacher Remarks", CurrentRemarks?.ClassTeacherRemarks)
+                            </div>
+
+                            <div class="border-top pt-4">
+                                <label class="form-label fw-semibold text-secondary">Headteacher Remarks</label>
+                                <div class="d-flex flex-wrap gap-2 mb-2">
+                                    @foreach (var option in HeadRemarkTemplates)
+                                    {
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="() => _headRemark = option.Text">@option.Label</button>
+                                    }
+                                </div>
+                                <textarea class="form-control" rows="5" @bind="_headRemark" placeholder="Enter final headteacher remark for report card..."></textarea>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private Guid? _schoolId;
+    private bool _isLoading = true;
+    private bool _isSaving;
+    private string _selectedClass = "";
+    private string _selectedTerm = "First Term";
+    private string _selectedYear = "2025/2026";
+    private string _searchTerm = "";
+    private string _message = "";
+    private bool _messageIsError;
+    private int _selectedStudentId;
+    private string _headRemark = "";
+
+    private List<string> _classes = new();
+    private List<StudentEntity> _students = new();
+    private Dictionary<int, StudentTermRemarksEntity> _remarksByStudentId = new();
+
+    private static readonly RemarkOption[] HeadRemarkTemplates =
+    [
+        new("Excellent", "Excellent performance. Keep up the good work."),
+        new("Good", "Good progress. Continue to work hard."),
+        new("Improve", "Needs to improve with steady effort and guidance."),
+        new("Parent Support", "Parents are encouraged to support learning at home.")
+    ];
+
+    private IEnumerable<StudentEntity> FilteredStudents => string.IsNullOrWhiteSpace(_searchTerm)
+        ? _students
+        : _students.Where(s => (s.FullName ?? "").Contains(_searchTerm, StringComparison.OrdinalIgnoreCase));
+
+    private StudentEntity? CurrentStudent => _students.FirstOrDefault(s => s.StudentID == _selectedStudentId);
+    private StudentTermRemarksEntity? CurrentRemarks => GetRemarks(_selectedStudentId);
+    private int CurrentIndex => _students.FindIndex(s => s.StudentID == _selectedStudentId);
+    private int TeacherRemarkCount => _students.Count(s => HasTeacherRemark(GetRemarks(s.StudentID)));
+    private int HeadRemarkCount => _students.Count(s => HasHeadRemark(GetRemarks(s.StudentID)));
+
+    protected override async Task OnInitializedAsync()
+    {
+        _schoolId = (await TenantContext.GetCurrentAsync()).SchoolId;
+
+        var setup = await GradingRepo.GetOpenExamSetupAsync(_schoolId) ?? await GradingRepo.GetLatestExamSetupAsync(_schoolId);
+        if (setup != null)
+        {
+            _selectedTerm = setup.Term ?? _selectedTerm;
+            _selectedYear = setup.Year ?? _selectedYear;
+        }
+
+        _classes = await AcademicRepo.GetClassesAsync(_schoolId);
+        _selectedClass = _classes.FirstOrDefault() ?? "";
+        await LoadClassSession();
+    }
+
+    private async Task LoadClassSession()
+    {
+        _isLoading = true;
+        _message = "";
+        try
+        {
+            if (string.IsNullOrWhiteSpace(_selectedClass))
+            {
+                _students.Clear();
+                _remarksByStudentId.Clear();
+                return;
+            }
+
+            _students = await StudentRepo.GetAllAsync(classFilter: _selectedClass, schoolId: _schoolId);
+            var remarks = await RemarksRepo.GetClassRemarksAsync(_selectedClass, _selectedTerm, _selectedYear, _schoolId);
+            _remarksByStudentId = remarks
+                .Where(r => int.TryParse(r.StudentID, out _))
+                .GroupBy(r => int.Parse(r.StudentID))
+                .ToDictionary(g => g.Key, g => g.First());
+
+            _selectedStudentId = _students.FirstOrDefault()?.StudentID ?? 0;
+            LoadSelectedHeadRemark();
+        }
+        catch (Exception ex)
+        {
+            _message = ex.Message;
+            _messageIsError = true;
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void SelectStudent(int studentId)
+    {
+        _selectedStudentId = studentId;
+        _message = "";
+        LoadSelectedHeadRemark();
+    }
+
+    private void LoadSelectedHeadRemark()
+    {
+        _headRemark = CurrentRemarks?.HeadTeacherRemarks ?? "";
+    }
+
+    private async Task SaveAndMove(int direction)
+    {
+        var saved = await SaveCurrentHeadRemark();
+        if (!saved) return;
+
+        var next = CurrentIndex + direction;
+        if (next >= 0 && next < _students.Count)
+        {
+            SelectStudent(_students[next].StudentID);
+        }
+    }
+
+    private async Task<bool> SaveCurrentHeadRemark()
+    {
+        if (CurrentStudent == null) return false;
+
+        _isSaving = true;
+        _message = "";
+        _messageIsError = false;
+        try
+        {
+            await RemarksRepo.SaveHeadTeacherRemarkAsync(
+                _selectedClass,
+                CurrentStudent.StudentID.ToString(),
+                _selectedTerm,
+                _selectedYear,
+                _headRemark,
+                _schoolId);
+
+            var updated = GetRemarks(CurrentStudent.StudentID) ?? new StudentTermRemarksEntity
+            {
+                StudentID = CurrentStudent.StudentID.ToString(),
+                Term = _selectedTerm,
+                Year = _selectedYear,
+                SchoolId = _schoolId
+            };
+            updated.HeadTeacherRemarks = _headRemark?.Trim();
+            _remarksByStudentId[CurrentStudent.StudentID] = updated;
+            _message = "Headteacher remark saved.";
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _message = ex.Message;
+            _messageIsError = true;
+            return false;
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private StudentTermRemarksEntity? GetRemarks(int studentId)
+        => _remarksByStudentId.TryGetValue(studentId, out var remarks) ? remarks : null;
+
+    private static bool HasTeacherRemark(StudentTermRemarksEntity? remarks)
+        => remarks != null &&
+           (!string.IsNullOrWhiteSpace(remarks.Conduct) ||
+            !string.IsNullOrWhiteSpace(remarks.Attitude) ||
+            !string.IsNullOrWhiteSpace(remarks.Interest) ||
+            !string.IsNullOrWhiteSpace(remarks.ClassTeacherRemarks));
+
+    private static bool HasHeadRemark(StudentTermRemarksEntity? remarks)
+        => !string.IsNullOrWhiteSpace(remarks?.HeadTeacherRemarks);
+
+    private static RenderFragment ReadOnlyRemarkCard(string label, string? value) => __builder =>
+    {
+        <div class="col-md-6">
+            <div class="p-3 bg-light rounded-3 h-100 border">
+                <div class="small text-muted text-uppercase fw-semibold mb-2">@label</div>
+                <div class="fw-semibold" style="color: #11233a;">@(string.IsNullOrWhiteSpace(value) ? "Not submitted" : value)</div>
+            </div>
+        </div>
+    };
+
+    private sealed record RemarkOption(string Label, string Text);
+}

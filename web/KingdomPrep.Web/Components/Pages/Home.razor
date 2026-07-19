@@ -1,55 +1,109 @@
 @page "/"
+@rendermode InteractiveServer
 @attribute [Authorize]
-@inject IStudentStats Stats
-@inject IWardRepository WardRepo
+@using KingdomPrep.Web.Core
+@using KingdomPrep.Web.Components.Dashboard
+@inject KingdomPrep.Web.Data.IDashboardStats DashStats
+@inject NavigationManager NavManager
+@inject IPortalTenantContext TenantContext
 
-<PageTitle>Dashboard - Kingdom Preparatory</PageTitle>
+<PageTitle>Dashboard</PageTitle>
 
 <AuthorizeView>
     <Authorized Context="auth">
-        <h1>Welcome, @auth.User.Identity?.Name</h1>
-        <p>Signed in as <strong>@RoleName(auth)</strong></p>
+        <section class="hero-shell mb-4 position-relative overflow-hidden" style="border-radius: 16px;">
+            <div class="hero-copy position-relative z-1 text-white">
+                <h1 class="fw-bold mb-3 text-white" style="font-size: 2.25rem;">Welcome back, @RoleName(auth) @auth.User.Identity?.Name!</h1>
+                <p class="hero-subtitle mb-0 text-white" style="opacity: 0.9; max-width: 600px; font-weight: 400; line-height: 1.6;">
+                    Our school overview or announcement to keep you informed about school announcements, and upcoming orientations.
+                </p>
+            </div>
+            <!-- Wavy background decoration -->
+            <svg class="position-absolute top-0 end-0 h-100 opacity-25" style="width: 60%; object-fit: cover;" viewBox="0 0 800 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M0,200 Q200,300 400,200 T800,200 L800,400 L0,400 Z" fill="rgba(255,255,255,0.05)"/>
+                <path d="M0,250 Q200,100 400,250 T800,250 L800,400 L0,400 Z" fill="rgba(255,255,255,0.05)"/>
+            </svg>
+        </section>
 
-        @if (RoleName(auth) == "Parent")
+        @if (RoleName(auth) == AppRoles.Parent)
         {
-            @if (_ward != null)
-            {
-                <div class="dash-cards">
-                    <div class="dash-card">
-                        <h3>My Ward</h3>
-                        <p><strong>Name:</strong> @_ward.FullName</p>
-                        <p><strong>ID:</strong> @_ward.StudentID</p>
-                        <p><strong>Class:</strong> @_ward.ClassID</p>
-                    </div>
-                    <div class="dash-card disabled">Terminal Report (coming soon)</div>
-                    <div class="dash-card disabled">Attendance Records (coming soon)</div>
-                    <div class="dash-card disabled">Fee Ledger (coming soon)</div>
+            <div class="dash-cards">
+                <KpCard Variant="KpCard.CardVariant.Default" Class="disabled" Hoverable="false">
+                    <Body>
+                        <div class="text-center py-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="mb-2" style="color: var(--nyansapo-navy);">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="9" cy="7" r="4"></circle>
+                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                            </svg>
+                            <strong class="text-primary d-block">Parent Portal</strong>
+                            <span class="d-block text-secondary mt-1 small">(coming in Phase 1)</span>
+                        </div>
+                    </Body>
+                </KpCard>
+            </div>
+        }
+        else if (RoleName(auth) == AppRoles.Teacher)
+        {
+            <div class="dash-cards">
+                <div class="alert alert-info">
+                    Redirecting to your Teacher Portal...
                 </div>
-            }
-            else
-            {
-                <p>Your account is not yet linked to a student. Please contact the administrator.</p>
-            }
+            </div>
         }
         else
         {
-            <div class="dash-cards">
-                <div class="dash-card">Students: <strong>@_studentCount</strong></div>
-                <div class="dash-card disabled">Academic progress (coming soon)</div>
-                <div class="dash-card disabled">Attendance (coming soon)</div>
-                <div class="dash-card disabled">HR &amp; Leave (coming soon)</div>
+            <AdminMetricCards
+                Role="@RoleName(auth)"
+                StudentCount="@_studentCount"
+                EmployeeCount="@_employeeCount"
+                Revenue="@_revenue"
+                Balance="@_balance"
+                Income="@_income"
+                Expenses="@_expenses"
+                Fund="@_fund"
+                TopExpense="@_topExpense" />
+
+            <!-- Lower Desktop Components (Tables & Insights) -->
+            <div class="row">
+                <!-- Left Column: Recent Payments -->
+                <div class="col-lg-8 mb-4">
+                    <RecentPaymentsTable Payments="@_recentPayments" />
+                </div>
+
+                <!-- Right Column: Enrollment & Insights -->
+                <div class="col-lg-4 d-flex flex-column gap-4 mb-4">
+                    <EnrollmentInsights
+                        ClassEnrollments="@_classEnrollments"
+                        AverageScore="@_averageScore"
+                        PendingLeaves="@_pendingLeaves" />
+                </div>
             </div>
         }
 
-        <form method="post" action="/logout" class="mt-3">
-            <button type="submit">Sign out</button>
+        <form method="post" action="/logout" class="mt-5">
+            <KpButton Type="submit" Variant="KpButton.ButtonVariant.Primary">
+                Sign out
+            </KpButton>
         </form>
     </Authorized>
 </AuthorizeView>
 
 @code {
     private int _studentCount;
-    private KingdomPrep.Web.Data.Entities.StudentEntity? _ward;
+    private int _employeeCount;
+    private decimal _revenue;
+    private decimal _balance;
+    private decimal _income;
+    private decimal _expenses;
+    private decimal _fund;
+    private string _topExpense = "None";
+
+    private List<KingdomPrep.Web.Data.Entities.PaymentRecordEntity> _recentPayments = new();
+    private List<KingdomPrep.Web.Data.ClassEnrollmentStat> _classEnrollments = new();
+    private decimal _averageScore;
+    private int _pendingLeaves;
 
     [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
 
@@ -57,18 +111,61 @@
     {
         var authState = await AuthStateTask;
         var user = authState.User;
-        
-        if (user.IsInRole("Parent"))
+
+        if (user.IsInRole(AppRoles.Teacher))
         {
-            var empIdStr = user.FindFirst("EmploymentId")?.Value;
-            if (int.TryParse(empIdStr, out int studentId))
-            {
-                _ward = await WardRepo.GetWardAsync(studentId);
-            }
+            NavManager.NavigateTo("/teacher/dashboard");
+            return;
         }
-        else
+
+        if (user.IsInRole(AppRoles.Parent))
         {
-            _studentCount = await Stats.CountAsync();
+            NavManager.NavigateTo("/parent/dashboard");
+            return;
+        }
+
+        if (!user.IsInRole(AppRoles.Parent) && !user.IsInRole(AppRoles.Teacher))
+        {
+            var tenant = await TenantContext.GetCurrentAsync();
+            var schoolId = tenant.SchoolId;
+            // Execute all dashboard queries in parallel to drastically reduce page load time
+            var studentCountTask = DashStats.GetStudentCountAsync(schoolId);
+            var employeeCountTask = DashStats.GetEmployeeCountAsync(schoolId);
+            var revenueTask = DashStats.GetTotalRevenueAsync(schoolId);
+            var balanceTask = DashStats.GetTotalBalanceAsync(schoolId);
+            var recentPaymentsTask = DashStats.GetRecentPaymentsAsync(schoolId, 8);
+            var classEnrollmentsTask = DashStats.GetClassEnrollmentsAsync(schoolId);
+            var averageScoreTask = DashStats.GetAverageScoreAsync(schoolId);
+            var pendingLeavesTask = DashStats.GetPendingLeaveCountAsync(schoolId);
+
+            await Task.WhenAll(
+                studentCountTask, employeeCountTask, revenueTask, balanceTask,
+                recentPaymentsTask, classEnrollmentsTask, averageScoreTask, pendingLeavesTask
+            );
+
+            _studentCount = await studentCountTask;
+            _employeeCount = await employeeCountTask;
+            _revenue = await revenueTask;
+            _balance = await balanceTask;
+            _recentPayments = await recentPaymentsTask;
+            _classEnrollments = await classEnrollmentsTask;
+            _averageScore = await averageScoreTask;
+            _pendingLeaves = await pendingLeavesTask;
+
+            var role = RoleName(authState);
+            if (role == AppRoles.Accountant || role == AppRoles.Administrator || role == AppRoles.Director)
+            {
+                var incomeTask = DashStats.GetTotalIncomeAsync(schoolId);
+                var expensesTask = DashStats.GetTotalExpensesAsync(schoolId);
+                var topExpenseTask = DashStats.GetTopExpenseAsync(schoolId);
+
+                await Task.WhenAll(incomeTask, expensesTask, topExpenseTask);
+
+                _income = await incomeTask;
+                _expenses = await expensesTask;
+                _fund = _income - _expenses;
+                _topExpense = await topExpenseTask;
+            }
         }
     }
 

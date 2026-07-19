@@ -23,12 +23,15 @@ public static class PasswordHasher
         return $"{CurrentPrefix}${Iterations}${Convert.ToBase64String(salt)}${Convert.ToBase64String(hash)}";
     }
 
-    public static bool Verify(string password, string stored)
+    public static bool Verify(string password, string stored) =>
+        Verify(password, stored, allowLegacyPlainText: true);
+
+    public static bool Verify(string password, string stored, bool allowLegacyPlainText)
     {
         if (string.IsNullOrEmpty(stored)) return false;
         if (!stored.StartsWith(CurrentPrefix + "$", StringComparison.Ordinal)
             && !stored.StartsWith(LegacyPrefix + "$", StringComparison.Ordinal))
-            return stored == password; // legacy plaintext
+            return allowLegacyPlainText && stored == password; // legacy plaintext
 
         string[] parts = stored.Split('$');
         if (parts.Length != 4 || !int.TryParse(parts[1], out int iterations)) return false;

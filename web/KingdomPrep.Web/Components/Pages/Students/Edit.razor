@@ -1,0 +1,184 @@
+@page "/students/edit/{Id}"
+@rendermode InteractiveServer
+@using KingdomPrep.Web.Data.Entities
+@using KingdomPrep.Web.Data
+@inject IStudentRepository StudentRepo
+@inject NavigationManager Nav
+@inject IPortalTenantContext TenantContext
+@inject AuthenticationStateProvider AuthStateProvider
+@attribute [Authorize(Policy = WebPermission.StudentsWrite)]
+
+<PageTitle>Edit Student</PageTitle>
+
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold" style="color: #0b1f48;">@(_isNew ? "Create New Student" : $"Edit Student: {Student?.FullName ?? "Loading..."}")</h2>
+        <button class="btn btn-outline-secondary" @onclick="GoBack">
+            <i class="fas fa-arrow-left"></i> Back to List
+        </button>
+    </div>
+
+    @if (Student == null)
+    {
+        <p>Loading student data...</p>
+    }
+    else
+    {
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-body">
+                <EditForm Model="@Student" OnValidSubmit="SaveStudent">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary />
+
+                    @if (!string.IsNullOrEmpty(_feedbackMessage))
+                    {
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            @_feedbackMessage
+                            <button type="button" class="btn-close" @onclick="() => _feedbackMessage = string.Empty"></button>
+                        </div>
+                    }
+
+                    <h5 class="mb-3 border-bottom pb-2">Biographical Information</h5>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">First Name</label>
+                            <InputText class="form-control" @bind-Value="Student.FirstName" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Last Name</label>
+                            <InputText class="form-control" @bind-Value="Student.LastName" />
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Date of Birth</label>
+                            <InputDate class="form-control" @bind-Value="Student.DateOfBirth" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Gender</label>
+                            <InputSelect class="form-select" @bind-Value="Student.Gender">
+                                <option value="">Select Gender...</option>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                            </InputSelect>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Class</label>
+                            <InputSelect class="form-select" @bind-Value="Student.ClassID">
+                                <option value="">Select Class...</option>
+                                @if (_classes != null)
+                                {
+                                    foreach (var c in _classes)
+                                    {
+                                        <option value="@c">@c</option>
+                                    }
+                                }
+                            </InputSelect>
+                        </div>
+                    </div>
+
+                    <h5 class="mb-3 mt-4 border-bottom pb-2">Contact & Location</h5>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Email</label>
+                            <InputText class="form-control" @bind-Value="Student.Email" type="email" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Hometown</label>
+                            <InputText class="form-control" @bind-Value="Student.HomeTown" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Residence</label>
+                            <InputText class="form-control" @bind-Value="Student.Residence" />
+                        </div>
+                    </div>
+
+                    <h5 class="mb-3 mt-4 border-bottom pb-2">Guardian Information</h5>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Guardian Name</label>
+                            <InputText class="form-control" @bind-Value="Student.GuardianName" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Guardian Email</label>
+                            <InputText class="form-control" @bind-Value="Student.GuardianEmail" type="email" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Emergency Contact</label>
+                            <InputText class="form-control" @bind-Value="Student.EmergencyContact" />
+                        </div>
+                    </div>
+
+                    <div class="row mt-4">
+                        <div class="col-12 text-end">
+                            <button type="button" class="btn btn-secondary me-2" @onclick="GoBack">Cancel</button>
+                            @if (_canWriteStudents)
+                            {
+                                <button type="submit" class="btn btn-primary" style="background-color: #0b1f48; border-color: #0b1f48;">
+                                    Save Changes
+                                </button>
+                            }
+                        </div>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public string Id { get; set; } = "";
+
+    private StudentEntity? Student;
+    private List<string>? _classes;
+    private bool _isNew;
+    private string _feedbackMessage = "";
+    private Guid? _schoolId;
+    private bool _canWriteStudents;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        _canWriteStudents = WebPermission.CanRenderAction(authState.User, WebPermission.StudentsWrite);
+        _schoolId = (await TenantContext.GetCurrentAsync()).SchoolId;
+        _classes = await StudentRepo.GetClassesAsync(_schoolId);
+
+        if (Id == "new" || Id == "0")
+        {
+            _isNew = true;
+            Student = new StudentEntity { SchoolId = _schoolId };
+        }
+        else if (!string.IsNullOrEmpty(Id))
+        {
+            Student = await StudentRepo.GetByIdAsync(Id, _schoolId);
+        }
+    }
+
+    private async Task SaveStudent()
+    {
+        if (!_canWriteStudents) return;
+
+        if (Student != null)
+        {
+            if (_isNew)
+            {
+                await StudentRepo.AddAsync(Student, _schoolId);
+                _feedbackMessage = "Student created successfully!";
+                _isNew = false; // Next save will update
+            }
+            else
+            {
+                await StudentRepo.UpdateAsync(Student, _schoolId);
+                _feedbackMessage = "Student updated successfully!";
+            }
+        }
+    }
+
+    private void GoBack()
+    {
+        Nav.NavigateTo("/students");
+    }
+
+}

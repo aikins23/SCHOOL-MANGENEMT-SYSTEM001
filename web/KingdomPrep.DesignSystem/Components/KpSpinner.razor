@@ -1,0 +1,44 @@
+@using Microsoft.AspNetCore.Components
+
+<div class="@GetSpinnerClass()" role="status" aria-live="polite" aria-label="@AriaLabel">
+    @if (!string.IsNullOrWhiteSpace(AriaLabel))
+    {
+        <span class="sr-only">@AriaLabel</span>
+    }
+</div>
+
+@code {
+    [Parameter] public SpinnerSize Size { get; set; } = SpinnerSize.Medium;
+    [Parameter] public SpinnerType Type { get; set; } = SpinnerType.Border;
+    [Parameter] public string? Color { get; set; }
+    [Parameter] public string? AriaLabel { get; set; } = "Loading";
+    [Parameter] public string? Class { get; set; }
+
+    public enum SpinnerSize { Small, Medium, Large }
+    public enum SpinnerType { Border, Grow, Dots }
+
+    private string GetSpinnerClass()
+    {
+        var classes = new List<string> { "kp-spinner" };
+
+        classes.Add(Size switch
+        {
+            SpinnerSize.Small => "kp-spinner-sm",
+            SpinnerSize.Medium => "kp-spinner-md",
+            SpinnerSize.Large => "kp-spinner-lg",
+            _ => "kp-spinner-md"
+        });
+
+        classes.Add(Type switch
+        {
+            SpinnerType.Border => "kp-spinner-border",
+            SpinnerType.Grow => "kp-spinner-grow",
+            SpinnerType.Dots => "kp-spinner-dots",
+            _ => "kp-spinner-border"
+        });
+
+        if (!string.IsNullOrWhiteSpace(Class)) classes.Add(Class);
+
+        return string.Join(" ", classes);
+    }
+}

@@ -1,0 +1,178 @@
+/* Base Component Styles - KingdomPrep ERP
+ * CSS Layer: base
+ * Foundational HTML element styles
+ * Resets and base typography
+ */
+
+@layer base {
+  /* Reset and Base Elements */
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    background-color: var(--background);
+    color: var(--text-primary);
+    line-height: var(--line-height-normal);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Typography Reset */
+  h1, h2, h3, h4, h5, h6 {
+    margin: 0;
+    font-weight: var(--font-weight-bold);
+    line-height: var(--line-height-tight);
+    color: var(--text-primary);
+  }
+
+  p {
+    margin: 0 0 1rem 0;
+    color: var(--text-primary);
+  }
+
+  /* Link Styles */
+  a {
+    color: var(--primary);
+    text-decoration: none;
+    transition: color 0.2s ease-in-out;
+  }
+
+  a:hover {
+    color: var(--primary-light);
+  }
+
+  a:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  /* Button Reset */
+  button {
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-family: inherit;
+    padding: 0;
+  }
+
+  /* Image Responsive */
+  img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  /* Container */
+  .container {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1rem;
+  }
+
+  /* Grid System Foundation */
+  .grid {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .grid-cols-1 { grid-template-columns: repeat(1, 1fr); }
+  .grid-cols-2 { grid-template-columns: repeat(2, 1fr); }
+  .grid-cols-3 { grid-template-columns: repeat(3, 1fr); }
+  .grid-cols-4 { grid-template-columns: repeat(4, 1fr); }
+}
+
+/* Layout Layer */
+@layer layout {
+  .page {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    background: var(--background);
+  }
+
+  main {
+    flex: 1;
+    width: 100%;
+  }
+
+  .content {
+    padding-top: 1.1rem;
+  }
+
+  /* Flex Utilities */
+  .d-flex { display: flex; }
+  .flex-column { flex-direction: column; }
+  .flex-row { flex-direction: row; }
+  .flex-wrap { flex-wrap: wrap; }
+
+  .justify-content-start { justify-content: flex-start; }
+  .justify-content-center { justify-content: center; }
+  .justify-content-end { justify-content: flex-end; }
+  .justify-content-between { justify-content: space-between; }
+
+  .align-items-start { align-items: flex-start; }
+  .align-items-center { align-items: center; }
+  .align-items-end { align-items: flex-end; }
+
+  .gap-1 { gap: 0.25rem; }
+  .gap-2 { gap: 0.5rem; }
+  .gap-3 { gap: 0.75rem; }
+  .gap-4 { gap: 1rem; }
+  .gap-5 { gap: 1.5rem; }
+  .gap-6 { gap: 2rem; }
+
+  /* Spacing Utilities */
+  .m-0 { margin: 0; }
+  .m-1 { margin: 0.25rem; }
+  .m-2 { margin: 0.5rem; }
+  .m-3 { margin: 0.75rem; }
+  .m-4 { margin: 1rem; }
+  .m-5 { margin: 1.5rem; }
+  .m-6 { margin: 2rem; }
+
+  .mt-0 { margin-top: 0; }
+  .mt-1 { margin-top: 0.25rem; }
+  .mt-2 { margin-top: 0.5rem; }
+  .mt-3 { margin-top: 0.75rem; }
+  .mt-4 { margin-top: 1rem; }
+  .mt-5 { margin-top: 1.5rem; }
+  .mt-6 { margin-top: 2rem; }
+
+  .mb-0 { margin-bottom: 0; }
+  .mb-1 { margin-bottom: 0.25rem; }
+  .mb-2 { margin-bottom: 0.5rem; }
+  .mb-3 { margin-bottom: 0.75rem; }
+  .mb-4 { margin-bottom: 1rem; }
+  .mb-5 { margin-bottom: 1.5rem; }
+  .mb-6 { margin-bottom: 2rem; }
+
+  .p-0 { padding: 0; }
+  .p-1 { padding: 0.25rem; }
+  .p-2 { padding: 0.5rem; }
+  .p-3 { padding: 0.75rem; }
+  .p-4 { padding: 1rem; }
+  .p-5 { padding: 1.5rem; }
+  .p-6 { padding: 2rem; }
+
+  .pt-0 { padding-top: 0; }
+  .pt-1 { padding-top: 0.25rem; }
+  .pt-2 { padding-top: 0.5rem; }
+  .pt-3 { padding-top: 0.75rem; }
+  .pt-4 { padding-top: 1rem; }
+  .pt-5 { padding-top: 1.5rem; }
+  .pt-6 { padding-top: 2rem; }
+
+  .pb-0 { padding-bottom: 0; }
+  .pb-1 { padding-bottom: 0.25rem; }
+  .pb-2 { padding-bottom: 0.5rem; }
+  .pb-3 { padding-bottom: 0.75rem; }
+  .pb-4 { padding-bottom: 1rem; }
+  .pb-5 { padding-bottom: 1.5rem; }
+  .pb-6 { padding-bottom: 2rem; }
+}

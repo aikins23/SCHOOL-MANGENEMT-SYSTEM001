@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <ItemGroup>
+    <ProjectReference Include="..\KingdomPrep.DesignSystem\KingdomPrep.DesignSystem.csproj" />
     <ProjectReference Include="..\KingdomPrep.Web.Core\KingdomPrep.Web.Core.csproj" />
     <ProjectReference Include="..\KingdomPrep.Web.Data\KingdomPrep.Web.Data.csproj" />
   </ItemGroup>
@@ -10,6 +11,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
+    <UseAppHost>false</UseAppHost>
   </PropertyGroup>
 
 </Project>

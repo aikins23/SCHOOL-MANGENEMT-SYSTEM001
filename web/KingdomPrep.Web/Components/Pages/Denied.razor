@@ -1,22 +1,70 @@
 @page "/denied"
-@attribute [AllowAnonymous]
+@rendermode InteractiveServer
+@attribute [Microsoft.AspNetCore.Authorization.AllowAnonymous]
 @layout BlankLayout
+@using Microsoft.AspNetCore.Components.Authorization
+@inject NavigationManager NavManager
+@inject IJSRuntime JS
 
-<PageTitle>Access denied</PageTitle>
+<PageTitle>Access Denied - Nyansapo ERP</PageTitle>
 
-<div class="login-wrap">
-    @if (Accountant == "1")
-    {
-        <h2>Accountants use the desktop app</h2>
-        <p>The web portal is for academic progress. Please use the desktop application for accounts and fees.</p>
-    }
-    else
-    {
-        <h2>Access denied</h2>
-    }
-    <a href="/login">Back to sign in</a>
+<div class="d-flex align-items-center justify-content-center vh-100" style="background-color: #f8fafc;">
+    <div class="card shadow-lg border-0" style="max-width: 500px; width: 100%; border-radius: 12px; overflow: hidden;">
+        <div class="card-body p-5 text-center">
+
+            <!-- Warning Icon -->
+            <div class="mb-4 d-inline-flex align-items-center justify-content-center rounded-circle" style="width: 80px; height: 80px; background-color: #fee2e2; color: #ef4444;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                    <line x1="12" y1="9" x2="12" y2="13"></line>
+                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+            </div>
+
+            <h2 class="fw-bold mb-3" style="color: #0f172a;">Access Denied</h2>
+
+            <p class="text-muted mb-4" style="font-size: 1.05rem;">
+                You do not have the required permissions to view this page or perform this action.
+                Your current role restricts you from accessing this area.
+            </p>
+
+            <div class="alert alert-light border text-start mb-4" role="alert" style="font-size: 0.9rem; color: #475569;">
+                <div class="d-flex align-items-center mb-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2 text-primary"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                    <strong style="color: #1e293b;">Why am I seeing this?</strong>
+                </div>
+                If you are an <strong>Accountant</strong>, please note that financial modifications (like collecting fees or recording expenses) must be performed on the main Desktop application. The Web portal provides read-only financial dashboards for your role.
+            </div>
+
+            <div class="d-grid gap-2">
+                <button type="button" class="btn btn-primary py-2 fw-semibold" style="border-radius: 6px;" @onclick="GoBack">
+                    Return to Previous Page
+                </button>
+                <button type="button" class="btn btn-light py-2 fw-semibold" style="border-radius: 6px; color: #64748b;" @onclick="GoHome">
+                    Go to Dashboard
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
 
 @code {
-    [SupplyParameterFromQuery(Name = "accountant")] private string? Accountant { get; set; }
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    private async Task GoBack()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("history.back");
+        }
+        catch
+        {
+            NavManager.NavigateTo("/");
+        }
+    }
+
+    private void GoHome()
+    {
+        NavManager.NavigateTo("/");
+    }
 }

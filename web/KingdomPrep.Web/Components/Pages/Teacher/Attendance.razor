@@ -1,0 +1,510 @@
+@page "/teacher/attendance"
+@rendermode InteractiveServer
+@attribute [Authorize(Policy = WebPermission.TeacherAttendanceRecord)]
+@using KingdomPrep.Web.Data
+@using KingdomPrep.Web.Data.Entities
+@inject ITeacherPortalRepository TeacherRepo
+@inject IStudentPortalRepository StudentRepo
+@inject IAttendancePortalRepository AttendanceRepo
+@inject NavigationManager NavManager
+@inject IPortalTenantContext TenantContext
+
+<PageTitle>Attendance - Nyansapo ERP</PageTitle>
+
+<div class="container-fluid py-4" style="background-color: #f6f8fb; min-height: calc(100vh - 5rem);">
+
+    <!-- HEADER & ACTIONS -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h2 class="mb-1" style="font-weight: 600; color: #11233a; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 2rem;">Attendance</h2>
+            <p class="mb-0 text-muted" style="font-size: 0.95rem;">Mark and monitor daily presence of students and staff</p>
+        </div>
+        <div class="d-flex flex-wrap gap-2 mt-2 mt-md-0">
+            @if (!_isAnalysisMode)
+            {
+                <button class="btn text-white fw-semibold px-4" style="background-color: #be123c; border-radius: 4px;" @onclick="ClearAll">✕ Clear</button>
+                <button class="btn text-white fw-semibold px-3" style="background-color: #16a34a; border-radius: 4px;" @onclick="MarkAllPresent">✓ All Present</button>
+            }
+            <button class="btn bg-white fw-semibold px-4" style="color: #192431; border: 1px solid #dbe2ec; border-radius: 4px;" @onclick="ToggleAnalysis">@(_isAnalysisMode ? "← Back to Register" : "Analysis")</button>
+            @if (!_isAnalysisMode)
+            {
+                <button class="btn text-white fw-semibold px-4" style="background-color: #11233a; border-radius: 4px;" @onclick="SaveAttendance" disabled="@_isSaving">
+                    @if (_isSaving) { <span class="spinner-border spinner-border-sm"></span> } else { <span>Save</span> }
+                </button>
+            }
+        </div>
+    </div>
+
+    @if (_isAnalysisMode)
+    {
+        <!-- ANALYSIS FILTER BAR -->
+        <div class="card border-0 mb-3" style="border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+            <div class="card-body p-3">
+                <div class="row align-items-center g-3">
+                    <div class="col-md-3">
+                        <select class="form-select fw-semibold" style="font-size: 0.95rem; background-color: #f1f5f9; color: #475569;" disabled>
+                            <option>@(string.IsNullOrEmpty(_selectedClass) ? "No Class Assigned" : _selectedClass)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select fw-semibold" style="font-size: 0.95rem;" @bind="_analysisPeriod" @bind:after="LoadAnalysisData">
+                            <option value="Daily">Daily Report</option>
+                            <option value="Weekly">Weekly Report</option>
+                            <option value="Monthly">Monthly Report</option>
+                            <option value="Termly">Termly Report</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <input type="date" class="form-control" style="font-size: 0.95rem;" @bind="_analysisDate" @bind:after="LoadAnalysisData" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @if (_isLoadingAnalysis)
+        {
+            <div class="d-flex justify-content-center py-5">
+                <div class="spinner-border text-primary" role="status"></div>
+            </div>
+        }
+        else
+        {
+            <!-- TEXT STATS CARDS -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card border-0 p-3" style="border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border-left: 4px solid #11233a !important;">
+                        <h6 class="text-muted text-uppercase mb-1" style="font-size: 0.75rem; letter-spacing: 0.05em;">Total Expected (Student-Days)</h6>
+                        <h3 class="mb-0 text-dark fw-bold">@_statTotalExpected</h3>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card border-0 p-3" style="border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border-left: 4px solid #16a34a !important;">
+                        <h6 class="text-muted text-uppercase mb-1" style="font-size: 0.75rem; letter-spacing: 0.05em;">Total Present</h6>
+                        <h3 class="mb-0 text-success fw-bold">@_statPresent <span class="fs-6 fw-normal text-muted">(@_presentPct%)</span></h3>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card border-0 p-3" style="border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border-left: 4px solid #dc2626 !important;">
+                        <h6 class="text-muted text-uppercase mb-1" style="font-size: 0.75rem; letter-spacing: 0.05em;">Total Absent</h6>
+                        <h3 class="mb-0 text-danger fw-bold">@_statAbsent</h3>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card border-0 p-3" style="border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border-left: 4px solid #f59e0b !important;">
+                        <h6 class="text-muted text-uppercase mb-1" style="font-size: 0.75rem; letter-spacing: 0.05em;">Total Late</h6>
+                        <h3 class="mb-0 text-warning fw-bold">@_statLate</h3>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DIAGRAM / CHART -->
+            <div class="card border-0" style="border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                <div class="card-body p-4">
+                    <h5 class="mb-4" style="color: #11233a; font-weight: 600;">Attendance Trend Diagram</h5>
+
+                    @if (!_analysisChartData.Any())
+                    {
+                        <div class="text-center text-muted py-4">No attendance data found for this period.</div>
+                    }
+                    else
+                    {
+                        <div class="d-flex flex-column gap-3">
+                            @foreach (var row in _analysisChartData)
+                            {
+                                <div class="d-flex align-items-center">
+                                    <div style="width: 120px; font-weight: 600; color: #475569; font-size: 0.9rem;">@row.Label</div>
+                                    <div class="flex-grow-1 bg-light rounded d-flex overflow-hidden" style="height: 24px;">
+                                        @if (row.Total > 0)
+                                        {
+                                            <div style="width: @(row.PresentPct)%; background-color: #16a34a; transition: width 0.5s ease;" title="Present: @row.Present"></div>
+                                            <div style="width: @(row.LatePct)%; background-color: #f59e0b; transition: width 0.5s ease;" title="Late: @row.Late"></div>
+                                            <div style="width: @(row.AbsentPct)%; background-color: #dc2626; transition: width 0.5s ease;" title="Absent: @row.Absent"></div>
+                                        }
+                                    </div>
+                                    <div style="width: 60px; text-align: right; font-size: 0.85rem; color: #64748b; font-weight: 600;">@row.PresentPct%</div>
+                                </div>
+                            }
+                        </div>
+
+                        <!-- Legend -->
+                        <div class="d-flex gap-4 mt-4 pt-3 border-top justify-content-center">
+                            <div class="d-flex align-items-center gap-2"><div style="width: 12px; height: 12px; background-color: #16a34a; border-radius: 2px;"></div> <small class="text-muted fw-semibold">Present</small></div>
+                            <div class="d-flex align-items-center gap-2"><div style="width: 12px; height: 12px; background-color: #f59e0b; border-radius: 2px;"></div> <small class="text-muted fw-semibold">Late</small></div>
+                            <div class="d-flex align-items-center gap-2"><div style="width: 12px; height: 12px; background-color: #dc2626; border-radius: 2px;"></div> <small class="text-muted fw-semibold">Absent</small></div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    }
+    else
+    {
+        <!-- DAILY REGISTER FILTER BAR -->
+        <div class="card border-0 mb-3" style="border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+            <div class="card-body p-3">
+                <div class="row align-items-center g-3">
+                    <div class="col-md-2">
+                        <select class="form-select fw-semibold" style="font-size: 0.95rem; background-color: #f1f5f9; color: #475569;" disabled>
+                            <option>STUDENT</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <select class="form-select fw-semibold" style="font-size: 0.95rem; background-color: #f1f5f9; color: #475569;" disabled>
+                            <option>@(string.IsNullOrEmpty(_selectedClass) ? "No Class Assigned" : _selectedClass)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <input type="date" class="form-control" style="font-size: 0.95rem;" @bind="_attendanceDate" @bind:after="LoadClassStudents" />
+                    </div>
+                    <div class="col-md-3">
+                        <div class="input-group">
+                            <input type="text" class="form-control" style="font-size: 0.95rem; border-color: #dbe2ec;" placeholder="Search by name…" @bind="_searchTerm" @bind:event="oninput" @onkeyup="ApplySearchFilter" />
+                        </div>
+                    </div>
+                    <div class="col-md-3 text-end">
+                        <span class="fw-semibold" style="color: #11233a; font-size: 0.95rem;">@_statsText</span>
+                    </div>
+                </div>
+            </div>
+            <div style="height: 1px; background-color: #dbe2ec; width: 100%;"></div>
+        </div>
+
+        <!-- GRID SHELL -->
+        <div class="card border-0" style="border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid #dbe2ec !important;">
+            <div class="card-body p-0">
+                @if (_isLoading)
+                {
+                    <div class="d-flex justify-content-center py-5">
+                        <div class="spinner-border text-primary" role="status"></div>
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive" style="max-height: calc(100vh - 280px); overflow-y: auto;">
+                        <table class="table table-hover mb-0 align-middle" style="font-size: 0.95rem;">
+                            <thead style="position: sticky; top: 0; z-index: 1;">
+                                <tr style="background-color: #11233a; color: white;">
+                                    <th class="border-0 px-4 py-3" style="width: 80px; font-weight: 600;">ID</th>
+                                    <th class="border-0 px-3 py-3" style="font-weight: 600;">Full Name</th>
+                                    <th class="border-0 px-3 py-3" style="width: 120px; font-weight: 600;">Class</th>
+                                    <th class="border-0 px-3 py-3" style="width: 250px; font-weight: 600;">Remarks</th>
+                                    <th class="border-0 px-4 py-3" style="width: 160px; font-weight: 600;">Mark Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (!_filteredStudents.Any())
+                                {
+                                    <tr>
+                                        <td colspan="5" class="text-center py-4 text-muted">No records found.</td>
+                                    </tr>
+                                }
+                                @foreach (var student in _filteredStudents)
+                                {
+                                    var record = GetAttendanceRecord(student.StudentID);
+                                    <tr style="@GetRowStyle(record.Status)">
+                                        <td class="px-4 fw-bold" style="color: #5d6c7b;">@student.StudentID</td>
+                                        <td class="px-3" style="color: #192431;">@student.FullName</td>
+                                        <td class="px-3" style="color: #5d6c7b;">@student.ClassID</td>
+                                        <td class="px-3">
+                                            <input type="text" class="form-control form-control-sm border-0 bg-transparent" placeholder="Click to add remark..." @bind="record.Remarks" style="box-shadow: none;" />
+                                        </td>
+                                        <td class="px-4">
+                                            <select class="form-select form-select-sm fw-semibold border-0"
+                                                    style="@GetStatusStyle(record.Status); cursor: pointer;"
+                                                    value="@record.Status"
+                                                    @onchange="@(e => UpdateStatus(record, e.Value?.ToString()))">
+                                                <option value="" style="background: white; color: black;"></option>
+                                                <option value="PRESENT" style="background: white; color: black;">PRESENT</option>
+                                                <option value="ABSENT" style="background: white; color: black;">ABSENT</option>
+                                                <option value="LATE" style="background: white; color: black;">LATE</option>
+                                            </select>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@if (_showSuccessMessage)
+{
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1050">
+        <div class="toast show border-0" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-body d-flex align-items-center fw-semibold" style="background-color: #22c55e; color: white; border-radius: 6px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                Attendance records saved successfully.
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [SupplyParameterFromQuery(Name = "class")]
+    public string? ClassQuery { get; set; }
+
+    private bool _isLoading = true;
+    private bool _isLoadingAnalysis = false;
+    private bool _isSaving = false;
+    private bool _isAnalysisMode = false;
+    private bool _showSuccessMessage = false;
+
+    private int _employmentId;
+    private Guid? _schoolId;
+
+    private List<ClassAssignmentEntity> _assignedClasses = new();
+    private string _selectedClass = "";
+    private DateTime _attendanceDate = DateTime.Today;
+    private string _searchTerm = "";
+    private string _statsText = "Loading…";
+
+    private List<StudentEntity> _students = new();
+    private List<StudentEntity> _filteredStudents = new();
+    private Dictionary<int, AttendanceEntity> _attendanceRecords = new();
+
+    // Analysis State
+    private string _analysisPeriod = "Monthly";
+    private DateTime _analysisDate = DateTime.Today;
+    private int _statTotalExpected;
+    private int _statPresent;
+    private int _statAbsent;
+    private int _statLate;
+    private int _presentPct => _statTotalExpected == 0 ? 0 : (int)Math.Round((double)_statPresent / _statTotalExpected * 100);
+
+    private class ChartRow
+    {
+        public string Label { get; set; } = "";
+        public int Total { get; set; }
+        public int Present { get; set; }
+        public int Absent { get; set; }
+        public int Late { get; set; }
+        public double PresentPct => Total == 0 ? 0 : Math.Round((double)Present / Total * 100, 1);
+        public double AbsentPct => Total == 0 ? 0 : Math.Round((double)Absent / Total * 100, 1);
+        public double LatePct => Total == 0 ? 0 : Math.Round((double)Late / Total * 100, 1);
+    }
+    private List<ChartRow> _analysisChartData = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var tenant = await TenantContext.GetCurrentAsync();
+        if (!tenant.EmploymentId.HasValue)
+        {
+            NavManager.NavigateTo("/login");
+            return;
+        }
+
+        _employmentId = tenant.EmploymentId.Value;
+        _schoolId = tenant.SchoolId;
+
+        _assignedClasses = await TeacherRepo.GetAssignedClassesAsync(_employmentId, _schoolId);
+
+        if (!string.IsNullOrEmpty(ClassQuery) && _assignedClasses.Any(c => c.ClassName == ClassQuery))
+        {
+            _selectedClass = ClassQuery;
+        }
+        else if (_assignedClasses.Any())
+        {
+            _selectedClass = _assignedClasses.First().ClassName;
+        }
+
+        await LoadClassStudents();
+    }
+
+    private async Task LoadClassStudents()
+    {
+        _isLoading = true;
+        _students = await StudentRepo.GetStudentsAsync(classFilter: string.IsNullOrEmpty(_selectedClass) ? null : _selectedClass, schoolId: _schoolId);
+
+        _attendanceRecords.Clear();
+        foreach (var s in _students)
+        {
+            _attendanceRecords[s.StudentID] = new AttendanceEntity
+            {
+                ReferenceID = s.StudentID,
+                ReferenceType = "Student",
+                FullName = s.FullName ?? "",
+                Date = _attendanceDate,
+                Status = "PRESENT",
+                SchoolId = _schoolId
+            };
+        }
+
+        ApplySearchFilter();
+        _isLoading = false;
+    }
+
+    private void ApplySearchFilter()
+    {
+        if (string.IsNullOrWhiteSpace(_searchTerm))
+        {
+            _filteredStudents = _students.ToList();
+        }
+        else
+        {
+            var s = _searchTerm.ToLower();
+            _filteredStudents = _students.Where(x => x.FullName.ToLower().Contains(s)).ToList();
+        }
+        UpdateStats();
+    }
+
+    private void UpdateStats()
+    {
+        int total = _filteredStudents.Count;
+        int present = _filteredStudents.Count(s => GetAttendanceRecord(s.StudentID).Status == "PRESENT");
+        int absent = total - present;
+        _statsText = $"Total: {total}   ·   Present: {present}   ·   Absent: {absent}";
+    }
+
+    private AttendanceEntity GetAttendanceRecord(int studentId) => _attendanceRecords[studentId];
+
+    private void UpdateStatus(AttendanceEntity record, string? status)
+    {
+        record.Status = status ?? "";
+        UpdateStats();
+    }
+
+    private void MarkAllPresent()
+    {
+        if (_isAnalysisMode) return;
+        foreach (var s in _filteredStudents) _attendanceRecords[s.StudentID].Status = "PRESENT";
+        UpdateStats();
+    }
+
+    private void ClearAll()
+    {
+        if (_isAnalysisMode) return;
+        foreach (var s in _filteredStudents) _attendanceRecords[s.StudentID].Status = "";
+        UpdateStats();
+    }
+
+    private async Task ToggleAnalysis()
+    {
+        _isAnalysisMode = !_isAnalysisMode;
+        if (_isAnalysisMode)
+        {
+            await LoadAnalysisData();
+        }
+        else
+        {
+            ApplySearchFilter();
+        }
+    }
+
+    private async Task LoadAnalysisData()
+    {
+        _isLoadingAnalysis = true;
+        StateHasChanged();
+
+        DateTime start, end;
+        var date = _analysisDate;
+
+        if (_analysisPeriod == "Daily")
+        {
+            start = date.Date;
+            end = date.Date.AddDays(1).AddTicks(-1);
+        }
+        else if (_analysisPeriod == "Weekly")
+        {
+            start = date.AddDays(-(int)date.DayOfWeek).Date;
+            end = start.AddDays(7).AddTicks(-1);
+        }
+        else if (_analysisPeriod == "Termly")
+        {
+            // Simple 3-month block for termly demonstration
+            start = date.AddMonths(-3).Date;
+            end = date.Date.AddDays(1).AddTicks(-1);
+        }
+        else // Monthly
+        {
+            start = new DateTime(date.Year, date.Month, 1);
+            end = start.AddMonths(1).AddTicks(-1);
+        }
+
+        var records = await AttendanceRepo.GetClassAttendanceAsync(_selectedClass, start, end, _schoolId);
+
+        _statTotalExpected = records.Count;
+        _statPresent = records.Count(r => r.Status == "PRESENT");
+        _statAbsent = records.Count(r => r.Status == "ABSENT");
+        _statLate = records.Count(r => r.Status == "LATE");
+
+        _analysisChartData.Clear();
+
+        if (_analysisPeriod == "Daily" || _analysisPeriod == "Weekly")
+        {
+            var grouped = records.GroupBy(r => r.Date.Date).OrderBy(g => g.Key);
+            foreach (var g in grouped)
+            {
+                _analysisChartData.Add(new ChartRow
+                {
+                    Label = g.Key.ToString("ddd, MMM dd"),
+                    Total = g.Count(),
+                    Present = g.Count(r => r.Status == "PRESENT"),
+                    Absent = g.Count(r => r.Status == "ABSENT"),
+                    Late = g.Count(r => r.Status == "LATE")
+                });
+            }
+        }
+        else // Monthly & Termly (group by week or month to avoid massive charts)
+        {
+            var grouped = records.GroupBy(r => new { r.Date.Year, r.Date.Month }).OrderBy(g => g.Key.Year).ThenBy(g => g.Key.Month);
+            foreach (var g in grouped)
+            {
+                var monthName = new DateTime(g.Key.Year, g.Key.Month, 1).ToString("MMM yyyy");
+                _analysisChartData.Add(new ChartRow
+                {
+                    Label = monthName,
+                    Total = g.Count(),
+                    Present = g.Count(r => r.Status == "PRESENT"),
+                    Absent = g.Count(r => r.Status == "ABSENT"),
+                    Late = g.Count(r => r.Status == "LATE")
+                });
+            }
+        }
+
+        _isLoadingAnalysis = false;
+    }
+
+    private string GetRowStyle(string status) => status == "LATE" ? "background-color: #fffbeb;" : "background-color: #ffffff;";
+
+    private string GetStatusStyle(string status)
+    {
+        return status switch
+        {
+            "PRESENT" => "background-color: #16a34a; color: white;",
+            "ABSENT"  => "background-color: #dc2626; color: white;",
+            "LATE"    => "background-color: #f59e0b; color: white;",
+            _         => "background-color: #f1f5f9; color: #64748b;"
+        };
+    }
+
+    private async Task SaveAttendance()
+    {
+        if (_isAnalysisMode) return;
+        if (!HasAssignedSelectedClass()) return;
+
+        _isSaving = true;
+        _showSuccessMessage = false;
+
+        var studentIds = _students.Select(s => s.StudentID).ToHashSet();
+        var recordsToSave = _attendanceRecords.Values
+            .Where(r => studentIds.Contains(r.ReferenceID) && !string.IsNullOrEmpty(r.Status))
+            .ToList();
+        foreach (var r in recordsToSave) r.Date = _attendanceDate;
+
+        if (recordsToSave.Any())
+        {
+            await AttendanceRepo.SaveAttendanceAsync(recordsToSave);
+            _showSuccessMessage = true;
+            _ = Task.Delay(3000).ContinueWith(_ => { _showSuccessMessage = false; InvokeAsync(StateHasChanged); });
+        }
+
+        _isSaving = false;
+    }
+
+    private bool HasAssignedSelectedClass() =>
+        !string.IsNullOrWhiteSpace(_selectedClass) &&
+        _assignedClasses.Any(c => c.ClassName == _selectedClass);
+}

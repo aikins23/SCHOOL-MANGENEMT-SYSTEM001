@@ -33,6 +33,8 @@ public class PasswordHasherTests
     public void Verify_LegacyPlaintext_FallsBack()
     {
         Assert.True(PasswordHasher.Verify("plainpw", "plainpw"));
+        Assert.True(PasswordHasher.Verify("plainpw", "plainpw", allowLegacyPlainText: true));
+        Assert.False(PasswordHasher.Verify("plainpw", "plainpw", allowLegacyPlainText: false));
         Assert.False(PasswordHasher.Verify("plainpw", "different"));
     }
 

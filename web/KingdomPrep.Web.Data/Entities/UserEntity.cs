@@ -9,4 +9,5 @@ public class UserEntity
     [Column("Password")] public string Password { get; set; } = "";
     [Column("User_Type")] public string? UserType { get; set; }
     [Column("EmploymentID")] public int? EmploymentID { get; set; }
+    [Column("SchoolId")] public Guid? SchoolId { get; set; }
 }

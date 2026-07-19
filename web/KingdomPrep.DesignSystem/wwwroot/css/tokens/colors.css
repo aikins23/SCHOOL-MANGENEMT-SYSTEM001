@@ -1,0 +1,73 @@
+/* Color System - KingdomPrep ERP
+ * Exact color mapping from desktop application
+ * Used across all components for visual consistency
+ */
+
+:root {
+  /* Primary Colors */
+  --nyansapo-navy: #11146a;
+  --nyansapo-navy-dark: #111827;
+  --nyansapo-navy-hover: #1e1b7a;
+  --nyansapo-navy-soft: #2d2f86;
+
+  /* Secondary Colors */
+  --nyansapo-gold: #d4af37;
+  --nyansapo-gold-soft: #fff4c2;
+
+  /* Neutral Colors */
+  --nyansapo-bg: #f6f8fb;
+  --nyansapo-surface: #ffffff;
+  --nyansapo-surface-alt: #f8fafc;
+  --nyansapo-text: #111827;
+  --nyansapo-muted: #64748b;
+  --nyansapo-border: #e2e8f0;
+
+  /* Status Colors */
+  --nyansapo-success: #10b981;
+  --nyansapo-success-soft: #ecfdf5;
+  --nyansapo-success-text: #065f46;
+  --nyansapo-danger: #e11d48;
+  --nyansapo-danger-soft: #fff1f2;
+
+  /* Semantic Color Variables (for CSS custom properties) */
+  --primary: var(--nyansapo-navy);
+  --primary-dark: var(--nyansapo-navy-dark);
+  --primary-light: var(--nyansapo-navy-soft);
+  --accent: var(--nyansapo-gold);
+  --accent-light: var(--nyansapo-gold-soft);
+  --background: var(--nyansapo-bg);
+  --surface: var(--nyansapo-surface);
+  --text-primary: var(--nyansapo-text);
+  --text-secondary: var(--nyansapo-muted);
+  --border-color: var(--nyansapo-border);
+  --success: var(--nyansapo-success);
+  --danger: var(--nyansapo-danger);
+
+  /* Legacy compatibility aliases */
+  --bs-primary: var(--nyansapo-navy);
+  --bs-secondary: var(--nyansapo-muted);
+  --bs-light: var(--nyansapo-surface-alt);
+  --bs-dark: var(--nyansapo-navy-dark);
+  --bs-success: var(--nyansapo-success);
+  --bs-danger: var(--nyansapo-danger);
+  --bs-warning: var(--nyansapo-gold);
+  --bs-info: var(--nyansapo-navy-soft);
+}
+
+/* Dark theme variations for future use */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --nyansapo-navy: #1e1b7a;
+    --nyansapo-navy-dark: #0f172a;
+    --nyansapo-navy-hover: #2d2f86;
+    --nyansapo-navy-soft: #3f44a0;
+    --nyansapo-bg: #0f172a;
+    --nyansapo-surface: #1e293b;
+    --nyansapo-surface-alt: #334155;
+    --nyansapo-text: #f8fafc;
+    --nyansapo-muted: #94a3b8;
+    --nyansapo-border: #334155;
+    --nyansapo-gold: #fbbf24;
+    --nyansapo-gold-soft: #fef3c7;
+  }
+}

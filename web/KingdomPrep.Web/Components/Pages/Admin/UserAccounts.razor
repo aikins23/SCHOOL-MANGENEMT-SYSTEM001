@@ -1,0 +1,168 @@
+@page "/admin/users"
+@rendermode InteractiveServer
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Administrator,Headmaster,Director")]
+@using KingdomPrep.Web.Data
+@inject IUserAccountService AccountService
+@inject IPortalTenantContext TenantContext
+
+<PageTitle>User Accounts - Nyansapo ERP</PageTitle>
+
+<div class="container-fluid mt-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h2 class="mb-1 fw-bold" style="color: #0b1f48;">User Accounts</h2>
+            <p class="text-muted mb-0">Review web login accounts, roles, and password migration state.</p>
+        </div>
+        <a class="btn btn-outline-primary fw-semibold" href="settings">My Settings</a>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted text-uppercase fw-semibold small mb-2">Accounts</div>
+                    <div class="fs-3 fw-bold">@_users.Count</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted text-uppercase fw-semibold small mb-2">Current Hash</div>
+                    <div class="fs-3 fw-bold" style="color: #059669;">@_users.Count(u => u.PasswordFormat == "Current hash")</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted text-uppercase fw-semibold small mb-2">Legacy</div>
+                    <div class="fs-3 fw-bold" style="color: #d97706;">@_users.Count(u => u.PasswordFormat.StartsWith("Legacy"))</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted text-uppercase fw-semibold small mb-2">Roles</div>
+                    <div class="fs-3 fw-bold">@_users.Select(u => u.Role).Distinct().Count()</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-5">
+                    <label class="form-label fw-semibold text-muted">Search</label>
+                    <input class="form-control" placeholder="Username, role, or employment ID" @bind="_searchTerm" @bind:event="oninput" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold text-muted">Role</label>
+                    <select class="form-select" @bind="_roleFilter">
+                        <option value="">All roles</option>
+                        <option value="Director">Director</option>
+                        <option value="Administrator">Administrator</option>
+                        <option value="Headmaster">Headmaster</option>
+                        <option value="Teacher">Teacher</option>
+                        <option value="Accountant">Accountant</option>
+                        <option value="Parent">Parent</option>
+                        <option value="Unknown">Unknown</option>
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex justify-content-md-end gap-2">
+                    <button class="btn btn-primary fw-semibold px-4" @onclick="LoadAsync" disabled="@_isLoading">Apply</button>
+                    <button class="btn btn-light fw-semibold px-4" @onclick="ClearFilters" disabled="@_isLoading">Clear</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Username</th>
+                            <th>Role</th>
+                            <th>User Type</th>
+                            <th>Employment ID</th>
+                            <th>Password State</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (_isLoading)
+                        {
+                            <tr><td colspan="5" class="text-center py-4"><span class="spinner-border spinner-border-sm"></span></td></tr>
+                        }
+                        else if (!_users.Any())
+                        {
+                            <tr><td colspan="5" class="text-center text-muted py-4">No user accounts found.</td></tr>
+                        }
+                        else
+                        {
+                            @foreach (var user in _users)
+                            {
+                                <tr>
+                                    <td class="fw-semibold">@user.Username</td>
+                                    <td><span class="badge @RoleClass(user.Role)">@user.Role</span></td>
+                                    <td>@user.UserType</td>
+                                    <td>@(user.EmploymentId?.ToString() ?? "-")</td>
+                                    <td><span class="badge @PasswordFormatClass(user.PasswordFormat)">@user.PasswordFormat</span></td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<UserAccountSummary> _users = new();
+    private string _searchTerm = "";
+    private string _roleFilter = "";
+    private bool _isLoading = true;
+    private Guid? _schoolId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _schoolId = (await TenantContext.GetCurrentAsync()).SchoolId;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _isLoading = true;
+        _users = await AccountService.GetUsersAsync(_searchTerm, _roleFilter, _schoolId);
+        _isLoading = false;
+    }
+
+    private async Task ClearFilters()
+    {
+        _searchTerm = "";
+        _roleFilter = "";
+        await LoadAsync();
+    }
+
+    private static string PasswordFormatClass(string passwordFormat) => passwordFormat switch
+    {
+        "Current hash" => "bg-success",
+        "Missing" => "bg-danger",
+        _ => "bg-warning text-dark"
+    };
+
+    private static string RoleClass(string role) => role switch
+    {
+        "Administrator" => "bg-primary",
+        "Director" => "bg-dark",
+        "Headmaster" => "bg-info text-dark",
+        "Teacher" => "bg-success",
+        "Accountant" => "bg-secondary",
+        "Parent" => "bg-warning text-dark",
+        _ => "bg-light text-dark"
+    };
+}

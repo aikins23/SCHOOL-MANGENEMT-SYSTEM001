@@ -1,0 +1,254 @@
+@page "/students"
+@rendermode InteractiveServer
+@using KingdomPrep.Web.Data.Entities
+@using KingdomPrep.Web.Data
+@using Microsoft.AspNetCore.Components.Authorization
+@inject IStudentRepository StudentRepo
+@inject NavigationManager Nav
+@inject IJSRuntime JSRuntime
+@inject IPortalTenantContext TenantContext
+@inject AuthenticationStateProvider AuthStateProvider
+@attribute [Authorize(Policy = WebPermission.StudentsWrite)]
+
+<PageTitle>Student Master List</PageTitle>
+
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold" style="color: #0b1f48;">Student Master List</h2>
+        @if (_canWriteStudents)
+        {
+            <button class="btn btn-primary" style="background-color: #0b1f48; border-color: #0b1f48;" @onclick="CreateNewStudent">
+                <i class="fas fa-plus"></i> New Student
+            </button>
+        }
+    </div>
+
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body">
+            <div class="row gx-3 gy-2 align-items-center">
+                <div class="col-auto d-flex align-items-center me-3">
+                    <span class="me-2 text-muted">Show</span>
+                    <select class="form-select form-select-sm w-auto" @onchange="ChangePageSize">
+                        <option value="10">10</option>
+                        <option value="25">25</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                    <span class="ms-2 text-muted">entries</span>
+                </div>
+                <div class="col-sm-3">
+                    <input type="text" class="form-control" placeholder="Search by name or ID..." value="@SearchTerm" @oninput="OnSearchInput" />
+                </div>
+                <div class="col-sm-4">
+                    <select class="form-select" value="@ClassFilter" @onchange="OnClassFilterChanged">
+                        <option value="">All Classes</option>
+                        @if (_classes != null)
+                        {
+                            foreach (var c in _classes)
+                            {
+                                <option value="@c">@c</option>
+                            }
+                        }
+                    </select>
+                </div>
+                <div class="col-auto">
+                    <button class="btn btn-outline-secondary" @onclick="LoadStudents">Search</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="cursor:pointer;" @onclick='() => SortBy("ID")'>ID @SortIndicator("ID")</th>
+                            <th style="cursor:pointer;" @onclick='() => SortBy("Name")'>Name @SortIndicator("Name")</th>
+                            <th style="cursor:pointer;" @onclick='() => SortBy("Class")'>Class @SortIndicator("Class")</th>
+                            <th style="cursor:pointer;" @onclick='() => SortBy("Gender")'>Gender @SortIndicator("Gender")</th>
+                            <th style="cursor:pointer;" @onclick='() => SortBy("DOB")'>DOB @SortIndicator("DOB")</th>
+                            @if (_canWriteStudents)
+                            {
+                                <th class="text-end">Actions</th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (PagedStudents == null)
+                        {
+                            <tr><td colspan="@StudentTableColumnCount" class="text-center py-4">Loading students...</td></tr>
+                        }
+                        else if (!PagedStudents.Any())
+                        {
+                            <tr><td colspan="@StudentTableColumnCount" class="text-center py-4">No students found matching your criteria.</td></tr>
+                        }
+                        else
+                        {
+                            @foreach (var student in PagedStudents)
+                            {
+                                <tr>
+                                    <td class="align-middle"><strong>@student.StudentID</strong></td>
+                                    <td class="align-middle">@student.FullName</td>
+                                    <td class="align-middle"><span class="badge bg-secondary">@student.ClassID</span></td>
+                                    <td class="align-middle">@student.Gender</td>
+                                    <td class="align-middle">@(student.DateOfBirth?.ToString("MMM dd, yyyy") ?? "N/A")</td>
+                                    @if (_canWriteStudents)
+                                    {
+                                        <td class="text-end align-middle">
+                                            <button class="btn btn-sm btn-outline-primary" @onclick="() => EditStudent(student.StudentID)">
+                                                Edit
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger ms-1" @onclick="() => DeleteStudent(student.StudentID)">
+                                                Delete
+                                            </button>
+                                        </td>
+                                    }
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        @if (PagedStudents != null && TotalStudents > 0)
+        {
+            <div class="card-footer bg-white border-top d-flex flex-column flex-md-row justify-content-between align-items-center py-3 gap-3">
+                <span class="text-muted small text-center text-md-start">Showing @((_currentPage - 1) * _pageSize + 1) to @Math.Min(_currentPage * _pageSize, TotalStudents) of @TotalStudents entries</span>
+                <div class="overflow-auto" style="max-width: 100%;">
+                    <nav>
+                        <ul class="pagination pagination-sm mb-0 flex-nowrap">
+                        <li class="page-item @(_currentPage == 1 ? "disabled" : "")">
+                            <button class="page-link" @onclick="() => GoToPage(_currentPage - 1)">Previous</button>
+                        </li>
+                        @for (int i = 1; i <= TotalPages; i++)
+                        {
+                            var p = i;
+                            <li class="page-item @(_currentPage == p ? "active" : "")">
+                                <button class="page-link" @onclick="() => GoToPage(p)">@p</button>
+                            </li>
+                        }
+                        <li class="page-item @(_currentPage == TotalPages ? "disabled" : "")">
+                            <button class="page-link" @onclick="() => GoToPage(_currentPage + 1)">Next</button>
+                        </li>
+                    </ul>
+                </nav>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private List<StudentEntity>? PagedStudents;
+    private int TotalStudents = 0;
+    private List<string>? _classes;
+    private string SearchTerm = "";
+    private string ClassFilter = "";
+    private Guid? _schoolId;
+
+    private int _pageSize = 10;
+    private int _currentPage = 1;
+    private string _sortColumn = "Name";
+    private bool _sortAscending = true;
+    private bool _canWriteStudents;
+
+    private int TotalPages => TotalStudents == 0 ? 1 : (int)Math.Ceiling(TotalStudents / (double)_pageSize);
+    private int StudentTableColumnCount => _canWriteStudents ? 6 : 5;
+
+    private string SortIndicator(string column)
+    {
+        if (_sortColumn != column) return "↕";
+        return _sortAscending ? "↑" : "↓";
+    }
+
+    private async Task SortBy(string column)
+    {
+        if (_sortColumn == column)
+            _sortAscending = !_sortAscending;
+        else
+        {
+            _sortColumn = column;
+            _sortAscending = true;
+        }
+        _currentPage = 1;
+        await LoadStudents();
+    }
+
+    private async Task ChangePageSize(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out int size))
+        {
+            _pageSize = size;
+            _currentPage = 1;
+            await LoadStudents();
+        }
+    }
+
+    private async Task GoToPage(int page)
+    {
+        if (page >= 1 && page <= TotalPages)
+        {
+            _currentPage = page;
+            await LoadStudents();
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        _canWriteStudents = WebPermission.CanRenderAction(authState.User, WebPermission.StudentsWrite);
+        _schoolId = (await TenantContext.GetCurrentAsync()).SchoolId;
+        _classes = await StudentRepo.GetClassesAsync(_schoolId);
+        await LoadStudents();
+    }
+
+    private async Task LoadStudents()
+    {
+        var result = await StudentRepo.GetPagedAsync(_currentPage, _pageSize, _sortColumn, _sortAscending, SearchTerm, ClassFilter, _schoolId);
+        PagedStudents = result.Items;
+        TotalStudents = result.TotalCount;
+        StateHasChanged();
+    }
+
+    private async Task OnSearchInput(ChangeEventArgs e)
+    {
+        SearchTerm = e.Value?.ToString() ?? "";
+        _currentPage = 1;
+        await LoadStudents();
+    }
+
+    private async Task OnClassFilterChanged(ChangeEventArgs e)
+    {
+        ClassFilter = e.Value?.ToString() ?? "";
+        _currentPage = 1;
+        await LoadStudents();
+    }
+
+    private void CreateNewStudent()
+    {
+        if (!_canWriteStudents) return;
+
+        Nav.NavigateTo("/students/edit/new");
+    }
+
+    private void EditStudent(int id)
+    {
+        if (!_canWriteStudents) return;
+
+        Nav.NavigateTo($"/students/edit/{id}");
+    }
+
+    private async Task DeleteStudent(int id)
+    {
+        if (!_canWriteStudents) return;
+
+        bool confirmed = await JSRuntime.InvokeAsync<bool>("confirm", "Are you sure you want to delete this student?");
+        if (confirmed)
+        {
+            await StudentRepo.DeleteAsync(id, _schoolId);
+            await LoadStudents();
+        }
+    }
+}

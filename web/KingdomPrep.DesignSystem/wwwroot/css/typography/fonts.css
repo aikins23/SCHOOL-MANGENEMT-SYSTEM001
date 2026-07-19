@@ -1,0 +1,148 @@
+/* Typography System - KingdomPrep ERP
+ * Font definitions and typography scale
+ * Maintains desktop application typography hierarchy
+ */
+
+/* Google Fonts Import for Cross-Platform Elegance */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+/* Typography Scale */
+:root {
+  /* Heading Typography */
+  --font-size-xxxl: clamp(2.5rem, 5vw, 3.75rem);
+  --font-size-xxl: clamp(2rem, 4vw, 3rem);
+  --font-size-xl: clamp(1.75rem, 3vw, 2.5rem);
+  --font-size-lg: clamp(1.5rem, 2.5vw, 2rem);
+  --font-size-md: clamp(1.25rem, 2vw, 1.75rem);
+  --font-size-sm: clamp(1.125rem, 1.5vw, 1.375rem);
+  --font-size-base: 1rem;
+  --font-size-sm: 0.875rem;
+  --font-size-xs: 0.75rem;
+
+  /* Line Heights */
+  --line-height-tight: 1.2;
+  --line-height-snug: 1.375;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.625;
+
+  /* Font Weights */
+  --font-weight-light: 300;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* Letter Spacing */
+  --letter-spacing-tight: -0.025em;
+  --letter-spacing-normal: 0;
+  --letter-spacing-wide: 0.05em;
+  --letter-spacing-wider: 0.08em;
+
+  /* Component Typography Scales */
+  --h1-font-size: var(--font-size-xxxl);
+  --h1-font-weight: var(--font-weight-bold);
+  --h1-line-height: var(--line-height-tight);
+  --h1-letter-spacing: var(--letter-spacing-normal);
+
+  --h2-font-size: var(--font-size-xxl);
+  --h2-font-weight: var(--font-weight-bold);
+  --h2-line-height: var(--line-height-snug);
+  --h2-letter-spacing: var(--letter-spacing-normal);
+
+  --h3-font-size: var(--font-size-xl);
+  --h3-font-weight: var(--font-weight-bold);
+  --h3-line-height: var(--line-height-snug);
+  --h3-letter-spacing: var(--letter-spacing-normal);
+
+  --body-font-size: var(--font-size-base);
+  --body-font-weight: var(--font-weight-normal);
+  --body-line-height: var(--line-height-normal);
+  --body-letter-spacing: var(--letter-spacing-normal);
+
+  --caption-font-size: var(--font-size-xs);
+  --caption-font-weight: var(--font-weight-medium);
+  --caption-line-height: var(--line-height-normal);
+  --caption-letter-spacing: var(--letter-spacing-wide);
+}
+
+/* Base Typography Styles */
+html, body {
+  font-family: 'Inter', 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-size: var(--body-font-size);
+  font-weight: var(--body-font-weight);
+  line-height: var(--body-line-height);
+  letter-spacing: var(--body-letter-spacing);
+  color: var(--text-primary);
+  background-color: var(--background);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Heading Styles */
+h1, .h1 {
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+  font-size: var(--h1-font-size);
+  font-weight: var(--h1-font-weight);
+  line-height: var(--h1-line-height);
+  letter-spacing: var(--h1-letter-spacing);
+  color: var(--text-primary);
+}
+
+h2, .h2 {
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+  font-size: var(--h2-font-size);
+  font-weight: var(--h2-font-weight);
+  line-height: var(--h2-line-height);
+  letter-spacing: var(--h2-letter-spacing);
+  color: var(--text-primary);
+}
+
+h3, .h3 {
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+  font-size: var(--h3-font-size);
+  font-weight: var(--h3-font-weight);
+  line-height: var(--h3-line-height);
+  letter-spacing: var(--h3-letter-spacing);
+  color: var(--text-primary);
+}
+
+/* Brand Typography (Georgia) */
+.brand-text, .navbar-brand {
+  font-family: 'Georgia', serif;
+  font-weight: 700;
+  letter-spacing: var(--letter-spacing-normal);
+}
+
+/* Special Typography Elements */
+.hero-eyebrow, .panel-kicker, .summary-label {
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+  font-size: 0.74rem;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: var(--letter-spacing-wider);
+  text-transform: uppercase;
+}
+
+.hero-subtitle {
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+  font-size: 0.86rem;
+  font-weight: var(--font-weight-normal);
+  line-height: var(--line-height-normal);
+}
+
+/* Card Typography */
+.card-title {
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+  font-size: 1.15rem;
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-snug);
+  margin-bottom: 0.9rem;
+}
+
+.card-body p {
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-normal);
+  line-height: var(--line-height-normal);
+  margin-bottom: 0.45rem;
+  color: var(--text-secondary);
+}
