@@ -66,9 +66,9 @@ namespace kingdom_Preparatory_School_Management_System
             ((System.ComponentModel.ISupportInitialize)(this.dgvHistory)).BeginInit();
             this.guna2ShadowPanelInput.SuspendLayout();
             this.SuspendLayout();
-            // 
+            //
             // pnlSidebar
-            // 
+            //
             this.pnlSidebar.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(20)))), ((int)(((byte)(30)))), ((int)(((byte)(60)))));
             this.pnlSidebar.Controls.Add(this.btnMainMenu);
             this.pnlSidebar.Controls.Add(this.btnPromotion);
@@ -80,9 +80,9 @@ namespace kingdom_Preparatory_School_Management_System
             this.pnlSidebar.Name = "pnlSidebar";
             this.pnlSidebar.Size = new System.Drawing.Size(220, 800);
             this.pnlSidebar.TabIndex = 0;
-            // 
+            //
             // btnMainMenu
-            // 
+            //
             this.btnMainMenu.AnimationHoverSpeed = 0.07F;
             this.btnMainMenu.AnimationSpeed = 0.03F;
             this.btnMainMenu.BaseColor = System.Drawing.Color.Transparent;
@@ -106,9 +106,9 @@ namespace kingdom_Preparatory_School_Management_System
             this.btnMainMenu.TabIndex = 4;
             this.btnMainMenu.Text = "← Main Menu";
             this.btnMainMenu.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
-            // 
+            //
             // btnPromotion
-            // 
+            //
             this.btnPromotion.AnimationHoverSpeed = 0.07F;
             this.btnPromotion.AnimationSpeed = 0.03F;
             this.btnPromotion.BaseColor = System.Drawing.Color.Transparent;
@@ -130,9 +130,9 @@ namespace kingdom_Preparatory_School_Management_System
             this.btnPromotion.TabIndex = 3;
             this.btnPromotion.Text = "Promotion";
             this.btnPromotion.TextOffsetX = 20;
-            // 
+            //
             // btnStudents
-            // 
+            //
             this.btnStudents.AnimationHoverSpeed = 0.07F;
             this.btnStudents.AnimationSpeed = 0.03F;
             this.btnStudents.BaseColor = System.Drawing.Color.Transparent;
@@ -154,9 +154,9 @@ namespace kingdom_Preparatory_School_Management_System
             this.btnStudents.TabIndex = 2;
             this.btnStudents.Text = "Students";
             this.btnStudents.TextOffsetX = 20;
-            // 
+            //
             // btnNoticeSidebar
-            // 
+            //
             this.btnNoticeSidebar.AnimationHoverSpeed = 0.07F;
             this.btnNoticeSidebar.AnimationSpeed = 0.03F;
             this.btnNoticeSidebar.BaseColor = System.Drawing.Color.FromArgb(((int)(((byte)(40)))), ((int)(((byte)(50)))), ((int)(((byte)(100)))));
@@ -179,9 +179,9 @@ namespace kingdom_Preparatory_School_Management_System
             this.btnNoticeSidebar.TabIndex = 1;
             this.btnNoticeSidebar.Text = "Notice";
             this.btnNoticeSidebar.TextOffsetX = 20;
-            // 
+            //
             // btnDashboardSidebar
-            // 
+            //
             this.btnDashboardSidebar.AnimationHoverSpeed = 0.07F;
             this.btnDashboardSidebar.AnimationSpeed = 0.03F;
             this.btnDashboardSidebar.BaseColor = System.Drawing.Color.Transparent;
@@ -203,9 +203,9 @@ namespace kingdom_Preparatory_School_Management_System
             this.btnDashboardSidebar.TabIndex = 0;
             this.btnDashboardSidebar.Text = "Dashboard";
             this.btnDashboardSidebar.TextOffsetX = 20;
-            // 
+            //
             // pnlHeader
-            // 
+            //
             this.pnlHeader.BackColor = System.Drawing.Color.White;
             this.pnlHeader.Controls.Add(this.lblHeaderTitle);
             this.pnlHeader.Controls.Add(this.btnSignOut);
@@ -215,9 +215,9 @@ namespace kingdom_Preparatory_School_Management_System
             this.pnlHeader.Name = "pnlHeader";
             this.pnlHeader.Size = new System.Drawing.Size(880, 60);
             this.pnlHeader.TabIndex = 1;
-            // 
+            //
             // lblHeaderTitle
-            // 
+            //
             this.lblHeaderTitle.AutoSize = true;
             this.lblHeaderTitle.Font = new System.Drawing.Font("Roboto Black", 18F, System.Drawing.FontStyle.Bold);
             this.lblHeaderTitle.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(20)))), ((int)(((byte)(30)))), ((int)(((byte)(60)))));
@@ -226,9 +226,9 @@ namespace kingdom_Preparatory_School_Management_System
             this.lblHeaderTitle.Size = new System.Drawing.Size(161, 29);
             this.lblHeaderTitle.TabIndex = 3;
             this.lblHeaderTitle.Text = "SEND NOTICE";
-            // 
+            //
             // btnSignOut
-            // 
+            //
             this.btnSignOut.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.btnSignOut.BorderRadius = 5;
             this.btnSignOut.FillColor = System.Drawing.Color.White;
@@ -240,9 +240,9 @@ namespace kingdom_Preparatory_School_Management_System
             this.btnSignOut.Size = new System.Drawing.Size(110, 35);
             this.btnSignOut.TabIndex = 2;
             this.btnSignOut.Text = "Sign Out";
-            // 
+            //
             // btnClose
-            // 
+            //
             this.btnClose.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.btnClose.BaseColor = System.Drawing.Color.White;
             this.btnClose.Cursor = System.Windows.Forms.Cursors.Hand;
@@ -252,9 +252,9 @@ namespace kingdom_Preparatory_School_Management_System
             this.btnClose.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
             this.btnClose.TabIndex = 0;
             this.btnClose.TabStop = false;
-            // 
+            //
             // pnlMainContent
-            // 
+            //
             this.pnlMainContent.AutoScroll = true;
             this.pnlMainContent.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(245)))), ((int)(((byte)(247)))), ((int)(((byte)(250)))));
             this.pnlMainContent.Controls.Add(this.lblStatus);
@@ -266,9 +266,9 @@ namespace kingdom_Preparatory_School_Management_System
             this.pnlMainContent.Padding = new System.Windows.Forms.Padding(20);
             this.pnlMainContent.Size = new System.Drawing.Size(880, 740);
             this.pnlMainContent.TabIndex = 2;
-            // 
+            //
             // lblStatus
-            // 
+            //
             this.lblStatus.AutoSize = true;
             this.lblStatus.Font = new System.Drawing.Font("Roboto", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.lblStatus.ForeColor = System.Drawing.Color.Gray;
@@ -277,9 +277,9 @@ namespace kingdom_Preparatory_School_Management_System
             this.lblStatus.Size = new System.Drawing.Size(43, 15);
             this.lblStatus.TabIndex = 11;
             this.lblStatus.Text = "Ready";
-            // 
+            //
             // guna2ShadowPanelHistory
-            // 
+            //
             this.guna2ShadowPanelHistory.BackColor = System.Drawing.Color.Transparent;
             this.guna2ShadowPanelHistory.Controls.Add(this.btnDelete);
             this.guna2ShadowPanelHistory.Controls.Add(this.btnRefresh);
@@ -293,9 +293,9 @@ namespace kingdom_Preparatory_School_Management_System
             this.guna2ShadowPanelHistory.ShadowShift = 8;
             this.guna2ShadowPanelHistory.Size = new System.Drawing.Size(840, 320);
             this.guna2ShadowPanelHistory.TabIndex = 10;
-            // 
+            //
             // btnDelete
-            // 
+            //
             this.btnDelete.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.btnDelete.BorderRadius = 5;
             this.btnDelete.FillColor = System.Drawing.Color.FromArgb(((int)(((byte)(190)))), ((int)(((byte)(18)))), ((int)(((byte)(60)))));
@@ -307,9 +307,9 @@ namespace kingdom_Preparatory_School_Management_System
             this.btnDelete.TabIndex = 14;
             this.btnDelete.Text = "Delete";
             this.btnDelete.Click += new System.EventHandler(this.btnDelete_Click);
-            // 
+            //
             // btnRefresh
-            // 
+            //
             this.btnRefresh.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.btnRefresh.BorderRadius = 5;
             this.btnRefresh.FillColor = System.Drawing.Color.FromArgb(((int)(((byte)(20)))), ((int)(((byte)(30)))), ((int)(((byte)(60)))));
@@ -321,9 +321,9 @@ namespace kingdom_Preparatory_School_Management_System
             this.btnRefresh.TabIndex = 13;
             this.btnRefresh.Text = "Refresh";
             this.btnRefresh.Click += new System.EventHandler(this.btnRefresh_Click);
-            // 
+            //
             // dgvHistory
-            // 
+            //
             this.dgvHistory.AllowUserToAddRows = false;
             this.dgvHistory.AllowUserToDeleteRows = false;
             this.dgvHistory.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.Fill;
@@ -337,9 +337,9 @@ namespace kingdom_Preparatory_School_Management_System
             this.dgvHistory.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect;
             this.dgvHistory.Size = new System.Drawing.Size(800, 210);
             this.dgvHistory.TabIndex = 12;
-            // 
+            //
             // gunaLabel6
-            // 
+            //
             this.gunaLabel6.AutoSize = true;
             this.gunaLabel6.Font = new System.Drawing.Font("Roboto", 14.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.gunaLabel6.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(20)))), ((int)(((byte)(30)))), ((int)(((byte)(60)))));
@@ -348,9 +348,9 @@ namespace kingdom_Preparatory_School_Management_System
             this.gunaLabel6.Size = new System.Drawing.Size(155, 23);
             this.gunaLabel6.TabIndex = 1;
             this.gunaLabel6.Text = "Notice History";
-            // 
+            //
             // guna2ShadowPanelInput
-            // 
+            //
             this.guna2ShadowPanelInput.BackColor = System.Drawing.Color.Transparent;
             this.guna2ShadowPanelInput.Controls.Add(this.btnClear);
             this.guna2ShadowPanelInput.Controls.Add(this.btnSend);
@@ -372,9 +372,9 @@ namespace kingdom_Preparatory_School_Management_System
             this.guna2ShadowPanelInput.ShadowShift = 8;
             this.guna2ShadowPanelInput.Size = new System.Drawing.Size(840, 345);
             this.guna2ShadowPanelInput.TabIndex = 9;
-            // 
+            //
             // btnClear
-            // 
+            //
             this.btnClear.BorderRadius = 5;
             this.btnClear.FillColor = System.Drawing.Color.FromArgb(((int)(((byte)(107)))), ((int)(((byte)(114)))), ((int)(((byte)(128)))));
             this.btnClear.Font = new System.Drawing.Font("Roboto", 10F, System.Drawing.FontStyle.Bold);
@@ -384,9 +384,9 @@ namespace kingdom_Preparatory_School_Management_System
             this.btnClear.Size = new System.Drawing.Size(120, 40);
             this.btnClear.TabIndex = 11;
             this.btnClear.Text = "Clear";
-            // 
+            //
             // btnSend
-            // 
+            //
             this.btnSend.BorderRadius = 5;
             this.btnSend.FillColor = System.Drawing.Color.FromArgb(((int)(((byte)(20)))), ((int)(((byte)(30)))), ((int)(((byte)(60)))));
             this.btnSend.Font = new System.Drawing.Font("Roboto", 10F, System.Drawing.FontStyle.Bold);
@@ -396,9 +396,9 @@ namespace kingdom_Preparatory_School_Management_System
             this.btnSend.Size = new System.Drawing.Size(160, 40);
             this.btnSend.TabIndex = 10;
             this.btnSend.Text = "SEND NOTICE";
-            // 
+            //
             // cmbClass
-            // 
+            //
             this.cmbClass.BackColor = System.Drawing.Color.Transparent;
             this.cmbClass.BorderRadius = 5;
             this.cmbClass.DrawMode = System.Windows.Forms.DrawMode.OwnerDrawFixed;
@@ -412,9 +412,9 @@ namespace kingdom_Preparatory_School_Management_System
             this.cmbClass.Name = "cmbClass";
             this.cmbClass.Size = new System.Drawing.Size(180, 36);
             this.cmbClass.TabIndex = 9;
-            // 
+            //
             // gunaLabel5
-            // 
+            //
             this.gunaLabel5.AutoSize = true;
             this.gunaLabel5.Font = new System.Drawing.Font("Roboto Medium", 9F, System.Drawing.FontStyle.Bold);
             this.gunaLabel5.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(64)))), ((int)(((byte)(64)))), ((int)(((byte)(64)))));
@@ -423,9 +423,9 @@ namespace kingdom_Preparatory_School_Management_System
             this.gunaLabel5.Size = new System.Drawing.Size(43, 14);
             this.gunaLabel5.TabIndex = 8;
             this.gunaLabel5.Text = "Class:";
-            // 
+            //
             // cmbChannel
-            // 
+            //
             this.cmbChannel.BackColor = System.Drawing.Color.Transparent;
             this.cmbChannel.BorderRadius = 5;
             this.cmbChannel.DrawMode = System.Windows.Forms.DrawMode.OwnerDrawFixed;
@@ -439,9 +439,9 @@ namespace kingdom_Preparatory_School_Management_System
             this.cmbChannel.Name = "cmbChannel";
             this.cmbChannel.Size = new System.Drawing.Size(170, 36);
             this.cmbChannel.TabIndex = 7;
-            // 
+            //
             // gunaLabel4
-            // 
+            //
             this.gunaLabel4.AutoSize = true;
             this.gunaLabel4.Font = new System.Drawing.Font("Roboto Medium", 9F, System.Drawing.FontStyle.Bold);
             this.gunaLabel4.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(64)))), ((int)(((byte)(64)))), ((int)(((byte)(64)))));
@@ -450,9 +450,9 @@ namespace kingdom_Preparatory_School_Management_System
             this.gunaLabel4.Size = new System.Drawing.Size(59, 14);
             this.gunaLabel4.TabIndex = 6;
             this.gunaLabel4.Text = "Channel:";
-            // 
+            //
             // cmbTarget
-            // 
+            //
             this.cmbTarget.BackColor = System.Drawing.Color.Transparent;
             this.cmbTarget.BorderRadius = 5;
             this.cmbTarget.DrawMode = System.Windows.Forms.DrawMode.OwnerDrawFixed;
@@ -466,9 +466,9 @@ namespace kingdom_Preparatory_School_Management_System
             this.cmbTarget.Name = "cmbTarget";
             this.cmbTarget.Size = new System.Drawing.Size(180, 36);
             this.cmbTarget.TabIndex = 5;
-            // 
+            //
             // gunaLabel3
-            // 
+            //
             this.gunaLabel3.AutoSize = true;
             this.gunaLabel3.Font = new System.Drawing.Font("Roboto Medium", 9F, System.Drawing.FontStyle.Bold);
             this.gunaLabel3.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(64)))), ((int)(((byte)(64)))), ((int)(((byte)(64)))));
@@ -477,9 +477,9 @@ namespace kingdom_Preparatory_School_Management_System
             this.gunaLabel3.Size = new System.Drawing.Size(58, 14);
             this.gunaLabel3.TabIndex = 4;
             this.gunaLabel3.Text = "Send To:";
-            // 
+            //
             // txtMessage
-            // 
+            //
             this.txtMessage.BorderRadius = 5;
             this.txtMessage.Cursor = System.Windows.Forms.Cursors.IBeam;
             this.txtMessage.DefaultText = "";
@@ -495,9 +495,9 @@ namespace kingdom_Preparatory_School_Management_System
             this.txtMessage.SelectedText = "";
             this.txtMessage.Size = new System.Drawing.Size(790, 80);
             this.txtMessage.TabIndex = 3;
-            // 
+            //
             // gunaLabel2
-            // 
+            //
             this.gunaLabel2.AutoSize = true;
             this.gunaLabel2.Font = new System.Drawing.Font("Roboto Medium", 9F, System.Drawing.FontStyle.Bold);
             this.gunaLabel2.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(64)))), ((int)(((byte)(64)))), ((int)(((byte)(64)))));
@@ -506,9 +506,9 @@ namespace kingdom_Preparatory_School_Management_System
             this.gunaLabel2.Size = new System.Drawing.Size(64, 14);
             this.gunaLabel2.TabIndex = 2;
             this.gunaLabel2.Text = "Message:";
-            // 
+            //
             // txtTitle
-            // 
+            //
             this.txtTitle.BorderRadius = 5;
             this.txtTitle.Cursor = System.Windows.Forms.Cursors.IBeam;
             this.txtTitle.DefaultText = "";
@@ -523,9 +523,9 @@ namespace kingdom_Preparatory_School_Management_System
             this.txtTitle.SelectedText = "";
             this.txtTitle.Size = new System.Drawing.Size(790, 35);
             this.txtTitle.TabIndex = 1;
-            // 
+            //
             // gunaLabel1
-            // 
+            //
             this.gunaLabel1.AutoSize = true;
             this.gunaLabel1.Font = new System.Drawing.Font("Roboto Medium", 9F, System.Drawing.FontStyle.Bold);
             this.gunaLabel1.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(64)))), ((int)(((byte)(64)))), ((int)(((byte)(64)))));
@@ -534,9 +534,9 @@ namespace kingdom_Preparatory_School_Management_System
             this.gunaLabel1.Size = new System.Drawing.Size(39, 14);
             this.gunaLabel1.TabIndex = 0;
             this.gunaLabel1.Text = "Title:";
-            // 
+            //
             // frmSendNotice
-            // 
+            //
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(20)))), ((int)(((byte)(30)))), ((int)(((byte)(60)))));

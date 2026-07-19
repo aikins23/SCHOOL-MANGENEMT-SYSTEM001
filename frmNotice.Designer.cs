@@ -42,9 +42,9 @@ namespace kingdom_Preparatory_School_Management_System
             ((System.ComponentModel.ISupportInitialize)(this.gunaPictureBox1)).BeginInit();
             this.pnlSidebar.SuspendLayout();
             this.SuspendLayout();
-            // 
+            //
             // guna2Panel1
-            // 
+            //
             this.guna2Panel1.BackColor = System.Drawing.Color.MidnightBlue;
             this.guna2Panel1.Controls.Add(this.gunaLabel1);
             this.guna2Panel1.Controls.Add(this.gunaPictureBox1);
@@ -54,9 +54,9 @@ namespace kingdom_Preparatory_School_Management_System
             this.guna2Panel1.ShadowDecoration.Parent = this.guna2Panel1;
             this.guna2Panel1.Size = new System.Drawing.Size(900, 60);
             this.guna2Panel1.TabIndex = 0;
-            // 
+            //
             // gunaLabel1
-            // 
+            //
             this.gunaLabel1.AutoSize = true;
             this.gunaLabel1.Font = new System.Drawing.Font("Roboto Cn", 20.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.gunaLabel1.ForeColor = System.Drawing.Color.White;
@@ -65,9 +65,9 @@ namespace kingdom_Preparatory_School_Management_System
             this.gunaLabel1.Size = new System.Drawing.Size(193, 33);
             this.gunaLabel1.TabIndex = 1;
             this.gunaLabel1.Text = "NOTICE BOARD";
-            // 
+            //
             // gunaPictureBox1
-            // 
+            //
             this.gunaPictureBox1.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.gunaPictureBox1.BaseColor = System.Drawing.Color.White;
             this.gunaPictureBox1.Cursor = System.Windows.Forms.Cursors.Hand;
@@ -78,9 +78,9 @@ namespace kingdom_Preparatory_School_Management_System
             this.gunaPictureBox1.TabIndex = 0;
             this.gunaPictureBox1.TabStop = false;
             this.gunaPictureBox1.Click += new System.EventHandler(this.gunaPictureBox1_Click);
-            // 
+            //
             // pnlSidebar
-            // 
+            //
             this.pnlSidebar.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(240)))), ((int)(((byte)(240)))), ((int)(((byte)(240)))));
             this.pnlSidebar.Controls.Add(this.btnAddNotice);
             this.pnlSidebar.Controls.Add(this.btnHolidays);
@@ -93,9 +93,9 @@ namespace kingdom_Preparatory_School_Management_System
             this.pnlSidebar.ShadowDecoration.Parent = this.pnlSidebar;
             this.pnlSidebar.Size = new System.Drawing.Size(200, 540);
             this.pnlSidebar.TabIndex = 1;
-            // 
+            //
             // btnAll
-            // 
+            //
             this.btnAll.AnimationHoverSpeed = 0.07F;
             this.btnAll.AnimationSpeed = 0.03F;
             this.btnAll.BaseColor = System.Drawing.Color.Transparent;
@@ -117,9 +117,9 @@ namespace kingdom_Preparatory_School_Management_System
             this.btnAll.TabIndex = 0;
             this.btnAll.Text = "All Notices";
             this.btnAll.TextOffsetX = 10;
-            // 
+            //
             // btnEvents
-            // 
+            //
             this.btnEvents.AnimationHoverSpeed = 0.07F;
             this.btnEvents.AnimationSpeed = 0.03F;
             this.btnEvents.BaseColor = System.Drawing.Color.Transparent;
@@ -141,9 +141,9 @@ namespace kingdom_Preparatory_School_Management_System
             this.btnEvents.TabIndex = 1;
             this.btnEvents.Text = "Events";
             this.btnEvents.TextOffsetX = 10;
-            // 
+            //
             // btnAcademic
-            // 
+            //
             this.btnAcademic.AnimationHoverSpeed = 0.07F;
             this.btnAcademic.AnimationSpeed = 0.03F;
             this.btnAcademic.BaseColor = System.Drawing.Color.Transparent;
@@ -165,9 +165,9 @@ namespace kingdom_Preparatory_School_Management_System
             this.btnAcademic.TabIndex = 2;
             this.btnAcademic.Text = "Academic";
             this.btnAcademic.TextOffsetX = 10;
-            // 
+            //
             // btnHolidays
-            // 
+            //
             this.btnHolidays.AnimationHoverSpeed = 0.07F;
             this.btnHolidays.AnimationSpeed = 0.03F;
             this.btnHolidays.BaseColor = System.Drawing.Color.Transparent;
@@ -189,9 +189,9 @@ namespace kingdom_Preparatory_School_Management_System
             this.btnHolidays.TabIndex = 3;
             this.btnHolidays.Text = "Holidays";
             this.btnHolidays.TextOffsetX = 10;
-            // 
+            //
             // flowLayoutPanel1
-            // 
+            //
             this.flowLayoutPanel1.AutoScroll = true;
             this.flowLayoutPanel1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.flowLayoutPanel1.Location = new System.Drawing.Point(200, 60);
@@ -199,9 +199,9 @@ namespace kingdom_Preparatory_School_Management_System
             this.flowLayoutPanel1.Padding = new System.Windows.Forms.Padding(20);
             this.flowLayoutPanel1.Size = new System.Drawing.Size(700, 540);
             this.flowLayoutPanel1.TabIndex = 2;
-            // 
+            //
             // btnAddNotice
-            // 
+            //
             this.btnAddNotice.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.btnAddNotice.AnimationHoverSpeed = 0.07F;
             this.btnAddNotice.AnimationSpeed = 0.03F;
@@ -225,9 +225,9 @@ namespace kingdom_Preparatory_School_Management_System
             this.btnAddNotice.Text = "POST NOTICE";
             this.btnAddNotice.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             this.btnAddNotice.Click += new System.EventHandler(this.btnAddNotice_Click);
-            // 
+            //
             // frmNotice
-            // 
+            //
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.White;
