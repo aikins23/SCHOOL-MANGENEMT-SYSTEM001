@@ -1,7 +1,7 @@
-# Kingdom Preparatory School Management System - Deployment Guide
+# Nyansapo School ERP - Desktop Deployment Guide
 
 **Version:** 1.0  
-**Last Updated:** May 25, 2026  
+**Last Updated:** July 19, 2026
 **Target Environment:** Windows Server 2019+ / Windows 10+ Professional
 
 ---
@@ -21,8 +21,8 @@
 - **Printer:** Any Windows-compatible printer (optional, for report card printing)
 
 ### Network
-- **TCP Port 5432:** Required for SQL Server LocalDB (internal only)
-- **Internet:** Optional (for future SMS/Email features)
+- **SQL Server:** TCP 1433 by default, or the explicitly configured SQL Server port. LocalDB is for development only and does not accept remote TCP connections.
+- **Internet:** Required for web synchronization, SMS, email, online payments, and remote support features. Core desktop workflows can continue offline where their sync queue supports it.
 
 ---
 
@@ -62,25 +62,20 @@ xcopy "C:\Setup\kingdom_Preparatory_School_Management_System" "C:\Program Files\
 icacls "C:\Program Files\Kingdom Prep" /grant:r Users:(OI)(CI)F
 ```
 
-### Step 3: Configure Connection String
+### Step 3: Configure the Protected Database Connection
 
-**File:** `C:\Program Files\Kingdom Prep\App.config`
+Do not edit `App.config` or place SQL passwords in deployment files. Configure the installed desktop application under the Windows user that will run it:
 
-```xml
-<configuration>
-  <connectionStrings>
-    <add name="kingdom_Preparatory_School_Management_System.Properties.Settings.ConnectionString"
-         connectionString="Provider=MSOLEDBSQL;Data Source=(localdb)\MSSQLLocalDB;Integrated Security=SSPI;Initial Catalog=Neat_Academy;Encrypt=False"
-         providerName="System.Data.OleDb" />
-  </connectionStrings>
-  ...
-</configuration>
+```powershell
+.\Scripts\Set-NyansapoDesktopConnection.ps1 `
+  -Server sql.school.example `
+  -Database Neat_Academy `
+  -Username nyansapo_app
 ```
 
-**For Remote SQL Server:**
-```xml
-connectionString="Provider=MSOLEDBSQL;Data Source=192.168.1.100,1433;User ID=sa;Password=RETIRED_SECRET_REMOVED;Initial Catalog=Neat_Academy;Encrypt=False"
-```
+The script securely prompts for the password, tests the connection, requires encryption, and saves the connection using current-user Windows DPAPI. Production must use a trusted SQL Server certificate; do not use `-TrustServerCertificate` in production.
+
+See `docs/DATABASE_CONNECTION_SECURITY.md` and `docs/SQL_SERVER_LOCAL_SETUP.md` for the complete trust model and local development exception.
 
 ### Step 4: Test Installation
 
