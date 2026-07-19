@@ -1,0 +1,55 @@
+name: Build and Test
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-test:
+    name: Windows build and web tests
+    runs-on: windows-latest
+    env:
+      KINGDOM_WEB_TEST_SQL_MASTER_CONNECTION_STRING: ${{ secrets.KINGDOM_WEB_TEST_SQL_MASTER_CONNECTION_STRING }}
+      KINGDOM_TEST_SQL_MASTER_CONNECTION_STRING: ${{ secrets.KINGDOM_TEST_SQL_MASTER_CONNECTION_STRING }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Restore web
+        run: dotnet restore web\KingdomPrep.Web.slnx
+
+      - name: Build web
+        run: dotnet build web\KingdomPrep.Web.slnx --no-restore --configuration Release
+
+      - name: Test web fast suite
+        run: dotnet test web\KingdomPrep.Web.Tests\KingdomPrep.Web.Tests.csproj --no-build --configuration Release --filter "Category!=SqlServerIntegration" --logger "console;verbosity=minimal"
+
+      - name: Test web SQL sync integration
+        if: ${{ env.KINGDOM_WEB_TEST_SQL_MASTER_CONNECTION_STRING != '' }}
+        timeout-minutes: 5
+        run: dotnet test web\KingdomPrep.Web.Tests\KingdomPrep.Web.Tests.csproj --no-build --configuration Release --filter "Category=SqlServerIntegration" --logger "console;verbosity=minimal"
+
+      - name: Restore desktop solution
+        run: dotnet restore "Nyansapo ERP School Management Software.sln"
+
+      - name: Build desktop solution
+        run: dotnet build "Nyansapo ERP School Management Software.sln" --no-restore --configuration Release
+
+      - name: Test desktop core workflows
+        shell: pwsh
+        run: .\Run-DesktopTests.ps1
+
+      - name: Test desktop SQL integration workflows
+        if: ${{ env.KINGDOM_TEST_SQL_MASTER_CONNECTION_STRING != '' }}
+        shell: pwsh
+        timeout-minutes: 8
+        run: .\Run-DesktopTests.ps1 -Full -MasterConnectionString "$env:KINGDOM_TEST_SQL_MASTER_CONNECTION_STRING"
