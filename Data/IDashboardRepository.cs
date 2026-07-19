@@ -1,3 +1,4 @@
+using KingdomPrep.Shared.Models;
 using System.Data;
 using System.Threading.Tasks;
 
@@ -15,6 +16,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
         Task<string> GetTopClassByEnrollmentAsync();
         Task<DataTable> GetRecentPaymentsAsync(int count);
         Task<DataTable> GetClassEnrollmentSummaryAsync();
+        Task<DataTable> GetClassFinanceSummaryAsync();
         Task<DataTable> GetLeaveStatusSummaryAsync();
         Task<DataTable> GetAverageScoreBySubjectAsync();
         Task<DataTable> GetMonthlyFeeCollectionTrendAsync(int year);

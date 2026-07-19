@@ -5,6 +5,7 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Windows.Forms;
+using Guna.UI2.WinForms;
 using kingdom_Preparatory_School_Management_System.Common;
 using kingdom_Preparatory_School_Management_System.Data;
 using kingdom_Preparatory_School_Management_System.Services;
@@ -17,12 +18,13 @@ namespace kingdom_Preparatory_School_Management_System
         private readonly IFeeRepository  _feeRepository;
         private readonly StudentService  _studentService;
 
-        // ── UI controls (plain WinForms — no Guna dependency) ────────────────
+        // ── UI controls ──────────────────────────────────────────────────────
         private DataGridView feesGrid;
         private ComboBox     classFilter;
         private TextBox      searchBox;
         private Label        lblCount;
         private Label        lblTotal;
+        private Label        lblHighAlert;
         private DataTable    feesTable;
 
         // ── Palette (matches frmStdView / frmAttendance) ─────────────────────
@@ -90,7 +92,7 @@ namespace kingdom_Preparatory_School_Management_System
                 Padding     = new Padding(26)
             };
             root.RowStyles.Add(new RowStyle(SizeType.Absolute, 78));   // header
-            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 72));   // summary bar
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 114));  // summary bar
             root.RowStyles.Add(new RowStyle(SizeType.Absolute, 78));   // filter bar
             root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));   // grid
 
@@ -163,62 +165,88 @@ namespace kingdom_Preparatory_School_Management_System
             var bar = new TableLayoutPanel
             {
                 Dock        = DockStyle.Fill,
-                ColumnCount = 2,
+                ColumnCount = 3,
                 BackColor   = PageBack,
-                Padding     = new Padding(0, 0, 0, 10)
+                Padding     = new Padding(0, 0, 0, 12)
             };
-            bar.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
-            bar.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+            bar.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.33F));
+            bar.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.33F));
+            bar.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.34F));
 
-            bar.Controls.Add(BuildStatCard("Defaulters", ref lblCount, "Students with an outstanding balance", DangerRed), 0, 0);
-            bar.Controls.Add(BuildStatCard("Total Outstanding", ref lblTotal, "Sum of all unpaid balances (GHS)", NavyHead), 1, 0);
+            bar.Controls.Add(BuildStatCard("Total Defaulters", ref lblCount, "Students currently owing fee balances", DangerRed, 14), 0, 0);
+            bar.Controls.Add(BuildStatCard("Total Outstanding", ref lblTotal, "Cumulative unpaid school fee balances", Primary, 14), 1, 0);
+            bar.Controls.Add(BuildStatCard("High Alert (≥ GHS 1,000)", ref lblHighAlert, "Students requiring immediate follow-up", Color.FromArgb(217, 119, 6), 0), 2, 0);
 
             return bar;
         }
 
-        private Control BuildStatCard(string title, ref Label valueLabel, string caption, Color accentColor)
+        private Control BuildStatCard(string title, ref Label valueLabel, string caption, Color accentColor, int rightMargin)
         {
-            var card = new Panel
+            var card = new Guna2Panel
             {
                 Dock        = DockStyle.Fill,
-                BackColor   = Surface,
-                BorderStyle = BorderStyle.FixedSingle,
-                Padding     = new Padding(16),
-                Margin      = new Padding(0, 0, 12, 0)
+                BackColor   = PageBack,
+                FillColor   = Surface,
+                BorderColor = Border,
+                BorderThickness = 1,
+                BorderRadius = 6,
+                Margin      = new Padding(0, 0, rightMargin, 0),
+                ShadowDecoration = { Enabled = true, Color = Color.FromArgb(226, 232, 240), Depth = 6 }
             };
 
-            card.Controls.Add(new Label
+            var content = new TableLayoutPanel
             {
-                Dock      = DockStyle.Top,
-                Height    = 20,
-                Text      = title,
-                ForeColor = Muted,
-                Font      = new Font("Segoe UI", 9F),
-                TextAlign = ContentAlignment.MiddleLeft
-            });
+                Dock        = DockStyle.Fill,
+                ColumnCount = 1,
+                RowCount    = 3,
+                BackColor   = Color.Transparent,
+                Padding     = new Padding(18, 10, 16, 8)
+            };
+            content.RowStyles.Add(new RowStyle(SizeType.Absolute, 22F));
+            content.RowStyles.Add(new RowStyle(SizeType.Absolute, 40F));
+            content.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
 
-            var lbl = new Label
+            var lblTitle = new Label
             {
-                Dock      = DockStyle.Top,
-                Height    = 34,
+                Text      = title.ToUpperInvariant(),
+                ForeColor = Muted,
+                Font      = new Font("Segoe UI Semibold", 8.75F, FontStyle.Bold),
+                Dock      = DockStyle.Fill,
+                TextAlign = ContentAlignment.BottomLeft
+            };
+
+            var lblVal = new Label
+            {
                 Text      = "—",
                 ForeColor = accentColor,
                 Font      = new Font("Segoe UI Semibold", 20F, FontStyle.Bold),
+                Dock      = DockStyle.Fill,
                 TextAlign = ContentAlignment.MiddleLeft
             };
-            card.Controls.Add(lbl);
-            valueLabel = lbl;
+            valueLabel = lblVal;
 
-            card.Controls.Add(new Label
+            var lblCap = new Label
             {
-                Dock      = DockStyle.Bottom,
-                Height    = 18,
                 Text      = caption,
-                ForeColor = Muted,
-                Font      = new Font("Segoe UI", 8F),
-                TextAlign = ContentAlignment.BottomLeft
-            });
+                ForeColor = Color.FromArgb(120, 134, 150),
+                Font      = new Font("Segoe UI", 8.25F),
+                Dock      = DockStyle.Fill,
+                TextAlign = ContentAlignment.TopLeft
+            };
 
+            content.Controls.Add(lblTitle, 0, 0);
+            content.Controls.Add(lblVal, 0, 1);
+            content.Controls.Add(lblCap, 0, 2);
+
+            var accent = new Panel
+            {
+                Dock      = DockStyle.Left,
+                Width     = 4,
+                BackColor = accentColor
+            };
+
+            card.Controls.Add(content);
+            card.Controls.Add(accent);
             return card;
         }
 
@@ -455,11 +483,18 @@ namespace kingdom_Preparatory_School_Management_System
 
             decimal total = 0;
             int count = feesTable.DefaultView.Count;
+            int highAlert = 0;
+
             foreach (DataRowView row in feesTable.DefaultView)
-                total += Convert.ToDecimal(row["Balance Owed"]);
+            {
+                decimal bal = Convert.ToDecimal(row["Balance Owed"]);
+                total += bal;
+                if (bal >= 1000m) highAlert++;
+            }
 
             if (lblCount != null) lblCount.Text = count.ToString("N0");
             if (lblTotal != null) lblTotal.Text = $"GHS {total:N2}";
+            if (lblHighAlert != null) lblHighAlert.Text = highAlert.ToString("N0");
         }
 
         /// <summary>Highlights rows where balance owed is above GHS 1,000 in amber.</summary>

@@ -6,7 +6,7 @@ using System.Windows.Forms;
 using kingdom_Preparatory_School_Management_System.Common;
 using kingdom_Preparatory_School_Management_System.Data;
 using kingdom_Preparatory_School_Management_System.Services;
-using kingdom_Preparatory_School_Management_System.Models;
+using KingdomPrep.Shared.Models;
 
 namespace kingdom_Preparatory_School_Management_System
 {
@@ -16,6 +16,8 @@ namespace kingdom_Preparatory_School_Management_System
         private readonly DataTable data;
         private Label statusLabel;
         private Guna.UI2.WinForms.Guna2TextBox txtEM;
+        private bool CanEditStaff => AuthService.CanWrite("Staff.Edit");
+        private bool CanTerminateStaff => AuthService.CanWrite("Staff.Terminate");
 
         private static readonly Color PageBackColor = UiTheme.Page;
         private static readonly Color SurfaceColor = UiTheme.Surface;
@@ -34,12 +36,13 @@ namespace kingdom_Preparatory_School_Management_System
             Common.SessionUi.AttachSignOut(this);
             if (!AuthService.RequireAccess("frmEmpDetails", this)) return;
             this.data = data;
-            
+
             // Initialize modern architecture
             var repository = new EmployeeRepository(AppConfig.ConnectionString);
             _employeeService = new EmployeeService(repository);
 
             BuildModernDetailsView();
+            ApplyStaffWriteAccessUi();
             Load += frmEmpDetails_Load;
         }
 
@@ -286,10 +289,40 @@ namespace kingdom_Preparatory_School_Management_System
             actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 150));
             actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 130));
             actions.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-            actions.Controls.Add(CreatePrimaryButton("Update", UpdateEmployee), 0, 0);
-            actions.Controls.Add(CreateDangerButton("Terminate", TerminateEmployee), 1, 0);
+            if (CanEditStaff)
+            {
+                actions.Controls.Add(CreatePrimaryButton("Update", UpdateEmployee), 0, 0);
+            }
+            if (CanTerminateStaff)
+            {
+                actions.Controls.Add(CreateDangerButton("Terminate", TerminateEmployee), 1, 0);
+            }
             actions.Controls.Add(CreateSecondaryButton("Employee List", () => { Close(); new frmEmpView().Show(); }), 2, 0);
             return actions;
+        }
+
+        private void ApplyStaffWriteAccessUi()
+        {
+            bool canEdit = CanEditStaff;
+            bool canTerminate = CanTerminateStaff;
+
+            foreach (Control control in new Control[] { txtFN, txtCN, txtHT, txtRD, empCN, empEC, empSA, txtEM })
+            {
+                if (control is Guna.UI2.WinForms.Guna2TextBox textBox)
+                {
+                    textBox.ReadOnly = !canEdit;
+                    textBox.FillColor = canEdit ? SurfaceColor : UiTheme.SurfaceAlt;
+                }
+            }
+
+            foreach (Control control in new Control[] { cmbGN, cmbDPT, CmbPs, empMD, empST, empRV, dateDOB, empdate })
+            {
+                control.Enabled = canEdit;
+            }
+
+            DATE.Enabled = canTerminate;
+            upload.Enabled = canEdit;
+            upload.Visible = canEdit;
         }
 
         private Button CreatePrimaryButton(string text, Action action)
@@ -418,6 +451,9 @@ namespace kingdom_Preparatory_School_Management_System
         {
             try
             {
+                if (!AuthService.RequireWriteAccess("Staff.Edit", "Update Employee"))
+                    return;
+
                 // 1. Validation guards
                 if (!FormValidationHelper.ValidateRequired(txtEMdID, "Employee ID")) return;
                 if (!FormValidationHelper.ValidateRequired(txtFN, "Full Name")) return;
@@ -457,6 +493,9 @@ namespace kingdom_Preparatory_School_Management_System
         {
             try
             {
+                if (!AuthService.RequireWriteAccess("Staff.Terminate", "Terminate Employee"))
+                    return;
+
                 if (!FormValidationHelper.ValidateRequired(txtEMdID, "Employee ID")) return;
 
                 if (!ConfirmationHelper.ConfirmDelete("Employee", $"ID: {txtEMdID.Text}\nName: {txtFN.Text}\nTermination Date: {DATE.Value.ToShortDateString()}"))
@@ -488,4 +527,3 @@ namespace kingdom_Preparatory_School_Management_System
         private void gunaPictureBox2_Click(object sender, EventArgs e) { Close(); }
     }
 }
-

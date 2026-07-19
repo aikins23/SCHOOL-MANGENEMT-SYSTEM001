@@ -1,10 +1,10 @@
-﻿using System;
+using System;
 using System.Drawing;
 using System.Windows.Forms;
 using kingdom_Preparatory_School_Management_System.Common;
 using kingdom_Preparatory_School_Management_System.Data;
 using kingdom_Preparatory_School_Management_System.Services;
-using kingdom_Preparatory_School_Management_System.Models;
+using KingdomPrep.Shared.Models;
 
 namespace kingdom_Preparatory_School_Management_System
 {
@@ -76,14 +76,14 @@ namespace kingdom_Preparatory_School_Management_System
 
         private void PrepareInputs()
         {
-            // ── Editable ID field ─────────────────────────────────────────────
+            // -- Editable ID field ---------------------------------------------
             // Designer sets MidnightBlue/White; override to match the app theme.
             txtEmployeeId.BackColor = SurfaceColor;
             txtEmployeeId.ForeColor = TextColor;
             txtEmployeeId.Font      = new Font("Segoe UI", 10.5F);
             txtEmployeeId.BorderStyle = BorderStyle.FixedSingle;
 
-            // ── Read-only lookup fields ───────────────────────────────────────
+            // -- Read-only lookup fields ---------------------------------------
             Color readOnlyBg = UiTheme.SurfaceAlt;
             foreach (var tb in new[] { txtName, txtdepartment, txtposition })
             {
@@ -94,7 +94,7 @@ namespace kingdom_Preparatory_School_Management_System
                 tb.BorderStyle = BorderStyle.FixedSingle;
             }
 
-            // ── Leave-option defaults ─────────────────────────────────────────
+            // -- Leave-option defaults -----------------------------------------
             rdpay.Checked    = true;
             rdoSick.Checked  = true;
             dtpdatestart.Value = DateTime.Today;
@@ -381,7 +381,10 @@ namespace kingdom_Preparatory_School_Management_System
             actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 124)); // Leave View
             actions.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));  // fill
 
-            actions.Controls.Add(CreatePrimaryButton("Submit Leave", SubmitLeave), 0, 0);
+            if (AuthService.CanWrite("Leave.Submit"))
+            {
+                actions.Controls.Add(CreatePrimaryButton("Submit Leave", SubmitLeave), 0, 0);
+            }
             actions.Controls.Add(CreateSecondaryButton("Clear", ClearForm), 1, 0);
             actions.Controls.Add(CreateSecondaryButton("Leave View", () => FormManager.ShowForm<EmpleaveView>(this)), 2, 0);
             return actions;
@@ -427,6 +430,9 @@ namespace kingdom_Preparatory_School_Management_System
         {
             try
             {
+                if (!AuthService.RequireWriteAccess("Leave.Submit", "Submit Leave"))
+                    return;
+
                 // 1. Validation guards
                 if (!FormValidationHelper.ValidateRequired(txtEmployeeId, "Employee ID")) return;
                 if (!FormValidationHelper.ValidateRequired(txtName, "Employee Name")) return;

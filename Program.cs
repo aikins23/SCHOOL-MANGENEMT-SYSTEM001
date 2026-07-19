@@ -1,6 +1,9 @@
 using System;
 using System.Diagnostics;
-using System.Data.OleDb;
+using System.Drawing;
+using System.Linq;
+using System.Threading.Tasks;
+
 using System.Management;
 using System.Windows.Forms;
 using kingdom_Preparatory_School_Management_System.Common;
@@ -9,6 +12,8 @@ namespace kingdom_Preparatory_School_Management_System
 {
     internal static class Program
     {
+        private static Services.BackgroundSyncService _backgroundSyncService;
+
         /// <summary>
         /// The main entry point for the application.
         /// </summary>
@@ -19,28 +24,141 @@ namespace kingdom_Preparatory_School_Management_System
 
             // Add sync columns (SyncId/UpdatedAt/RowVersion) to syncable tables — idempotent, no-op
             // once present. Best-effort: never blocks startup.
-            try { Data.SyncSchema.EnsureSyncColumnsAsync().GetAwaiter().GetResult(); }
-            catch (Exception ex) { Services.LoggerHelper.LogWarning("SyncSchema init: " + ex.Message); }
+
 
             // Tenant isolation foundation: every school-owned table gets SchoolId so desktop and
             // future web sync can safely separate one school's data from another's.
-            try { Data.TenantSchema.EnsureTenantColumnsAsync().GetAwaiter().GetResult(); }
-            catch (Exception ex) { Services.LoggerHelper.LogWarning("TenantSchema init: " + ex.Message); }
+
+
+            // Dynamic role/permission tables — seeds system roles and the permission catalog
+            // so directors can configure access without code changes.
+
+
+            // Ensure Performance and Weekly Output reporting tables exist.
+
+
+            // ReportSchema may create new syncable tables, so run the sync column pass again
+            // before background sync starts.
+
 
             // Add query indexes for dashboard/search-heavy screens. Idempotent and best-effort:
             // first run may spend a moment creating indexes, later runs are effectively no-op.
-            try { Data.SyncSchema.EnsurePerformanceIndexesAsync().GetAwaiter().GetResult(); }
-            catch (Exception ex) { Services.LoggerHelper.LogWarning("Performance index init: " + ex.Message); }
+
+
+            // Create dashboard summary tables up front. Refresh is best-effort after writes; reads
+            // fall back to live queries if summaries are empty.
+
 
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
+            Application.Idle += (s, e) => ApplyBrandingToOpenForms();
+            Application.ApplicationExit += (s, e) =>
+            {
+                if (_backgroundSyncService != null)
+                    _backgroundSyncService.Dispose();
+            };
 
             // Use ApplicationContext so the app lifetime is NOT tied to the splash
             // screen. The splash fades in, animates, then calls LaunchLogin() which
             // shows frmlogin and closes the splash. The app keeps running until
             // Application.Exit() is called — which frmDashboard already does in all
             // its exit paths (Exit button, top-right X, gunaPictureBox1_Click).
-            Application.Run(new SplashContext());
+            AppDomain.CurrentDomain.UnhandledException += (s, e) => {
+                System.IO.File.WriteAllText("crash.log", e.ExceptionObject.ToString());
+            };
+            Application.ThreadException += (s, e) => {
+                System.IO.File.WriteAllText("crash.log", e.Exception.ToString());
+            };
+
+            BeginStartupServices();
+
+            try
+            {
+                Services.LoggerHelper.LogWarning("Reached Application.Run");
+                Application.Run(new SplashContext());
+            }
+            catch (Exception ex)
+            {
+                System.IO.File.WriteAllText("crash.log", ex.ToString());
+                throw;
+            }
+        }
+
+        private static void BeginStartupServices()
+        {
+            Task.Run(async () =>
+            {
+                await RunStartupDatabaseMaintenanceAsync().ConfigureAwait(false);
+                StartBackgroundSyncSafe();
+            });
+        }
+
+        private static async Task RunStartupDatabaseMaintenanceAsync()
+        {
+            await RunStartupStepAsync("SyncSchema init", () => Data.SyncSchema.EnsureSyncColumnsAsync());
+            await RunStartupStepAsync("TenantSchema init", () => Data.TenantSchema.EnsureTenantColumnsAsync());
+            await RunStartupStepAsync("PermissionSchema init", () => Data.PermissionSchema.EnsurePermissionTablesAsync());
+            await RunStartupStepAsync("ReportSchema init", () => Data.ReportSchema.EnsureReportTablesAsync());
+            await RunStartupStepAsync("SyncSchema post-report init", () => Data.SyncSchema.EnsureSyncColumnsAsync());
+            await RunStartupStepAsync("Performance index init", () => Data.SyncSchema.EnsurePerformanceIndexesAsync());
+            await RunStartupStepAsync("Dashboard summary init", () =>
+                new Data.DashboardSummaryRepository(AppConfig.ConnectionString).EnsureTablesAsync());
+        }
+
+        private static async Task RunStartupStepAsync(string name, Func<Task> step)
+        {
+            try
+            {
+                await step().ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                Services.LoggerHelper.LogWarning(name + ": " + ex.Message);
+            }
+        }
+
+        private static void StartBackgroundSyncSafe()
+        {
+            try
+            {
+                _backgroundSyncService = new Services.BackgroundSyncService();
+                _backgroundSyncService.Start();
+            }
+            catch (Exception ex)
+            {
+                Services.LoggerHelper.LogWarning("Background sync start: " + ex.Message);
+            }
+        }
+
+        private static void ApplyBrandingToOpenForms()
+        {
+            Icon appIcon = Branding.AppIcon;
+            if (appIcon == null) return;
+
+            foreach (Form form in Application.OpenForms.Cast<Form>().ToList())
+            {
+                if (form == null || form.IsDisposed)
+                {
+                    continue;
+                }
+
+                try
+                {
+                    if (form.Icon == null || form.Icon.Handle != appIcon.Handle)
+                    {
+                        form.Icon = appIcon;
+                    }
+
+                    if (form.ShowInTaskbar)
+                    {
+                        form.ShowIcon = true;
+                    }
+                }
+                catch
+                {
+                    // Some transient/closing forms can reject chrome updates.
+                }
+            }
         }
 
         /// <summary>
@@ -55,6 +173,9 @@ namespace kingdom_Preparatory_School_Management_System
         {
             try
             {
+                if (!UsesLocalDb(AppConfig.ConnectionString))
+                    return;
+
                 RunLocalDb("start MSSQLLocalDB");
 
                 // Fast path: already healthy → nothing more to do.
@@ -84,6 +205,12 @@ namespace kingdom_Preparatory_School_Management_System
                 // attempt will surface the real error message to the user.
                 Services.LoggerHelper.LogWarning($"EnsureLocalDbRunning: {ex.Message}");
             }
+        }
+
+        internal static bool UsesLocalDb(string connectionString)
+        {
+            return !string.IsNullOrWhiteSpace(connectionString)
+                && connectionString.IndexOf("(localdb)", StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
         /// <summary>Runs "sqllocaldb &lt;args&gt;" hidden with a 10 s ceiling. Best-effort.</summary>
@@ -172,10 +299,10 @@ namespace kingdom_Preparatory_School_Management_System
                     cs += "Connect Timeout=" + timeoutSeconds;
                 }
 
-                using (var conn = new OleDbConnection(cs))
+                using (var conn = new Microsoft.Data.SqlClient.SqlConnection(cs))
                 {
                     conn.Open();
-                    using (var cmd = new OleDbCommand("SELECT 1", conn))
+                    using (var cmd = new Microsoft.Data.SqlClient.SqlCommand("SELECT 1", conn))
                     {
                         cmd.CommandTimeout = timeoutSeconds;
                         cmd.ExecuteScalar();

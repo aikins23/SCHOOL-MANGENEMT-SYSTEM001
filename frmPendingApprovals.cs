@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using kingdom_Preparatory_School_Management_System.Common;
 using kingdom_Preparatory_School_Management_System.Data;
-using kingdom_Preparatory_School_Management_System.Models;
+using KingdomPrep.Shared.Models;
 using kingdom_Preparatory_School_Management_System.Services;
 
 namespace kingdom_Preparatory_School_Management_System
@@ -26,6 +26,7 @@ namespace kingdom_Preparatory_School_Management_System
         private Button _refreshBtn;
         private Label _statusLabel;
         private List<DraftAdmission> _pending = new List<DraftAdmission>();
+        private static readonly TimeSpan ApprovalSlowWarningAfter = TimeSpan.FromSeconds(20);
 
         public frmPendingApprovals()
         {
@@ -121,27 +122,156 @@ namespace kingdom_Preparatory_School_Management_System
             var d = SelectedDraft();
             if (d == null) { UIHelper.ShowWarning("Select a pending admission first.", "Approvals"); return; }
 
-            _approveBtn.Enabled = false;
+            SetBusy(true, $"Approving admission for {d.FullName}...");
             try
             {
-                string bursar = AuthService.CurrentUser.DisplayName;
-                var res = await _service.ApproveAsync(d.DraftID, bursar);
-                if (!res.Ok) { UIHelper.ShowError(res.Message, "Approval"); return; }
+                string bursar = AuthService.CurrentUser?.DisplayName;
+                if (string.IsNullOrWhiteSpace(bursar))
+                {
+                    bursar = AuthService.CurrentUser?.Username ?? "Accountant";
+                }
 
-                // Notifications with the payment lines (fire-and-forget).
-                if (!string.IsNullOrWhiteSpace(res.Student.EmergencyContact))
-                    _ = SmsService.SendStudentAdmissionAsync(res.Student.EmergencyContact, res.Student, d.AdmissionFee, d.SchoolFeePaid, d.TermTotal);
-                if (!string.IsNullOrWhiteSpace(res.Student.GuardianEmail))
-                    _ = NotificationService.SendEmailAsync(res.Student.GuardianEmail,
-                        $"Admission Confirmation - {Common.SchoolProfile.DisplayName}",
-                        SmsService.BuildStudentAdmissionMessage(res.Student, d.AdmissionFee, d.SchoolFeePaid, d.TermTotal),
-                        NotificationService.NotificationType.GeneralAnnouncement);
+                var approvalTask = _service.ApproveAsync(d.DraftID, bursar);
+                if (await Task.WhenAny(approvalTask, Task.Delay(ApprovalSlowWarningAfter)) != approvalTask)
+                {
+                    _statusLabel.Text = "Approval is still running. SQL Server is taking longer than expected...";
+                    LoggerHelper.LogWarning($"Admission approval for draft {d.DraftID} is still waiting after {ApprovalSlowWarningAfter.TotalSeconds:N0} seconds.");
+                }
 
-                PreviewReceipts(res.Student, d, bursar);
+                var res = await approvalTask;
+                if (!res.Ok)
+                {
+                    _statusLabel.Text = "Approval failed.";
+                    UIHelper.ShowError(res.Message, "Approval");
+                    return;
+                }
+
                 await LoadPendingAsync();
-                UIHelper.ShowSuccess("Approved. SMS sent and receipts ready to print.", "Approval");
+                _statusLabel.Text = $"Approved {res.Student.FullName}.";
+
+                SetBusy(false, $"Approved {res.Student.FullName}. Sending admission SMS in the background...");
+                _ = SendAdmissionNotificationsBestEffortAsync(res.Student, d);
+                UIHelper.ShowInfo(
+                    "Admission approved.\n\nThe emergency-contact SMS is being processed in the background. Check the status bar or SMS log/outbox for delivery status.",
+                    "Approval");
+
+                if (UIHelper.ShowConfirmation("Admission approved. Preview receipts now?", "Approval") == DialogResult.Yes)
+                {
+                    try
+                    {
+                        PreviewReceipts(res.Student, d, bursar);
+                    }
+                    catch (Exception previewEx)
+                    {
+                        LoggerHelper.LogError("Admission approved, but receipt preview failed", previewEx);
+                        UIHelper.ShowError("Admission was approved, but the receipt preview could not open: " + previewEx.Message, "Receipts");
+                    }
+                }
             }
-            finally { _approveBtn.Enabled = true; }
+            catch (Exception ex)
+            {
+                LoggerHelper.LogError($"Admission approval failed for draft {d.DraftID}", ex);
+                _statusLabel.Text = "Approval failed.";
+                UIHelper.ShowError("Approval failed: " + ex.Message, "Approval");
+            }
+            finally
+            {
+                SetBusy(false, _statusLabel.Text);
+            }
+        }
+
+        private async Task SendAdmissionNotificationsBestEffortAsync(Student student, DraftAdmission d)
+        {
+            var smsResult = await SendAdmissionSmsAsync(student, d);
+            LoggerHelper.LogInfo($"Admission SMS result for student {student?.StudentID ?? "unknown"}: {smsResult.Status} {smsResult.Message}");
+            UpdateStatusSafe($"Approved {student?.FullName ?? "student"}. {smsResult.Status}");
+            _ = SendAdmissionEmailBestEffortAsync(student, d);
+        }
+
+        private void UpdateStatusSafe(string text)
+        {
+            if (IsDisposed) return;
+            if (InvokeRequired)
+            {
+                BeginInvoke(new Action(() => UpdateStatusSafe(text)));
+                return;
+            }
+
+            _statusLabel.Text = text;
+        }
+
+        private void SetBusy(bool busy, string status)
+        {
+            UseWaitCursor = busy;
+            Cursor = busy ? Cursors.WaitCursor : Cursors.Default;
+            _grid.Enabled = !busy;
+            _approveBtn.Enabled = !busy;
+            _rejectBtn.Enabled = !busy;
+            _refreshBtn.Enabled = !busy;
+            _statusLabel.Text = status;
+        }
+
+        private static async Task<(bool Success, string Status, string Message)> SendAdmissionSmsAsync(Student student, DraftAdmission d)
+        {
+            try
+            {
+                if (student == null)
+                {
+                    return (false, "SMS skipped.", "Admission SMS was skipped because the approved student record was empty.");
+                }
+
+                if (string.IsNullOrWhiteSpace(student.EmergencyContact))
+                {
+                    return (false, "SMS skipped.", "Admission SMS was skipped because the student emergency contact number is empty.");
+                }
+
+                var normalized = PhoneNumberGh.NormalizeGh(student.EmergencyContact);
+                if (normalized == null)
+                {
+                    return (false,
+                        "SMS skipped: invalid phone.",
+                        $"Admission SMS was skipped because '{student.EmergencyContact}' is not a valid Ghana mobile number.");
+                }
+
+                var result = await SmsService.SendStudentAdmissionAsync(
+                    student.EmergencyContact, student, d.AdmissionFee, d.SchoolFeePaid, d.TermTotal);
+
+                if (result.Success && SmsService.IsLive)
+                {
+                    return (true, "SMS sent.", result.Message);
+                }
+
+                if (result.Success)
+                {
+                    return (false,
+                        "SMS logged only.",
+                        "Admission SMS was recorded in the local SMS log/outbox, but live SMS sending is disabled or the SMS API key is not configured.");
+                }
+
+                return (false, "SMS failed.", result.Message);
+            }
+            catch (Exception ex)
+            {
+                LoggerHelper.LogError($"Admission SMS failed for student {student?.StudentID}", ex);
+                return (false, "SMS failed.", "Admission SMS failed: " + ex.Message);
+            }
+        }
+
+        private static async Task SendAdmissionEmailBestEffortAsync(Student student, DraftAdmission d)
+        {
+            try
+            {
+                if (student == null || string.IsNullOrWhiteSpace(student.GuardianEmail)) return;
+
+                await NotificationService.SendEmailAsync(student.GuardianEmail,
+                    $"Admission Confirmation - {Common.SchoolProfile.DisplayName}",
+                    SmsService.BuildStudentAdmissionMessage(student, d.AdmissionFee, d.SchoolFeePaid, d.TermTotal),
+                    NotificationService.NotificationType.GeneralAnnouncement);
+            }
+            catch (Exception ex)
+            {
+                LoggerHelper.LogError($"Admission email failed for student {student?.StudentID}", ex);
+            }
         }
 
         private async Task RejectSelectedAsync()
@@ -201,6 +331,7 @@ namespace kingdom_Preparatory_School_Management_System
                 g.DrawString($"Date: {DateTime.Today:dd/MM/yyyy}    Bursar: {bursar}", f, black, x, y); y += 40;
                 g.DrawString("........................................", f, black, x, y); y += 18;
                 g.DrawString("Signature / Stamp", f, black, x, y);
+                Common.PrintBranding.DrawGraphicsFooter(g, b);
             }
             navy.Dispose();
         }

@@ -12,10 +12,19 @@ namespace kingdom_Preparatory_School_Management_System
     public partial class frmStdView : Form
     {
         private readonly StudentService _studentService;
+        private bool CanRegisterStudents => AuthService.CanWrite("Students.Register");
+        private bool CanImportStudents => AuthService.CanWrite("Students.Import");
         private TextBox searchBox;
         private ComboBox classFilter;
         private DataGridView studentsGrid;
         private Label resultLabel;
+        private Label pageLabel;
+        private Button prevPageButton;
+        private Button nextPageButton;
+        private Timer filterTimer;
+        private int currentPage = 1;
+        private const int PageSize = 100;
+        private int totalStudentRows;
 
         private static readonly Color PageBackColor = Color.White;
         private static readonly Color SurfaceColor = Color.White;
@@ -132,8 +141,19 @@ namespace kingdom_Preparatory_School_Management_System
                 Padding = new Padding(0, 12, 16, 0)
             };
 
-            actions.Controls.Add(CreatePrimaryButton("Add Student", () => new frmAddStd().Show()));
-            actions.Controls.Add(CreateSecondaryButton("Import CSV", async () => await ImportCsvAsync()));
+            var addStudentButton = CreatePrimaryButton("Add Student", () =>
+            {
+                if (!AuthService.RequireWriteAccess("Students.Register", "Open student registration")) return;
+                new frmAddStd().Show();
+            });
+            addStudentButton.Enabled = CanRegisterStudents;
+            if (!CanRegisterStudents) addStudentButton.Text = "Read only";
+
+            var importButton = CreateSecondaryButton("Import CSV", async () => await ImportCsvAsync());
+            importButton.Enabled = CanImportStudents;
+
+            actions.Controls.Add(addStudentButton);
+            actions.Controls.Add(importButton);
             actions.Controls.Add(CreateSecondaryButton("Export CSV", async () => await ExportCsvAsync()));
             actions.Controls.Add(CreateSecondaryButton("Dashboard", () =>
             {
@@ -175,6 +195,7 @@ namespace kingdom_Preparatory_School_Management_System
 
         private async System.Threading.Tasks.Task ImportCsvAsync()
         {
+            if (!AuthService.RequireWriteAccess("Students.Import", "Import students from CSV")) return;
             using (var ofd = new OpenFileDialog { Filter = "CSV File|*.csv", Title = "Import Students" })
             {
                 if (ofd.ShowDialog() == DialogResult.OK)
@@ -223,14 +244,16 @@ namespace kingdom_Preparatory_School_Management_System
             var filters = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
-                ColumnCount = 5,
+                ColumnCount = 7,
                 BackColor = SurfaceColor
             };
-            filters.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 36));
-            filters.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 24));
+            filters.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 30));
+            filters.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 22));
             filters.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 118));
             filters.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 118));
-            filters.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 40));
+            filters.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 78));
+            filters.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 78));
+            filters.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 48));
 
             searchBox = new TextBox
             {
@@ -238,7 +261,7 @@ namespace kingdom_Preparatory_School_Management_System
                 Font = new Font("Segoe UI", 10.5F),
                 BorderStyle = BorderStyle.FixedSingle
             };
-            searchBox.TextChanged += (sender, args) => ApplyFilters();
+            searchBox.TextChanged += (sender, args) => QueueStudentReload();
             searchBox.HandleCreated += (s, e) =>
                 SendMessage(searchBox.Handle, EM_SETCUEBANNER, 1, "Search by ID, first name, or last name…");
 
@@ -248,12 +271,23 @@ namespace kingdom_Preparatory_School_Management_System
                 Font = new Font("Segoe UI", 10.5F),
                 DropDownStyle = ComboBoxStyle.DropDownList
             };
-            classFilter.SelectedIndexChanged += (sender, args) => ApplyFilters();
+            classFilter.SelectedIndexChanged += (sender, args) => QueueStudentReload();
+
+            filterTimer = new Timer { Interval = 350 };
+            filterTimer.Tick += async (sender, args) =>
+            {
+                filterTimer.Stop();
+                await LoadStudents();
+            };
 
             filters.Controls.Add(searchBox, 0, 0);
             filters.Controls.Add(classFilter, 1, 0);
             filters.Controls.Add(CreateSecondaryButton("Refresh", async () => await LoadStudents()), 2, 0);
             filters.Controls.Add(CreateSecondaryButton("Clear", ClearFilters), 3, 0);
+            prevPageButton = CreateSecondaryButton("Prev", async () => await MoveStudentPageAsync(-1));
+            nextPageButton = CreateSecondaryButton("Next", async () => await MoveStudentPageAsync(1));
+            filters.Controls.Add(prevPageButton, 4, 0);
+            filters.Controls.Add(nextPageButton, 5, 0);
 
             resultLabel = new Label
             {
@@ -262,7 +296,8 @@ namespace kingdom_Preparatory_School_Management_System
                 ForeColor = MutedTextColor,
                 Font = new Font("Segoe UI", 9.5F)
             };
-            filters.Controls.Add(resultLabel, 4, 0);
+            pageLabel = resultLabel;
+            filters.Controls.Add(resultLabel, 6, 0);
 
             panel.Controls.Add(filters);
             return panel;
@@ -305,7 +340,7 @@ namespace kingdom_Preparatory_School_Management_System
             studentsGrid.AlternatingRowsDefaultCellStyle.BackColor = Color.White;
             studentsGrid.GridColor = BorderColor;
             studentsGrid.CellDoubleClick += StudentsGrid_CellDoubleClick;
-            
+
             // Suppress the default error dialog for invalid/empty images in the grid
             studentsGrid.DataError += (s, e) =>
             {
@@ -356,11 +391,13 @@ namespace kingdom_Preparatory_School_Management_System
             return button;
         }
 
-        private void LoadClasses()
+        private async System.Threading.Tasks.Task LoadClassesAsync()
         {
             classFilter.Items.Clear();
             classFilter.Items.Add("All classes");
-            classFilter.Items.AddRange(AppConfig.ClassNames);
+            var dynamicClasses = await new kingdom_Preparatory_School_Management_System.Data.SchoolInfoRepository(AppConfig.ConnectionString).GetClassNamesAsync();
+            if (dynamicClasses.Count == 0) dynamicClasses.AddRange(AppConfig.ClassNames);
+            classFilter.Items.AddRange(dynamicClasses.ToArray());
             classFilter.SelectedIndex = 0;
         }
 
@@ -369,11 +406,15 @@ namespace kingdom_Preparatory_School_Management_System
             try
             {
                 resultLabel.Text = "Loading students…";
-                DataTable table = await _studentService.GetStudentsTableAsync(null, null);
+                string selectedClass = classFilter != null && classFilter.SelectedIndex > 0 ? classFilter.Text : null;
+                string search = searchBox?.Text?.Trim();
+                var page = await _studentService.GetStudentsPageAsync(currentPage, PageSize, filterClass: selectedClass, search: search);
+                DataTable table = page.Items;
+                totalStudentRows = page.TotalCount;
 
                 studentsGrid.DataSource = table;
                 ConfigureGridColumns();
-                ApplyFilters();
+                UpdateStudentPageStatus();
             }
             catch (Exception ex)
             {
@@ -426,41 +467,7 @@ namespace kingdom_Preparatory_School_Management_System
 
         private void ApplyFilters()
         {
-            if (studentsGrid == null || classFilter == null || searchBox == null) return;
-            if (!(studentsGrid.DataSource is DataTable table)) return;
-
-            var clauses = new System.Collections.Generic.List<string>();
-
-            string search = searchBox.Text?.Trim() ?? "";
-            if (!string.IsNullOrWhiteSpace(search))
-            {
-                string esc = search.Replace("'", "''");
-                // Match: numeric ID, prefixed Student ID (KPS####), or partial name
-                if (int.TryParse(search, out _))
-                    clauses.Add($"([ID] = {esc} OR [STUDENT ID] LIKE '%{esc}%' OR [FIRST NAME] LIKE '%{esc}%' OR [LAST NAME] LIKE '%{esc}%')");
-                else
-                    clauses.Add($"([STUDENT ID] LIKE '%{esc}%' OR [FIRST NAME] LIKE '%{esc}%' OR [LAST NAME] LIKE '%{esc}%')");
-            }
-
-            if (classFilter.SelectedIndex > 0)
-            {
-                string cls = classFilter.Text.Replace("'", "''");
-                clauses.Add($"[CLASS ID] = '{cls}'");
-            }
-
-            try
-            {
-                table.DefaultView.RowFilter = string.Join(" AND ", clauses);
-            }
-            catch
-            {
-                table.DefaultView.RowFilter = string.Empty;
-            }
-
-            int count = table.DefaultView.Count;
-            resultLabel.Text = count == 0
-                ? "No students match the current filters"
-                : $"{count} student record(s)";
+            QueueStudentReload();
         }
 
         private void ClearFilters()
@@ -470,7 +477,46 @@ namespace kingdom_Preparatory_School_Management_System
             {
                 classFilter.SelectedIndex = 0;
             }
-            ApplyFilters();
+            currentPage = 1;
+            _ = LoadStudents();
+        }
+
+        private void QueueStudentReload()
+        {
+            currentPage = 1;
+            if (filterTimer == null)
+            {
+                _ = LoadStudents();
+                return;
+            }
+
+            filterTimer.Stop();
+            filterTimer.Start();
+        }
+
+        private async System.Threading.Tasks.Task MoveStudentPageAsync(int delta)
+        {
+            int maxPage = Math.Max(1, (int)Math.Ceiling(totalStudentRows / (double)PageSize));
+            int next = Math.Max(1, Math.Min(maxPage, currentPage + delta));
+            if (next == currentPage) return;
+            currentPage = next;
+            await LoadStudents();
+        }
+
+        private void UpdateStudentPageStatus()
+        {
+            int shown = studentsGrid?.Rows?.Count ?? 0;
+            int maxPage = Math.Max(1, (int)Math.Ceiling(totalStudentRows / (double)PageSize));
+            if (currentPage > maxPage) currentPage = maxPage;
+
+            int start = totalStudentRows == 0 ? 0 : ((currentPage - 1) * PageSize) + 1;
+            int end = totalStudentRows == 0 ? 0 : Math.Min(totalStudentRows, start + shown - 1);
+            resultLabel.Text = totalStudentRows == 0
+                ? "No students match the current filters"
+                : $"Showing {start}-{end} of {totalStudentRows} | Page {currentPage}/{maxPage}";
+
+            if (prevPageButton != null) prevPageButton.Enabled = currentPage > 1;
+            if (nextPageButton != null) nextPageButton.Enabled = currentPage < maxPage;
         }
 
         private async void OpenSelectedStudent()
@@ -481,7 +527,7 @@ namespace kingdom_Preparatory_School_Management_System
             }
 
             string id = studentsGrid.CurrentRow.Cells["ID"].Value.ToString();
-            
+
             // To maintain compatibility with frmStdDetails which expects a DataTable
             DataTable studentTable = await _studentService.GetStudentsTableAsync(id);
 
@@ -501,7 +547,7 @@ namespace kingdom_Preparatory_School_Management_System
 
         private async void frmStdView_Load(object sender, EventArgs e)
         {
-            LoadClasses();
+            await LoadClassesAsync();
             await ApplyTeacherScopeAsync();
             await LoadStudents();
         }
@@ -547,9 +593,17 @@ namespace kingdom_Preparatory_School_Management_System
         private void cmb_cd_SelectedIndexChanged(object sender, EventArgs e) { ApplyFilters(); }
         private void txtID_TextChanged(object sender, EventArgs e) { ApplyFilters(); }
         private void gunaButton1_Click(object sender, EventArgs e) { }
-        private void gunaButton1_Click_1(object sender, EventArgs e) { new frmAddStd().Show(); }
+        private void gunaButton1_Click_1(object sender, EventArgs e)
+        {
+            if (!AuthService.RequireWriteAccess("Students.Register", "Open student registration")) return;
+            new frmAddStd().Show();
+        }
         private async void gunaButton2_Click(object sender, EventArgs e) { await LoadStudents(); }
-        private void studentsToolStripMenuItem_Click(object sender, EventArgs e) { new frmAddStd().Show(); }
+        private void studentsToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (!AuthService.RequireWriteAccess("Students.Register", "Open student registration")) return;
+            new frmAddStd().Show();
+        }
         private void employersToolStripMenuItem_Click(object sender, EventArgs e) { new frmEmployee().Show(); }
         private void adminstrationToolStripMenuItem_Click(object sender, EventArgs e) { new EXAMS().Show(); }
         private void studentsToolStripMenuItem1_Click(object sender, EventArgs e) { new frmStdView().Show(); }

@@ -1,3 +1,4 @@
+using KingdomPrep.Shared.Models;
 using System;
 using System.IO;
 using System.Net;
@@ -23,10 +24,10 @@ namespace kingdom_Preparatory_School_Management_System.Services
         }
 
         /// <summary>
-        /// Sends an email notification.
+        /// Sends an email notification with an optional attachment.
         /// </summary>
         public static async Task<(bool Success, string Message)> SendEmailAsync(
-            string recipient, string subject, string body, NotificationType type)
+            string recipient, string subject, string body, NotificationType type, Attachment attachment = null)
         {
             try
             {
@@ -49,7 +50,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
                         AppConfig.Email.SmtpUsername,
                         AppConfig.Email.SmtpPassword
                     );
-                    smtpClient.Timeout = 30000; // 30 second timeout
+                    smtpClient.Timeout = 60000; // Increased timeout for attachments
 
                     // Create mail message
                     using (var mailMessage = new MailMessage(
@@ -60,6 +61,11 @@ namespace kingdom_Preparatory_School_Management_System.Services
                         mailMessage.Subject = subject;
                         mailMessage.Body = body;
                         mailMessage.IsBodyHtml = false;
+
+                        if (attachment != null)
+                        {
+                            mailMessage.Attachments.Add(attachment);
+                        }
 
                         // Send email asynchronously
                         await smtpClient.SendMailAsync(mailMessage);
@@ -135,6 +141,35 @@ Academic Office
 {SchoolProfile.DisplayName}";
 
             return await SendEmailAsync(studentEmail, subject, body, NotificationType.ExamResult);
+        }
+
+        /// <summary>
+        /// Sends a generated PDF report card to the guardian.
+        /// </summary>
+        public static async Task<(bool Success, string Message)> SendReportCardAsync(
+            string studentName, string guardianEmail, string term, string year, byte[] pdfBytes)
+        {
+            if (string.IsNullOrWhiteSpace(guardianEmail))
+                return (false, "Guardian email is required");
+            if (pdfBytes == null || pdfBytes.Length == 0)
+                return (false, "PDF attachment is empty");
+
+            string subject = $"Terminal Report Card: {studentName} - {term} {year}";
+            string body = $@"Dear Guardian,
+
+Please find attached the official academic report card for your ward, {studentName}, for {term} {year}.
+
+If you have any questions or concerns regarding the performance, please feel free to schedule an appointment with the form teacher.
+
+Best regards,
+Academic Office
+{SchoolProfile.DisplayName}";
+
+            using (var stream = new MemoryStream(pdfBytes))
+            {
+                var attachment = new Attachment(stream, $"{studentName}_ReportCard.pdf", "application/pdf");
+                return await SendEmailAsync(guardianEmail, subject, body, NotificationType.ExamResult, attachment);
+            }
         }
 
         /// <summary>

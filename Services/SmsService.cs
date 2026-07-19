@@ -1,3 +1,4 @@
+using KingdomPrep.Shared.Models;
 using System;
 using System.IO;
 using System.Threading.Tasks;
@@ -105,7 +106,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
         }
 
         public static Task<(bool Success, string Message)> SendStudentAdmissionAsync(
-            string recipient, Models.Student student)
+            string recipient, KingdomPrep.Shared.Models.Student student)
         {
             return SendSmsAsync(recipient, BuildStudentAdmissionMessage(student), SmsSenderIds.StudentAdmission);
         }
@@ -115,7 +116,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
         /// recorded student details. Shared by the registration SMS and email so
         /// both channels carry the same content.
         /// </summary>
-        public static string BuildStudentAdmissionMessage(Models.Student s)
+        public static string BuildStudentAdmissionMessage(KingdomPrep.Shared.Models.Student s)
         {
             string guardian = string.IsNullOrWhiteSpace(s.GuardianName) ? "Guardian" : s.GuardianName.Trim();
             return
@@ -136,7 +137,7 @@ To rectify any details or information, kindly visit or contact the school admini
         /// Used after a draft admission is approved.
         /// </summary>
         public static string BuildStudentAdmissionMessage(
-            Models.Student s, decimal admissionFeePaid, decimal schoolFeePaid, decimal termTotal)
+            KingdomPrep.Shared.Models.Student s, decimal admissionFeePaid, decimal schoolFeePaid, decimal termTotal)
         {
             string guardian = string.IsNullOrWhiteSpace(s.GuardianName) ? "Guardian" : s.GuardianName.Trim();
             return
@@ -155,7 +156,7 @@ To rectify any details or information, kindly visit or contact the school admini
         }
 
         public static Task<(bool Success, string Message)> SendStudentAdmissionAsync(
-            string recipient, Models.Student student, decimal admissionFeePaid, decimal schoolFeePaid, decimal termTotal)
+            string recipient, KingdomPrep.Shared.Models.Student student, decimal admissionFeePaid, decimal schoolFeePaid, decimal termTotal)
         {
             return SendSmsAsync(recipient,
                 BuildStudentAdmissionMessage(student, admissionFeePaid, schoolFeePaid, termTotal),
@@ -163,7 +164,7 @@ To rectify any details or information, kindly visit or contact the school admini
         }
 
         public static Task<(bool Success, string Message)> SendEmployeeAdmissionAsync(
-            string recipient, Models.Employee employee)
+            string recipient, KingdomPrep.Shared.Models.Employee employee)
         {
             return SendSmsAsync(recipient, BuildEmployeeAdmissionMessage(employee), SmsSenderIds.EmployeeAdmission);
         }
@@ -172,7 +173,7 @@ To rectify any details or information, kindly visit or contact the school admini
         /// Detailed employment confirmation addressed to the employee, listing the
         /// recorded details (salary intentionally excluded). Shared by SMS and email.
         /// </summary>
-        public static string BuildEmployeeAdmissionMessage(Models.Employee e)
+        public static string BuildEmployeeAdmissionMessage(KingdomPrep.Shared.Models.Employee e)
         {
             return
 $@"Dear {e.FullName}, you have been registered as an employee at {SchoolProfile.DisplayName} with the following details:
@@ -281,7 +282,7 @@ Password: {password}{linkLine}
             string recipient, string studentName, string status, DateTime date)
         {
             string dateStr = date.ToString("dddd, MMMM dd, yyyy");
-            string message = 
+            string message =
                 $"Dear Guardian, your ward {studentName} was marked {status.ToUpperInvariant()} in school today, {dateStr}. " +
                 $"Please contact the school office for any inquiries. - {SchoolProfile.DisplayName}";
             return SendSmsAsync(recipient, message, "ATTENDANCE");
@@ -295,7 +296,10 @@ Password: {password}{linkLine}
                 File.AppendAllText(Path.Combine(LogDir, "sms.log"),
                     $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] [{eventType}] From: {senderId} To: {recipient} | {details}\n");
             }
-            catch { }
+            catch (Exception ex)
+            {
+                LoggerHelper.LogWarning("SMS log write failed: " + ex.Message);
+            }
         }
     }
 }

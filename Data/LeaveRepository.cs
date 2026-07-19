@@ -1,9 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
-using System.Data.OleDb;
+using Microsoft.Data.SqlClient;
 using System.Threading.Tasks;
-using kingdom_Preparatory_School_Management_System.Models;
+using KingdomPrep.Shared.Models;
+using kingdom_Preparatory_School_Management_System.Common;
 using kingdom_Preparatory_School_Management_System.Services;
 
 namespace kingdom_Preparatory_School_Management_System.Data
@@ -18,21 +19,25 @@ namespace kingdom_Preparatory_School_Management_System.Data
             _connectionString = connectionString ?? throw new ArgumentNullException(nameof(connectionString));
         }
 
-        public async Task<bool> AddLeaveRequestAsync(Models.LeaveRequest request)
+        public async Task<bool> AddLeaveRequestAsync(KingdomPrep.Shared.Models.LeaveRequest request)
         {
             try
             {
-                using (var connection = new OleDbConnection(_connectionString))
+                using (var connection = new SqlConnection(SqlCommandExtensions.StripProvider(_connectionString)))
                 {
                     await connection.OpenAsync();
                     var query = $@"
-                        INSERT INTO {LEAVE_TABLE} 
-                        ([employmentID], [name], [department], [position], [Leave_op], [Reasons], [Start_Date], [End_Date], [status]) 
+                        INSERT INTO {LEAVE_TABLE}
+                        ([employmentID], [name], [department], [position], [Leave_op], [Reasons], [Start_Date], [End_Date], [status])
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
-                    using (var command = new OleDbCommand(query, connection))
+                    using (var command = new SqlCommand(query, connection))
                     {
-                        AddLeaveParameters(command, request);
+                        AddLeaveInsertParameters(command, request);
                         var result = await command.ExecuteNonQueryAsync();
+                        if (result > 0)
+                        {
+                            await TryRecordLeaveUpsertAsync(request, "Insert");
+                        }
                         return result > 0;
                     }
                 }
@@ -44,11 +49,11 @@ namespace kingdom_Preparatory_School_Management_System.Data
             }
         }
 
-        public async Task<bool> UpdateLeaveRequestAsync(Models.LeaveRequest request)
+        public async Task<bool> UpdateLeaveRequestAsync(KingdomPrep.Shared.Models.LeaveRequest request)
         {
             try
             {
-                using (var connection = new OleDbConnection(_connectionString))
+                using (var connection = new SqlConnection(SqlCommandExtensions.StripProvider(_connectionString)))
                 {
                     await connection.OpenAsync();
                     var query = $@"
@@ -60,12 +65,17 @@ namespace kingdom_Preparatory_School_Management_System.Data
                     // Note: The original table doesn't seem to have a unique primary key for leave requests,
                     // using employmentID + StartDate as a composite key for update.
 
-                    using (var command = new OleDbCommand(query, connection))
+                    using (var command = new SqlCommand(query, connection))
                     {
                         AddLeaveParameters(command, request);
-                        command.Parameters.AddWithValue("?", request.EmployeeID);
-                        command.Parameters.AddWithValue("?", request.StartDate);
+                        command.AddPositionalParameter(request.EmployeeID);
+                        command.AddPositionalParameter(request.StartDate);
                         var result = await command.ExecuteNonQueryAsync();
+
+                        if (result > 0)
+                        {
+                            await TryRecordLeaveUpsertAsync(request, "Update");
+                        }
 
                         if (result > 0 && !string.IsNullOrWhiteSpace(request.Status))
                         {
@@ -94,13 +104,13 @@ namespace kingdom_Preparatory_School_Management_System.Data
         {
             try
             {
-                using (var connection = new OleDbConnection(_connectionString))
+                using (var connection = new SqlConnection(SqlCommandExtensions.StripProvider(_connectionString)))
                 {
                     await connection.OpenAsync();
                     var query = "SELECT Email FROM Employee WHERE employmentID = ?";
-                    using (var command = new OleDbCommand(query, connection))
+                    using (var command = new SqlCommand(query, connection))
                     {
-                        command.Parameters.AddWithValue("?", employeeId);
+                        command.AddPositionalParameter(employeeId);
                         var result = await command.ExecuteScalarAsync();
                         return result?.ToString() ?? "";
                     }
@@ -118,22 +128,22 @@ namespace kingdom_Preparatory_School_Management_System.Data
             // but usually databases have an identity. If not, we'd need another way to delete.
             try
             {
-                using (var connection = new OleDbConnection(_connectionString))
+                using (var connection = new SqlConnection(SqlCommandExtensions.StripProvider(_connectionString)))
                 {
                     await connection.OpenAsync();
                     // Assuming there might be an ID if we used a better schema, but for now:
                     var query = $"DELETE FROM {LEAVE_TABLE} WHERE employmentID = ? AND Start_Date = ?";
-                    using (var command = new OleDbCommand(query, connection))
+                    using (var command = new SqlCommand(query, connection))
                     {
                         // This is a placeholder since we don't have the unique ID here
-                        return false; 
+                        return false;
                     }
                 }
             }
             catch (Exception ex)
             {
                 Services.LoggerHelper.LogError($"Error deleting leave request with ID {leaveId}", ex);
-                return false; 
+                return false;
             }
         }
 
@@ -142,26 +152,26 @@ namespace kingdom_Preparatory_School_Management_System.Data
             var table = new DataTable();
             try
             {
-                using (var connection = new OleDbConnection(_connectionString))
+                using (var connection = new SqlConnection(SqlCommandExtensions.StripProvider(_connectionString)))
                 {
                     await connection.OpenAsync();
                     var query = $@"
-                        SELECT 
-                            [employmentID] AS [ID], 
-                            [name] AS [NAME], 
-                            [department] AS [DEPARTMENT], 
-                            [position] AS [POSITION], 
-                            [Leave_op] AS [LEAVE OPTION], 
-                            [Reasons] AS [REASONS], 
-                            [Start_Date] AS [START DATE], 
-                            [End_Date] AS [END DATE], 
+                        SELECT
+                            [employmentID] AS [ID],
+                            [name] AS [NAME],
+                            [department] AS [DEPARTMENT],
+                            [position] AS [POSITION],
+                            [Leave_op] AS [LEAVE OPTION],
+                            [Reasons] AS [REASONS],
+                            [Start_Date] AS [START DATE],
+                            [End_Date] AS [END DATE],
                             [status] AS [STATUS]
                         FROM {LEAVE_TABLE}
                         ORDER BY [Start_Date] DESC";
-                    using (var command = new OleDbCommand(query, connection))
-                    using (var adapter = new OleDbDataAdapter(command))
+                    using (var command = new SqlCommand(query, connection))
+                    using (var adapter = new SqlDataAdapter(command))
                     {
-                        adapter.Fill(table);
+                        await Task.Run(() => adapter.Fill(table));
                     }
                 }
             }
@@ -178,29 +188,29 @@ namespace kingdom_Preparatory_School_Management_System.Data
             var table = new DataTable();
             try
             {
-                using (var connection = new OleDbConnection(_connectionString))
+                using (var connection = new SqlConnection(SqlCommandExtensions.StripProvider(_connectionString)))
                 {
                     await connection.OpenAsync();
                     var query = $@"
-                        SELECT 
-                            [employmentID] AS [ID], 
-                            [name] AS [NAME], 
-                            [department] AS [DEPARTMENT], 
-                            [position] AS [POSITION], 
-                            [Leave_op] AS [LEAVE OPTION], 
-                            [Reasons] AS [REASONS], 
-                            [Start_Date] AS [START DATE], 
-                            [End_Date] AS [END DATE], 
+                        SELECT
+                            [employmentID] AS [ID],
+                            [name] AS [NAME],
+                            [department] AS [DEPARTMENT],
+                            [position] AS [POSITION],
+                            [Leave_op] AS [LEAVE OPTION],
+                            [Reasons] AS [REASONS],
+                            [Start_Date] AS [START DATE],
+                            [End_Date] AS [END DATE],
                             [status] AS [STATUS]
                         FROM {LEAVE_TABLE}
                         WHERE UPPER([status]) = ?
                         ORDER BY [Start_Date] DESC";
-                    using (var command = new OleDbCommand(query, connection))
+                    using (var command = new SqlCommand(query, connection))
                     {
-                        command.Parameters.AddWithValue("?", status.ToUpperInvariant());
-                        using (var adapter = new OleDbDataAdapter(command))
+                        command.AddPositionalParameter(status.ToUpperInvariant());
+                        using (var adapter = new SqlDataAdapter(command))
                         {
-                            adapter.Fill(table);
+                            await Task.Run(() => adapter.Fill(table));
                         }
                     }
                 }
@@ -213,23 +223,23 @@ namespace kingdom_Preparatory_School_Management_System.Data
             return table;
         }
 
-        public async Task<IEnumerable<Models.LeaveRequest>> GetEmployeeLeaveHistoryAsync(string employeeId)
+        public async Task<IEnumerable<KingdomPrep.Shared.Models.LeaveRequest>> GetEmployeeLeaveHistoryAsync(string employeeId)
         {
-            var history = new List<Models.LeaveRequest>();
+            var history = new List<KingdomPrep.Shared.Models.LeaveRequest>();
             try
             {
-                using (var connection = new OleDbConnection(_connectionString))
+                using (var connection = new SqlConnection(SqlCommandExtensions.StripProvider(_connectionString)))
                 {
                     await connection.OpenAsync();
                     var query = $"SELECT * FROM {LEAVE_TABLE} WHERE [employmentID] = ? ORDER BY [Start_Date] DESC";
-                    using (var command = new OleDbCommand(query, connection))
+                    using (var command = new SqlCommand(query, connection))
                     {
-                        command.Parameters.AddWithValue("?", employeeId);
+                        command.AddPositionalParameter(employeeId);
                         using (var reader = await command.ExecuteReaderAsync())
                         {
                             while (reader.Read())
                             {
-                                history.Add(new Models.LeaveRequest
+                                history.Add(new KingdomPrep.Shared.Models.LeaveRequest
                                 {
                                     EmployeeID = reader["employmentID"].ToString(),
                                     EmployeeName = reader["name"].ToString(),
@@ -257,7 +267,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
         {
             try
             {
-                using (var connection = new OleDbConnection(_connectionString))
+                using (var connection = new SqlConnection(SqlCommandExtensions.StripProvider(_connectionString)))
                 {
                     await connection.OpenAsync();
                     var query = $@"
@@ -267,11 +277,11 @@ namespace kingdom_Preparatory_School_Management_System.Data
                           AND UPPER([status]) = 'APPROVED'
                           AND [Start_Date] >= ?
                           AND [End_Date] <= ?";
-                    using (var command = new OleDbCommand(query, connection))
+                    using (var command = new SqlCommand(query, connection))
                     {
-                        command.Parameters.AddWithValue("?", employeeId);
-                        command.Parameters.AddWithValue("?", termStart);
-                        command.Parameters.AddWithValue("?", termEnd);
+                        command.AddPositionalParameter(employeeId);
+                        command.AddPositionalParameter(termStart);
+                        command.AddPositionalParameter(termEnd);
                         var result = await command.ExecuteScalarAsync();
                         return result == null || result == DBNull.Value ? 0 : Convert.ToInt32(result);
                     }
@@ -288,7 +298,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
         {
             try
             {
-                using (var connection = new OleDbConnection(_connectionString))
+                using (var connection = new SqlConnection(SqlCommandExtensions.StripProvider(_connectionString)))
                 {
                     await connection.OpenAsync();
                     var query = $@"
@@ -298,11 +308,11 @@ namespace kingdom_Preparatory_School_Management_System.Data
                           AND UPPER([status]) = 'APPROVED'
                           AND [Start_Date] <= ?
                           AND [End_Date] >= ?";
-                    using (var command = new OleDbCommand(query, connection))
+                    using (var command = new SqlCommand(query, connection))
                     {
-                        command.Parameters.AddWithValue("?", employeeId);
-                        command.Parameters.AddWithValue("?", endDate);
-                        command.Parameters.AddWithValue("?", startDate);
+                        command.AddPositionalParameter(employeeId);
+                        command.AddPositionalParameter(endDate);
+                        command.AddPositionalParameter(startDate);
                         var result = await command.ExecuteScalarAsync();
                         return result != null && result != DBNull.Value && Convert.ToInt32(result) > 0;
                     }
@@ -320,7 +330,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
             var table = new DataTable();
             try
             {
-                using (var connection = new OleDbConnection(_connectionString))
+                using (var connection = new SqlConnection(SqlCommandExtensions.StripProvider(_connectionString)))
                 {
                     await connection.OpenAsync();
                     var query = $@"
@@ -339,13 +349,13 @@ namespace kingdom_Preparatory_School_Management_System.Data
                             AND l.[End_Date] <= ?
                         GROUP BY e.[employmentID], e.[fullName], e.[position]
                         ORDER BY e.[fullName]";
-                    using (var command = new OleDbCommand(query, connection))
+                    using (var command = new SqlCommand(query, connection))
                     {
-                        command.Parameters.AddWithValue("?", termStart);
-                        command.Parameters.AddWithValue("?", termEnd);
-                        using (var adapter = new OleDbDataAdapter(command))
+                        command.AddPositionalParameter(termStart);
+                        command.AddPositionalParameter(termEnd);
+                        using (var adapter = new SqlDataAdapter(command))
                         {
-                            adapter.Fill(table);
+                            await Task.Run(() => adapter.Fill(table));
                         }
                     }
                 }
@@ -358,16 +368,54 @@ namespace kingdom_Preparatory_School_Management_System.Data
             return table;
         }
 
-        private void AddLeaveParameters(OleDbCommand command, Models.LeaveRequest request)
+        private void AddLeaveInsertParameters(SqlCommand command, KingdomPrep.Shared.Models.LeaveRequest request)
         {
-            command.Parameters.AddWithValue("?", request.EmployeeName ?? "");
-            command.Parameters.AddWithValue("?", request.Department ?? "");
-            command.Parameters.AddWithValue("?", request.Position ?? "");
-            command.Parameters.AddWithValue("?", request.LeaveOption ?? "");
-            command.Parameters.AddWithValue("?", request.Reason ?? "");
-            command.Parameters.AddWithValue("?", request.StartDate);
-            command.Parameters.AddWithValue("?", request.EndDate);
-            command.Parameters.AddWithValue("?", request.Status ?? "PENDING");
+            command.AddPositionalParameter(request.EmployeeID ?? "");
+            AddLeaveParameters(command, request);
+        }
+
+        private void AddLeaveParameters(SqlCommand command, KingdomPrep.Shared.Models.LeaveRequest request)
+        {
+            command.AddPositionalParameter(request.EmployeeName ?? "");
+            command.AddPositionalParameter(request.Department ?? "");
+            command.AddPositionalParameter(request.Position ?? "");
+            command.AddPositionalParameter(request.LeaveOption ?? "");
+            command.AddPositionalParameter(request.Reason ?? "");
+            command.AddPositionalParameter(request.StartDate);
+            command.AddPositionalParameter(request.EndDate);
+            command.AddPositionalParameter(request.Status ?? "PENDING");
+        }
+
+        private async Task TryRecordLeaveUpsertAsync(KingdomPrep.Shared.Models.LeaveRequest request, string operation)
+        {
+            try
+            {
+                var syncId = await GetLeaveSyncIdAsync(request.EmployeeID, request.StartDate);
+                await new SyncChangeRecorder(_connectionString).RecordUpsertBySyncIdAsync(LEAVE_TABLE, syncId, operation);
+            }
+            catch (Exception ex)
+            {
+                LoggerHelper.LogWarning("Leave sync capture skipped: " + ex.Message);
+            }
+        }
+
+        private async Task<Guid> GetLeaveSyncIdAsync(string employeeId, DateTime startDate)
+        {
+            if (string.IsNullOrWhiteSpace(employeeId)) return Guid.Empty;
+
+            using (var connection = new SqlConnection(SqlCommandExtensions.StripProvider(_connectionString)))
+            {
+                await connection.OpenAsync();
+                await SyncSchema.EnsureSyncInfrastructureAsync(connection, TenantContext.RequireSchoolId());
+                using (var command = new SqlCommand(
+                    $"SELECT TOP 1 SyncId FROM {LEAVE_TABLE} WHERE employmentID = ? AND Start_Date = ? ORDER BY UpdatedAt DESC", connection))
+                {
+                    command.AddPositionalParameter(employeeId);
+                    command.AddPositionalParameter(startDate);
+                    var result = await command.ExecuteScalarAsync();
+                    return result == null || result == DBNull.Value ? Guid.Empty : (Guid)result;
+                }
+            }
         }
     }
 }

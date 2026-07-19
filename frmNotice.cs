@@ -7,18 +7,25 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using kingdom_Preparatory_School_Management_System.Common;
+using kingdom_Preparatory_School_Management_System.Data;
+using kingdom_Preparatory_School_Management_System.Services;
+using KingdomPrep.Shared.Models;
 
 namespace kingdom_Preparatory_School_Management_System
 {
     public partial class frmNotice : Form
     {
+        private NoticeRepository _repo = new NoticeRepository(AppConfig.ConnectionString);
+
         public frmNotice()
         {
             InitializeComponent();
             this.Icon = kingdom_Preparatory_School_Management_System.Common.Branding.AppIcon;
+            if (!AuthService.RequireAccess("frmNotice", this)) return;
         }
 
-        private void frmNotice_Load(object sender, EventArgs e)
+                private void frmNotice_Load(object sender, EventArgs e)
         {
             // Attach click events to sidebar buttons
             btnAll.Click += (s, ev) => LoadNotices("All");
@@ -29,21 +36,31 @@ namespace kingdom_Preparatory_School_Management_System
             LoadNotices("All");
         }
 
-        private void LoadNotices(string category)
+        private async void LoadNotices(string category)
         {
-            flowLayoutPanel1.Controls.Clear();
-            
-            if (category == "All" || category == "Academic")
-                AddNoticeCard("School Reopening", "2026-06-15", "School will reopen for the next term on Monday. Please ensure all fees are paid.", Color.Green);
-            
-            if (category == "All" || category == "Events")
-                AddNoticeCard("Mid-Term Exams", "2026-07-10", "Mid-term examinations will commence on July 10th. Timetables are available at the office.", Color.Orange);
-            
-            if (category == "All" || category == "Holidays")
-                AddNoticeCard("Holiday Notice", "2026-08-04", "The school will be closed on August 4th in observance of Founders' Day.", Color.Red);
-        }
+            try {
+                flowLayoutPanel1.Controls.Clear();
+                var notices = await _repo.GetAllAsync();
 
-        private void AddNoticeCard(string title, string date, string content, Color priorityColor)
+                // If there are no notices, show a placeholder
+                if (!notices.Any()) {
+                    AddNoticeCard("No Notices Found", DateTime.Now.ToString("yyyy-MM-dd"), "There are currently no announcements or notices available.", Color.Gray);
+                    return;
+                }
+
+                foreach (var n in notices) {
+                    Color c = Color.Green;
+                    if (n.Target == "Parents") c = Color.Orange;
+                    else if (n.Target == "Employees") c = Color.Blue;
+                    else if (n.Target == "Specific Class") c = Color.Purple;
+
+                    AddNoticeCard(n.Title, n.SentDate.ToString("yyyy-MM-dd HH:mm") + " - To: " + n.Target + (string.IsNullOrEmpty(n.TargetClass) ? "" : " (" + n.TargetClass + ")"), n.Message, c);
+                }
+            } catch (Exception ex) {
+                MessageBox.Show("Failed to load notices: " + ex.Message);
+            }
+        }
+private void AddNoticeCard(string title, string date, string content, Color priorityColor)
         {
             Guna.UI2.WinForms.Guna2ShadowPanel card = new Guna.UI2.WinForms.Guna2ShadowPanel();
             card.Size = new Size(flowLayoutPanel1.Width - 60, 150);
@@ -93,6 +110,9 @@ namespace kingdom_Preparatory_School_Management_System
 
         private void btnAddNotice_Click(object sender, EventArgs e)
         {
+            if (!AuthService.RequireWriteAccess("Admin.Notice.Send", "Open Send Notice"))
+                return;
+
             new frmSendNotice().Show();
         }
     }

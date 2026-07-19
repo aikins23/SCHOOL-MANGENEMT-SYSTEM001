@@ -2,66 +2,79 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Drawing;
+using System.Linq;
 using System.Windows.Forms;
 using kingdom_Preparatory_School_Management_System.Common;
 using kingdom_Preparatory_School_Management_System.Data;
 using kingdom_Preparatory_School_Management_System.Services;
-using kingdom_Preparatory_School_Management_System.Models;
+using KingdomPrep.Shared.Models;
 
 namespace kingdom_Preparatory_School_Management_System
 {
     public partial class EXAMS : Form
     {
-        // ── Services ─────────────────────────────────────────────────────────
+        // â”€â”€ Services â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         private readonly ExamService    _examService;
         private readonly StudentService _studentService;
 
-        // ── Header fields (plain WinForms — no Guna dependency) ──────────────
-        private TextBox  studentIdBox;
-        private TextBox  studentNameBox;
-        private TextBox  classBox;
+        // â”€â”€ Header fields (plain WinForms â€” no Guna dependency) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        private ComboBox studentComboBox;
         private ComboBox termBox;
         private TextBox  yearBox;
 
-        // ── Status / summary labels ───────────────────────────────────────────
+        // â”€â”€ Status / summary labels â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         private Label statusLabel;
         private Label completionLabel;
         private Label averageLabel;
 
-        // ── Subject grid ──────────────────────────────────────────────────────
+        // â”€â”€ Subject grid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         private TableLayoutPanel subjectGrid;
 
-        // ── Palette ───────────────────────────────────────────────────────────
-        private static readonly Color PageBack  = UiTheme.Page;
-        private static readonly Color Surface   = UiTheme.Surface;
-        private static readonly Color SurfaceAlt= UiTheme.SurfaceAlt;
-        private static readonly Color Navy      = UiTheme.Navy;
-        private static readonly Color TextCol   = UiTheme.Text;
-        private static readonly Color Muted     = UiTheme.Muted;
-        private static readonly Color Border    = UiTheme.Border;
+        // â”€â”€ Palette â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        private Color PageBack  => UiTheme.Page;
+        private Color Surface   => UiTheme.Surface;
+        private Color SurfaceAlt=> UiTheme.SurfaceAlt;
+        private Color Navy      => UiTheme.Navy;
+        private Color TextCol   => UiTheme.Text;
+        private Color Muted     => UiTheme.Muted;
+        private Color Border    => UiTheme.Border;
         private static readonly Color Primary   = Color.FromArgb(31, 99, 198);
 
-        // ── Subject list ──────────────────────────────────────────────────────
-        // Current subjects shown in the grid; defaults to the legacy list, replaced per class on lookup.
-        private string[] subjects = Common.SubjectCatalog.LegacySubjects;
+        // â”€â”€ Subject list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // Current subjects shown in the grid; replaced per class on lookup.
+        private string[] subjects = Common.SubjectCatalog.StandardSubjectsForClass("BASIC 7").ToArray();
 
-        // ── Per-subject row controls ──────────────────────────────────────────
+        // â”€â”€ Per-subject row controls â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         private readonly Dictionary<string, SubjectRows> subjectRows =
             new Dictionary<string, SubjectRows>();
 
         private class SubjectRows
         {
-            public TextBox Cat1, Cat2, Cat3, Exam;
-            public Label   Total, Grade, Remark;
+            public TextBox Cat1, Cat2, Cat3, RawExam, Remark;
+            public Label   SbaTotal, ScaledExam, Total, Grade;
         }
 
-        // ─────────────────────────────────────────────────────────────────────
+        // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        private string _entryMode = "Student";
+        private bool _isSavingResults;
+        private List<KingdomPrep.Shared.Models.Student> _currentStudents = new List<KingdomPrep.Shared.Models.Student>();
+        private ComboBox classComboBox;
+        private ComboBox subjectComboBox;
+        private Control classBoxWrapper;
+        private Button btnModeStudent;
+        private Button btnModeSubject;
+        private TableLayoutPanel studentInputPanel;
+        private TableLayoutPanel subjectInputPanel;
+        private Control termBoxWrapper;
+        private Control yearBoxWrapper;
+
         public EXAMS()
         {
             InitializeComponent();
             this.Icon = kingdom_Preparatory_School_Management_System.Common.Branding.AppIcon;
             Common.SessionUi.AttachSignOut(this);
             if (!AuthService.RequireAccess("EXAMS", this)) return;
+            this.Load += EXAMS_Load;
 
             var examRepo    = new ExamRepository(AppConfig.ConnectionString);
             _examService    = new ExamService(examRepo);
@@ -74,9 +87,107 @@ namespace kingdom_Preparatory_School_Management_System
             NavigationSidebar.AddTo(this);
         }
 
-        // ─────────────────────────────────────────────────────────────────────
+        private async void EXAMS_Load(object sender, EventArgs e)
+        {
+            await LoadClassListAsync();
+            await LoadActiveExamSetupAsync();
+            await System.Threading.Tasks.Task.Run(() => _ = Common.GradingScheme.Bands);
+            SwitchMode("Student");
+        }
+
+        private async System.Threading.Tasks.Task LoadClassListAsync()
+        {
+            if (classComboBox == null) return;
+
+            try
+            {
+                var repo = new SchoolInfoRepository(AppConfig.ConnectionString);
+                await repo.EnsureTablesAsync();
+                var classes = await repo.GetClassNamesAsync();
+                if (classes.Count == 0)
+                    classes.AddRange(AppConfig.ClassNames);
+
+                var previousClass = classComboBox.Text;
+                classComboBox.Items.Clear();
+                foreach (var className in classes.Where(c => !string.IsNullOrWhiteSpace(c)).Distinct(StringComparer.OrdinalIgnoreCase))
+                    classComboBox.Items.Add(className);
+
+                if (classComboBox.Items.Count > 0)
+                {
+                    var match = classComboBox.Items
+                        .Cast<object>()
+                        .FirstOrDefault(item => string.Equals(item?.ToString(), previousClass, StringComparison.OrdinalIgnoreCase));
+                    classComboBox.SelectedItem = match ?? classComboBox.Items[0];
+                }
+
+                await RefreshSubjectComboForClassAsync();
+            }
+            catch (Exception ex)
+            {
+                LoggerHelper.LogWarning("Exam class list fell back to configured defaults: " + ex.Message);
+                classComboBox.Items.Clear();
+                classComboBox.Items.AddRange(AppConfig.ClassNames.Cast<object>().ToArray());
+                if (classComboBox.Items.Count > 0)
+                    classComboBox.SelectedIndex = 0;
+                await RefreshSubjectComboForClassAsync();
+            }
+        }
+
+        private async System.Threading.Tasks.Task LoadActiveExamSetupAsync()
+        {
+            try
+            {
+                var activeSetup = await Services.ExamSetupManager.GetActiveSetupAsync();
+                if (activeSetup != null)
+                {
+                    if (termBox != null && yearBox != null)
+                    {
+                        termBox.Text = activeSetup.Term;
+                        yearBox.Text = activeSetup.Year;
+                        termBox.Enabled = false;
+                        yearBox.Enabled = false;
+                    }
+
+                    if (AuthService.IsTeacher)
+                    {
+                        string myClass = await AuthService.GetCurrentTeacherClassAsync();
+                        if (!string.IsNullOrEmpty(myClass))
+                        {
+                            if (classComboBox != null)
+                            {
+                                classComboBox.Text = myClass;
+                                classComboBox.Enabled = false;
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    ApplyDefaultTermAndYear();
+                }
+            }
+            catch (Exception ex)
+            {
+                ApplyDefaultTermAndYear();
+                if (statusLabel != null)
+                {
+                    statusLabel.Text = "Failed to verify exam setup: " + ex.Message;
+                    statusLabel.ForeColor = System.Drawing.Color.Red;
+                }
+            }
+        }
+
+        // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         // Layout
-        // ─────────────────────────────────────────────────────────────────────
+        // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+        private void ApplyDefaultTermAndYear()
+        {
+            if (termBox != null && termBox.SelectedIndex < 0 && termBox.Items.Count > 0)
+                termBox.SelectedIndex = 0;
+            if (yearBox != null && string.IsNullOrWhiteSpace(yearBox.Text))
+                yearBox.Text = DateTime.Today.Year.ToString();
+        }
 
         private void BuildExamSubmissionView()
         {
@@ -120,26 +231,25 @@ namespace kingdom_Preparatory_School_Management_System
                 ColumnCount = 2,
                 BackColor   = PageBack
             };
-            header.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 60));
-            header.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 40));
+            header.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+            header.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
 
             var title = new Panel { Dock = DockStyle.Fill, BackColor = PageBack };
             title.Controls.Add(new Label
             {
-                Dock      = DockStyle.Top,
-                Height    = 40,
-                Text      = "Exam Submission",
-                ForeColor = TextCol,
-                Font      = new Font("Segoe UI Semibold", 22F, FontStyle.Bold),
+                Dock      = DockStyle.Bottom,
+                Height    = 26,
+                Text      = "Enter continuous assessments and exams by Subject or Student",
+                ForeColor = Muted,
+                Font      = new Font("Segoe UI", 10F),
                 TextAlign = ContentAlignment.MiddleLeft
             });
             title.Controls.Add(new Label
             {
-                Dock      = DockStyle.Bottom,
-                Height    = 26,
-                Text      = "Enter subject scores, review calculated grades, then publish results",
-                ForeColor = Muted,
-                Font      = new Font("Segoe UI", 10F),
+                Dock      = DockStyle.Fill,
+                Text      = "Grading",
+                ForeColor = TextCol,
+                Font      = new Font("Segoe UI Semibold", 22F, FontStyle.Bold),
                 TextAlign = ContentAlignment.MiddleLeft
             });
 
@@ -150,9 +260,17 @@ namespace kingdom_Preparatory_School_Management_System
                 BackColor     = PageBack,
                 Padding       = new Padding(0, 14, 0, 0)
             };
-            // Navigation handled by sidebar — only task-specific actions here
-            nav.Controls.Add(MakePrimaryBtn("View Results", () => FormManager.ShowForm<EXAMSVIEW>(this), 112));
-            nav.Controls.Add(MakeSecondaryBtn("Dashboard",  () => FormManager.ShowForm<frmDashboard>(this), 104));
+
+            var saveBtn = MakePrimaryBtn("Save Grades", async () => await SaveCurrentDataAsync(), 112);
+            btnModeStudent = MakeSecondaryBtn("By Student", () => SwitchMode("Student"), 104);
+            btnModeSubject = MakeSecondaryBtn("By Subject", () => SwitchMode("Subject"), 104);
+
+            if (AuthService.CanWrite("Academics.ExamResults.Manage"))
+            {
+                nav.Controls.Add(saveBtn);
+            }
+            nav.Controls.Add(btnModeStudent);
+            nav.Controls.Add(btnModeSubject);
 
             header.Controls.Add(title, 0, 0);
             header.Controls.Add(nav,   1, 0);
@@ -170,164 +288,337 @@ namespace kingdom_Preparatory_School_Management_System
                 Margin      = new Padding(0, 0, 0, 10)
             };
 
-            var layout = new TableLayoutPanel
-            {
-                Dock        = DockStyle.Fill,
-                ColumnCount = 7,
-                RowCount    = 2,
-                BackColor   = Surface
-            };
-            layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 110));  // Student ID
-            layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,   32));  // Student Name
-            layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,   18));  // Class
-            layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 118));  // Term
-            layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,  90));  // Year
-            layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,   8));  // gap
-            layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,   50));  // summary
-            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 62));
-            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+            var inputsWrapper = new Panel { Dock = DockStyle.Fill, BackColor = Surface };
 
-            // ── Inputs ────────────────────────────────────────────────────────
-            studentIdBox           = MakeField(false);
-            studentIdBox.TextChanged += (s, e) => LookupStudent();
+            // Common Controls
+            classComboBox = new ComboBox { Dock = DockStyle.Fill, DropDownStyle = ComboBoxStyle.DropDownList, Font = new Font("Segoe UI", 10F), Margin = new Padding(0) };
+            classBoxWrapper = MakeLabeledField("Class", classComboBox);
 
-            studentNameBox         = MakeField(readOnly: true);
-            classBox               = MakeField(readOnly: true);
+            termBox = new ComboBox { Dock = DockStyle.Fill, DropDownStyle = ComboBoxStyle.DropDownList, Font = new Font("Segoe UI", 10F), Margin = new Padding(0) };
+            termBox.Items.AddRange(new object[] { "First Term", "Second Term", "Third Term" });
+            termBox.SelectedIndexChanged += (s, e) => LoadGridData();
+            termBoxWrapper = MakeLabeledField("Academic Term", termBox);
 
-            termBox = new ComboBox
-            {
-                Dock          = DockStyle.Fill,
-                DropDownStyle = ComboBoxStyle.DropDownList,
-                Font          = new Font("Segoe UI", 10F),
-                Margin        = new Padding(0, 0, 8, 0)
-            };
-            termBox.Items.AddRange(new object[] { "TERM 1", "TERM 2", "TERM 3" });
-            termBox.SelectedIndexChanged += async (s, e) =>
-            {
-                if (!string.IsNullOrWhiteSpace(studentIdBox.Text))
-                    await LoadExistingResults(studentIdBox.Text.Trim());
-            };
-
-            yearBox      = MakeField(false);
+            yearBox = MakeField(false);
             yearBox.Text = DateTime.Today.Year.ToString();
+            yearBoxWrapper = MakeLabeledField("Academic Year", yearBox);
 
-            layout.Controls.Add(MakeLabeledField("Student ID",   studentIdBox), 0, 0);
-            layout.Controls.Add(MakeLabeledField("Student Name", studentNameBox), 1, 0);
-            layout.Controls.Add(MakeLabeledField("Class",        classBox), 2, 0);
-            layout.Controls.Add(MakeLabeledField("Term",         termBox), 3, 0);
-            layout.Controls.Add(MakeLabeledField("Year",         yearBox), 4, 0);
-            // col 5 = gap
+            // Student Input Panel
+            studentInputPanel = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 4, RowCount = 1, Margin = new Padding(0) };
+            studentInputPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
+            studentInputPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
+            studentInputPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
+            studentInputPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
 
-            // ── Summary chips ──────────────────────────────────────────────
-            var summaryRow = new TableLayoutPanel
-            {
-                Dock        = DockStyle.Fill,
-                ColumnCount = 2,
-                BackColor   = Surface,
-                Padding     = new Padding(0, 8, 0, 0)
+            studentComboBox = new ComboBox { Dock = DockStyle.Fill, DropDownStyle = ComboBoxStyle.DropDownList, Font = new Font("Segoe UI", 10F), Margin = new Padding(0) };
+            studentComboBox.SelectedIndexChanged += (s, e) => LoadGridData();
+            var studentComboWrapper = MakeLabeledField("Student", studentComboBox);
+
+            studentInputPanel.Controls.Add(classBoxWrapper, 0, 0);
+            studentInputPanel.Controls.Add(studentComboWrapper, 1, 0);
+            studentInputPanel.Controls.Add(termBoxWrapper, 2, 0);
+            studentInputPanel.Controls.Add(yearBoxWrapper, 3, 0);
+
+            // Subject Input Panel
+            subjectInputPanel = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 4, RowCount = 1, Margin = new Padding(0), Visible = false };
+            subjectInputPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
+            subjectInputPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
+            subjectInputPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
+            subjectInputPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
+
+            subjectComboBox = new ComboBox { Dock = DockStyle.Fill, DropDownStyle = ComboBoxStyle.DropDownList, Font = new Font("Segoe UI", 10F), Margin = new Padding(0) };
+            _ = RefreshSubjectComboForClassAsync();
+            subjectComboBox.SelectedIndexChanged += (s, e) => LoadGridData();
+            var subjectComboWrapper = MakeLabeledField("Subject", subjectComboBox);
+
+            subjectInputPanel.Controls.Add(classBoxWrapper, 0, 0);
+            subjectInputPanel.Controls.Add(subjectComboWrapper, 1, 0);
+            subjectInputPanel.Controls.Add(termBoxWrapper, 2, 0);
+            subjectInputPanel.Controls.Add(yearBoxWrapper, 3, 0);
+
+            classComboBox.SelectedIndexChanged += async (s, e) => {
+                await RefreshSubjectComboForClassAsync();
+                if (_entryMode == "Student") {
+                    await LoadStudentsForClassAsync();
+                } else {
+                    LoadGridData();
+                }
             };
-            summaryRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
-            summaryRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
 
-            completionLabel = MakeSummaryChip("0 of " + subjects.Length + " subjects");
-            averageLabel    = MakeSummaryChip("Average: --");
-            summaryRow.Controls.Add(completionLabel, 0, 0);
-            summaryRow.Controls.Add(averageLabel,    1, 0);
-            layout.Controls.Add(summaryRow, 6, 0);
+            inputsWrapper.Controls.Add(studentInputPanel);
+            inputsWrapper.Controls.Add(subjectInputPanel);
 
-            // ── Status bar ────────────────────────────────────────────────────
+            var summaryPanel = new TableLayoutPanel
+            {
+                Dock = DockStyle.Bottom,
+                Height = 30,
+                ColumnCount = 3,
+                BackColor = Surface
+            };
+            summaryPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            summaryPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 150));
+            summaryPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 130));
+
             statusLabel = new Label
             {
                 Dock      = DockStyle.Fill,
-                Text      = "Enter a student ID to load the learner before submitting scores.",
+                Text      = "Select mode to begin.",
                 ForeColor = Muted,
                 Font      = new Font("Segoe UI", 9.5F),
                 TextAlign = ContentAlignment.MiddleLeft
             };
-            layout.Controls.Add(statusLabel, 0, 1);
-            layout.SetColumnSpan(statusLabel, 7);
+            completionLabel = new Label
+            {
+                Dock      = DockStyle.Fill,
+                Text      = $"0 of {subjects.Length} subjects",
+                ForeColor = Muted,
+                Font      = new Font("Segoe UI", 9.5F, FontStyle.Bold),
+                TextAlign = ContentAlignment.MiddleRight
+            };
+            averageLabel = new Label
+            {
+                Dock      = DockStyle.Fill,
+                Text      = "Average: --",
+                ForeColor = Muted,
+                Font      = new Font("Segoe UI", 9.5F, FontStyle.Bold),
+                TextAlign = ContentAlignment.MiddleRight
+            };
+            summaryPanel.Controls.Add(statusLabel, 0, 0);
+            summaryPanel.Controls.Add(completionLabel, 1, 0);
+            summaryPanel.Controls.Add(averageLabel, 2, 0);
+            card.Controls.Add(summaryPanel);
 
-            card.Controls.Add(layout);
+            card.Controls.Add(inputsWrapper);
             return card;
         }
+
+        private async System.Threading.Tasks.Task LoadStudentsForClassAsync()
+        {
+            if (string.IsNullOrWhiteSpace(classComboBox.Text)) return;
+            var classStudents = await _studentService.GetStudentsByClassAsync(classComboBox.Text);
+            _currentStudents.Clear();
+            studentComboBox.Items.Clear();
+            foreach (var s in classStudents)
+            {
+                _currentStudents.Add(s);
+                studentComboBox.Items.Add(s.FullName);
+            }
+            if (studentComboBox.Items.Count > 0) studentComboBox.SelectedIndex = 0;
+            else LoadGridData();
+        }
+
+        private async System.Threading.Tasks.Task SaveCurrentDataAsync()
+        {
+            SaveAllResults();
+        }
+
+        private void SwitchMode(string mode)
+        {
+            _entryMode = mode;
+            if (mode == "Student")
+            {
+                btnModeStudent.BackColor = Primary; btnModeStudent.ForeColor = Color.White; btnModeStudent.FlatAppearance.BorderColor = Primary;
+                btnModeSubject.BackColor = SurfaceAlt; btnModeSubject.ForeColor = TextCol; btnModeSubject.FlatAppearance.BorderColor = Border;
+                subjectInputPanel.Visible = false;
+                studentInputPanel.Controls.Add(classBoxWrapper, 0, 0);
+                studentInputPanel.Controls.Add(termBoxWrapper, 2, 0);
+                studentInputPanel.Controls.Add(yearBoxWrapper, 3, 0);
+                studentInputPanel.Visible = true;
+                _ = LoadStudentsForClassAsync();
+            }
+            else
+            {
+                btnModeSubject.BackColor = Primary; btnModeSubject.ForeColor = Color.White; btnModeSubject.FlatAppearance.BorderColor = Primary;
+                btnModeStudent.BackColor = SurfaceAlt; btnModeStudent.ForeColor = TextCol; btnModeStudent.FlatAppearance.BorderColor = Border;
+                studentInputPanel.Visible = false;
+                subjectInputPanel.Controls.Add(classBoxWrapper, 0, 0);
+                subjectInputPanel.Controls.Add(termBoxWrapper, 2, 0);
+                subjectInputPanel.Controls.Add(yearBoxWrapper, 3, 0);
+                subjectInputPanel.Visible = true;
+                LoadGridData();
+            }
+        }
+
+        private async System.Threading.Tasks.Task RefreshSubjectComboForClassAsync()
+        {
+            if (subjectComboBox == null) return;
+
+            var selectedSubject = subjectComboBox.Text;
+            var className = string.IsNullOrWhiteSpace(classComboBox?.Text) ? "BASIC 7" : classComboBox.Text;
+            var classSubjects = await System.Threading.Tasks.Task.Run(() => Common.SubjectCatalog.SubjectsForClass(className).ToList());
+            subjectComboBox.Items.Clear();
+            foreach (var subject in classSubjects)
+                subjectComboBox.Items.Add(subject);
+
+            if (subjectComboBox.Items.Count == 0)
+                return;
+
+            var match = subjectComboBox.Items
+                .Cast<object>()
+                .FirstOrDefault(item => string.Equals(item?.ToString(), selectedSubject, StringComparison.OrdinalIgnoreCase));
+            subjectComboBox.SelectedItem = match ?? subjectComboBox.Items[0];
+        }
+
+        private async void LoadGridData()
+        {
+            if (string.IsNullOrWhiteSpace(termBox.Text) || string.IsNullOrWhiteSpace(yearBox.Text))
+                return;
+
+            if (_entryMode == "Student")
+            {
+                if (studentComboBox.SelectedIndex < 0)
+                {
+                    RebuildGrid(new string[0], "Subject Name");
+                    return;
+                }
+                var student = _currentStudents[studentComboBox.SelectedIndex];
+                if (student != null)
+                {
+                    var subs = await System.Threading.Tasks.Task.Run(() => Common.SubjectCatalog.SubjectsForClass(student.ClassID).ToList());
+                    RebuildGrid(subs, "Subject Name");
+                    await LoadExistingResults(student.StudentID);
+                }
+            }
+            else
+            {
+                if (classComboBox.SelectedIndex < 0 || subjectComboBox.SelectedIndex < 0)
+                {
+                    RebuildGrid(new string[0], "Student Name");
+                    return;
+                }
+
+                string sClass = classComboBox.Text;
+                var classStudents = await _studentService.GetStudentsByClassAsync(sClass);
+                _currentStudents.Clear();
+                foreach(var s in classStudents) _currentStudents.Add(s);
+                var stdNames = new List<string>();
+                foreach(var s in classStudents) stdNames.Add(s.FullName);
+                RebuildGrid(stdNames, "Student Name");
+
+                // For By Subject, load existing results for all students in this class for this subject
+                try
+                {
+                    var table = await _examService.GetExistingResultsForClassSubjectAsync(sClass, subjectComboBox.Text, termBox.Text, yearBox.Text.Trim());
+                    if (table.Rows.Count > 0)
+                    {
+                        foreach (System.Data.DataRow dr in table.Rows)
+                        {
+                            string sid = dr["student_id"].ToString();
+                            var st = _currentStudents.Find(x => x.StudentID == sid);
+                            if (st != null && subjectRows.ContainsKey(st.FullName))
+                            {
+                                var row = subjectRows[st.FullName];
+                                row.Cat1.Text = FormatExamNumber(dr["cat1"]);
+                                row.Cat2.Text = FormatExamNumber(dr["cat2"]);
+                                row.Cat3.Text = FormatExamNumber(dr["cat3"]);
+                                if (decimal.TryParse(dr["exam_score"].ToString(), out decimal savedExam))
+                                {
+                                    row.RawExam.Text = (savedExam * 2).ToString("0.00");
+                                }
+                                row.Remark.Text = dr["remark"].ToString();
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    LoggerHelper.LogWarning("Existing exam scores could not be loaded into the grading grid: " + ex.Message);
+                    if (statusLabel != null)
+                    {
+                        statusLabel.Text = "Existing scores could not be loaded. You can still enter new scores.";
+                        statusLabel.ForeColor = UiTheme.WarningText;
+                    }
+                }
+            }
+        }
+
 
         private Control BuildSubjectEntryPanel()
         {
-            var card = new Panel
-            {
-                Dock        = DockStyle.Fill,
-                BackColor   = Surface,
-                BorderStyle = BorderStyle.FixedSingle,
-                Padding     = new Padding(0)
-            };
+            var card = new Panel { Dock = DockStyle.Fill, BackColor = Surface, BorderStyle = BorderStyle.FixedSingle };
 
-            var shell = new TableLayoutPanel
-            {
-                Dock        = DockStyle.Fill,
-                RowCount    = 2,
-                ColumnCount = 1,
-                BackColor   = Surface
-            };
-            shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 46));
-            shell.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-
-            shell.Controls.Add(new Label
-            {
-                Dock      = DockStyle.Fill,
-                Text      = "Subject Scores",
-                Padding   = new Padding(20, 0, 0, 0),
-                ForeColor = TextCol,
-                Font      = new Font("Segoe UI Semibold", 13F, FontStyle.Bold),
-                TextAlign = ContentAlignment.MiddleLeft
-            }, 0, 0);
+            var scrollPanel = new Panel { Dock = DockStyle.Fill, AutoScroll = true };
+            UiTheme.HideNativeScrollbarsFor(scrollPanel);
 
             subjectGrid = new TableLayoutPanel
             {
-                Dock        = DockStyle.Fill,
-                ColumnCount = 8,
-                RowCount    = subjects.Length + 1,
-                BackColor   = Surface,
-                Padding     = new Padding(14, 0, 14, 14)
+                Dock = DockStyle.Top,
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                ColumnCount = 10,
+                RowCount = 1,
+                BackColor = Surface,
+                Padding = new Padding(14),
+                MinimumSize = new Size(1200, 0)
             };
-            subjectGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 180)); // Subject name
-            subjectGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,   13)); // Test (40)
-            subjectGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,   13)); // Group (10)
-            subjectGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,   13)); // Project (10)
-            subjectGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,   13)); // Exam (100)
-            subjectGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,   13)); // Total
-            subjectGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,    9)); // Grade
-            subjectGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,   26)); // Remark
-            RebuildSubjectGrid(subjects);
 
-            shell.Controls.Add(subjectGrid, 0, 1);
-            card.Controls.Add(shell);
+            RebuildGrid(new string[0], "Subject Name");
+
+            scrollPanel.Controls.Add(subjectGrid);
+            card.Controls.Add(scrollPanel);
+
             return card;
         }
 
-        private void RebuildSubjectGrid(IReadOnlyList<string> subjectList)
+        private void RebuildGrid(IReadOnlyList<string> items, string firstColName)
         {
-            subjects = new List<string>(subjectList).ToArray();
-
             subjectGrid.SuspendLayout();
             subjectGrid.Controls.Clear();
             subjectGrid.RowStyles.Clear();
+            subjectGrid.ColumnStyles.Clear();
             subjectRows.Clear();
 
-            subjectGrid.RowCount = subjects.Length + 1;
-            subjectGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 40));
-            for (int i = 0; i < subjects.Length; i++)
-                subjectGrid.RowStyles.Add(new RowStyle(SizeType.Percent,
-                    subjects.Length == 0 ? 100F : 100F / subjects.Length));
+            subjectGrid.RowCount = items.Count + 1;
+            subjectGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 190)); // Name
+            subjectGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 112)); // Class test
+            subjectGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 112)); // Group work
+            subjectGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 120)); // Project work
+            subjectGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 96));  // 50% SBA
+            subjectGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 112)); // Exams
+            subjectGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 96));  // 50% Exam
+            subjectGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 104)); // Total
+            subjectGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 78));  // Grade
+            subjectGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 180)); // Remark
 
-            string[] headers = { "Subject", "Test (40)", "Group (10)", "Project (10)", "Exam (100)", "Total", "Grade", "Remark" };
+            subjectGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 48));
+            if (items.Count == 0)
+            {
+                subjectGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 64));
+                subjectGrid.RowCount = 2;
+                var emptyLabel = new Label
+                {
+                    Dock = DockStyle.Fill,
+                    Text = "Select a class and student to load subjects.",
+                    ForeColor = Muted,
+                    Font = new Font("Segoe UI", 10F),
+                    TextAlign = ContentAlignment.MiddleCenter,
+                    BackColor = Surface
+                };
+                subjectGrid.Controls.Add(emptyLabel, 0, 1);
+                subjectGrid.SetColumnSpan(emptyLabel, 10);
+            }
+            else
+            {
+                for (int i = 0; i < items.Count; i++)
+                    subjectGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 50));
+            }
+
+            string[] headers = { firstColName, "Class Test\n(40)", "Group Work\n(10)", "Project Work\n(10)", "50% SBA", "Exams\n(100%)", "50% Exam", "100% Total", "Grade", "Remark" };
             for (int i = 0; i < headers.Length; i++)
-                subjectGrid.Controls.Add(MakeGridHeader(headers[i]), i, 0);
+            {
+                var lbl = MakeGridHeader(headers[i]);
+                if (i == 0) { lbl.BackColor = Color.White; lbl.ForeColor = TextCol; }
+                else if (i >= 1 && i <= 3) { lbl.BackColor = SurfaceAlt; lbl.ForeColor = TextCol; }
+                else if (i == 4) { lbl.BackColor = Navy; lbl.ForeColor = Color.White; }
+                else if (i == 5) { lbl.BackColor = Color.FromArgb(200, 40, 40); lbl.ForeColor = Color.White; }
+                else if (i == 6) { lbl.BackColor = Color.FromArgb(200, 40, 40); lbl.ForeColor = Color.White; }
+                else if (i == 7) { lbl.BackColor = Color.FromArgb(10, 20, 40); lbl.ForeColor = Color.White; }
+                else { lbl.BackColor = SurfaceAlt; lbl.ForeColor = TextCol; }
+                subjectGrid.Controls.Add(lbl, i, 0);
+            }
 
-            for (int i = 0; i < subjects.Length; i++)
-                AddSubjectRow(subjects[i], i + 1);
-
-            if (completionLabel != null)
-                completionLabel.Text = "0 of " + subjects.Length + " subjects";
+            for (int i = 0; i < items.Count; i++)
+                AddSubjectRow(items[i], i + 1);
 
             subjectGrid.ResumeLayout(true);
         }
@@ -341,15 +632,18 @@ namespace kingdom_Preparatory_School_Management_System
                 BackColor     = PageBack,
                 Padding       = new Padding(0, 12, 0, 0)
             };
-            actions.Controls.Add(MakePrimaryBtn("Save All Results", SaveAllResults, 148));
+            if (AuthService.CanWrite("Academics.ExamResults.Manage"))
+            {
+                actions.Controls.Add(MakePrimaryBtn("Save All Results", SaveAllResults, 148));
+            }
             actions.Controls.Add(MakeSecondaryBtn("Clear Form",  ClearForm,               112));
             actions.Controls.Add(MakeSecondaryBtn("View Reports", () => FormManager.ShowForm<EXAMSVIEW>(this), 116));
             return actions;
         }
 
-        // ─────────────────────────────────────────────────────────────────────
+        // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         // Control factories
-        // ─────────────────────────────────────────────────────────────────────
+        // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
         private TextBox MakeField(bool readOnly = false)
         {
@@ -483,9 +777,9 @@ namespace kingdom_Preparatory_School_Management_System
             return btn;
         }
 
-        // ─────────────────────────────────────────────────────────────────────
+        // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         // Subject row building
-        // ─────────────────────────────────────────────────────────────────────
+        // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
         private void AddSubjectRow(string subject, int rowIndex)
         {
@@ -503,61 +797,90 @@ namespace kingdom_Preparatory_School_Management_System
 
             var row = new SubjectRows
             {
-                Cat1   = MakeScoreInput(),
-                Cat2   = MakeScoreInput(),
-                Cat3   = MakeScoreInput(),
-                Exam   = MakeScoreInput(),
-                Total  = MakeGridValue("-"),
-                Grade  = MakeGridValue("-"),
-                Remark = MakeGridValue("-")
+                Cat1       = MakeScoreInput(),
+                Cat2       = MakeScoreInput(),
+                Cat3       = MakeScoreInput(),
+                RawExam    = MakeScoreInput(),
+                SbaTotal   = MakeGridValue("-"),
+                ScaledExam = MakeGridValue("-"),
+                Total      = MakeGridValue("-"),
+                Grade      = MakeGridValue("-"),
+                Remark     = MakeField(false) // editable remark
             };
 
-            row.Cat1.TextChanged += (s, e) => CalculateRow(subject);
-            row.Cat2.TextChanged += (s, e) => CalculateRow(subject);
-            row.Cat3.TextChanged += (s, e) => CalculateRow(subject);
-            row.Exam.TextChanged += (s, e) => CalculateRow(subject);
+            row.Cat1.TextChanged    += (s, e) => CalculateRow(subject);
+            row.Cat2.TextChanged    += (s, e) => CalculateRow(subject);
+            row.Cat3.TextChanged    += (s, e) => CalculateRow(subject);
+            row.RawExam.TextChanged += (s, e) => CalculateRow(subject);
 
-            subjectGrid.Controls.Add(row.Cat1,   1, rowIndex);
-            subjectGrid.Controls.Add(row.Cat2,   2, rowIndex);
-            subjectGrid.Controls.Add(row.Cat3,   3, rowIndex);
-            subjectGrid.Controls.Add(row.Exam,   4, rowIndex);
-            subjectGrid.Controls.Add(row.Total,  5, rowIndex);
-            subjectGrid.Controls.Add(row.Grade,  6, rowIndex);
-            subjectGrid.Controls.Add(row.Remark, 7, rowIndex);
+            subjectGrid.Controls.Add(row.Cat1,       1, rowIndex);
+            subjectGrid.Controls.Add(row.Cat2,       2, rowIndex);
+            subjectGrid.Controls.Add(row.Cat3,       3, rowIndex);
+            subjectGrid.Controls.Add(row.SbaTotal,   4, rowIndex);
+            subjectGrid.Controls.Add(row.RawExam,    5, rowIndex);
+            subjectGrid.Controls.Add(row.ScaledExam, 6, rowIndex);
+            subjectGrid.Controls.Add(row.Total,      7, rowIndex);
+            subjectGrid.Controls.Add(row.Grade,      8, rowIndex);
+            subjectGrid.Controls.Add(row.Remark,     9, rowIndex);
             subjectRows[subject] = row;
         }
 
-        // ─────────────────────────────────────────────────────────────────────
+        // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         // Business logic (unchanged; Guna property access is gone)
-        // ─────────────────────────────────────────────────────────────────────
+        // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
         private void CalculateRow(string subject)
         {
             var row = subjectRows[subject];
-            if (!TryReadScore(row.Cat1, 40m,  out _) ||
-                !TryReadScore(row.Cat2, 10m,  out _) ||
-                !TryReadScore(row.Cat3, 10m,  out _) ||
-                !TryReadScore(row.Exam, 100m, out _))
+
+            // Check if entirely empty
+            if (string.IsNullOrWhiteSpace(row.Cat1.Text) &&
+                string.IsNullOrWhiteSpace(row.Cat2.Text) &&
+                string.IsNullOrWhiteSpace(row.Cat3.Text) &&
+                string.IsNullOrWhiteSpace(row.RawExam.Text))
             {
-                row.Total.Text  = "-";
-                row.Grade.Text  = "-";
-                row.Remark.Text = "-";
+                row.SbaTotal.Text   = "-";
+                row.ScaledExam.Text = "-";
+                row.Total.Text      = "-";
+                row.Grade.Text      = "-";
+
+                // Keep the manual remark if any, but if it was auto-set to a grade remark, clear it
+                if (!string.IsNullOrWhiteSpace(row.Remark.Text) && (row.Remark.Text == "Advance" || row.Remark.Text == "Proficiency" || row.Remark.Text == "Approaching Proficiency" || row.Remark.Text == "Developing" || row.Remark.Text == "Beginning"))
+                {
+                    row.Remark.Text = "";
+                }
+
                 UpdateSummary();
                 return;
             }
 
-            var result = new ExamResult
-            {
-                Category1 = decimal.Parse(row.Cat1.Text),
-                Category2 = decimal.Parse(row.Cat2.Text),
-                Category3 = decimal.Parse(row.Cat3.Text),
-                ExamScore = decimal.Parse(row.Exam.Text)
-            };
-            result.Calculate();
+            // If inputs are empty or invalid, try to parse what we can or treat as 0 for calculations
+            TryReadScore(row.Cat1, 40m, out decimal c1);
+            TryReadScore(row.Cat2, 10m, out decimal c2);
+            TryReadScore(row.Cat3, 10m, out decimal c3);
+            TryReadScore(row.RawExam, 100m, out decimal rawExam);
 
-            row.Total.Text  = result.TotalScore.ToString("0.0");
-            row.Grade.Text  = result.Grade;
-            row.Remark.Text = result.Remark;
+            decimal rawSbaTotal = c1 + c2 + c3;
+            decimal sbaTotal = Math.Round(rawSbaTotal / 60m * 50m, 2);
+            decimal scaledExam = Math.Round(rawExam / 2.0m, 2);
+            decimal finalTotal = Math.Min(100m, sbaTotal + scaledExam);
+
+            row.SbaTotal.Text = sbaTotal.ToString("0.00");
+            row.ScaledExam.Text = scaledExam.ToString("0.00");
+            row.Total.Text = finalTotal.ToString("0.00");
+
+            // Match Web App Auto Grade logic
+            string grade = kingdom_Preparatory_School_Management_System.Common.GradingScheme.CodeForScore(finalTotal);
+            string autoRemark = kingdom_Preparatory_School_Management_System.Common.GradingScheme.LabelForScore(finalTotal);
+
+            row.Grade.Text = grade;
+
+            // Only auto-update remark if the teacher hasn't typed anything else
+            if (string.IsNullOrWhiteSpace(row.Remark.Text) || row.Remark.Text == "-" || row.Remark.Text == "Advance" || row.Remark.Text == "Proficiency" || row.Remark.Text == "Approaching Proficiency" || row.Remark.Text == "Developing" || row.Remark.Text == "Beginning" || row.Remark.Text.Contains(autoRemark) || autoRemark.Contains(row.Remark.Text) || kingdom_Preparatory_School_Management_System.Common.GradingScheme.Bands.Any(b => b.Label == row.Remark.Text))
+            {
+                row.Remark.Text = autoRemark;
+            }
+
             UpdateSummary();
         }
 
@@ -565,70 +888,35 @@ namespace kingdom_Preparatory_School_Management_System
         {
             value = 0m;
             if (string.IsNullOrWhiteSpace(input.Text)) return false;
-            return decimal.TryParse(input.Text.Trim(), out value) && value >= 0m && value <= max;
+            if (decimal.TryParse(input.Text.Trim(), out value))
+            {
+                bool changed = false;
+                if (value < 0m) { value = 0m; changed = true; }
+                if (value > max) { value = max; changed = true; }
+                if (changed)
+                {
+                    input.Text = value.ToString("0.00");
+                    input.SelectionStart = input.Text.Length;
+                }
+                return true;
+            }
+            return false;
         }
 
         private void UpdateSummary()
         {
+            if (completionLabel == null || averageLabel == null) return;
             int ready = 0; decimal total = 0m;
             foreach (var row in subjectRows.Values)
             {
                 if (decimal.TryParse(row.Total.Text, out decimal score))
                 { ready++; total += score; }
             }
-            completionLabel.Text = $"{ready} of {subjects.Length} subjects";
-            averageLabel.Text    = ready == 0 ? "Average: --" : $"Average: {(total / ready):0.0}";
+            completionLabel.Text = $"{ready} of {subjectRows.Count} {(subjectRows.Count == 1 ? "entry" : "entries")}";
+            averageLabel.Text    = ready == 0 ? "Average: --" : $"Average: {(total / ready):0.00}";
         }
 
-        private async void LookupStudent()
-        {
-            string sid = studentIdBox.Text.Trim();
-            if (string.IsNullOrWhiteSpace(sid))
-            {
-                studentNameBox.Text = "";
-                classBox.Text       = "";
-                return;
-            }
 
-            try
-            {
-                var student = await _studentService.GetStudentAsync(sid);
-                if (student != null)
-                {
-                    if (AuthService.IsTeacher)
-                    {
-                        string myClass = await AuthService.GetCurrentTeacherClassAsync();
-                        if (!string.IsNullOrEmpty(myClass) &&
-                            !string.Equals(student.ClassID, myClass, StringComparison.OrdinalIgnoreCase))
-                        {
-                            studentNameBox.Text = "";
-                            classBox.Text       = "";
-                            statusLabel.Text    = $"Student {sid} is in {student.ClassID}, not your class ({myClass}).";
-                            UIHelper.ShowWarning(
-                                $"You can only enter scores for students in {myClass}. {student.FullName} is in {student.ClassID}.",
-                                "Out of scope");
-                            return;
-                        }
-                    }
-
-                    studentNameBox.Text = student.FullName;
-                    classBox.Text       = student.ClassID;
-                    RebuildSubjectGrid(Common.SubjectCatalog.SubjectsForClass(student.ClassID));
-                    statusLabel.Text    = "Student loaded. Checking for existing results…";
-                    await LoadExistingResults(sid);
-                    return;
-                }
-
-                studentNameBox.Text = "";
-                classBox.Text       = "";
-                statusLabel.Text    = "Student not found.";
-            }
-            catch (Exception ex)
-            {
-                statusLabel.Text = "Lookup failed.";
-                UIHelper.ShowError("Lookup error: " + ex.Message, "Exams");
-            }
-        }
 
         private async System.Threading.Tasks.Task LoadExistingResults(string studentId)
         {
@@ -645,10 +933,16 @@ namespace kingdom_Preparatory_School_Management_System
                         string subject = dr["subject"].ToString();
                         if (!subjectRows.ContainsKey(subject)) continue;
                         var row    = subjectRows[subject];
-                        row.Cat1.Text = dr["cat1"].ToString();
-                        row.Cat2.Text = dr["cat2"].ToString();
-                        row.Cat3.Text = dr["cat3"].ToString();
-                        row.Exam.Text = dr["exam_score"].ToString();
+                        row.Cat1.Text = FormatExamNumber(dr["cat1"]);
+                        row.Cat2.Text = FormatExamNumber(dr["cat2"]);
+                        row.Cat3.Text = FormatExamNumber(dr["cat3"]);
+                        // Assuming exam_score from db is 50% scaled, multiply by 2 to get raw, or if it was raw, just display it.
+                        // Based on Grading.razor, the DB stores the 50% scaled score!
+                        if (decimal.TryParse(dr["exam_score"].ToString(), out decimal savedExam))
+                        {
+                            row.RawExam.Text = (savedExam * 2).ToString("0.00");
+                        }
+                        row.Remark.Text = dr["remark"].ToString();
                     }
                     statusLabel.Text = $"Loaded {table.Rows.Count} existing result(s) for this term.";
                 }
@@ -656,58 +950,162 @@ namespace kingdom_Preparatory_School_Management_System
             catch { /* best effort */ }
         }
 
+        private static string FormatExamNumber(object value)
+        {
+            if (value == null || value == DBNull.Value) return "";
+            decimal parsed;
+            return decimal.TryParse(value.ToString(), out parsed)
+                ? parsed.ToString("0.00")
+                : value.ToString();
+        }
+
         private async void SaveAllResults()
         {
+            if (_isSavingResults) return;
+
             try
             {
-                if (!FormValidationHelper.ValidateRequired(studentIdBox,   "Student ID"))   return;
-                if (!FormValidationHelper.ValidateRequired(studentNameBox, "Student Name")) return;
-                if (!FormValidationHelper.ValidateRequired(classBox,       "Class"))        return;
-                if (!FormValidationHelper.ValidateComboBox(termBox,        "Term"))         return;
-                if (!FormValidationHelper.ValidateRequired(yearBox,        "Year"))         return;
+                if (!AuthService.RequireWriteAccess("Academics.ExamResults.Manage", "Save Exam Results"))
+                    return;
 
-                var results = new List<ExamResult>();
-                foreach (var entry in subjectRows)
+                SetExamBusy(true, "Saving results...");
+                if (string.IsNullOrWhiteSpace(termBox.Text)) return;
+                if (!FormValidationHelper.ValidateRequired(yearBox, "Year")) return;
+
+                bool isValidExamPeriod = false;
+                try
                 {
-                    var row = entry.Value;
-                    if (!decimal.TryParse(row.Total.Text, out _)) continue;
-
-                    results.Add(new ExamResult
+                    using (var conn = new Microsoft.Data.SqlClient.SqlConnection(Common.SqlCommandExtensions.StripProvider(AppConfig.ConnectionString)))
                     {
-                        StudentId   = studentIdBox.Text.Trim(),
-                        StudentName = studentNameBox.Text.Trim(),
-                        ClassId     = classBox.Text.Trim(),
-                        Subject     = entry.Key,
-                        Term        = termBox.Text,
-                        Year        = yearBox.Text.Trim(),
-                        Category1   = decimal.Parse(entry.Value.Cat1.Text),
-                        Category2   = decimal.Parse(entry.Value.Cat2.Text),
-                        Category3   = decimal.Parse(entry.Value.Cat3.Text),
-                        ExamScore   = decimal.Parse(entry.Value.Exam.Text)
-                    });
+                        await conn.OpenAsync();
+                        var cmd = new Microsoft.Data.SqlClient.SqlCommand("SELECT COUNT(*) FROM ExamSetups WHERE Term = @Term AND [Year] = @Year", conn);
+                        cmd.Parameters.AddWithValue("@Term", termBox.Text);
+                        cmd.Parameters.AddWithValue("@Year", yearBox.Text);
+                        int count = Convert.ToInt32(await cmd.ExecuteScalarAsync());
+                        if (count > 0) isValidExamPeriod = true;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    LoggerHelper.LogError("Exam setup verification failed", ex);
+                    ConfirmationHelper.ShowWarning(
+                        "The system could not verify the selected exam setup because the database check failed. Please reload the page and try again.",
+                        "Exam Setup Check Failed");
+                    return;
+                }
+
+                if (!isValidExamPeriod)
+                {
+                    ConfirmationHelper.ShowWarning($"No active Exam Setup found for Term: '{termBox.Text}' and Year: '{yearBox.Text}'. Please configure it in Exam Setups first.", "Invalid Exam Period");
+                    return;
+                }
+
+                statusLabel.Text = "Saving results...";
+                statusLabel.ForeColor = TextCol;
+
+                var results = new List<KingdomPrep.Shared.Models.ExamResult>();
+
+                if (_entryMode == "Student")
+                {
+                    if (studentComboBox.SelectedIndex < 0)
+                    {
+                        UIHelper.ShowWarning("Please select a student.", "Missing Student");
+                        return;
+                    }
+                    var student = _currentStudents[studentComboBox.SelectedIndex];
+
+                    foreach (var kvp in subjectRows)
+                    {
+                        string subject = kvp.Key;
+                        var row = kvp.Value;
+                        if (!decimal.TryParse(row.SbaTotal.Text, out decimal _) && !decimal.TryParse(row.RawExam.Text, out decimal _))
+                            continue;
+
+                        decimal cat1 = decimal.TryParse(row.Cat1.Text, out decimal c1) ? c1 : 0;
+                        decimal cat2 = decimal.TryParse(row.Cat2.Text, out decimal c2) ? c2 : 0;
+                        decimal cat3 = decimal.TryParse(row.Cat3.Text, out decimal c3) ? c3 : 0;
+                        decimal examRaw = decimal.TryParse(row.RawExam.Text, out decimal ex) ? ex : 0;
+                        decimal examScaled = Math.Round(Math.Min(100m, Math.Max(0m, examRaw)) / 2m, 2);
+
+
+                        results.Add(new KingdomPrep.Shared.Models.ExamResult
+                        {
+                            StudentId  = student.StudentID,
+                            ClassId    = student.ClassID,
+                            Subject    = subject,
+                            Term       = termBox.Text,
+                            Year       = yearBox.Text.Trim(),
+                            Category1       = cat1,
+                            Category2       = cat2,
+                            Category3       = cat3,
+                            ExamScore  = examScaled,
+
+
+                            Remark     = row.Remark.Text
+                        });
+                    }
+                }
+                else
+                {
+                    if (classComboBox.SelectedIndex < 0) return;
+                    if (subjectComboBox.SelectedIndex < 0) return;
+
+                    string sClass = classComboBox.Text;
+                    string subject = subjectComboBox.Text;
+
+                    foreach (var kvp in subjectRows)
+                    {
+                        string studentName = kvp.Key;
+                        var row = kvp.Value;
+                        if (!decimal.TryParse(row.SbaTotal.Text, out decimal _) && !decimal.TryParse(row.RawExam.Text, out decimal _))
+                            continue;
+
+                        var st = _currentStudents.Find(x => x.FullName == studentName);
+                        if (st == null) continue;
+
+                        decimal cat1 = decimal.TryParse(row.Cat1.Text, out decimal c1) ? c1 : 0;
+                        decimal cat2 = decimal.TryParse(row.Cat2.Text, out decimal c2) ? c2 : 0;
+                        decimal cat3 = decimal.TryParse(row.Cat3.Text, out decimal c3) ? c3 : 0;
+                        decimal examRaw = decimal.TryParse(row.RawExam.Text, out decimal ex) ? ex : 0;
+                        decimal examScaled = Math.Round(Math.Min(100m, Math.Max(0m, examRaw)) / 2m, 2);
+
+
+                        results.Add(new KingdomPrep.Shared.Models.ExamResult
+                        {
+                            StudentId  = st.StudentID,
+                            ClassId    = sClass,
+                            Subject    = subject,
+                            Term       = termBox.Text,
+                            Year       = yearBox.Text.Trim(),
+                            Category1       = cat1,
+                            Category2       = cat2,
+                            Category3       = cat3,
+                            ExamScore  = examScaled,
+
+
+                            Remark     = row.Remark.Text
+                        });
+                    }
                 }
 
                 if (results.Count == 0)
                 {
-                    ConfirmationHelper.ShowWarning("No valid subject scores to save.", "Exam Submission");
+                    ConfirmationHelper.ShowWarning("No valid scores to save.", "Exam Submission");
+                    statusLabel.Text = "No valid scores to save.";
                     return;
                 }
 
-                if (!ConfirmationHelper.ConfirmBulkOperation("save exam results", results.Count)) return;
-
-                statusLabel.Text = "Saving results…";
-                var (success, message) = await _examService.SaveResultsAsync(results);
-
+                var response = await _examService.SaveResultsAsync(results);
+                bool success = response.Success;
                 if (success)
                 {
-                    LoggerHelper.LogInfo($"Saved {results.Count} exam results for student {studentIdBox.Text}");
-                    statusLabel.Text = message;
-                    UIHelper.ShowSuccess(message, "Exam Submission");
+                    UIHelper.ShowSuccess("Exam results submitted successfully. They will appear on the parent portal after headmaster upload.", "Exam Submission");
+                    statusLabel.Text = $"Successfully submitted {results.Count} result(s).";
                 }
                 else
                 {
-                    statusLabel.Text = "Save failed.";
-                    UIHelper.ShowError(message, "Exam Submission");
+                    UIHelper.ShowError("Failed to save results.", "Exam Submission");
+                    statusLabel.Text = "Failed to save results.";
                 }
             }
             catch (Exception ex)
@@ -716,25 +1114,44 @@ namespace kingdom_Preparatory_School_Management_System
                 statusLabel.Text = "Save error.";
                 UIHelper.ShowError("Save exam results failed: " + ex.Message, "Exam Results");
             }
+            finally
+            {
+                SetExamBusy(false);
+            }
+        }
+
+        private void SetExamBusy(bool busy, string status = null)
+        {
+            _isSavingResults = busy;
+            UseWaitCursor = busy;
+            Cursor = busy ? Cursors.WaitCursor : Cursors.Default;
+            if (subjectGrid != null) subjectGrid.Enabled = !busy;
+            if (studentComboBox != null) studentComboBox.Enabled = !busy;
+            if (classComboBox != null) classComboBox.Enabled = !busy;
+            if (subjectComboBox != null) subjectComboBox.Enabled = !busy;
+            if (termBox != null) termBox.Enabled = !busy;
+            if (yearBox != null) yearBox.Enabled = !busy;
+            if (statusLabel != null && !string.IsNullOrWhiteSpace(status))
+                statusLabel.Text = status;
         }
 
         private void ClearForm()
         {
-            studentIdBox.Text   = "";
-            studentNameBox.Text = "";
-            classBox.Text       = "";
+            studentComboBox.SelectedIndex = -1;
             termBox.SelectedIndex = -1;
             yearBox.Text        = DateTime.Today.Year.ToString();
 
             foreach (var row in subjectRows.Values)
             {
-                row.Cat1.Text   = "";
-                row.Cat2.Text   = "";
-                row.Cat3.Text   = "";
-                row.Exam.Text   = "";
-                row.Total.Text  = "-";
-                row.Grade.Text  = "-";
-                row.Remark.Text = "-";
+                row.Cat1.Text       = "";
+                row.Cat2.Text       = "";
+                row.Cat3.Text       = "";
+                row.RawExam.Text    = "";
+                row.SbaTotal.Text   = "-";
+                row.ScaledExam.Text = "-";
+                row.Total.Text      = "-";
+                row.Grade.Text      = "-";
+                row.Remark.Text     = "";
             }
 
             statusLabel.Text = "Form cleared. Enter a student ID to begin.";

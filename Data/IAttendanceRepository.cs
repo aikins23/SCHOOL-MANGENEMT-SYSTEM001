@@ -1,3 +1,4 @@
+using KingdomPrep.Shared.Models;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -10,7 +11,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
         Task EnsureTableExistsAsync();
         Task<DataTable> GetTargetListAsync(string type, string classId, DateTime date);
         Task<DataTable> GetMonthlyAnalysisAsync(string type, int month, int year);
-        Task<bool> SaveAttendanceBatchAsync(IEnumerable<Models.AttendanceRecord> records);
+        Task<bool> SaveAttendanceBatchAsync(IEnumerable<KingdomPrep.Shared.Models.AttendanceRecord> records);
         Task<IEnumerable<string>> GetActiveClassesAsync();
     }
 }

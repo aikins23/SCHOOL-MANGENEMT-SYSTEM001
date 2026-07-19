@@ -1,11 +1,10 @@
-﻿using kingdom_Preparatory_School_Management_System;
+using kingdom_Preparatory_School_Management_System;
 using kingdom_Preparatory_School_Management_System.Common;
 using kingdom_Preparatory_School_Management_System.Services;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
-using System.Data.OleDb;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Linq;
@@ -18,16 +17,19 @@ namespace kingdom_Preparatory_School_Management_System
     public partial class frmlogin : Form
     {
         private Label statusLabel;
+        private bool _recoveryPromptOpen;
+        private bool _loginInProgress;
+        private const int LoginTimeoutSeconds = 20;
 
-        private static readonly Color PageBackColor = Color.White;
-        private static readonly Color SurfaceColor = Color.White;
-        private static readonly Color PrimaryColor = Color.FromArgb(11, 31, 73);
-        private static readonly Color SidebarColor = Color.FromArgb(5, 18, 48);
-        private static readonly Color GoldColor = Color.FromArgb(197, 158, 57);
-        private static readonly Color GoldSoft = Color.FromArgb(235, 219, 167);
-        private static readonly Color TextColor = Color.FromArgb(28, 36, 52);
-        private static readonly Color MutedTextColor = Color.FromArgb(105, 113, 130);
-        private static readonly Color BorderColor = Color.FromArgb(215, 207, 185);
+        private static readonly Color PageBackColor = UiTheme.Page;
+        private static readonly Color SurfaceColor = UiTheme.Surface;
+        private static readonly Color PrimaryColor = UiTheme.Navy;
+        private static readonly Color SidebarColor = UiTheme.NavyDark;
+        private static readonly Color GoldColor = UiTheme.Gold;
+        private static readonly Color GoldSoft = UiTheme.GoldSoft;
+        private static readonly Color TextColor = UiTheme.Text;
+        private static readonly Color MutedTextColor = UiTheme.Muted;
+        private static readonly Color BorderColor = UiTheme.Border;
 
         public frmlogin()
         {
@@ -36,9 +38,10 @@ namespace kingdom_Preparatory_School_Management_System
             this.Icon = kingdom_Preparatory_School_Management_System.Common.Branding.AppIcon;
 
             // Event handlers are commented-out in the designer — wire them here
-            BTN_Login.Click          += (s, e) => LoginUser();
+            BTN_Login.Click          += async (s, e) => await LoginUserAsync();
             Check.CheckedChanged     += Check_CheckedChanged;
             lab_Register.Click       += lab_Register_Click;
+            Load += async (s, e) => await OfferSystemRecoveryIfNeededAsync();
         }
 
         private void BuildModernLoginView()
@@ -78,9 +81,32 @@ namespace kingdom_Preparatory_School_Management_System
             var panel = new Panel
             {
                 Dock = DockStyle.Fill,
-                BackColor = SidebarColor,
                 Padding = new Padding(38, 36, 38, 32)
             };
+
+            panel.Paint += (s, e) =>
+            {
+                var g = e.Graphics;
+                var rect = panel.ClientRectangle;
+                if (rect.Width == 0 || rect.Height == 0) return;
+
+                using (var brush = new LinearGradientBrush(
+                    rect,
+                    PrimaryColor,
+                    SidebarColor,
+                    LinearGradientMode.Vertical))
+                {
+                    g.FillRectangle(brush, rect);
+                }
+
+                // Match the right-side border accents from the splash screen
+                using (var accent = new SolidBrush(UiTheme.NavySoft))
+                    g.FillRectangle(accent, rect.Width - 6, 0, 6, rect.Height);
+
+                using (var gold = new SolidBrush(GoldColor))
+                    g.FillRectangle(gold, rect.Width - 2, 0, 2, rect.Height);
+            };
+            panel.Resize += (s, e) => panel.Invalidate();
 
             pictureBox1.Dock = DockStyle.Top;
             pictureBox1.Height = 150;
@@ -94,8 +120,9 @@ namespace kingdom_Preparatory_School_Management_System
             {
                 Dock = DockStyle.Bottom,
                 Height = 44,
-                Text = "Secure staff access",
-                ForeColor = Color.FromArgb(154, 168, 205),
+                Text = "SECURE STAFF ACCESS",
+                ForeColor = /*UiTheme.Muted*/Color.White,
+                BackColor = Color.Transparent,
                 Font = new Font("Segoe UI", 8.5F),
                 TextAlign = ContentAlignment.BottomLeft
             });
@@ -114,6 +141,7 @@ namespace kingdom_Preparatory_School_Management_System
                 Height = 96,
                 Text = Common.AppConfig.ProductName,
                 ForeColor = Color.White,
+                BackColor = Color.Transparent,
                 Font = new Font("Georgia", 22F, FontStyle.Bold),
                 TextAlign = ContentAlignment.BottomLeft
             };
@@ -124,6 +152,7 @@ namespace kingdom_Preparatory_School_Management_System
                 Height = 66,
                 Text = "School Management System",
                 ForeColor = GoldSoft,
+                BackColor = Color.Transparent,
                 Font = new Font("Segoe UI Semibold", 12F, FontStyle.Bold),
                 TextAlign = ContentAlignment.TopLeft
             };
@@ -134,6 +163,7 @@ namespace kingdom_Preparatory_School_Management_System
                 Height = 86,
                 Text = "Sign in to manage admissions, staff records, fees, attendance, exams, and reports.",
                 ForeColor = Color.FromArgb(211, 218, 235),
+                BackColor = Color.Transparent,
                 Font = new Font("Segoe UI", 10F),
                 TextAlign = ContentAlignment.TopLeft
             };
@@ -268,12 +298,12 @@ namespace kingdom_Preparatory_School_Management_System
             textBox.BorderThickness = 1;
             textBox.FocusedState.BorderColor = GoldColor;
             textBox.HoverState.BorderColor = GoldColor;
-            
+
             // Add modern icons using in-memory generation
             textBox.IconLeftSize = new Size(20, 20);
             textBox.IconLeftOffset = new Point(10, 0);
             textBox.TextOffset = new Point(10, 0);
-            
+
             if (placeholder.ToLower().Contains("user"))
                 textBox.IconLeft = CreateModernIcon(IconType.User);
             else if (placeholder.ToLower().Contains("pass"))
@@ -315,7 +345,7 @@ namespace kingdom_Preparatory_School_Management_System
 
         }
 
-        private void BTN_Login_Click(object sender, EventArgs e) => LoginUser();
+        private async void BTN_Login_Click(object sender, EventArgs e) => await LoginUserAsync();
 
         private void lab_Register_Click(object sender, EventArgs e)
         {
@@ -346,8 +376,61 @@ namespace kingdom_Preparatory_School_Management_System
         /// </summary>
         private static void EnsureLocalDbRunning() => Program.EnsureLocalDbRunning();
 
-        private async void LoginUser()
+        private async Task<bool> OfferSystemRecoveryIfNeededAsync()
         {
+            if (_recoveryPromptOpen) return false;
+
+            try
+            {
+                var health = await Task.Run(async () =>
+                {
+                    EnsureLocalDbRunning();
+                    return await new kingdom_Preparatory_School_Management_System.Data.SchoolInfoRepository(AppConfig.ConnectionString)
+                        .GetIdentityHealthAsync()
+                        .ConfigureAwait(false);
+                });
+
+                if (!health.SetupAuditFound || health.UserCount != 0)
+                {
+                    return false;
+                }
+
+                _recoveryPromptOpen = true;
+                if (statusLabel != null)
+                    statusLabel.Text = "System recovery is required before sign in.";
+
+                using (var recovery = new frmSystemRecovery())
+                {
+                    var result = recovery.ShowDialog(this);
+                    if (result == DialogResult.OK)
+                    {
+                        if (statusLabel != null)
+                            statusLabel.Text = "Recovery complete. Sign in with the new administrator account.";
+                        ClearLoginForm();
+                    }
+                    else if (statusLabel != null)
+                    {
+                        statusLabel.Text = "Recovery was cancelled. Sign in is unavailable until an administrator account exists.";
+                    }
+
+                    return true;
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggerHelper.LogWarning("System recovery check skipped: " + ex.Message);
+                return false;
+            }
+            finally
+            {
+                _recoveryPromptOpen = false;
+            }
+        }
+
+        private async Task LoginUserAsync()
+        {
+            if (_loginInProgress) return;
+
             try
             {
                 if (!FormValidationHelper.ValidateRequired(TXTUser, "Username")) return;
@@ -356,12 +439,32 @@ namespace kingdom_Preparatory_School_Management_System
                 string username = TXTUser.Text.Trim();
                 string password = TXTPass.Text;
 
+                SetLoginBusy(true);
                 if (statusLabel != null) statusLabel.Text = "Connecting to database...";
-                EnsureLocalDbRunning();
 
                 if (statusLabel != null) statusLabel.Text = "Authenticating...";
 
-                var (success, message) = await AuthService.LoginAsync(username, password);
+                var loginTimeout = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(LoginTimeoutSeconds));
+                var loginTask = Task.Run(async () =>
+                {
+                    EnsureLocalDbRunning();
+                    return await AuthService.LoginAsync(username, password, loginTimeout.Token).ConfigureAwait(false);
+                }, loginTimeout.Token);
+
+                var completedTask = await Task.WhenAny(loginTask, Task.Delay(TimeSpan.FromSeconds(LoginTimeoutSeconds)));
+                if (completedTask != loginTask)
+                {
+                    loginTimeout.Cancel();
+                    _ = loginTask.ContinueWith(t => loginTimeout.Dispose());
+                    if (statusLabel != null) statusLabel.Text = "Database did not respond.";
+                    UIHelper.ShowWarning(
+                        "The database did not respond within 20 seconds. Check SQL Server/LocalDB and try again.",
+                        "Login Timeout");
+                    return;
+                }
+
+                var (success, message) = await loginTask;
+                loginTimeout.Dispose();
 
                 if (success)
                 {
@@ -378,6 +481,7 @@ namespace kingdom_Preparatory_School_Management_System
                     }
 
                     if (statusLabel != null) statusLabel.Text = "Login successful.";
+                    _ = DynamicPermissionService.RefreshCurrentUserPermissionsAsync();
 
                     // Attempt to log, but continue even if logging fails
                     try
@@ -389,8 +493,6 @@ namespace kingdom_Preparatory_School_Management_System
                         System.Diagnostics.Debug.WriteLine($"Failed to log info: {logEx.Message}");
                     }
 
-                    ShowLoginSuccessPrompt(username, AuthService.CurrentUser.Role);
-
                     // Route to the role-appropriate dashboard.
                     // We Hide (not Close) because Application.Run(frmlogin) keeps
                     // the message loop alive only while this form exists. Closing
@@ -398,18 +500,27 @@ namespace kingdom_Preparatory_School_Management_System
                     Form dashboard;
                     if (AuthService.CurrentUser.Role == AuthService.UserRole.Teacher)
                     {
+                        LoggerHelper.LogInfo($"Creating teacher dashboard for {username}");
                         dashboard = new frmTeacherDashboard();
                     }
                     else
                     {
+                        LoggerHelper.LogInfo($"Creating main dashboard for {username}");
                         dashboard = new frmDashboard();
                     }
+                    LoggerHelper.LogInfo($"Opening dashboard for {username} as {AuthService.CurrentUser.Role}");
                     dashboard.Show();
                     this.Hide();
                 }
                 else
                 {
                     if (statusLabel != null) statusLabel.Text = message;
+                    bool openedRecovery = false;
+                    if (ShouldOfferRecovery(message))
+                    {
+                        if (statusLabel != null) statusLabel.Text = "Checking recovery status...";
+                        openedRecovery = await OfferSystemRecoveryIfNeededWithTimeoutAsync();
+                    }
 
                     // Attempt to log, but continue even if logging fails
                     try
@@ -421,7 +532,10 @@ namespace kingdom_Preparatory_School_Management_System
                         System.Diagnostics.Debug.WriteLine($"Failed to log warning: {logEx.Message}");
                     }
 
-                    UIHelper.ShowWarning(message, "Login Failed");
+                    if (!openedRecovery)
+                    {
+                        UIHelper.ShowWarning(message, "Login Failed");
+                    }
                     ClearLoginForm();
                 }
             }
@@ -440,6 +554,43 @@ namespace kingdom_Preparatory_School_Management_System
                 if (statusLabel != null) statusLabel.Text = "Login error.";
                 UIHelper.ShowError("Login failed: " + ex.Message, "Login");
             }
+            finally
+            {
+                SetLoginBusy(false);
+            }
+        }
+
+        private static bool ShouldOfferRecovery(string message)
+        {
+            return !string.IsNullOrWhiteSpace(message)
+                && message.IndexOf("No user accounts were found", StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        private async Task<bool> OfferSystemRecoveryIfNeededWithTimeoutAsync()
+        {
+            var recoveryTask = OfferSystemRecoveryIfNeededAsync();
+            var completedTask = await Task.WhenAny(recoveryTask, Task.Delay(TimeSpan.FromSeconds(8)));
+            if (completedTask == recoveryTask)
+            {
+                return await recoveryTask;
+            }
+
+            LoggerHelper.LogWarning("System recovery check timed out during login.");
+            if (statusLabel != null) statusLabel.Text = "Recovery check timed out.";
+            return false;
+        }
+
+        private void SetLoginBusy(bool busy)
+        {
+            _loginInProgress = busy;
+            BTN_Login.Enabled = !busy;
+            TXTUser.Enabled = !busy;
+            TXTPass.Enabled = !busy;
+            Check.Enabled = !busy;
+            lab_Register.Enabled = !busy;
+            UseWaitCursor = busy;
+            Cursor = busy ? Cursors.WaitCursor : Cursors.Default;
+            BTN_Login.Text = busy ? "Signing in..." : "Sign in";
         }
 
         private void ClearLoginForm()
@@ -457,15 +608,15 @@ namespace kingdom_Preparatory_School_Management_System
             }
         }
 
-        private void BTN_Login_Click_1(object sender, EventArgs e) => LoginUser();
+        private async void BTN_Login_Click_1(object sender, EventArgs e) => await LoginUserAsync();
 
         private sealed class LoginSuccessDialog : Form
         {
-            private static readonly Color DialogBackColor = Color.White;
-            private static readonly Color DialogBorderColor = Color.FromArgb(235, 239, 245);
-            private static readonly Color DialogTextColor = Color.FromArgb(11, 31, 73);
-            private static readonly Color DialogMutedColor = Color.FromArgb(93, 108, 123);
-            private static readonly Color DialogSuccessColor = Color.FromArgb(46, 125, 50);
+            private static readonly Color DialogBackColor = UiTheme.Surface;
+            private static readonly Color DialogBorderColor = UiTheme.Border;
+            private static readonly Color DialogTextColor = UiTheme.Text;
+            private static readonly Color DialogMutedColor = UiTheme.Muted;
+            private static readonly Color DialogSuccessColor = UiTheme.Success;
 
             private readonly Timer _autoCloseTimer;
             private int _secondsRemaining = 3;
@@ -621,23 +772,23 @@ namespace kingdom_Preparatory_School_Management_System
             {
                 e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
                 int size = 48; // Reduced from 64
-                
+
                 using (var pen = new Pen(DialogSuccessColor, 2.5F))
-                using (var bgBrush = new SolidBrush(Color.FromArgb(240, 250, 243)))
+                using (var bgBrush = new SolidBrush(UiTheme.SurfaceAlt))
                 {
                     // Draw a subtle soft background circle
                     e.Graphics.FillEllipse(bgBrush, 2, 2, size - 4, size - 4);
-                    
+
                     // Draw a thin, modern outer circle
                     e.Graphics.DrawEllipse(pen, 2, 2, size - 4, size - 4);
-                    
+
                     // Draw a sleek, thin modern checkmark
                     pen.Width = 3F;
                     pen.StartCap = LineCap.Round;
                     pen.EndCap = LineCap.Round;
                     pen.LineJoin = LineJoin.Round;
-                    
-                    PointF[] points = 
+
+                    PointF[] points =
                     {
                         new PointF(size * 0.30f, size * 0.52f),
                         new PointF(size * 0.45f, size * 0.67f),

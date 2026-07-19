@@ -1,4 +1,4 @@
-﻿namespace kingdom_Preparatory_School_Management_System
+namespace kingdom_Preparatory_School_Management_System
 {
     partial class frmAddStd
     {
@@ -47,8 +47,6 @@
             this.std_pic = new System.Windows.Forms.PictureBox();
             this.cmbGN = new Guna.UI2.WinForms.Guna2ComboBox();
             this.cmbCID = new Guna.UI2.WinForms.Guna2ComboBox();
-            this.roomsBindingSource1 = new System.Windows.Forms.BindingSource(this.components);
-            this.dataSet4 = new kingdom_Preparatory_School_Management_System.DataSet4();
             this.dateDOB = new Guna.UI2.WinForms.Guna2DateTimePicker();
             this.guna2HtmlLabel12 = new Guna.UI2.WinForms.Guna2HtmlLabel();
             this.upload = new Guna.UI2.WinForms.Guna2Button();
@@ -71,8 +69,6 @@
             this.guna2HtmlLabel2 = new Guna.UI2.WinForms.Guna2HtmlLabel();
             this.guna2Panel3 = new Guna.UI2.WinForms.Guna2Panel();
             this.guna2Panel2 = new Guna.UI2.WinForms.Guna2Panel();
-            this.roomsBindingSource = new System.Windows.Forms.BindingSource(this.components);
-            this.dataSet1 = new kingdom_Preparatory_School_Management_System.DataSet1();
             this.guna2Panel4 = new Guna.UI2.WinForms.Guna2Panel();
             this.guna2Panel5 = new Guna.UI2.WinForms.Guna2Panel();
             this.guna2Panel6 = new Guna.UI2.WinForms.Guna2Panel();
@@ -97,17 +93,11 @@
             this.btnSave = new Guna.UI.WinForms.GunaButton();
             this.btnNew = new Guna.UI.WinForms.GunaButton();
             this.pay = new Guna.UI.WinForms.GunaButton();
-            this.roomsTableAdapter = new kingdom_Preparatory_School_Management_System.DataSet1TableAdapters.roomsTableAdapter();
-            this.roomsTableAdapter1 = new kingdom_Preparatory_School_Management_System.DataSet4TableAdapters.roomsTableAdapter();
             this.txtEC = new Guna.UI2.WinForms.Guna2TextBox();
             this.menuStrip1.SuspendLayout();
             this.guna2Panel1.SuspendLayout();
             this.guna2GroupBox1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.std_pic)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.roomsBindingSource1)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.dataSet4)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.roomsBindingSource)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.dataSet1)).BeginInit();
             this.guna2Panel4.SuspendLayout();
             this.guna2GroupBox2.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.guna2PictureBox2)).BeginInit();
@@ -115,9 +105,9 @@
             ((System.ComponentModel.ISupportInitialize)(this.gunaPictureBox1)).BeginInit();
             this.panel1.SuspendLayout();
             this.SuspendLayout();
-            // 
+            //
             // menuStrip1
-            // 
+            //
             this.menuStrip1.BackColor = System.Drawing.SystemColors.AppWorkspace;
             this.menuStrip1.Font = new System.Drawing.Font("Roboto Cn", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.menuStrip1.GripMargin = new System.Windows.Forms.Padding(3, 3, 2, 3);
@@ -135,9 +125,9 @@
             this.menuStrip1.Size = new System.Drawing.Size(1141, 32);
             this.menuStrip1.TabIndex = 4;
             this.menuStrip1.Text = "menuStrip1";
-            // 
+            //
             // addToolStripMenuItem1
-            // 
+            //
             this.addToolStripMenuItem1.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.studentsToolStripMenuItem,
             this.employersToolStripMenuItem,
@@ -146,33 +136,33 @@
             this.addToolStripMenuItem1.Name = "addToolStripMenuItem1";
             this.addToolStripMenuItem1.Size = new System.Drawing.Size(68, 24);
             this.addToolStripMenuItem1.Text = "&Add";
-            // 
+            //
             // studentsToolStripMenuItem
-            // 
+            //
             this.studentsToolStripMenuItem.Name = "studentsToolStripMenuItem";
             this.studentsToolStripMenuItem.Size = new System.Drawing.Size(185, 26);
             this.studentsToolStripMenuItem.Text = "Students";
-            // 
+            //
             //             this.studentsToolStripMenuItem.Click += new System.EventHandler(this.studentsToolStripMenuItem_Click); // TODO: Implement event handler // TODO: Implement event handler
-            // 
+            //
             // employersToolStripMenuItem
-            // 
+            //
             this.employersToolStripMenuItem.Name = "employersToolStripMenuItem";
             this.employersToolStripMenuItem.Size = new System.Drawing.Size(185, 26);
             this.employersToolStripMenuItem.Text = "Employers";
-            // 
+            //
             //             this.employersToolStripMenuItem.Click += new System.EventHandler(this.employersToolStripMenuItem_Click); // TODO: Implement event handler // TODO: Implement event handler
-            // 
+            //
             // classToolStripMenuItem
-            // 
+            //
             this.classToolStripMenuItem.Name = "classToolStripMenuItem";
             this.classToolStripMenuItem.Size = new System.Drawing.Size(185, 26);
             this.classToolStripMenuItem.Text = "Exams Record";
-            // 
+            //
             //             this.classToolStripMenuItem.Click += new System.EventHandler(this.classToolStripMenuItem_Click); // TODO: Implement event handler // TODO: Implement event handler
-            // 
+            //
             // viewToolStripMenuItem
-            // 
+            //
             this.viewToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.studentsToolStripMenuItem1,
             this.employersToolStripMenuItem1,
@@ -181,49 +171,49 @@
             this.viewToolStripMenuItem.Name = "viewToolStripMenuItem";
             this.viewToolStripMenuItem.Size = new System.Drawing.Size(75, 24);
             this.viewToolStripMenuItem.Text = "&View";
-            // 
+            //
             // studentsToolStripMenuItem1
-            // 
+            //
             this.studentsToolStripMenuItem1.Name = "studentsToolStripMenuItem1";
             this.studentsToolStripMenuItem1.Size = new System.Drawing.Size(185, 26);
             this.studentsToolStripMenuItem1.Text = "Students";
-            // 
+            //
             //             this.studentsToolStripMenuItem1.Click += new System.EventHandler(this.studentsToolStripMenuItem1_Click); // TODO: Implement event handler // TODO: Implement event handler
-            // 
+            //
             // employersToolStripMenuItem1
-            // 
+            //
             this.employersToolStripMenuItem1.Name = "employersToolStripMenuItem1";
             this.employersToolStripMenuItem1.Size = new System.Drawing.Size(185, 26);
             this.employersToolStripMenuItem1.Text = "Employers";
-            // 
+            //
             //             this.employersToolStripMenuItem1.Click += new System.EventHandler(this.employersToolStripMenuItem1_Click); // TODO: Implement event handler // TODO: Implement event handler
-            // 
+            //
             // classToolStripMenuItem1
-            // 
+            //
             this.classToolStripMenuItem1.Name = "classToolStripMenuItem1";
             this.classToolStripMenuItem1.Size = new System.Drawing.Size(185, 26);
             this.classToolStripMenuItem1.Text = "Exams Record";
-            // 
+            //
             // makePaymentToolStripMenuItem
-            // 
+            //
             this.makePaymentToolStripMenuItem.Image = ((System.Drawing.Image)(resources.GetObject("makePaymentToolStripMenuItem.Image")));
             this.makePaymentToolStripMenuItem.Name = "makePaymentToolStripMenuItem";
             this.makePaymentToolStripMenuItem.Size = new System.Drawing.Size(140, 24);
             this.makePaymentToolStripMenuItem.Text = "&Make payment";
-            // 
+            //
             //             this.makePaymentToolStripMenuItem.Click += new System.EventHandler(this.makePaymentToolStripMenuItem_Click); // TODO: Implement event handler // TODO: Implement event handler
-            // 
+            //
             // aboutToolStripMenuItem
-            // 
+            //
             this.aboutToolStripMenuItem.Image = ((System.Drawing.Image)(resources.GetObject("aboutToolStripMenuItem.Image")));
             this.aboutToolStripMenuItem.Name = "aboutToolStripMenuItem";
             this.aboutToolStripMenuItem.Size = new System.Drawing.Size(81, 24);
             this.aboutToolStripMenuItem.Text = "A&bout";
-            // 
+            //
             //             this.aboutToolStripMenuItem.Click += new System.EventHandler(this.aboutToolStripMenuItem_Click); // TODO: Implement event handler // TODO: Implement event handler
-            // 
+            //
             // guna2HtmlLabel1
-            // 
+            //
             this.guna2HtmlLabel1.BackColor = System.Drawing.Color.MidnightBlue;
             this.guna2HtmlLabel1.Font = new System.Drawing.Font("Roboto Cn", 18F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.guna2HtmlLabel1.ForeColor = System.Drawing.Color.White;
@@ -233,9 +223,9 @@
             this.guna2HtmlLabel1.Size = new System.Drawing.Size(341, 39);
             this.guna2HtmlLabel1.TabIndex = 7;
             this.guna2HtmlLabel1.Text = "STUDENT ADMISSION FORM";
-            // 
+            //
             // guna2Panel1
-            // 
+            //
             this.guna2Panel1.Controls.Add(this.guna2GroupBox1);
             this.guna2Panel1.Controls.Add(this.guna2Panel3);
             this.guna2Panel1.Controls.Add(this.guna2Panel2);
@@ -245,9 +235,9 @@
             this.guna2Panel1.ShadowDecoration.Parent = this.guna2Panel1;
             this.guna2Panel1.Size = new System.Drawing.Size(512, 686);
             this.guna2Panel1.TabIndex = 8;
-            // 
+            //
             // guna2GroupBox1
-            // 
+            //
             this.guna2GroupBox1.BackColor = System.Drawing.Color.Transparent;
             this.guna2GroupBox1.BorderColor = System.Drawing.Color.White;
             this.guna2GroupBox1.Controls.Add(this.std_pic);
@@ -283,9 +273,9 @@
             this.guna2GroupBox1.Size = new System.Drawing.Size(532, 689);
             this.guna2GroupBox1.TabIndex = 12;
             this.guna2GroupBox1.Text = "PERSONAL INFORMATION";
-            // 
+            //
             // std_pic
-            // 
+            //
             this.std_pic.Image = ((System.Drawing.Image)(resources.GetObject("std_pic.Image")));
             this.std_pic.Location = new System.Drawing.Point(5, 490);
             this.std_pic.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
@@ -294,9 +284,9 @@
             this.std_pic.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
             this.std_pic.TabIndex = 26;
             this.std_pic.TabStop = false;
-            // 
+            //
             // cmbGN
-            // 
+            //
             this.cmbGN.BackColor = System.Drawing.Color.Transparent;
             this.cmbGN.DrawMode = System.Windows.Forms.DrawMode.OwnerDrawFixed;
             this.cmbGN.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
@@ -318,11 +308,10 @@
             this.cmbGN.ShadowDecoration.Parent = this.cmbGN;
             this.cmbGN.Size = new System.Drawing.Size(265, 26);
             this.cmbGN.TabIndex = 25;
-            // 
+            //
             // cmbCID
-            // 
+            //
             this.cmbCID.BackColor = System.Drawing.Color.Transparent;
-            this.cmbCID.DataBindings.Add(new System.Windows.Forms.Binding("SelectedValue", this.roomsBindingSource1, "Class_name", true));
             this.cmbCID.DrawMode = System.Windows.Forms.DrawMode.OwnerDrawFixed;
             this.cmbCID.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.cmbCID.FillColor = System.Drawing.Color.LightBlue;
@@ -355,19 +344,13 @@
             this.cmbCID.ShadowDecoration.Parent = this.cmbCID;
             this.cmbCID.Size = new System.Drawing.Size(265, 26);
             this.cmbCID.TabIndex = 24;
-            // 
-            // roomsBindingSource1
-            // 
-            this.roomsBindingSource1.DataMember = "rooms";
-            this.roomsBindingSource1.DataSource = this.dataSet4;
-            // 
-            // dataSet4
-            // 
-            this.dataSet4.DataSetName = "DataSet4";
-            this.dataSet4.SchemaSerializationMode = System.Data.SchemaSerializationMode.IncludeSchema;
-            // 
+            //
+            //
+            //
+            //
+            //
             // dateDOB
-            // 
+            //
             this.dateDOB.CheckedState.Parent = this.dateDOB;
             this.dateDOB.FillColor = System.Drawing.Color.LightBlue;
             this.dateDOB.FocusedColor = System.Drawing.Color.Black;
@@ -384,9 +367,9 @@
             this.dateDOB.Size = new System.Drawing.Size(267, 34);
             this.dateDOB.TabIndex = 23;
             this.dateDOB.Value = new System.DateTime(2024, 3, 21, 7, 53, 23, 195);
-            // 
+            //
             // guna2HtmlLabel12
-            // 
+            //
             this.guna2HtmlLabel12.BackColor = System.Drawing.Color.LightBlue;
             this.guna2HtmlLabel12.ForeColor = System.Drawing.Color.Black;
             this.guna2HtmlLabel12.Location = new System.Drawing.Point(3, 633);
@@ -395,9 +378,9 @@
             this.guna2HtmlLabel12.Size = new System.Drawing.Size(131, 18);
             this.guna2HtmlLabel12.TabIndex = 22;
             this.guna2HtmlLabel12.Text = "STUDENT PICTURE";
-            // 
+            //
             // upload
-            // 
+            //
             this.upload.CheckedState.Parent = this.upload;
             this.upload.CustomImages.Parent = this.upload;
             this.upload.FillColor = System.Drawing.Color.LightBlue;
@@ -411,11 +394,11 @@
             this.upload.Size = new System.Drawing.Size(267, 59);
             this.upload.TabIndex = 21;
             this.upload.Text = "UPLOAD STUDENT\'S PICTURE";
-            // 
+            //
             //             this.upload.Click += new System.EventHandler(this.upload_Click); // TODO: Implement event handler // TODO: Implement event handler
-            // 
+            //
             // txtFN
-            // 
+            //
             this.txtFN.Cursor = System.Windows.Forms.Cursors.IBeam;
             this.txtFN.DefaultText = "";
             this.txtFN.DisabledState.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(208)))), ((int)(((byte)(208)))), ((int)(((byte)(208)))));
@@ -439,9 +422,9 @@
             this.txtFN.ShadowDecoration.Parent = this.txtFN;
             this.txtFN.Size = new System.Drawing.Size(267, 31);
             this.txtFN.TabIndex = 19;
-            // 
+            //
             // guna2HtmlLabel11
-            // 
+            //
             this.guna2HtmlLabel11.BackColor = System.Drawing.Color.LightBlue;
             this.guna2HtmlLabel11.Font = new System.Drawing.Font("Roboto Cn", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.guna2HtmlLabel11.ForeColor = System.Drawing.Color.Black;
@@ -451,9 +434,9 @@
             this.guna2HtmlLabel11.Size = new System.Drawing.Size(96, 25);
             this.guna2HtmlLabel11.TabIndex = 18;
             this.guna2HtmlLabel11.Text = "FIRST NAME";
-            // 
+            //
             // txtLN
-            // 
+            //
             this.txtLN.Cursor = System.Windows.Forms.Cursors.IBeam;
             this.txtLN.DefaultText = "";
             this.txtLN.DisabledState.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(208)))), ((int)(((byte)(208)))), ((int)(((byte)(208)))));
@@ -477,9 +460,9 @@
             this.txtLN.ShadowDecoration.Parent = this.txtLN;
             this.txtLN.Size = new System.Drawing.Size(267, 34);
             this.txtLN.TabIndex = 17;
-            // 
+            //
             // guna2HtmlLabel10
-            // 
+            //
             this.guna2HtmlLabel10.BackColor = System.Drawing.Color.LightBlue;
             this.guna2HtmlLabel10.Font = new System.Drawing.Font("Roboto Cn", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.guna2HtmlLabel10.ForeColor = System.Drawing.Color.Black;
@@ -489,9 +472,9 @@
             this.guna2HtmlLabel10.Size = new System.Drawing.Size(92, 25);
             this.guna2HtmlLabel10.TabIndex = 16;
             this.guna2HtmlLabel10.Text = "LAST NAME";
-            // 
+            //
             // guna2HtmlLabel9
-            // 
+            //
             this.guna2HtmlLabel9.BackColor = System.Drawing.Color.LightBlue;
             this.guna2HtmlLabel9.Font = new System.Drawing.Font("Roboto Cn", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.guna2HtmlLabel9.ForeColor = System.Drawing.Color.Black;
@@ -501,9 +484,9 @@
             this.guna2HtmlLabel9.Size = new System.Drawing.Size(118, 25);
             this.guna2HtmlLabel9.TabIndex = 14;
             this.guna2HtmlLabel9.Text = "DATE OF BIRTH";
-            // 
+            //
             // guna2HtmlLabel8
-            // 
+            //
             this.guna2HtmlLabel8.BackColor = System.Drawing.Color.LightBlue;
             this.guna2HtmlLabel8.Font = new System.Drawing.Font("Roboto Cn", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.guna2HtmlLabel8.ForeColor = System.Drawing.Color.Black;
@@ -513,9 +496,9 @@
             this.guna2HtmlLabel8.Size = new System.Drawing.Size(65, 25);
             this.guna2HtmlLabel8.TabIndex = 12;
             this.guna2HtmlLabel8.Text = "GENDER";
-            // 
+            //
             // guna2HtmlLabel7
-            // 
+            //
             this.guna2HtmlLabel7.BackColor = System.Drawing.Color.LightBlue;
             this.guna2HtmlLabel7.Font = new System.Drawing.Font("Roboto Cn", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.guna2HtmlLabel7.ForeColor = System.Drawing.Color.Black;
@@ -525,9 +508,9 @@
             this.guna2HtmlLabel7.Size = new System.Drawing.Size(74, 25);
             this.guna2HtmlLabel7.TabIndex = 10;
             this.guna2HtmlLabel7.Text = "CLASS ID";
-            // 
+            //
             // txtHT
-            // 
+            //
             this.txtHT.Cursor = System.Windows.Forms.Cursors.IBeam;
             this.txtHT.DefaultText = "";
             this.txtHT.DisabledState.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(208)))), ((int)(((byte)(208)))), ((int)(((byte)(208)))));
@@ -551,9 +534,9 @@
             this.txtHT.ShadowDecoration.Parent = this.txtHT;
             this.txtHT.Size = new System.Drawing.Size(267, 31);
             this.txtHT.TabIndex = 9;
-            // 
+            //
             // guna2HtmlLabel6
-            // 
+            //
             this.guna2HtmlLabel6.BackColor = System.Drawing.Color.LightBlue;
             this.guna2HtmlLabel6.Font = new System.Drawing.Font("Roboto Cn", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.guna2HtmlLabel6.ForeColor = System.Drawing.Color.Black;
@@ -563,9 +546,9 @@
             this.guna2HtmlLabel6.Size = new System.Drawing.Size(100, 25);
             this.guna2HtmlLabel6.TabIndex = 8;
             this.guna2HtmlLabel6.Text = "HOME TOWN";
-            // 
+            //
             // txtRD
-            // 
+            //
             this.txtRD.Cursor = System.Windows.Forms.Cursors.IBeam;
             this.txtRD.DefaultText = "";
             this.txtRD.DisabledState.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(208)))), ((int)(((byte)(208)))), ((int)(((byte)(208)))));
@@ -589,9 +572,9 @@
             this.txtRD.ShadowDecoration.Parent = this.txtRD;
             this.txtRD.Size = new System.Drawing.Size(267, 31);
             this.txtRD.TabIndex = 7;
-            // 
+            //
             // guna2HtmlLabel5
-            // 
+            //
             this.guna2HtmlLabel5.BackColor = System.Drawing.Color.LightBlue;
             this.guna2HtmlLabel5.Font = new System.Drawing.Font("Roboto Cn", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.guna2HtmlLabel5.ForeColor = System.Drawing.Color.Black;
@@ -601,9 +584,9 @@
             this.guna2HtmlLabel5.Size = new System.Drawing.Size(89, 25);
             this.guna2HtmlLabel5.TabIndex = 6;
             this.guna2HtmlLabel5.Text = "RESIDENCE";
-            // 
+            //
             // txtAG
-            // 
+            //
             this.txtAG.Cursor = System.Windows.Forms.Cursors.IBeam;
             this.txtAG.DefaultText = "";
             this.txtAG.DisabledState.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(208)))), ((int)(((byte)(208)))), ((int)(((byte)(208)))));
@@ -627,9 +610,9 @@
             this.txtAG.ShadowDecoration.Parent = this.txtAG;
             this.txtAG.Size = new System.Drawing.Size(267, 31);
             this.txtAG.TabIndex = 5;
-            // 
+            //
             // guna2HtmlLabel4
-            // 
+            //
             this.guna2HtmlLabel4.BackColor = System.Drawing.Color.LightBlue;
             this.guna2HtmlLabel4.Font = new System.Drawing.Font("Roboto Cn", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.guna2HtmlLabel4.ForeColor = System.Drawing.Color.Black;
@@ -639,9 +622,9 @@
             this.guna2HtmlLabel4.Size = new System.Drawing.Size(86, 25);
             this.guna2HtmlLabel4.TabIndex = 4;
             this.guna2HtmlLabel4.Text = "ALLERGIES";
-            // 
+            //
             // txtEM
-            // 
+            //
             this.txtEM.Cursor = System.Windows.Forms.Cursors.IBeam;
             this.txtEM.DefaultText = "";
             this.txtEM.DisabledState.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(208)))), ((int)(((byte)(208)))), ((int)(((byte)(208)))));
@@ -665,9 +648,9 @@
             this.txtEM.ShadowDecoration.Parent = this.txtEM;
             this.txtEM.Size = new System.Drawing.Size(267, 31);
             this.txtEM.TabIndex = 3;
-            // 
+            //
             // guna2HtmlLabel3
-            // 
+            //
             this.guna2HtmlLabel3.BackColor = System.Drawing.Color.LightBlue;
             this.guna2HtmlLabel3.Font = new System.Drawing.Font("Roboto Cn", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.guna2HtmlLabel3.ForeColor = System.Drawing.Color.Black;
@@ -677,9 +660,9 @@
             this.guna2HtmlLabel3.Size = new System.Drawing.Size(51, 25);
             this.guna2HtmlLabel3.TabIndex = 2;
             this.guna2HtmlLabel3.Text = "EMAIL";
-            // 
+            //
             // txtStdID
-            // 
+            //
             this.txtStdID.Cursor = System.Windows.Forms.Cursors.IBeam;
             this.txtStdID.DefaultText = "";
             this.txtStdID.DisabledState.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(208)))), ((int)(((byte)(208)))), ((int)(((byte)(208)))));
@@ -704,11 +687,11 @@
             this.txtStdID.ShadowDecoration.Parent = this.txtStdID;
             this.txtStdID.Size = new System.Drawing.Size(267, 27);
             this.txtStdID.TabIndex = 1;
-            // 
+            //
             //             this.txtStdID.TextChanged += new System.EventHandler(this.txtStdID_TextChanged); // TODO: Implement event handler // TODO: Implement event handler
-            // 
+            //
             // guna2HtmlLabel2
-            // 
+            //
             this.guna2HtmlLabel2.BackColor = System.Drawing.Color.LightBlue;
             this.guna2HtmlLabel2.Font = new System.Drawing.Font("Roboto Cn", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.guna2HtmlLabel2.ForeColor = System.Drawing.Color.Black;
@@ -718,37 +701,31 @@
             this.guna2HtmlLabel2.Size = new System.Drawing.Size(94, 25);
             this.guna2HtmlLabel2.TabIndex = 0;
             this.guna2HtmlLabel2.Text = "STUDENT ID";
-            // 
+            //
             // guna2Panel3
-            // 
+            //
             this.guna2Panel3.Location = new System.Drawing.Point(544, 0);
             this.guna2Panel3.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.guna2Panel3.Name = "guna2Panel3";
             this.guna2Panel3.ShadowDecoration.Parent = this.guna2Panel3;
             this.guna2Panel3.Size = new System.Drawing.Size(444, 667);
             this.guna2Panel3.TabIndex = 10;
-            // 
+            //
             // guna2Panel2
-            // 
+            //
             this.guna2Panel2.Location = new System.Drawing.Point(560, 2);
             this.guna2Panel2.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.guna2Panel2.Name = "guna2Panel2";
             this.guna2Panel2.ShadowDecoration.Parent = this.guna2Panel2;
             this.guna2Panel2.Size = new System.Drawing.Size(444, 667);
             this.guna2Panel2.TabIndex = 9;
-            // 
-            // roomsBindingSource
-            // 
-            this.roomsBindingSource.DataMember = "rooms";
-            this.roomsBindingSource.DataSource = this.dataSet1;
-            // 
-            // dataSet1
-            // 
-            this.dataSet1.DataSetName = "DataSet1";
-            this.dataSet1.SchemaSerializationMode = System.Data.SchemaSerializationMode.IncludeSchema;
-            // 
+            //
+            //
+            //
+            //
+            //
             // guna2Panel4
-            // 
+            //
             this.guna2Panel4.Controls.Add(this.guna2Panel5);
             this.guna2Panel4.Controls.Add(this.guna2Panel6);
             this.guna2Panel4.Location = new System.Drawing.Point(567, 70);
@@ -757,27 +734,27 @@
             this.guna2Panel4.ShadowDecoration.Parent = this.guna2Panel4;
             this.guna2Panel4.Size = new System.Drawing.Size(444, 667);
             this.guna2Panel4.TabIndex = 9;
-            // 
+            //
             // guna2Panel5
-            // 
+            //
             this.guna2Panel5.Location = new System.Drawing.Point(544, 0);
             this.guna2Panel5.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.guna2Panel5.Name = "guna2Panel5";
             this.guna2Panel5.ShadowDecoration.Parent = this.guna2Panel5;
             this.guna2Panel5.Size = new System.Drawing.Size(444, 667);
             this.guna2Panel5.TabIndex = 10;
-            // 
+            //
             // guna2Panel6
-            // 
+            //
             this.guna2Panel6.Location = new System.Drawing.Point(560, 2);
             this.guna2Panel6.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.guna2Panel6.Name = "guna2Panel6";
             this.guna2Panel6.ShadowDecoration.Parent = this.guna2Panel6;
             this.guna2Panel6.Size = new System.Drawing.Size(444, 667);
             this.guna2Panel6.TabIndex = 9;
-            // 
+            //
             // guna2GroupBox2
-            // 
+            //
             this.guna2GroupBox2.BackColor = System.Drawing.Color.Transparent;
             this.guna2GroupBox2.BorderColor = System.Drawing.Color.White;
             this.guna2GroupBox2.Controls.Add(this.dateAD);
@@ -802,9 +779,9 @@
             this.guna2GroupBox2.Size = new System.Drawing.Size(532, 689);
             this.guna2GroupBox2.TabIndex = 12;
             this.guna2GroupBox2.Text = "GUIDANCE AND EMERGENCY INFORMATION";
-            // 
+            //
             // dateAD
-            // 
+            //
             this.dateAD.CheckedState.Parent = this.dateAD;
             this.dateAD.FillColor = System.Drawing.Color.LightBlue;
             this.dateAD.FocusedColor = System.Drawing.Color.Black;
@@ -821,9 +798,9 @@
             this.dateAD.Size = new System.Drawing.Size(267, 34);
             this.dateAD.TabIndex = 26;
             this.dateAD.Value = new System.DateTime(2024, 3, 21, 7, 53, 23, 195);
-            // 
+            //
             // guna2PictureBox2
-            // 
+            //
             this.guna2PictureBox2.BorderStyle = System.Windows.Forms.BorderStyle.Fixed3D;
             this.guna2PictureBox2.Image = ((System.Drawing.Image)(resources.GetObject("guna2PictureBox2.Image")));
             this.guna2PictureBox2.Location = new System.Drawing.Point(-20, 422);
@@ -834,9 +811,9 @@
             this.guna2PictureBox2.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
             this.guna2PictureBox2.TabIndex = 21;
             this.guna2PictureBox2.TabStop = false;
-            // 
+            //
             // label11
-            // 
+            //
             this.label11.AutoSize = true;
             this.label11.Font = new System.Drawing.Font("Roboto Cn", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.label11.ForeColor = System.Drawing.Color.MidnightBlue;
@@ -848,9 +825,9 @@
             this.label11.Text = "- ENSURE YOU FILL THE FORM IN CAPS.\r\n- ENSURE THE INFORMATION PROVIDED IS FILLED " +
     "ACCORDINGLY.\r\n- ENSURE NAMES AND OTHER DETAILS ARE CORRECTLY SPELLED.";
             this.label11.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            // 
+            //
             // txtGN
-            // 
+            //
             this.txtGN.Cursor = System.Windows.Forms.Cursors.IBeam;
             this.txtGN.DefaultText = "";
             this.txtGN.DisabledState.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(208)))), ((int)(((byte)(208)))), ((int)(((byte)(208)))));
@@ -874,9 +851,9 @@
             this.txtGN.ShadowDecoration.Parent = this.txtGN;
             this.txtGN.Size = new System.Drawing.Size(267, 41);
             this.txtGN.TabIndex = 15;
-            // 
+            //
             // guna2HtmlLabel17
-            // 
+            //
             this.guna2HtmlLabel17.BackColor = System.Drawing.Color.LightBlue;
             this.guna2HtmlLabel17.Font = new System.Drawing.Font("Roboto", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.guna2HtmlLabel17.ForeColor = System.Drawing.Color.Black;
@@ -886,9 +863,9 @@
             this.guna2HtmlLabel17.Size = new System.Drawing.Size(154, 25);
             this.guna2HtmlLabel17.TabIndex = 14;
             this.guna2HtmlLabel17.Text = "GUIDANCE NAME";
-            // 
+            //
             // txtGE
-            // 
+            //
             this.txtGE.Cursor = System.Windows.Forms.Cursors.IBeam;
             this.txtGE.DefaultText = "";
             this.txtGE.DisabledState.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(208)))), ((int)(((byte)(208)))), ((int)(((byte)(208)))));
@@ -912,9 +889,9 @@
             this.txtGE.ShadowDecoration.Parent = this.txtGE;
             this.txtGE.Size = new System.Drawing.Size(267, 41);
             this.txtGE.TabIndex = 13;
-            // 
+            //
             // guna2HtmlLabel16
-            // 
+            //
             this.guna2HtmlLabel16.BackColor = System.Drawing.Color.LightBlue;
             this.guna2HtmlLabel16.Font = new System.Drawing.Font("Roboto", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.guna2HtmlLabel16.ForeColor = System.Drawing.Color.Black;
@@ -924,9 +901,9 @@
             this.guna2HtmlLabel16.Size = new System.Drawing.Size(164, 25);
             this.guna2HtmlLabel16.TabIndex = 12;
             this.guna2HtmlLabel16.Text = "GUIDIANCE EMAIL";
-            // 
+            //
             // txtGL
-            // 
+            //
             this.txtGL.Cursor = System.Windows.Forms.Cursors.IBeam;
             this.txtGL.DefaultText = "";
             this.txtGL.DisabledState.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(208)))), ((int)(((byte)(208)))), ((int)(((byte)(208)))));
@@ -950,9 +927,9 @@
             this.txtGL.ShadowDecoration.Parent = this.txtGL;
             this.txtGL.Size = new System.Drawing.Size(267, 41);
             this.txtGL.TabIndex = 11;
-            // 
+            //
             // guna2HtmlLabel15
-            // 
+            //
             this.guna2HtmlLabel15.BackColor = System.Drawing.Color.LightBlue;
             this.guna2HtmlLabel15.Font = new System.Drawing.Font("Roboto", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.guna2HtmlLabel15.ForeColor = System.Drawing.Color.Black;
@@ -962,9 +939,9 @@
             this.guna2HtmlLabel15.Size = new System.Drawing.Size(192, 25);
             this.guna2HtmlLabel15.TabIndex = 10;
             this.guna2HtmlLabel15.Text = "GUIDANCE LOCATION";
-            // 
+            //
             // guna2HtmlLabel14
-            // 
+            //
             this.guna2HtmlLabel14.BackColor = System.Drawing.Color.LightBlue;
             this.guna2HtmlLabel14.Font = new System.Drawing.Font("Roboto", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.guna2HtmlLabel14.ForeColor = System.Drawing.Color.Black;
@@ -974,9 +951,9 @@
             this.guna2HtmlLabel14.Size = new System.Drawing.Size(159, 25);
             this.guna2HtmlLabel14.TabIndex = 8;
             this.guna2HtmlLabel14.Text = "ADMISSION DATE";
-            // 
+            //
             // guna2HtmlLabel13
-            // 
+            //
             this.guna2HtmlLabel13.BackColor = System.Drawing.Color.LightBlue;
             this.guna2HtmlLabel13.Font = new System.Drawing.Font("Roboto", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.guna2HtmlLabel13.ForeColor = System.Drawing.Color.Black;
@@ -986,9 +963,9 @@
             this.guna2HtmlLabel13.Size = new System.Drawing.Size(204, 25);
             this.guna2HtmlLabel13.TabIndex = 6;
             this.guna2HtmlLabel13.Text = "EMERGENCY\r\n CONTACT";
-            // 
+            //
             // gunaPanel1
-            // 
+            //
             this.gunaPanel1.BackColor = System.Drawing.Color.White;
             this.gunaPanel1.Controls.Add(this.gunaPictureBox1);
             this.gunaPanel1.Location = new System.Drawing.Point(1076, 0);
@@ -996,9 +973,9 @@
             this.gunaPanel1.Name = "gunaPanel1";
             this.gunaPanel1.Size = new System.Drawing.Size(72, 33);
             this.gunaPanel1.TabIndex = 28;
-            // 
+            //
             // gunaPictureBox1
-            // 
+            //
             this.gunaPictureBox1.BaseColor = System.Drawing.Color.White;
             this.gunaPictureBox1.Image = ((System.Drawing.Image)(resources.GetObject("gunaPictureBox1.Image")));
             this.gunaPictureBox1.Location = new System.Drawing.Point(0, 1);
@@ -1008,11 +985,11 @@
             this.gunaPictureBox1.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
             this.gunaPictureBox1.TabIndex = 0;
             this.gunaPictureBox1.TabStop = false;
-            // 
+            //
             //             this.gunaPictureBox1.Click += new System.EventHandler(this.gunaPictureBox1_Click); // TODO: Implement event handler // TODO: Implement event handler
-            // 
+            //
             // gunaButton1
-            // 
+            //
             this.gunaButton1.AnimationHoverSpeed = 0.07F;
             this.gunaButton1.AnimationSpeed = 0.03F;
             this.gunaButton1.BaseColor = System.Drawing.Color.MidnightBlue;
@@ -1034,11 +1011,11 @@
             this.gunaButton1.Size = new System.Drawing.Size(176, 32);
             this.gunaButton1.TabIndex = 27;
             this.gunaButton1.Text = "View student List";
-            // 
+            //
             //             this.gunaButton1.Click += new System.EventHandler(this.gunaButton1_Click); // TODO: Implement event handler // TODO: Implement event handler
-            // 
+            //
             // panel1
-            // 
+            //
             this.panel1.BackColor = System.Drawing.Color.MidnightBlue;
             this.panel1.Controls.Add(this.btn_Update);
             this.panel1.Controls.Add(this.btnDel);
@@ -1049,9 +1026,9 @@
             this.panel1.Name = "panel1";
             this.panel1.Size = new System.Drawing.Size(889, 74);
             this.panel1.TabIndex = 29;
-            // 
+            //
             // btn_Update
-            // 
+            //
             this.btn_Update.Animated = true;
             this.btn_Update.AnimationHoverSpeed = 0.07F;
             this.btn_Update.AnimationSpeed = 0.03F;
@@ -1076,11 +1053,11 @@
             this.btn_Update.Size = new System.Drawing.Size(163, 81);
             this.btn_Update.TabIndex = 34;
             this.btn_Update.Text = "UPDATE";
-            // 
+            //
             //             this.btn_Update.Click += new System.EventHandler(this.btn_Update_Click); // TODO: Implement event handler // TODO: Implement event handler
-            // 
+            //
             // btnDel
-            // 
+            //
             this.btnDel.Animated = true;
             this.btnDel.AnimationHoverSpeed = 0.07F;
             this.btnDel.AnimationSpeed = 0.03F;
@@ -1105,11 +1082,11 @@
             this.btnDel.Size = new System.Drawing.Size(167, 81);
             this.btnDel.TabIndex = 33;
             this.btnDel.Text = "DELETE";
-            // 
+            //
             //             this.btnDel.Click += new System.EventHandler(this.btnDel_Click); // TODO: Implement event handler // TODO: Implement event handler
-            // 
+            //
             // btnSave
-            // 
+            //
             this.btnSave.Animated = true;
             this.btnSave.AnimationHoverSpeed = 0.07F;
             this.btnSave.AnimationSpeed = 0.03F;
@@ -1134,11 +1111,11 @@
             this.btnSave.Size = new System.Drawing.Size(148, 81);
             this.btnSave.TabIndex = 31;
             this.btnSave.Text = "SAVE";
-            // 
+            //
             //             this.btnSave.Click += new System.EventHandler(this.btnSave_Click_1); // TODO: Implement event handler // TODO: Implement event handler
-            // 
+            //
             // btnNew
-            // 
+            //
             this.btnNew.Animated = true;
             this.btnNew.AnimationHoverSpeed = 0.07F;
             this.btnNew.AnimationSpeed = 0.03F;
@@ -1163,11 +1140,11 @@
             this.btnNew.Size = new System.Drawing.Size(148, 81);
             this.btnNew.TabIndex = 30;
             this.btnNew.Text = "NEW";
-            // 
+            //
             //             this.btnNew.Click += new System.EventHandler(this.btnNew_Click); // TODO: Implement event handler // TODO: Implement event handler
-            // 
+            //
             // pay
-            // 
+            //
             this.pay.AnimationHoverSpeed = 0.07F;
             this.pay.AnimationSpeed = 0.03F;
             this.pay.BackColor = System.Drawing.Color.White;
@@ -1191,17 +1168,13 @@
             this.pay.Size = new System.Drawing.Size(889, 74);
             this.pay.TabIndex = 36;
             this.pay.Text = "VIEW STUDENTS";
-            // 
-            // roomsTableAdapter
-            // 
-            this.roomsTableAdapter.ClearBeforeFill = true;
-            // 
-            // roomsTableAdapter1
-            // 
-            this.roomsTableAdapter1.ClearBeforeFill = true;
-            // 
+            //
+            //
+            //
+            //
+            //
             // txtEC
-            // 
+            //
             this.txtEC.Cursor = System.Windows.Forms.Cursors.IBeam;
             this.txtEC.DefaultText = "";
             this.txtEC.DisabledState.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(208)))), ((int)(((byte)(208)))), ((int)(((byte)(208)))));
@@ -1225,9 +1198,9 @@
             this.txtEC.ShadowDecoration.Parent = this.txtEC;
             this.txtEC.Size = new System.Drawing.Size(267, 36);
             this.txtEC.TabIndex = 7;
-            // 
+            //
             // frmAddStd
-            // 
+            //
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1141, 859);
@@ -1251,10 +1224,6 @@
             this.guna2GroupBox1.ResumeLayout(false);
             this.guna2GroupBox1.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.std_pic)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.roomsBindingSource1)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.dataSet4)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.roomsBindingSource)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.dataSet1)).EndInit();
             this.guna2Panel4.ResumeLayout(false);
             this.guna2GroupBox2.ResumeLayout(false);
             this.guna2GroupBox2.PerformLayout();
@@ -1332,13 +1301,6 @@
         private Guna.UI.WinForms.GunaButton btnSave;
         private Guna.UI.WinForms.GunaButton btnNew;
         private Guna.UI.WinForms.GunaButton pay;
-        private DataSet1 dataSet1;
-        private System.Windows.Forms.BindingSource roomsBindingSource;
-        private DataSet1TableAdapters.roomsTableAdapter roomsTableAdapter;
-        private DataSet4 dataSet4;
-        private System.Windows.Forms.BindingSource roomsBindingSource1;
-        private DataSet4TableAdapters.roomsTableAdapter roomsTableAdapter1;
         public Guna.UI2.WinForms.Guna2TextBox txtEC;
     }
 }
-

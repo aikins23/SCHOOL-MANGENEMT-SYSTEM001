@@ -1,8 +1,10 @@
+using KingdomPrep.Shared.Models;
 using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Threading.Tasks;
 using kingdom_Preparatory_School_Management_System.Data;
+using kingdom_Preparatory_School_Management_System.Common;
 
 namespace kingdom_Preparatory_School_Management_System.Services
 {
@@ -15,7 +17,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
             _repository = repository ?? throw new ArgumentNullException(nameof(repository));
         }
 
-        public async Task<(bool Success, string Message)> SaveResultsAsync(IEnumerable<Models.ExamResult> results)
+        public async Task<(bool Success, string Message)> SaveResultsAsync(IEnumerable<KingdomPrep.Shared.Models.ExamResult> results)
         {
             try
             {
@@ -23,9 +25,11 @@ namespace kingdom_Preparatory_School_Management_System.Services
                 foreach (var result in results)
                 {
                     result.Calculate();
+                    result.Grade = GradingScheme.CodeForScore(result.TotalScore);
+                    result.Remark = GradingScheme.LabelForScore(result.TotalScore);
                     bool exists = await _repository.ResultExistsAsync(result.StudentId, result.Subject, result.Term, result.Year);
-                    
-                    bool success = exists 
+
+                    bool success = exists
                         ? await _repository.UpdateResultAsync(result)
                         : await _repository.AddResultAsync(result);
 
@@ -47,6 +51,11 @@ namespace kingdom_Preparatory_School_Management_System.Services
         public async Task<DataTable> GetExistingResultsForStudentAsync(string studentId, string term, string year)
         {
             return await _repository.GetStudentResultsAsync(studentId, term, year);
+        }
+
+        public async Task<DataTable> GetExistingResultsForClassSubjectAsync(string classId, string subject, string term, string year)
+        {
+            return await _repository.GetClassSubjectResultsAsync(classId, subject, term, year);
         }
     }
 }

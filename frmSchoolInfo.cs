@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using kingdom_Preparatory_School_Management_System.Common;
 using kingdom_Preparatory_School_Management_System.Data;
-using kingdom_Preparatory_School_Management_System.Models;
+using KingdomPrep.Shared.Models;
 using kingdom_Preparatory_School_Management_System.Services;
 
 namespace kingdom_Preparatory_School_Management_System
@@ -20,12 +20,14 @@ namespace kingdom_Preparatory_School_Management_System
     public class frmSchoolInfo : Form
     {
         private readonly SchoolInfoRepository _repo = new SchoolInfoRepository(AppConfig.ConnectionString);
+        private bool CanManageSchoolProfile => AuthService.CanWrite("Settings.SchoolProfile.Manage");
 
         private TextBox _name, _address, _poBox, _gps, _phone1, _phone2, _email, _portalUrl, _admissionFee;
         private PictureBox _logo;
         private byte[] _logoBytes;
         private DataGridView _feeGrid;
         private Button _saveBtn, _cancelBtn, _uploadBtn, _previewBtn;
+        private readonly List<Button> _colourButtons = new List<Button>();
         private Panel _primarySwatch, _accentSwatch, _secondarySwatch;
         private Label _status;
 
@@ -95,10 +97,10 @@ namespace kingdom_Preparatory_School_Management_System
             _feeGrid = new DataGridView
             {
                 Left = lblX, Top = y, Width = boxW + boxX - lblX, Height = 200,
-                AllowUserToAddRows = false, AllowUserToDeleteRows = false, RowHeadersVisible = false,
+                AllowUserToAddRows = true, AllowUserToDeleteRows = true, RowHeadersVisible = true,
                 AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill, BackgroundColor = Color.White
             };
-            _feeGrid.Columns.Add(new DataGridViewTextBoxColumn { Name = "Class", HeaderText = "Class", ReadOnly = true });
+            _feeGrid.Columns.Add(new DataGridViewTextBoxColumn { Name = "Class", HeaderText = "Class", ReadOnly = false });
             _feeGrid.Columns.Add(new DataGridViewTextBoxColumn { Name = "TermFee", HeaderText = "Term Fee" });
             Controls.Add(_feeGrid); y += _feeGrid.Height + gap;
 
@@ -122,6 +124,7 @@ namespace kingdom_Preparatory_School_Management_System
             _saveBtn.Click += async (s, e) => await SaveAsync();
             _cancelBtn.Click += (s, e) => Close();
             Controls.Add(_saveBtn); Controls.Add(_cancelBtn);
+            ApplyWriteAccess();
         }
 
         private Panel AddColourRow(string caption, ref int y, int lblX, int boxX, int rowH, int gap)
@@ -130,6 +133,7 @@ namespace kingdom_Preparatory_School_Management_System
             var swatch = new Panel { Left = boxX, Top = y, Width = 64, Height = 26, BorderStyle = BorderStyle.FixedSingle, BackColor = Color.White };
             var btn = new Button { Text = "Change…", Left = boxX + 74, Top = y - 2, Width = 90, Height = 30, FlatStyle = FlatStyle.Flat };
             btn.Click += (s, e) => PickColour(swatch);
+            _colourButtons.Add(btn);
             Controls.Add(l); Controls.Add(swatch); Controls.Add(btn);
             y += rowH + gap;
             return swatch;
@@ -137,6 +141,7 @@ namespace kingdom_Preparatory_School_Management_System
 
         private void PickColour(Panel swatch)
         {
+            if (!AuthService.RequireWriteAccess("Settings.SchoolProfile.Manage", "Change report card colours")) return;
             using (var dlg = new ColorDialog { FullOpen = true, Color = swatch.BackColor })
             {
                 if (dlg.ShowDialog(this) == DialogResult.OK) swatch.BackColor = dlg.Color;
@@ -154,7 +159,7 @@ namespace kingdom_Preparatory_School_Management_System
                 _name.Text = info.Name; _address.Text = info.Address; _poBox.Text = info.PoBox;
                 _gps.Text = info.GpsAddress; _phone1.Text = info.Phone1; _phone2.Text = info.Phone2;
                 _email.Text = info.Email; _portalUrl.Text = info.PortalUrl;
-                _admissionFee.Text = info.AdmissionFee.ToString("0.##");
+            _admissionFee.Text = info.AdmissionFee.ToString("0.00");
                 _logoBytes = info.Logo;
                 SetLogoPreview(info.Logo);
 
@@ -166,7 +171,7 @@ namespace kingdom_Preparatory_School_Management_System
                 foreach (var className in AppConfig.ClassNames)
                 {
                     decimal fee = fees.TryGetValue(className, out var f) ? f : SchoolInfoRepository.LegacyFeeForClass(className);
-                    _feeGrid.Rows.Add(className, fee.ToString("0.##"));
+                _feeGrid.Rows.Add(className, fee.ToString("0.00"));
                 }
             }
             catch (Exception ex)
@@ -184,7 +189,7 @@ namespace kingdom_Preparatory_School_Management_System
                     using (var ms = new MemoryStream(bytes)) _logo.Image = Image.FromStream(ms);
                     return;
                 }
-                
+
                 // Fallback to Branding class (which handles plogo.png)
                 _logo.Image = Branding.Logo;
             }
@@ -193,6 +198,7 @@ namespace kingdom_Preparatory_School_Management_System
 
         private void UploadLogo()
         {
+            if (!AuthService.RequireWriteAccess("Settings.SchoolProfile.Manage", "Upload school logo")) return;
             using (var dlg = new OpenFileDialog { Filter = "Images|*.jpg;*.jpeg;*.png;*.bmp" })
             {
                 if (dlg.ShowDialog(this) != DialogResult.OK) return;
@@ -209,6 +215,7 @@ namespace kingdom_Preparatory_School_Management_System
 
         private async Task SaveAsync()
         {
+            if (!AuthService.RequireWriteAccess("Settings.SchoolProfile.Manage", "Save school information")) return;
             if (string.IsNullOrWhiteSpace(_name.Text))
             { UIHelper.ShowWarning("School name is required.", "School Information"); return; }
             if (!decimal.TryParse(_admissionFee.Text, out var admission) || admission < 0)
@@ -219,9 +226,11 @@ namespace kingdom_Preparatory_School_Management_System
             {
                 if (row.IsNewRow) continue;
                 string cls = row.Cells["Class"].Value?.ToString();
+                if (string.IsNullOrWhiteSpace(cls))
+                { UIHelper.ShowWarning("Class name cannot be empty.", "School Information"); return; }
                 if (!decimal.TryParse(row.Cells["TermFee"].Value?.ToString(), out var fee) || fee < 0)
                 { UIHelper.ShowWarning($"Term fee for {cls} must be a number ≥ 0.", "School Information"); return; }
-                fees[cls] = fee;
+                fees[cls.Trim()] = fee;
             }
 
             _saveBtn.Enabled = false;
@@ -248,6 +257,21 @@ namespace kingdom_Preparatory_School_Management_System
                 UIHelper.ShowError("Could not save: " + ex.Message, "School Information");
             }
             finally { _saveBtn.Enabled = true; }
+        }
+
+        private void ApplyWriteAccess()
+        {
+            bool canWrite = CanManageSchoolProfile;
+            foreach (var textBox in new[] { _name, _address, _poBox, _gps, _phone1, _phone2, _email, _portalUrl, _admissionFee })
+                textBox.ReadOnly = !canWrite;
+
+            _feeGrid.ReadOnly = !canWrite;
+            _feeGrid.AllowUserToAddRows = canWrite;
+            _feeGrid.AllowUserToDeleteRows = canWrite;
+            _uploadBtn.Enabled = canWrite;
+            foreach (var button in _colourButtons) button.Enabled = canWrite;
+            _saveBtn.Enabled = canWrite;
+            _saveBtn.Text = canWrite ? "Save" : "Read only";
         }
 
         private async Task PreviewAsync()

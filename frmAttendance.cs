@@ -7,7 +7,7 @@ using System.Windows.Forms;
 using kingdom_Preparatory_School_Management_System.Common;
 using kingdom_Preparatory_School_Management_System.Data;
 using kingdom_Preparatory_School_Management_System.Services;
-using kingdom_Preparatory_School_Management_System.Models;
+using KingdomPrep.Shared.Models;
 
 namespace kingdom_Preparatory_School_Management_System
 {
@@ -161,10 +161,16 @@ namespace kingdom_Preparatory_School_Management_System
             btnClear.Click += (s, e) => MarkAll("");
 
             // Right-to-left so Save appears rightmost
-            actions.Controls.Add(btnSave);
+            if (AuthService.CanWrite("Academics.Attendance.Record"))
+            {
+                actions.Controls.Add(btnSave);
+            }
             actions.Controls.Add(btnAnalysis);
-            actions.Controls.Add(btnMarkAll);
-            actions.Controls.Add(btnClear);
+            if (AuthService.CanWrite("Academics.Attendance.Record"))
+            {
+                actions.Controls.Add(btnMarkAll);
+                actions.Controls.Add(btnClear);
+            }
 
             header.Controls.Add(titleBlock, 0, 0);
             header.Controls.Add(actions,    1, 0);
@@ -608,6 +614,9 @@ namespace kingdom_Preparatory_School_Management_System
         {
             try
             {
+                if (!AuthService.RequireWriteAccess("Academics.Attendance.Record", "Save Attendance"))
+                    return;
+
                 if (_isReportMode) return;
 
                 var records  = new List<AttendanceRecord>();

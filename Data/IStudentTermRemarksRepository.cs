@@ -1,5 +1,5 @@
 using System.Threading.Tasks;
-using kingdom_Preparatory_School_Management_System.Models;
+using KingdomPrep.Shared.Models;
 
 namespace kingdom_Preparatory_School_Management_System.Data
 {

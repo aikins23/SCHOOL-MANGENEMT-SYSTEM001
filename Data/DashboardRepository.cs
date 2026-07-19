@@ -1,6 +1,8 @@
+using KingdomPrep.Shared.Models;
+using kingdom_Preparatory_School_Management_System.Common;
 using System;
 using System.Data;
-using System.Data.OleDb;
+using Microsoft.Data.SqlClient;
 using System.Threading.Tasks;
 
 namespace kingdom_Preparatory_School_Management_System.Data
@@ -17,10 +19,10 @@ namespace kingdom_Preparatory_School_Management_System.Data
         public async Task<DashboardCoreMetrics> GetCoreMetricsAsync()
         {
             var m = new DashboardCoreMetrics { TopClass = "No data", TopExpenseCategory = "—", LargestExpenseItem = "—" };
-            
+
             try
             {
-                using (var connection = new OleDbConnection(_connectionString))
+                using (var connection = new SqlConnection(SqlCommandExtensions.StripProvider(_connectionString)))
                 {
                     await connection.OpenAsync();
 
@@ -32,15 +34,15 @@ namespace kingdom_Preparatory_School_Management_System.Data
                     var examsTenant = await TenantContext.HasSchoolIdColumnAsync(connection, "examss");
                     var basicQuery = $@"
                         SELECT
-                            (SELECT COUNT(*) FROM Students WHERE 1=1 {(studentsTenant ? TenantContext.FilterClause() : "")}) AS StudentCount,
-                            (SELECT COUNT(*) FROM Employee WHERE 1=1 {(employeeTenant ? TenantContext.FilterClause() : "")}) AS EmployeeCount,
-                            (SELECT COUNT(*) FROM emp_leave WHERE UPPER([status]) = 'PENDING' {(leaveTenant ? TenantContext.FilterClause() : "")}) AS PendingLeaveCount,
-                            (SELECT ISNULL(SUM(Amount_paid), 0) FROM payment_record WHERE 1=1 {(paymentTenant ? TenantContext.FilterClause() : "")}) AS TotalFeesCollected,
-                            (SELECT ISNULL(SUM(Balance), 0) FROM payment_record WHERE Balance > 0 {(paymentTenant ? TenantContext.FilterClause() : "")}) AS TotalFeesBalance,
-                            (SELECT ISNULL(AVG(gt), 0) FROM examss WHERE 1=1 {(examsTenant ? TenantContext.FilterClause() : "")}) AS AverageExamScore,
-                            ISNULL((SELECT TOP 1 ClassID FROM Students WHERE 1=1 {(studentsTenant ? TenantContext.FilterClause() : "")} GROUP BY ClassID ORDER BY COUNT(*) DESC), 'No data') AS TopClass";
+                            (SELECT COUNT(*) FROM Students WHERE 1=1 {(studentsTenant ? TenantContext.FilterClauseSql() : "")}) AS StudentCount,
+                            (SELECT COUNT(*) FROM Employee WHERE 1=1 {(employeeTenant ? TenantContext.FilterClauseSql() : "")}) AS EmployeeCount,
+                            (SELECT COUNT(*) FROM emp_leave WHERE UPPER([status]) = 'PENDING' {(leaveTenant ? TenantContext.FilterClauseSql() : "")}) AS PendingLeaveCount,
+                            (SELECT ISNULL(SUM(Amount_paid), 0) FROM payment_record WHERE 1=1 {(paymentTenant ? TenantContext.FilterClauseSql() : "")}) AS TotalFeesCollected,
+                            (SELECT ISNULL(SUM(Balance), 0) FROM payment_record WHERE Balance > 0 {(paymentTenant ? TenantContext.FilterClauseSql() : "")}) AS TotalFeesBalance,
+                            (SELECT ISNULL(AVG(gt), 0) FROM examss WHERE 1=1 {(examsTenant ? TenantContext.FilterClauseSql() : "")}) AS AverageExamScore,
+                            ISNULL((SELECT TOP 1 ClassID FROM Students WHERE 1=1 {(studentsTenant ? TenantContext.FilterClauseSql() : "")} GROUP BY ClassID ORDER BY COUNT(*) DESC), 'No data') AS TopClass";
 
-                    using (var cmd = new OleDbCommand(basicQuery, connection))
+                    using (var cmd = new SqlCommand(basicQuery, connection))
                     {
                         if (studentsTenant) TenantContext.AddSchoolParameter(cmd);
                         if (employeeTenant) TenantContext.AddSchoolParameter(cmd);
@@ -93,7 +95,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
                                     ORDER BY TRY_CAST(REPLACE(ISNULL(Amount, '0'), ',', '') AS DECIMAL(18,2)) DESC
                                 ), 0) AS LargestExpenseAmount";
 
-                        using (var cmd = new OleDbCommand(expenseQuery, connection))
+                        using (var cmd = new SqlCommand(expenseQuery, connection))
                         using (var reader = await cmd.ExecuteReaderAsync())
                         {
                             if (await reader.ReadAsync())
@@ -153,18 +155,18 @@ namespace kingdom_Preparatory_School_Management_System.Data
         {
             try
             {
-                using (var connection = new OleDbConnection(_connectionString))
+                using (var connection = new SqlConnection(SqlCommandExtensions.StripProvider(_connectionString)))
                 {
                     await connection.OpenAsync();
                     var tenant = await TenantContext.HasSchoolIdColumnAsync(connection, "Students");
                     var query = "SELECT TOP 1 ClassID FROM Students WHERE 1=1";
                     if (tenant)
                     {
-                        query += TenantContext.FilterClause();
+                        query += TenantContext.FilterClauseSql();
                     }
 
                     query += " GROUP BY ClassID ORDER BY COUNT(*) DESC";
-                    using (var command = new OleDbCommand(query, connection))
+                    using (var command = new SqlCommand(query, connection))
                     {
                         if (tenant)
                         {
@@ -188,31 +190,31 @@ namespace kingdom_Preparatory_School_Management_System.Data
             var table = new DataTable();
             try
             {
-                using (var connection = new OleDbConnection(_connectionString))
+                using (var connection = new SqlConnection(SqlCommandExtensions.StripProvider(_connectionString)))
                 {
                     await connection.OpenAsync();
                     var tenant = await TenantContext.HasSchoolIdColumnAsync(connection, "payment_record");
                     var query = $@"
-                        SELECT TOP {count} 
-                            StudentID AS [ID], 
-                            student_name AS [Student], 
-                            classID AS [Class], 
-                            Amount_paid AS [Paid], 
-                            Balance, 
-                            [Date], 
-                            payment_mode AS [Mode], 
-                            Bursor_name AS [Bursar] 
+                        SELECT TOP {count}
+                            StudentID AS [ID],
+                            student_name AS [Student],
+                            classID AS [Class],
+                            Amount_paid AS [Paid],
+                            Balance,
+                            [Date],
+                            payment_mode AS [Mode],
+                            Bursor_name AS [Bursar]
                         FROM payment_record
                         WHERE 1=1";
-                    if (tenant) query += TenantContext.FilterClause();
+                    if (tenant) query += TenantContext.FilterClauseSql();
                     query += " ORDER BY [Date] DESC, tm DESC";
 
-                    using (var command = new OleDbCommand(query, connection))
+                    using (var command = new SqlCommand(query, connection))
                     {
                         if (tenant) TenantContext.AddSchoolParameter(command);
-                        using (var adapter = new OleDbDataAdapter(command))
+                        using (var adapter = new SqlDataAdapter(command))
                         {
-                            adapter.Fill(table);
+                            await Task.Run(() => adapter.Fill(table));
                         }
                     }
                 }
@@ -260,11 +262,121 @@ namespace kingdom_Preparatory_School_Management_System.Data
             return await FetchTableAsync(query);
         }
 
+        public async Task<DataTable> GetClassFinanceSummaryAsync()
+        {
+            var table = new DataTable();
+
+            try
+            {
+                using (var connection = new SqlConnection(SqlCommandExtensions.StripProvider(_connectionString)))
+                {
+                    await connection.OpenAsync();
+
+                    bool studentTenant = await TenantContext.HasSchoolIdColumnAsync(connection, "Students");
+                    bool paymentTenant = await TenantContext.HasSchoolIdColumnAsync(connection, "payment_record");
+
+                    string studentJoinFilter = studentTenant ? " AND s.SchoolId = @SchoolId" : "";
+                    string paymentFilter = paymentTenant ? TenantContext.FilterClauseSql("pr") : "";
+
+                    string query = $@"
+WITH LatestBalance AS
+(
+    SELECT
+        CONVERT(varchar(50), pr.StudentID) AS StudentID,
+        pr.classID,
+        CAST(ISNULL(pr.Balance, 0) AS decimal(18,2)) AS Balance,
+        ROW_NUMBER() OVER (
+            PARTITION BY CONVERT(varchar(50), pr.StudentID)
+            ORDER BY pr.[Date] DESC, pr.tm DESC, pr.Balance ASC
+        ) AS rn
+    FROM payment_record pr
+    WHERE 1=1{paymentFilter}
+),
+PaidByClass AS
+(
+    SELECT
+        pr.classID,
+        CAST(SUM(ISNULL(pr.Amount_paid, 0)) AS decimal(18,2)) AS TotalPaid
+    FROM payment_record pr
+    WHERE 1=1{paymentFilter}
+    GROUP BY pr.classID
+),
+ClassTotals AS
+(
+    SELECT
+        ca.ClassName AS [Class],
+        COUNT(s.StudentID) AS [Enrollment],
+        CAST(ISNULL(MAX(p.TotalPaid), 0) AS decimal(18,2)) AS [Fees Paid],
+        CAST(ISNULL(SUM(CASE WHEN lb.rn = 1 AND lb.Balance > 0 THEN lb.Balance ELSE 0 END), 0) AS decimal(18,2)) AS [Outstanding]
+    FROM ClassAssignments ca
+    LEFT JOIN Students s
+        ON s.ClassID = ca.ClassName{studentJoinFilter}
+    LEFT JOIN LatestBalance lb
+        ON lb.StudentID = CONVERT(varchar(50), s.StudentID)
+       AND lb.rn = 1
+    LEFT JOIN PaidByClass p
+        ON p.classID = ca.ClassName
+    GROUP BY ca.ClassName
+)
+SELECT
+    [Class],
+    [Enrollment],
+    [Fees Paid],
+    [Outstanding],
+    CAST(
+        CASE
+            WHEN ([Fees Paid] + [Outstanding]) > 0
+            THEN ([Outstanding] * 100.0) / ([Fees Paid] + [Outstanding])
+            ELSE 0
+        END AS decimal(5,2)
+    ) AS [Percent Left]
+FROM ClassTotals
+ORDER BY
+    CASE [Class]
+        WHEN 'CRECHE'         THEN 1
+        WHEN 'NURSERY 1'      THEN 2
+        WHEN 'NURSERY 2'      THEN 3
+        WHEN 'KINDERGARTEN 1' THEN 4
+        WHEN 'KINDERGARTEN 2' THEN 5
+        WHEN 'BASIC 1'        THEN 6
+        WHEN 'BASIC 2'        THEN 7
+        WHEN 'BASIC 3'        THEN 8
+        WHEN 'BASIC 4'        THEN 9
+        WHEN 'BASIC 5'        THEN 10
+        WHEN 'BASIC 6'        THEN 11
+        WHEN 'BASIC 7'        THEN 12
+        WHEN 'BASIC 8'        THEN 13
+        WHEN 'BASIC 9'        THEN 14
+        ELSE 99
+    END";
+
+                    using (var command = new SqlCommand(query, connection))
+                    {
+                        if (studentTenant || paymentTenant)
+                        {
+                            TenantContext.AddSchoolParameter(command);
+                        }
+
+                        using (var adapter = new SqlDataAdapter(command))
+                        {
+                            await Task.Run(() => adapter.Fill(table));
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Services.LoggerHelper.LogError("Error getting class finance summary", ex);
+            }
+
+            return table;
+        }
+
         public async Task<DataTable> GetLeaveStatusSummaryAsync()
         {
             return await FetchTenantTableAsync("emp_leave", tenant =>
                 "SELECT [status] AS [Status], COUNT(*) AS [Total] FROM emp_leave WHERE 1=1" +
-                (tenant ? TenantContext.FilterClause() : "") +
+                (tenant ? TenantContext.FilterClauseSql() : "") +
                 " GROUP BY [status] ORDER BY [status]");
         }
 
@@ -272,42 +384,45 @@ namespace kingdom_Preparatory_School_Management_System.Data
         {
             return await FetchTenantTableAsync("examss", tenant =>
                 "SELECT [subject], AVG(gt) AS AvgScore FROM examss WHERE 1=1" +
-                (tenant ? TenantContext.FilterClause() : "") +
+                (tenant ? TenantContext.FilterClauseSql() : "") +
                 " GROUP BY [subject] ORDER BY AVG(gt) DESC");
         }
 
         public async Task<DataTable> GetMonthlyFeeCollectionTrendAsync(int year)
         {
+            var summary = await GetDashboardSummaryTableAsync(year, "FeeCollected AS Total", "FeeCollected <> 0");
+            if (summary.Rows.Count > 0) return summary;
+
             var query = $@"
-                SELECT MONTH([Date]) AS Mo, SUM(Amount_paid) AS Total 
-                FROM payment_record 
-                WHERE YEAR([Date]) = ? 
-                GROUP BY MONTH([Date]) 
+                SELECT MONTH([Date]) AS Mo, SUM(Amount_paid) AS Total
+                FROM payment_record
+                WHERE YEAR([Date]) = ?
+                GROUP BY MONTH([Date])
                 ORDER BY MONTH([Date])";
-            
+
             var table = new DataTable();
             try
             {
-                using (var connection = new OleDbConnection(_connectionString))
+                using (var connection = new SqlConnection(SqlCommandExtensions.StripProvider(_connectionString)))
                 {
                     await connection.OpenAsync();
                     var tenant = await TenantContext.HasSchoolIdColumnAsync(connection, "payment_record");
                     if (tenant)
                     {
-                        query = query.Replace("WHERE YEAR([Date]) = ?", "WHERE YEAR([Date]) = ?" + TenantContext.FilterClause());
+                        query = query.Replace("WHERE YEAR([Date]) = ?", "WHERE YEAR([Date]) = ?" + TenantContext.FilterClauseSql());
                     }
 
-                    using (var command = new OleDbCommand(query, connection))
+                    using (var command = new SqlCommand(query, connection))
                     {
-                        command.Parameters.AddWithValue("?", year);
+                        command.AddPositionalParameter(year);
                         if (tenant)
                         {
                             TenantContext.AddSchoolParameter(command);
                         }
 
-                        using (var adapter = new OleDbDataAdapter(command))
+                        using (var adapter = new SqlDataAdapter(command))
                         {
-                            adapter.Fill(table);
+                            await Task.Run(() => adapter.Fill(table));
                         }
                     }
                 }
@@ -321,6 +436,9 @@ namespace kingdom_Preparatory_School_Management_System.Data
 
         public async Task<DataTable> GetMonthlyAttendanceRateAsync(int year)
         {
+            var summary = await GetDashboardSummaryTableAsync(year, "AttendanceRate AS RatePct", "AttendanceTotal <> 0");
+            if (summary.Rows.Count > 0) return summary;
+
             var query = @"
                 SELECT MONTH([Date]) AS Mo,
                        CAST(SUM(CASE WHEN UPPER([Status]) = 'PRESENT' THEN 1 ELSE 0 END) * 100.0
@@ -333,26 +451,26 @@ namespace kingdom_Preparatory_School_Management_System.Data
             var table = new DataTable();
             try
             {
-                using (var connection = new OleDbConnection(_connectionString))
+                using (var connection = new SqlConnection(SqlCommandExtensions.StripProvider(_connectionString)))
                 {
                     await connection.OpenAsync();
                     var tenant = await TenantContext.HasSchoolIdColumnAsync(connection, "Attendance");
                     if (tenant)
                     {
-                        query = query.Replace("WHERE YEAR([Date]) = ?", "WHERE YEAR([Date]) = ?" + TenantContext.FilterClause());
+                        query = query.Replace("WHERE YEAR([Date]) = ?", "WHERE YEAR([Date]) = ?" + TenantContext.FilterClauseSql());
                     }
 
-                    using (var command = new OleDbCommand(query, connection))
+                    using (var command = new SqlCommand(query, connection))
                     {
-                        command.Parameters.AddWithValue("?", year);
+                        command.AddPositionalParameter(year);
                         if (tenant)
                         {
                             TenantContext.AddSchoolParameter(command);
                         }
 
-                        using (var adapter = new OleDbDataAdapter(command))
+                        using (var adapter = new SqlDataAdapter(command))
                         {
-                            adapter.Fill(table);
+                            await Task.Run(() => adapter.Fill(table));
                         }
                     }
                 }
@@ -367,6 +485,9 @@ namespace kingdom_Preparatory_School_Management_System.Data
         public async Task<DataTable> GetMonthlyIncomeVsExpensesAsync(int year)
         {
             // Expenses.Amount is stored as varchar — strip commas before casting.
+            var summary = await GetDashboardSummaryTableAsync(year, "FeeCollected AS Income, ExpenseTotal AS Expense", "FeeCollected <> 0 OR ExpenseTotal <> 0");
+            if (summary.Rows.Count > 0) return summary;
+
             var query = @"
                 SELECT Mo, SUM(Income) AS Income, SUM(Expense) AS Expense FROM (
                     SELECT MONTH([Date]) AS Mo, SUM(Amount_paid) AS Income, 0 AS Expense
@@ -384,38 +505,38 @@ namespace kingdom_Preparatory_School_Management_System.Data
             var table = new DataTable();
             try
             {
-                using (var connection = new OleDbConnection(_connectionString))
+                using (var connection = new SqlConnection(SqlCommandExtensions.StripProvider(_connectionString)))
                 {
                     await connection.OpenAsync();
                     var paymentTenant = await TenantContext.HasSchoolIdColumnAsync(connection, "payment_record");
                     var expensesTenant = await TenantContext.HasSchoolIdColumnAsync(connection, "Expenses");
                     if (paymentTenant)
                     {
-                        query = query.Replace("FROM payment_record WHERE YEAR([Date]) = ?", "FROM payment_record WHERE YEAR([Date]) = ?" + TenantContext.FilterClause());
+                        query = query.Replace("FROM payment_record WHERE YEAR([Date]) = ?", "FROM payment_record WHERE YEAR([Date]) = ?" + TenantContext.FilterClauseSql());
                     }
 
                     if (expensesTenant)
                     {
-                        query = query.Replace("FROM Expenses WHERE YEAR(Date_Time) = ?", "FROM Expenses WHERE YEAR(Date_Time) = ?" + TenantContext.FilterClause());
+                        query = query.Replace("FROM Expenses WHERE YEAR(Date_Time) = ?", "FROM Expenses WHERE YEAR(Date_Time) = ?" + TenantContext.FilterClauseSql());
                     }
 
-                    using (var command = new OleDbCommand(query, connection))
+                    using (var command = new SqlCommand(query, connection))
                     {
-                        command.Parameters.AddWithValue("?", year);
+                        command.AddPositionalParameter(year);
                         if (paymentTenant)
                         {
                             TenantContext.AddSchoolParameter(command);
                         }
 
-                        command.Parameters.AddWithValue("?", year);
+                        command.AddPositionalParameter(year);
                         if (expensesTenant)
                         {
                             TenantContext.AddSchoolParameter(command);
                         }
 
-                        using (var adapter = new OleDbDataAdapter(command))
+                        using (var adapter = new SqlDataAdapter(command))
                         {
-                            adapter.Fill(table);
+                            await Task.Run(() => adapter.Fill(table));
                         }
                     }
                 }
@@ -433,7 +554,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
                 SELECT grade AS Grade, COUNT(*) AS Total
                 FROM examss
                 WHERE grade IS NOT NULL AND LTRIM(RTRIM(grade)) <> ''" +
-                (tenant ? TenantContext.FilterClause() : "") + @"
+                (tenant ? TenantContext.FilterClauseSql() : "") + @"
                 GROUP BY grade
                 ORDER BY grade");
         }
@@ -443,7 +564,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
             var table = new DataTable();
             try
             {
-                using (var connection = new OleDbConnection(_connectionString))
+                using (var connection = new SqlConnection(SqlCommandExtensions.StripProvider(_connectionString)))
                 {
                     await connection.OpenAsync();
                     var attendanceTenant = await TenantContext.HasSchoolIdColumnAsync(connection, "Attendance");
@@ -455,17 +576,17 @@ namespace kingdom_Preparatory_School_Management_System.Data
                         FROM Attendance a
                         INNER JOIN Students s ON s.StudentID = a.ReferenceID
                         WHERE UPPER(a.ReferenceType) = 'STUDENT'";
-                    if (attendanceTenant) query += TenantContext.FilterClause("a");
-                    if (studentTenant) query += TenantContext.FilterClause("s");
+                    if (attendanceTenant) query += TenantContext.FilterClauseSql("a");
+                    if (studentTenant) query += TenantContext.FilterClauseSql("s");
                     query += " GROUP BY s.ClassID ORDER BY s.ClassID";
 
-                    using (var command = new OleDbCommand(query, connection))
+                    using (var command = new SqlCommand(query, connection))
                     {
                         if (attendanceTenant) TenantContext.AddSchoolParameter(command);
                         if (studentTenant) TenantContext.AddSchoolParameter(command);
-                        using (var adapter = new OleDbDataAdapter(command))
+                        using (var adapter = new SqlDataAdapter(command))
                         {
-                            adapter.Fill(table);
+                            await Task.Run(() => adapter.Fill(table));
                         }
                     }
                 }
@@ -487,7 +608,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
                     SELECT pr.StudentID, pr.classID, pr.Balance,
                            ROW_NUMBER() OVER (PARTITION BY pr.StudentID ORDER BY pr.[Date] DESC, pr.tm DESC) AS rn
                     FROM payment_record pr
-                    WHERE 1=1" + (tenant ? TenantContext.FilterClause("pr") : "") + @"
+                    WHERE 1=1" + (tenant ? TenantContext.FilterClauseSql("pr") : "") + @"
                 ) latest
                 WHERE rn = 1 AND Balance > 0
                 GROUP BY classID
@@ -500,7 +621,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
                 SELECT ISNULL(NULLIF(LTRIM(RTRIM(payment_mode)), ''), 'Unknown') AS Mode,
                        SUM(Amount_paid) AS Total
                 FROM payment_record
-                WHERE 1=1" + (tenant ? TenantContext.FilterClause() : "") + @"
+                WHERE 1=1" + (tenant ? TenantContext.FilterClauseSql() : "") + @"
                 GROUP BY ISNULL(NULLIF(LTRIM(RTRIM(payment_mode)), ''), 'Unknown')
                 ORDER BY SUM(Amount_paid) DESC");
         }
@@ -511,7 +632,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
                 SELECT ISNULL(NULLIF(LTRIM(RTRIM(department)), ''), 'Unassigned') AS Department,
                        COUNT(*) AS Total
                 FROM Employee
-                WHERE 1=1" + (tenant ? TenantContext.FilterClause() : "") + @"
+                WHERE 1=1" + (tenant ? TenantContext.FilterClauseSql() : "") + @"
                 GROUP BY ISNULL(NULLIF(LTRIM(RTRIM(department)), ''), 'Unassigned')
                 ORDER BY COUNT(*) DESC");
         }
@@ -522,7 +643,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
                 SELECT ISNULL(NULLIF(LTRIM(RTRIM(Purpose)), ''), 'Uncategorized') AS Category,
                        SUM(TRY_CAST(REPLACE(ISNULL(Amount, '0'), ',', '') AS DECIMAL(18,2))) AS Total
                 FROM Expenses
-                WHERE 1=1" + (tenant ? TenantContext.FilterClause() : "") + @"
+                WHERE 1=1" + (tenant ? TenantContext.FilterClauseSql() : "") + @"
                 GROUP BY ISNULL(NULLIF(LTRIM(RTRIM(Purpose)), ''), 'Uncategorized')
                 ORDER BY SUM(TRY_CAST(REPLACE(ISNULL(Amount, '0'), ',', '') AS DECIMAL(18,2))) DESC");
         }
@@ -533,7 +654,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
                 SELECT TOP {topN} a.FullName AS Student,
                        SUM(CASE WHEN UPPER(a.[Status]) = 'ABSENT' THEN 1 ELSE 0 END) AS Absences
                 FROM Attendance a
-                WHERE UPPER(a.ReferenceType) = 'STUDENT'" + (tenant ? TenantContext.FilterClause("a") : "") + @"
+                WHERE UPPER(a.ReferenceType) = 'STUDENT'" + (tenant ? TenantContext.FilterClauseSql("a") : "") + @"
                 GROUP BY a.FullName
                 HAVING SUM(CASE WHEN UPPER(a.[Status]) = 'ABSENT' THEN 1 ELSE 0 END) > 0
                 ORDER BY SUM(CASE WHEN UPPER(a.[Status]) = 'ABSENT' THEN 1 ELSE 0 END) DESC");
@@ -544,7 +665,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
             return await FetchTenantTableAsync("examss", tenant => @"
                 SELECT std_class AS [Class], AVG(gt) AS AvgScore
                 FROM examss
-                WHERE std_class IS NOT NULL AND LTRIM(RTRIM(std_class)) <> ''" + (tenant ? TenantContext.FilterClause() : "") + @"
+                WHERE std_class IS NOT NULL AND LTRIM(RTRIM(std_class)) <> ''" + (tenant ? TenantContext.FilterClauseSql() : "") + @"
                 GROUP BY std_class
                 ORDER BY std_class");
         }
@@ -555,7 +676,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
                 SELECT ISNULL(NULLIF(LTRIM(RTRIM(Gender)), ''), 'Unknown') AS Gender,
                        COUNT(*) AS Total
                 FROM Students
-                WHERE 1=1" + (tenant ? TenantContext.FilterClause() : "") + @"
+                WHERE 1=1" + (tenant ? TenantContext.FilterClauseSql() : "") + @"
                 GROUP BY ISNULL(NULLIF(LTRIM(RTRIM(Gender)), ''), 'Unknown')
                 ORDER BY COUNT(*) DESC");
         }
@@ -567,7 +688,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
                 FROM examss
                 WHERE gt IS NOT NULL
                   AND [year] IS NOT NULL AND LTRIM(RTRIM([year])) <> ''
-                  AND term IS NOT NULL AND LTRIM(RTRIM(term)) <> ''" + (tenant ? TenantContext.FilterClause() : "") + @"
+                  AND term IS NOT NULL AND LTRIM(RTRIM(term)) <> ''" + (tenant ? TenantContext.FilterClauseSql() : "") + @"
                 GROUP BY [year], term
                 ORDER BY [year], term");
         }
@@ -577,7 +698,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
             return await FetchTenantTableAsync("Students", tenant => @"
                 SELECT YEAR(admission_date) AS Yr, COUNT(*) AS Total
                 FROM Students
-                WHERE admission_date IS NOT NULL" + (tenant ? TenantContext.FilterClause() : "") + @"
+                WHERE admission_date IS NOT NULL" + (tenant ? TenantContext.FilterClauseSql() : "") + @"
                 GROUP BY YEAR(admission_date)
                 ORDER BY YEAR(admission_date)");
         }
@@ -587,26 +708,26 @@ namespace kingdom_Preparatory_School_Management_System.Data
             var table = new DataTable();
             try
             {
-                using (var connection = new OleDbConnection(_connectionString))
+                using (var connection = new SqlConnection(SqlCommandExtensions.StripProvider(_connectionString)))
                 {
                     await connection.OpenAsync();
                     var studentTenant = await TenantContext.HasSchoolIdColumnAsync(connection, "Students");
                     var archiveTenant = await TenantContext.HasSchoolIdColumnAsync(connection, "Rolled_Out_Students");
                     var query = @"
                         SELECT 'Active' AS Bucket, COUNT(*) AS Total FROM Students WHERE 1=1";
-                    if (studentTenant) query += TenantContext.FilterClause();
+                    if (studentTenant) query += TenantContext.FilterClauseSql();
                     query += @"
                         UNION ALL
                         SELECT 'Rolled Out' AS Bucket, COUNT(*) AS Total FROM Rolled_Out_Students WHERE 1=1";
-                    if (archiveTenant) query += TenantContext.FilterClause();
+                    if (archiveTenant) query += TenantContext.FilterClauseSql();
 
-                    using (var command = new OleDbCommand(query, connection))
+                    using (var command = new SqlCommand(query, connection))
                     {
                         if (studentTenant) TenantContext.AddSchoolParameter(command);
                         if (archiveTenant) TenantContext.AddSchoolParameter(command);
-                        using (var adapter = new OleDbDataAdapter(command))
+                        using (var adapter = new SqlDataAdapter(command))
                         {
-                            adapter.Fill(table);
+                            await Task.Run(() => adapter.Fill(table));
                         }
                     }
                 }
@@ -625,7 +746,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
                 SELECT ISNULL(NULLIF(LTRIM(RTRIM(department)), ''), 'Unassigned') AS Department,
                        SUM(salary) AS TotalSalary
                 FROM Employee
-                WHERE 1=1" + (tenant ? TenantContext.FilterClause() : "") + @"
+                WHERE 1=1" + (tenant ? TenantContext.FilterClauseSql() : "") + @"
                 GROUP BY ISNULL(NULLIF(LTRIM(RTRIM(department)), ''), 'Unassigned')
                 ORDER BY SUM(salary) DESC");
         }
@@ -639,7 +760,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
                        SUM(CASE WHEN gt <  50 THEN 1 ELSE 0 END) AS FailCount
                 FROM examss
                 WHERE gt IS NOT NULL
-                  AND [subject] IS NOT NULL AND LTRIM(RTRIM([subject])) <> ''" + (tenant ? TenantContext.FilterClause() : "") + @"
+                  AND [subject] IS NOT NULL AND LTRIM(RTRIM([subject])) <> ''" + (tenant ? TenantContext.FilterClauseSql() : "") + @"
                 GROUP BY [subject]
                 ORDER BY [subject]");
         }
@@ -648,10 +769,10 @@ namespace kingdom_Preparatory_School_Management_System.Data
         {
             try
             {
-                using (var connection = new OleDbConnection(_connectionString))
+                using (var connection = new SqlConnection(SqlCommandExtensions.StripProvider(_connectionString)))
                 {
                     await connection.OpenAsync();
-                    using (var command = new OleDbCommand(query, connection))
+                    using (var command = new SqlCommand(query, connection))
                     {
                         var result = await command.ExecuteScalarAsync();
                         return result == null || result == DBNull.Value ? 0 : Convert.ToInt32(result);
@@ -669,18 +790,18 @@ namespace kingdom_Preparatory_School_Management_System.Data
         {
             try
             {
-                using (var connection = new OleDbConnection(_connectionString))
+                using (var connection = new SqlConnection(SqlCommandExtensions.StripProvider(_connectionString)))
                 {
                     await connection.OpenAsync();
                     var tenant = await TenantContext.HasSchoolIdColumnAsync(connection, tableName);
                     if (tenant)
                     {
                         query += query.IndexOf(" WHERE ", StringComparison.OrdinalIgnoreCase) >= 0
-                            ? TenantContext.FilterClause()
-                            : " WHERE 1=1" + TenantContext.FilterClause();
+                            ? TenantContext.FilterClauseSql()
+                            : " WHERE 1=1" + TenantContext.FilterClauseSql();
                     }
 
-                    using (var command = new OleDbCommand(query, connection))
+                    using (var command = new SqlCommand(query, connection))
                     {
                         if (tenant) TenantContext.AddSchoolParameter(command);
                         var result = await command.ExecuteScalarAsync();
@@ -705,23 +826,60 @@ namespace kingdom_Preparatory_School_Management_System.Data
                 "Expenses",
                 "SELECT ISNULL(SUM(TRY_CAST(REPLACE(ISNULL(Amount,'0'),',','') AS DECIMAL(18,2))),0) FROM Expenses WHERE Date_Time BETWEEN ? AND ?", from, to);
 
+        private async Task<DataTable> GetDashboardSummaryTableAsync(int year, string selectColumns, string nonZeroPredicate)
+        {
+            var table = new DataTable();
+            try
+            {
+                using (var connection = new SqlConnection(SqlCommandExtensions.StripProvider(_connectionString)))
+                {
+                    await connection.OpenAsync();
+                    using (var exists = new SqlCommand("SELECT OBJECT_ID(N'DashboardMonthlySummary', N'U')", connection))
+                    {
+                        var objectId = await exists.ExecuteScalarAsync();
+                        if (objectId == null || objectId == DBNull.Value) return table;
+                    }
+
+                    string sql = $@"
+SELECT MONTH(SummaryMonth) AS Mo, {selectColumns}
+FROM DashboardMonthlySummary
+WHERE YEAR(SummaryMonth) = @Year AND ({nonZeroPredicate})
+ORDER BY SummaryMonth";
+                    using (var command = new SqlCommand(sql, connection))
+                    {
+                        command.Parameters.AddWithValue("@Year", year);
+                        using (var adapter = new SqlDataAdapter(command))
+                        {
+                            await Task.Run(() => adapter.Fill(table));
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Services.LoggerHelper.LogWarning("Dashboard summary read skipped: " + ex.Message);
+                table.Clear();
+            }
+            return table;
+        }
+
         private async Task<decimal> ScalarDecimalRangeAsync(string tableName, string query, DateTime from, DateTime to)
         {
             try
             {
-                using (var connection = new OleDbConnection(_connectionString))
+                using (var connection = new SqlConnection(SqlCommandExtensions.StripProvider(_connectionString)))
                 {
                     await connection.OpenAsync();
                     var tenant = await TenantContext.HasSchoolIdColumnAsync(connection, tableName);
                     if (tenant)
                     {
-                        query += TenantContext.FilterClause();
+                        query += TenantContext.FilterClauseSql();
                     }
 
-                    using (var command = new OleDbCommand(query, connection))
+                    using (var command = new SqlCommand(query, connection))
                     {
-                        command.Parameters.AddWithValue("?", from.Date);
-                        command.Parameters.AddWithValue("?", to.Date);
+                        command.AddPositionalParameter(from.Date);
+                        command.AddPositionalParameter(to.Date);
                         if (tenant)
                         {
                             TenantContext.AddSchoolParameter(command);
@@ -739,10 +897,10 @@ namespace kingdom_Preparatory_School_Management_System.Data
         {
             try
             {
-                using (var connection = new OleDbConnection(_connectionString))
+                using (var connection = new SqlConnection(SqlCommandExtensions.StripProvider(_connectionString)))
                 {
                     await connection.OpenAsync();
-                    using (var command = new OleDbCommand(query, connection))
+                    using (var command = new SqlCommand(query, connection))
                     {
                         var result = await command.ExecuteScalarAsync();
                         return result == null || result == DBNull.Value ? 0m : Convert.ToDecimal(result);
@@ -760,18 +918,18 @@ namespace kingdom_Preparatory_School_Management_System.Data
         {
             try
             {
-                using (var connection = new OleDbConnection(_connectionString))
+                using (var connection = new SqlConnection(SqlCommandExtensions.StripProvider(_connectionString)))
                 {
                     await connection.OpenAsync();
                     var tenant = await TenantContext.HasSchoolIdColumnAsync(connection, tableName);
                     if (tenant)
                     {
                         query += query.IndexOf(" WHERE ", StringComparison.OrdinalIgnoreCase) >= 0
-                            ? TenantContext.FilterClause()
-                            : " WHERE 1=1" + TenantContext.FilterClause();
+                            ? TenantContext.FilterClauseSql()
+                            : " WHERE 1=1" + TenantContext.FilterClauseSql();
                     }
 
-                    using (var command = new OleDbCommand(query, connection))
+                    using (var command = new SqlCommand(query, connection))
                     {
                         if (tenant) TenantContext.AddSchoolParameter(command);
                         var result = await command.ExecuteScalarAsync();
@@ -791,22 +949,22 @@ namespace kingdom_Preparatory_School_Management_System.Data
             var table = new DataTable();
             try
             {
-                using (var connection = new OleDbConnection(_connectionString))
+                using (var connection = new SqlConnection(SqlCommandExtensions.StripProvider(_connectionString)))
                 {
                     await connection.OpenAsync();
-                    using (var command = new OleDbCommand(query, connection))
+                    using (var command = new SqlCommand(query, connection))
                     {
                         if (parameters != null)
                         {
                             foreach (var parameter in parameters)
                             {
-                                command.Parameters.AddWithValue("?", parameter ?? DBNull.Value);
+                                command.AddPositionalParameter(parameter ?? DBNull.Value);
                             }
                         }
 
-                        using (var adapter = new OleDbDataAdapter(command))
+                        using (var adapter = new SqlDataAdapter(command))
                         {
-                            adapter.Fill(table);
+                            await Task.Run(() => adapter.Fill(table));
                         }
                     }
                 }
@@ -823,12 +981,12 @@ namespace kingdom_Preparatory_School_Management_System.Data
             var table = new DataTable();
             try
             {
-                using (var connection = new OleDbConnection(_connectionString))
+                using (var connection = new SqlConnection(SqlCommandExtensions.StripProvider(_connectionString)))
                 {
                     await connection.OpenAsync();
                     var tenant = await TenantContext.HasSchoolIdColumnAsync(connection, tableName);
                     var query = buildQuery(tenant);
-                    using (var command = new OleDbCommand(query, connection))
+                    using (var command = new SqlCommand(query, connection))
                     {
                         if (tenant)
                         {
@@ -838,9 +996,9 @@ namespace kingdom_Preparatory_School_Management_System.Data
                             }
                         }
 
-                        using (var adapter = new OleDbDataAdapter(command))
+                        using (var adapter = new SqlDataAdapter(command))
                         {
-                            adapter.Fill(table);
+                            await Task.Run(() => adapter.Fill(table));
                         }
                     }
                 }

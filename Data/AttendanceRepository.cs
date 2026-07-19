@@ -1,7 +1,9 @@
+using KingdomPrep.Shared.Models;
 using System;
 using System.Collections.Generic;
 using System.Data;
-using System.Data.OleDb;
+using Microsoft.Data.SqlClient;
+using kingdom_Preparatory_School_Management_System.Common;
 using System.Threading.Tasks;
 
 namespace kingdom_Preparatory_School_Management_System.Data
@@ -22,13 +24,13 @@ namespace kingdom_Preparatory_School_Management_System.Data
         {
             try
             {
-                using (var connection = new OleDbConnection(_connectionString))
+                using (var connection = new SqlConnection(SqlCommandExtensions.StripProvider(_connectionString)))
                 {
                     await connection.OpenAsync();
                     var query = "SELECT COUNT(*) FROM sys.tables WHERE name = ?";
-                    using (var command = new OleDbCommand(query, connection))
+                    using (var command = new SqlCommand(query, connection))
                     {
-                        command.Parameters.AddWithValue("?", ATTENDANCE_TABLE);
+                        command.AddPositionalParameter(ATTENDANCE_TABLE);
                         var count = Convert.ToInt32(await command.ExecuteScalarAsync());
                         if (count == 0)
                         {
@@ -44,7 +46,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
                                     Remarks varchar(200) NULL,
                                     [CreatedDate] datetime NOT NULL DEFAULT GETDATE()
                                 )";
-                            using (var createCmd = new OleDbCommand(createSql, connection))
+                            using (var createCmd = new SqlCommand(createSql, connection))
                             {
                                 await createCmd.ExecuteNonQueryAsync();
                             }
@@ -63,7 +65,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
             var table = new DataTable();
             try
             {
-                using (var connection = new OleDbConnection(_connectionString))
+                using (var connection = new SqlConnection(SqlCommandExtensions.StripProvider(_connectionString)))
                 {
                     await connection.OpenAsync();
                     var attendanceTenant = await TenantContext.HasSchoolIdColumnAsync(connection, ATTENDANCE_TABLE);
@@ -73,32 +75,32 @@ namespace kingdom_Preparatory_School_Management_System.Data
                     if (type == "STUDENT")
                     {
                         string classFilter = (classId == "All Classes") ? "" : " AND s.ClassID = ?";
-                        string studentFilter = studentTenant ? TenantContext.FilterClause("s") : "";
-                        string attendanceFilter = attendanceTenant ? TenantContext.FilterClause("a") : "";
+                        string studentFilter = studentTenant ? TenantContext.FilterClauseSql("s") : "";
+                        string attendanceFilter = attendanceTenant ? TenantContext.FilterClauseSql("a") : "";
                         query = $@"
-                            SELECT s.StudentID AS [ID], s.FirstName + ' ' + s.LastName AS [Full Name], s.ClassID AS [Class], 
+                            SELECT s.StudentID AS [ID], s.FirstName + ' ' + s.LastName AS [Full Name], s.ClassID AS [Class],
                                    COALESCE(a.Status, 'PRESENT') AS [Status], COALESCE(a.Remarks, '') AS [Remarks]
-                            FROM Students s LEFT JOIN {ATTENDANCE_TABLE} a ON s.StudentID = a.ReferenceID 
+                            FROM Students s LEFT JOIN {ATTENDANCE_TABLE} a ON s.StudentID = a.ReferenceID
                                  AND a.ReferenceType = 'STUDENT' AND a.[Date] = ? {attendanceFilter}
                             WHERE 1=1 {studentFilter} {classFilter}
                             ORDER BY s.ClassID, s.FirstName";
                     }
                     else
                     {
-                        string employeeFilter = employeeTenant ? TenantContext.FilterClause("e") : "";
-                        string attendanceFilter = attendanceTenant ? TenantContext.FilterClause("a") : "";
+                        string employeeFilter = employeeTenant ? TenantContext.FilterClauseSql("e") : "";
+                        string attendanceFilter = attendanceTenant ? TenantContext.FilterClauseSql("a") : "";
                         query = $@"
-                            SELECT e.employmentID AS [ID], e.fullName AS [Full Name], e.position AS [Position], 
+                            SELECT e.employmentID AS [ID], e.fullName AS [Full Name], e.position AS [Position],
                                    COALESCE(a.Status, 'PRESENT') AS [Status], COALESCE(a.Remarks, '') AS [Remarks]
-                            FROM Employee e LEFT JOIN {ATTENDANCE_TABLE} a ON e.employmentID = a.ReferenceID 
+                            FROM Employee e LEFT JOIN {ATTENDANCE_TABLE} a ON e.employmentID = a.ReferenceID
                                  AND a.ReferenceType = 'STAFF' AND a.[Date] = ? {attendanceFilter}
                             WHERE 1=1 {employeeFilter}
                             ORDER BY e.fullName";
                     }
 
-                    using (var command = new OleDbCommand(query, connection))
+                    using (var command = new SqlCommand(query, connection))
                     {
-                        command.Parameters.AddWithValue("?", date);
+                        command.AddPositionalParameter(date);
                         if (attendanceTenant)
                         {
                             TenantContext.AddSchoolParameter(command);
@@ -116,11 +118,11 @@ namespace kingdom_Preparatory_School_Management_System.Data
 
                         if (type == "STUDENT" && classId != "All Classes")
                         {
-                            command.Parameters.AddWithValue("?", classId);
+                            command.AddPositionalParameter(classId);
                         }
-                        using (var adapter = new OleDbDataAdapter(command))
+                        using (var adapter = new SqlDataAdapter(command))
                         {
-                            adapter.Fill(table);
+                            await Task.Run(() => adapter.Fill(table));
                         }
                     }
                 }
@@ -138,13 +140,13 @@ namespace kingdom_Preparatory_School_Management_System.Data
             var table = new DataTable();
             try
             {
-                using (var connection = new OleDbConnection(_connectionString))
+                using (var connection = new SqlConnection(SqlCommandExtensions.StripProvider(_connectionString)))
                 {
                     await connection.OpenAsync();
                     var attendanceTenant = await TenantContext.HasSchoolIdColumnAsync(connection, ATTENDANCE_TABLE);
                     var query = $@"
-                        SELECT 
-                            ReferenceID AS [ID], 
+                        SELECT
+                            ReferenceID AS [ID],
                             FullName AS [Name],
                             COUNT(*) AS [Total Days],
                             SUM(CASE WHEN Status = 'PRESENT' THEN 1 ELSE 0 END) AS [Present],
@@ -152,23 +154,23 @@ namespace kingdom_Preparatory_School_Management_System.Data
                             SUM(CASE WHEN Status = 'ABSENT' THEN 1 ELSE 0 END) AS [Absent],
                             CAST((SUM(CASE WHEN Status = 'PRESENT' THEN 1.0 ELSE 0.5 END) / COUNT(*)) * 100 AS DECIMAL(10,2)) AS [Attendance %]
                         FROM {ATTENDANCE_TABLE}
-                        WHERE ReferenceType = ? AND MONTH([Date]) = ? AND YEAR([Date]) = ? {(attendanceTenant ? TenantContext.FilterClause() : "")}
+                        WHERE ReferenceType = ? AND MONTH([Date]) = ? AND YEAR([Date]) = ? {(attendanceTenant ? TenantContext.FilterClauseSql() : "")}
                         GROUP BY ReferenceID, FullName
                         ORDER BY [Attendance %] ASC";
-                    
-                    using (var command = new OleDbCommand(query, connection))
+
+                    using (var command = new SqlCommand(query, connection))
                     {
-                        command.Parameters.AddWithValue("?", type);
-                        command.Parameters.AddWithValue("?", month);
-                        command.Parameters.AddWithValue("?", year);
+                        command.AddPositionalParameter(type);
+                        command.AddPositionalParameter(month);
+                        command.AddPositionalParameter(year);
                         if (attendanceTenant)
                         {
                             TenantContext.AddSchoolParameter(command);
                         }
 
-                        using (var adapter = new OleDbDataAdapter(command))
+                        using (var adapter = new SqlDataAdapter(command))
                         {
-                            adapter.Fill(table);
+                            await Task.Run(() => adapter.Fill(table));
                         }
                     }
                 }
@@ -180,29 +182,31 @@ namespace kingdom_Preparatory_School_Management_System.Data
             return table;
         }
 
-        public async Task<bool> SaveAttendanceBatchAsync(IEnumerable<Models.AttendanceRecord> records)
+        public async Task<bool> SaveAttendanceBatchAsync(IEnumerable<KingdomPrep.Shared.Models.AttendanceRecord> records)
         {
             try
             {
-                using (var connection = new OleDbConnection(_connectionString))
+                var touchedMonths = new HashSet<DateTime>();
+                using (var connection = new SqlConnection(SqlCommandExtensions.StripProvider(_connectionString)))
                 {
                     await connection.OpenAsync();
                     var attendanceTenant = await TenantContext.HasSchoolIdColumnAsync(connection, ATTENDANCE_TABLE);
                     foreach (var record in records)
                     {
+                        touchedMonths.Add(new DateTime(record.Date.Year, record.Date.Month, 1));
                         // Check if exists
                         var checkQuery = $"SELECT COUNT(*) FROM {ATTENDANCE_TABLE} WHERE ReferenceID = ? AND ReferenceType = ? AND [Date] = ?";
                         if (attendanceTenant)
                         {
-                            checkQuery += TenantContext.FilterClause();
+                            checkQuery += TenantContext.FilterClauseSql();
                         }
 
                         bool exists;
-                        using (var checkCmd = new OleDbCommand(checkQuery, connection))
+                        using (var checkCmd = new SqlCommand(checkQuery, connection))
                         {
-                            checkCmd.Parameters.AddWithValue("?", record.ReferenceID);
-                            checkCmd.Parameters.AddWithValue("?", record.ReferenceType);
-                            checkCmd.Parameters.AddWithValue("?", record.Date);
+                            checkCmd.AddPositionalParameter(record.ReferenceID);
+                            checkCmd.AddPositionalParameter(record.ReferenceType);
+                            checkCmd.AddPositionalParameter(record.Date);
                             if (attendanceTenant)
                             {
                                 TenantContext.AddSchoolParameter(checkCmd);
@@ -216,16 +220,16 @@ namespace kingdom_Preparatory_School_Management_System.Data
                             var updateQuery = $"UPDATE {ATTENDANCE_TABLE} SET [Status] = ?, Remarks = ? WHERE ReferenceID = ? AND ReferenceType = ? AND [Date] = ?";
                             if (attendanceTenant)
                             {
-                                updateQuery += TenantContext.FilterClause();
+                                updateQuery += TenantContext.FilterClauseSql();
                             }
 
-                            using (var upCmd = new OleDbCommand(updateQuery, connection))
+                            using (var upCmd = new SqlCommand(updateQuery, connection))
                             {
-                                upCmd.Parameters.AddWithValue("?", record.Status);
-                                upCmd.Parameters.AddWithValue("?", record.Remarks ?? "");
-                                upCmd.Parameters.AddWithValue("?", record.ReferenceID);
-                                upCmd.Parameters.AddWithValue("?", record.ReferenceType);
-                                upCmd.Parameters.AddWithValue("?", record.Date);
+                                upCmd.AddPositionalParameter(record.Status);
+                                upCmd.AddPositionalParameter(record.Remarks ?? "");
+                                upCmd.AddPositionalParameter(record.ReferenceID);
+                                upCmd.AddPositionalParameter(record.ReferenceType);
+                                upCmd.AddPositionalParameter(record.Date);
                                 if (attendanceTenant)
                                 {
                                     TenantContext.AddSchoolParameter(upCmd);
@@ -233,20 +237,23 @@ namespace kingdom_Preparatory_School_Management_System.Data
 
                                 await upCmd.ExecuteNonQueryAsync();
                             }
+
+                            var attendanceId = await GetAttendanceIdAsync(connection, record, attendanceTenant);
+                            await TryRecordSyncUpsertAsync(attendanceId, "Update");
                         }
                         else
                         {
                             var insertQuery = attendanceTenant
                                 ? $"INSERT INTO {ATTENDANCE_TABLE} (ReferenceID, ReferenceType, FullName, [Date], [Status], Remarks, SchoolId) VALUES (?, ?, ?, ?, ?, ?, ?)"
                                 : $"INSERT INTO {ATTENDANCE_TABLE} (ReferenceID, ReferenceType, FullName, [Date], [Status], Remarks) VALUES (?, ?, ?, ?, ?, ?)";
-                            using (var insCmd = new OleDbCommand(insertQuery, connection))
+                            using (var insCmd = new SqlCommand(insertQuery, connection))
                             {
-                                insCmd.Parameters.AddWithValue("?", record.ReferenceID);
-                                insCmd.Parameters.AddWithValue("?", record.ReferenceType);
-                                insCmd.Parameters.AddWithValue("?", record.FullName);
-                                insCmd.Parameters.AddWithValue("?", record.Date);
-                                insCmd.Parameters.AddWithValue("?", record.Status);
-                                insCmd.Parameters.AddWithValue("?", record.Remarks ?? "");
+                                insCmd.AddPositionalParameter(record.ReferenceID);
+                                insCmd.AddPositionalParameter(record.ReferenceType);
+                                insCmd.AddPositionalParameter(record.FullName);
+                                insCmd.AddPositionalParameter(record.Date);
+                                insCmd.AddPositionalParameter(record.Status);
+                                insCmd.AddPositionalParameter(record.Remarks ?? "");
                                 if (attendanceTenant)
                                 {
                                     TenantContext.AddSchoolParameter(insCmd);
@@ -254,10 +261,19 @@ namespace kingdom_Preparatory_School_Management_System.Data
 
                                 await insCmd.ExecuteNonQueryAsync();
                             }
+
+                            var attendanceId = await GetAttendanceIdAsync(connection, record, attendanceTenant);
+                            await TryRecordSyncUpsertAsync(attendanceId, "Insert");
                         }
                     }
-                    return true;
                 }
+
+                foreach (var month in touchedMonths)
+                {
+                    DashboardSummaryRepository.RefreshMonthBestEffort(_connectionString, month);
+                }
+
+                return true;
             }
             catch (Exception ex)
             {
@@ -270,18 +286,18 @@ namespace kingdom_Preparatory_School_Management_System.Data
             var classes = new List<string>();
             try
             {
-                using (var connection = new OleDbConnection(_connectionString))
+                using (var connection = new SqlConnection(SqlCommandExtensions.StripProvider(_connectionString)))
                 {
                     await connection.OpenAsync();
                     var studentTenant = await TenantContext.HasSchoolIdColumnAsync(connection, STUDENTS_TABLE);
                     var query = "SELECT DISTINCT ClassID FROM Students WHERE 1=1";
                     if (studentTenant)
                     {
-                        query += TenantContext.FilterClause();
+                        query += TenantContext.FilterClauseSql();
                     }
 
                     query += " ORDER BY ClassID";
-                    using (var command = new OleDbCommand(query, connection))
+                    using (var command = new SqlCommand(query, connection))
                     {
                         if (studentTenant)
                         {
@@ -303,6 +319,36 @@ namespace kingdom_Preparatory_School_Management_System.Data
                 Services.LoggerHelper.LogError("Error getting unique classes from Students table", ex);
             }
             return classes;
+        }
+
+        private static async Task<object> GetAttendanceIdAsync(SqlConnection connection, KingdomPrep.Shared.Models.AttendanceRecord record, bool tenant)
+        {
+            var query = $"SELECT TOP 1 AttendanceID FROM {ATTENDANCE_TABLE} WHERE ReferenceID = ? AND ReferenceType = ? AND [Date] = ?";
+            if (tenant) query += TenantContext.FilterClauseSql();
+            query += " ORDER BY AttendanceID DESC";
+
+            using (var cmd = new SqlCommand(query, connection))
+            {
+                cmd.AddPositionalParameter(record.ReferenceID);
+                cmd.AddPositionalParameter(record.ReferenceType);
+                cmd.AddPositionalParameter(record.Date);
+                if (tenant) TenantContext.AddSchoolParameter(cmd);
+                var value = await cmd.ExecuteScalarAsync();
+                return value == null || value == DBNull.Value ? 0 : value;
+            }
+        }
+
+        private async Task TryRecordSyncUpsertAsync(object attendanceId, string operation)
+        {
+            try
+            {
+                if (attendanceId == null || string.IsNullOrWhiteSpace(Convert.ToString(attendanceId))) return;
+                await new SyncChangeRecorder(_connectionString).RecordUpsertAsync(ATTENDANCE_TABLE, "AttendanceID", attendanceId, operation);
+            }
+            catch (Exception ex)
+            {
+                Services.LoggerHelper.LogWarning("Attendance sync capture skipped: " + ex.Message);
+            }
         }
     }
 }

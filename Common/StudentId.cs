@@ -48,6 +48,8 @@ namespace kingdom_Preparatory_School_Management_System.Common
             grid.CellFormatting += (s, e) =>
             {
                 if (e.ColumnIndex < 0 || e.Value == null || e.Value == DBNull.Value) return;
+                if (e.ColumnIndex >= grid.Columns.Count) return;
+
                 var col = grid.Columns[e.ColumnIndex];
                 if (cols.Contains(col.Name) || cols.Contains(col.HeaderText))
                 {

@@ -1,14 +1,16 @@
+using KingdomPrep.Shared.Models;
 using System;
 using System.Collections.Generic;
 using System.Data;
-using System.Data.OleDb;
+using Microsoft.Data.SqlClient;
+using kingdom_Preparatory_School_Management_System.Common;
 using System.Threading.Tasks;
 using kingdom_Preparatory_School_Management_System.Services;
 
 namespace kingdom_Preparatory_School_Management_System.Data
 {
     /// <summary>
-    /// OleDb implementation of Employee Repository - Updated for OLE DB compatibility and correct schema
+    /// SQL Server implementation of Employee Repository - updated for the legacy schema.
     /// Matches database typos from legacy schema: employmentID, conatct, date_of_Emplyment, Employees_Reviews, pic
     /// </summary>
     public class EmployeeRepository : IEmployeeRepository
@@ -21,23 +23,23 @@ namespace kingdom_Preparatory_School_Management_System.Data
             _connectionString = connectionString ?? throw new ArgumentNullException(nameof(connectionString));
         }
 
-        public async Task<Models.Employee> GetByIdAsync(string employeeId)
+        public async Task<KingdomPrep.Shared.Models.Employee> GetByIdAsync(string employeeId)
         {
             try
             {
-                using (var connection = new OleDbConnection(_connectionString))
+                using (var connection = new SqlConnection(SqlCommandExtensions.StripProvider(_connectionString)))
                 {
                     await connection.OpenAsync();
                     var query = $"SELECT * FROM {EMPLOYEE_TABLE} WHERE employmentID = ?";
                     var tenant = await TenantContext.HasSchoolIdColumnAsync(connection, EMPLOYEE_TABLE);
                     if (tenant)
                     {
-                        query += TenantContext.FilterClause();
+                        query += TenantContext.FilterClauseSql();
                     }
 
-                    using (var command = new OleDbCommand(query, connection))
+                    using (var command = new SqlCommand(query, connection))
                     {
-                        command.Parameters.AddWithValue("?", employeeId);
+                        command.AddPositionalParameter(employeeId);
                         if (tenant)
                         {
                             TenantContext.AddSchoolParameter(command);
@@ -60,23 +62,23 @@ namespace kingdom_Preparatory_School_Management_System.Data
             return null;
         }
 
-        public async Task<IEnumerable<Models.Employee>> GetAllAsync()
+        public async Task<IEnumerable<KingdomPrep.Shared.Models.Employee>> GetAllAsync()
         {
-            var employees = new List<Models.Employee>();
+            var employees = new List<KingdomPrep.Shared.Models.Employee>();
             try
             {
-                using (var connection = new OleDbConnection(_connectionString))
+                using (var connection = new SqlConnection(SqlCommandExtensions.StripProvider(_connectionString)))
                 {
                     await connection.OpenAsync();
                     var tenant = await TenantContext.HasSchoolIdColumnAsync(connection, EMPLOYEE_TABLE);
                     var query = $"SELECT * FROM {EMPLOYEE_TABLE} WHERE 1=1";
                     if (tenant)
                     {
-                        query += TenantContext.FilterClause();
+                        query += TenantContext.FilterClauseSql();
                     }
 
                     query += " ORDER BY employmentID";
-                    using (var command = new OleDbCommand(query, connection))
+                    using (var command = new SqlCommand(query, connection))
                     {
                         if (tenant)
                         {
@@ -100,24 +102,24 @@ namespace kingdom_Preparatory_School_Management_System.Data
             return employees;
         }
 
-        public async Task<IEnumerable<Models.Employee>> GetByDepartmentAsync(string department)
+        public async Task<IEnumerable<KingdomPrep.Shared.Models.Employee>> GetByDepartmentAsync(string department)
         {
-            var employees = new List<Models.Employee>();
+            var employees = new List<KingdomPrep.Shared.Models.Employee>();
             try
             {
-                using (var connection = new OleDbConnection(_connectionString))
+                using (var connection = new SqlConnection(SqlCommandExtensions.StripProvider(_connectionString)))
                 {
                     await connection.OpenAsync();
                     var query = $"SELECT * FROM {EMPLOYEE_TABLE} WHERE department = ?";
                     var tenant = await TenantContext.HasSchoolIdColumnAsync(connection, EMPLOYEE_TABLE);
                     if (tenant)
                     {
-                        query += TenantContext.FilterClause();
+                        query += TenantContext.FilterClauseSql();
                     }
 
-                    using (var command = new OleDbCommand(query, connection))
+                    using (var command = new SqlCommand(query, connection))
                     {
-                        command.Parameters.AddWithValue("?", department);
+                        command.AddPositionalParameter(department);
                         if (tenant)
                         {
                             TenantContext.AddSchoolParameter(command);
@@ -140,11 +142,11 @@ namespace kingdom_Preparatory_School_Management_System.Data
             return employees;
         }
 
-        public async Task<bool> AddAsync(Models.Employee employee)
+        public async Task<bool> AddAsync(KingdomPrep.Shared.Models.Employee employee)
         {
             try
             {
-                using (var connection = new OleDbConnection(_connectionString))
+                using (var connection = new SqlConnection(SqlCommandExtensions.StripProvider(_connectionString)))
                 {
                     await connection.OpenAsync();
                     // employmentID is INT IDENTITY — never include it in INSERT.
@@ -164,7 +166,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
                         ({columns})
                         VALUES ({values})";
 
-                    using (var command = new OleDbCommand(query, connection))
+                    using (var command = new SqlCommand(query, connection))
                     {
                         AddEmployeeParameters(command, employee);
                         if (tenant)
@@ -176,12 +178,13 @@ namespace kingdom_Preparatory_School_Management_System.Data
                         if (rows > 0)
                         {
                             // Retrieve the auto-generated identity value
-                            using (var idCmd = new OleDbCommand("SELECT @@IDENTITY", connection))
+                            using (var idCmd = new SqlCommand("SELECT @@IDENTITY", connection))
                             {
                                 var newId = await idCmd.ExecuteScalarAsync();
                                 if (newId != null && newId != DBNull.Value)
                                     employee.EmployeeID = newId.ToString();
                             }
+                            await TryRecordEmployeeUpsertAsync(employee.EmployeeID, "Insert");
                             return true;
                         }
                         return false;
@@ -195,36 +198,37 @@ namespace kingdom_Preparatory_School_Management_System.Data
             }
         }
 
-        public async Task<bool> UpdateAsync(Models.Employee employee)
+        public async Task<bool> UpdateAsync(KingdomPrep.Shared.Models.Employee employee)
         {
             try
             {
-                using (var connection = new OleDbConnection(_connectionString))
+                using (var connection = new SqlConnection(SqlCommandExtensions.StripProvider(_connectionString)))
                 {
                     await connection.OpenAsync();
                     var query = $@"
-                        UPDATE {EMPLOYEE_TABLE} 
-                        SET fullName = ?, gender = ?, dOB = ?, conatct = ?, email = ?, department = ?, 
-                            position = ?, homeTown = ?, residence = ?, date_of_Emplyment = ?, 
-                            employment_Mode = ?, employment_Status = ?, emergency_Contact_Person = ?, 
+                        UPDATE {EMPLOYEE_TABLE}
+                        SET fullName = ?, gender = ?, dOB = ?, conatct = ?, email = ?, department = ?,
+                            position = ?, homeTown = ?, residence = ?, date_of_Emplyment = ?,
+                            employment_Mode = ?, employment_Status = ?, emergency_Contact_Person = ?,
                             emergency_contact = ?, Employees_Reviews = ?, salary = ?, pic = ?
                         WHERE employmentID = ?";
                     var tenant = await TenantContext.HasSchoolIdColumnAsync(connection, EMPLOYEE_TABLE);
                     if (tenant)
                     {
-                        query += TenantContext.FilterClause();
+                        query += TenantContext.FilterClauseSql();
                     }
 
-                    using (var command = new OleDbCommand(query, connection))
+                    using (var command = new SqlCommand(query, connection))
                     {
                         AddEmployeeParameters(command, employee);
-                        command.Parameters.AddWithValue("?", employee.EmployeeID ?? "");
+                        command.AddPositionalParameter(employee.EmployeeID ?? "");
                         if (tenant)
                         {
                             TenantContext.AddSchoolParameter(command);
                         }
-                        
+
                         var rows = await command.ExecuteNonQueryAsync();
+                        if (rows > 0) await TryRecordEmployeeUpsertAsync(employee.EmployeeID, "Update");
                         return rows > 0;
                     }
                 }
@@ -240,19 +244,20 @@ namespace kingdom_Preparatory_School_Management_System.Data
         {
             try
             {
-                using (var connection = new OleDbConnection(_connectionString))
+                await TryRecordEmployeeDeleteAsync(employeeId);
+                using (var connection = new SqlConnection(SqlCommandExtensions.StripProvider(_connectionString)))
                 {
                     await connection.OpenAsync();
                     var query = $"DELETE FROM {EMPLOYEE_TABLE} WHERE employmentID = ?";
                     var tenant = await TenantContext.HasSchoolIdColumnAsync(connection, EMPLOYEE_TABLE);
                     if (tenant)
                     {
-                        query += TenantContext.FilterClause();
+                        query += TenantContext.FilterClauseSql();
                     }
 
-                    using (var command = new OleDbCommand(query, connection))
+                    using (var command = new SqlCommand(query, connection))
                     {
-                        command.Parameters.AddWithValue("?", employeeId);
+                        command.AddPositionalParameter(employeeId);
                         if (tenant)
                         {
                             TenantContext.AddSchoolParameter(command);
@@ -274,19 +279,19 @@ namespace kingdom_Preparatory_School_Management_System.Data
         {
             try
             {
-                using (var connection = new OleDbConnection(_connectionString))
+                using (var connection = new SqlConnection(SqlCommandExtensions.StripProvider(_connectionString)))
                 {
                     await connection.OpenAsync();
                     var query = $"SELECT COUNT(*) FROM {EMPLOYEE_TABLE} WHERE employmentID = ?";
                     var tenant = await TenantContext.HasSchoolIdColumnAsync(connection, EMPLOYEE_TABLE);
                     if (tenant)
                     {
-                        query += TenantContext.FilterClause();
+                        query += TenantContext.FilterClauseSql();
                     }
 
-                    using (var command = new OleDbCommand(query, connection))
+                    using (var command = new SqlCommand(query, connection))
                     {
-                        command.Parameters.AddWithValue("?", employeeId);
+                        command.AddPositionalParameter(employeeId);
                         if (tenant)
                         {
                             TenantContext.AddSchoolParameter(command);
@@ -311,7 +316,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
             // comes from SELECT @@IDENTITY after the INSERT.
             try
             {
-                using (var connection = new OleDbConnection(_connectionString))
+                using (var connection = new SqlConnection(SqlCommandExtensions.StripProvider(_connectionString)))
                 {
                     await connection.OpenAsync();
                     var tenant = await TenantContext.HasSchoolIdColumnAsync(connection, EMPLOYEE_TABLE);
@@ -321,7 +326,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
                         query += " WHERE SchoolId = ?";
                     }
 
-                    using (var command = new OleDbCommand(query, connection))
+                    using (var command = new SqlCommand(query, connection))
                     {
                         if (tenant)
                         {
@@ -346,46 +351,56 @@ namespace kingdom_Preparatory_School_Management_System.Data
             var table = new DataTable();
             try
             {
-                using (var connection = new OleDbConnection(_connectionString))
+                using (var connection = new SqlConnection(SqlCommandExtensions.StripProvider(_connectionString)))
                 {
                     await connection.OpenAsync();
                     var query = $@"
-                        SELECT 
-                            employmentID AS [ID], 
-                            fullName AS [Full Name], 
-                            department AS [Department], 
-                            position AS [Position], 
+                        SELECT
+                            employmentID AS [ID],
+                            fullName AS [Full Name],
+                            department AS [Department],
+                            position AS [Position],
                             employment_Status AS [Status],
                             conatct AS [Contact]
-                        FROM {EMPLOYEE_TABLE} 
+                        FROM {EMPLOYEE_TABLE}
                         WHERE 1=1";
 
-                    using (var command = new OleDbCommand())
+                    var tenant = await TenantContext.HasSchoolIdColumnAsync(connection, EMPLOYEE_TABLE);
+                    if (tenant)
                     {
-                        command.Connection = connection;
-                        var tenant = await TenantContext.HasSchoolIdColumnAsync(connection, EMPLOYEE_TABLE);
+                        query += TenantContext.FilterClauseSql();
+                    }
+
+                    if (!string.IsNullOrEmpty(filterId))
+                    {
+                        query += " AND employmentID LIKE ?";
+                    }
+
+                    if (!string.IsNullOrEmpty(filterDepartment))
+                    {
+                        query += " AND department = ?";
+                    }
+
+                    using (var command = new SqlCommand(query, connection))
+                    {
                         if (tenant)
                         {
-                            query += TenantContext.FilterClause();
                             TenantContext.AddSchoolParameter(command);
                         }
 
                         if (!string.IsNullOrEmpty(filterId))
                         {
-                            command.Parameters.AddWithValue("?", "%" + filterId + "%");
-                            query += " AND employmentID LIKE ?";
+                            command.AddPositionalParameter("%" + filterId + "%");
                         }
 
                         if (!string.IsNullOrEmpty(filterDepartment))
                         {
-                            command.Parameters.AddWithValue("?", filterDepartment);
-                            query += " AND department = ?";
+                            command.AddPositionalParameter(filterDepartment);
                         }
 
-                        command.CommandText = query;
-                        using (var adapter = new OleDbDataAdapter(command))
+                        using (var adapter = new SqlDataAdapter(command))
                         {
-                            adapter.Fill(table);
+                            await Task.Run(() => adapter.Fill(table));
                         }
                     }
                 }
@@ -401,7 +416,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
         {
             try
             {
-                using (var connection = new OleDbConnection(_connectionString))
+                using (var connection = new SqlConnection(SqlCommandExtensions.StripProvider(_connectionString)))
                 {
                     await connection.OpenAsync();
                     using (var transaction = connection.BeginTransaction())
@@ -420,22 +435,22 @@ namespace kingdom_Preparatory_School_Management_System.Data
                             insValues += ", ?";
                         }
 
-                        var insSql = $@"INSERT INTO Rolled_Out_Employees 
+                        var insSql = $@"INSERT INTO Rolled_Out_Employees
                                        ({insColumns})
                                        VALUES ({insValues})";
-                        using (var insCmd = new OleDbCommand(insSql, connection, transaction))
+                        using (var insCmd = new SqlCommand(insSql, connection, transaction))
                         {
-                            insCmd.Parameters.AddWithValue("?", employee.EmployeeID);
-                            insCmd.Parameters.AddWithValue("?", employee.FullName ?? "");
-                            insCmd.Parameters.AddWithValue("?", employee.Gender ?? "");
-                            insCmd.Parameters.AddWithValue("?", employee.DateOfBirth);
-                            insCmd.Parameters.AddWithValue("?", employee.HomeTown ?? "");
-                            insCmd.Parameters.AddWithValue("?", employee.Residence ?? "");
-                            insCmd.Parameters.AddWithValue("?", employee.Position ?? "");
-                            insCmd.Parameters.AddWithValue("?", employee.Department ?? "");
-                            insCmd.Parameters.AddWithValue("?", employee.Contact ?? "");
-                            insCmd.Parameters.AddWithValue("?", employee.Email ?? "");
-                            insCmd.Parameters.AddWithValue("?", terminationDate);
+                            insCmd.AddPositionalParameter(employee.EmployeeID);
+                            insCmd.AddPositionalParameter(employee.FullName ?? "");
+                            insCmd.AddPositionalParameter(employee.Gender ?? "");
+                            insCmd.AddPositionalParameter(employee.DateOfBirth);
+                            insCmd.AddPositionalParameter(employee.HomeTown ?? "");
+                            insCmd.AddPositionalParameter(employee.Residence ?? "");
+                            insCmd.AddPositionalParameter(employee.Position ?? "");
+                            insCmd.AddPositionalParameter(employee.Department ?? "");
+                            insCmd.AddPositionalParameter(employee.Contact ?? "");
+                            insCmd.AddPositionalParameter(employee.Email ?? "");
+                            insCmd.AddPositionalParameter(terminationDate);
                             if (archiveTenant)
                             {
                                 TenantContext.AddSchoolParameter(insCmd);
@@ -444,16 +459,18 @@ namespace kingdom_Preparatory_School_Management_System.Data
                             await insCmd.ExecuteNonQueryAsync();
                         }
 
+                        await TryRecordEmployeeDeleteAsync(employeeId);
+
                         // 2. Delete from main
                         var delSql = "DELETE FROM Employee WHERE employmentID = ?";
                         if (employeeTenant)
                         {
-                            delSql += TenantContext.FilterClause();
+                            delSql += TenantContext.FilterClauseSql();
                         }
 
-                        using (var delCmd = new OleDbCommand(delSql, connection, transaction))
+                        using (var delCmd = new SqlCommand(delSql, connection, transaction))
                         {
-                            delCmd.Parameters.AddWithValue("?", employeeId);
+                            delCmd.AddPositionalParameter(employeeId);
                             if (employeeTenant)
                             {
                                 TenantContext.AddSchoolParameter(delCmd);
@@ -463,6 +480,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
                         }
 
                         transaction.Commit();
+                        await TryRecordRolledOutEmployeeUpsertAsync(employeeId, "Insert");
                         return true;
                     }
                 }
@@ -478,7 +496,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
         {
             try
             {
-                using (var connection = new OleDbConnection(_connectionString))
+                using (var connection = new SqlConnection(SqlCommandExtensions.StripProvider(_connectionString)))
                 {
                     await connection.OpenAsync();
                     using (var transaction = connection.BeginTransaction())
@@ -493,26 +511,26 @@ namespace kingdom_Preparatory_School_Management_System.Data
                             if (employeeTenant)
                             {
                                 targetColumns += ", SchoolId";
-                                selectColumns += ", ?";
+                                selectColumns += ", @SchoolId";
                             }
 
-                            var moveSql = $@"INSERT INTO Employee 
+                            var moveSql = $@"INSERT INTO Employee
                                             ({targetColumns})
                                             SELECT {selectColumns}
                                             FROM Rolled_Out_Employees WHERE employmentID = ?";
                             if (archiveTenant)
                             {
-                                moveSql += TenantContext.FilterClause();
+                                moveSql += TenantContext.FilterClauseSql();
                             }
 
-                            using (var moveCmd = new OleDbCommand(moveSql, connection, transaction))
+                            using (var moveCmd = new SqlCommand(moveSql, connection, transaction))
                             {
                                 if (employeeTenant)
                                 {
                                     TenantContext.AddSchoolParameter(moveCmd);
                                 }
 
-                                moveCmd.Parameters.AddWithValue("?", employeeId);
+                                moveCmd.AddPositionalParameter(employeeId);
                                 if (archiveTenant)
                                 {
                                     TenantContext.AddSchoolParameter(moveCmd);
@@ -526,12 +544,12 @@ namespace kingdom_Preparatory_School_Management_System.Data
                             var delSql = "DELETE FROM Rolled_Out_Employees WHERE employmentID = ?";
                             if (archiveTenant)
                             {
-                                delSql += TenantContext.FilterClause();
+                                delSql += TenantContext.FilterClauseSql();
                             }
 
-                            using (var delCmd = new OleDbCommand(delSql, connection, transaction))
+                            using (var delCmd = new SqlCommand(delSql, connection, transaction))
                             {
-                                delCmd.Parameters.AddWithValue("?", employeeId);
+                                delCmd.AddPositionalParameter(employeeId);
                                 if (archiveTenant)
                                 {
                                     TenantContext.AddSchoolParameter(delCmd);
@@ -563,30 +581,30 @@ namespace kingdom_Preparatory_School_Management_System.Data
             var table = new DataTable();
             try
             {
-                using (var connection = new OleDbConnection(_connectionString))
+                using (var connection = new SqlConnection(SqlCommandExtensions.StripProvider(_connectionString)))
                 {
                     await connection.OpenAsync();
                     var archiveTenant = await TenantContext.HasSchoolIdColumnAsync(connection, "Rolled_Out_Employees");
-                    var query = @"SELECT employmentID AS ID, fullName AS [FULL NAME], 
-                                         department AS DEPARTMENT, position AS POSITION, [date] AS [EXIT DATE] 
-                                  FROM Rolled_Out_Employees 
+                    var query = @"SELECT employmentID AS ID, fullName AS [FULL NAME],
+                                         department AS DEPARTMENT, position AS POSITION, [date] AS [EXIT DATE]
+                                  FROM Rolled_Out_Employees
                                   WHERE 1=1";
                     if (archiveTenant)
                     {
-                        query += TenantContext.FilterClause();
+                        query += TenantContext.FilterClauseSql();
                     }
 
                     query += " ORDER BY [date] DESC";
-                    using (var command = new OleDbCommand(query, connection))
+                    using (var command = new SqlCommand(query, connection))
                     {
                         if (archiveTenant)
                         {
                             TenantContext.AddSchoolParameter(command);
                         }
 
-                        using (var adapter = new OleDbDataAdapter(command))
+                        using (var adapter = new SqlDataAdapter(command))
                         {
-                            adapter.Fill(table);
+                            await Task.Run(() => adapter.Fill(table));
                         }
                     }
                 }
@@ -598,9 +616,9 @@ namespace kingdom_Preparatory_School_Management_System.Data
             return table;
         }
 
-        private Models.Employee MapReaderToEmployee(IDataReader reader)
+        private KingdomPrep.Shared.Models.Employee MapReaderToEmployee(IDataReader reader)
         {
-            return new Models.Employee
+            return new KingdomPrep.Shared.Models.Employee
             {
                 EmployeeID = reader["employmentID"].ToString(),
                 FullName = reader["fullName"].ToString(),
@@ -623,25 +641,61 @@ namespace kingdom_Preparatory_School_Management_System.Data
             };
         }
 
-        private void AddEmployeeParameters(OleDbCommand command, Models.Employee employee)
+        private void AddEmployeeParameters(SqlCommand command, KingdomPrep.Shared.Models.Employee employee)
         {
-            command.Parameters.AddWithValue("?", employee.FullName ?? "");
-            command.Parameters.AddWithValue("?", employee.Gender ?? "");
-            command.Parameters.AddWithValue("?", employee.DateOfBirth);
-            command.Parameters.AddWithValue("?", employee.Contact ?? "");
-            command.Parameters.AddWithValue("?", employee.Email ?? "");
-            command.Parameters.AddWithValue("?", employee.Department ?? "");
-            command.Parameters.AddWithValue("?", employee.Position ?? "");
-            command.Parameters.AddWithValue("?", employee.HomeTown ?? "");
-            command.Parameters.AddWithValue("?", employee.Residence ?? "");
-            command.Parameters.AddWithValue("?", employee.EmploymentDate);
-            command.Parameters.AddWithValue("?", employee.EmploymentMode ?? "");
-            command.Parameters.AddWithValue("?", employee.EmploymentStatus ?? "");
-            command.Parameters.AddWithValue("?", employee.EmergencyContactPerson ?? "");
-            command.Parameters.AddWithValue("?", employee.EmergencyContact ?? "");
-            command.Parameters.AddWithValue("?", employee.PerformanceReview ?? "");
-            command.Parameters.AddWithValue("?", employee.Salary);
-            command.Parameters.AddWithValue("?", employee.ProfilePhoto ?? new byte[0]);
+            command.AddPositionalParameter(employee.FullName ?? "");
+            command.AddPositionalParameter(employee.Gender ?? "");
+            command.AddPositionalParameter(employee.DateOfBirth);
+            command.AddPositionalParameter(employee.Contact ?? "");
+            command.AddPositionalParameter(employee.Email ?? "");
+            command.AddPositionalParameter(employee.Department ?? "");
+            command.AddPositionalParameter(employee.Position ?? "");
+            command.AddPositionalParameter(employee.HomeTown ?? "");
+            command.AddPositionalParameter(employee.Residence ?? "");
+            command.AddPositionalParameter(employee.EmploymentDate);
+            command.AddPositionalParameter(employee.EmploymentMode ?? "");
+            command.AddPositionalParameter(employee.EmploymentStatus ?? "");
+            command.AddPositionalParameter(employee.EmergencyContactPerson ?? "");
+            command.AddPositionalParameter(employee.EmergencyContact ?? "");
+            command.AddPositionalParameter(employee.PerformanceReview ?? "");
+            command.AddPositionalParameter(employee.Salary);
+            command.AddPositionalParameter(employee.ProfilePhoto ?? new byte[0]);
+        }
+
+        private async Task TryRecordEmployeeUpsertAsync(string employeeId, string operation)
+        {
+            await TryRecordSyncUpsertAsync(EMPLOYEE_TABLE, "employmentID", employeeId, operation, "Employee sync capture skipped: ");
+        }
+
+        private async Task TryRecordRolledOutEmployeeUpsertAsync(string employeeId, string operation)
+        {
+            await TryRecordSyncUpsertAsync("Rolled_Out_Employees", "employmentID", employeeId, operation, "Rolled-out employee sync capture skipped: ");
+        }
+
+        private async Task TryRecordEmployeeDeleteAsync(string employeeId)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(employeeId)) return;
+                await new SyncChangeRecorder(_connectionString).RecordDeleteAsync(EMPLOYEE_TABLE, "employmentID", employeeId);
+            }
+            catch (Exception ex)
+            {
+                LoggerHelper.LogWarning("Employee delete sync capture skipped: " + ex.Message);
+            }
+        }
+
+        private async Task TryRecordSyncUpsertAsync(string tableName, string primaryKeyName, string primaryKeyValue, string operation, string logPrefix)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(primaryKeyValue)) return;
+                await new SyncChangeRecorder(_connectionString).RecordUpsertAsync(tableName, primaryKeyName, primaryKeyValue, operation);
+            }
+            catch (Exception ex)
+            {
+                LoggerHelper.LogWarning(logPrefix + ex.Message);
+            }
         }
     }
 }

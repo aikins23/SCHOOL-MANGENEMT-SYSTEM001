@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Windows.Forms;
 using System.IO;
-using kingdom_Preparatory_School_Management_System.Models;
+using KingdomPrep.Shared.Models;
 using kingdom_Preparatory_School_Management_System.Services;
 using kingdom_Preparatory_School_Management_System.Data;
 using kingdom_Preparatory_School_Management_System.Common;
@@ -11,14 +11,14 @@ namespace kingdom_Preparatory_School_Management_System.Examples
 {
     /// <summary>
     /// EXAMPLE IMPLEMENTATION - Shows how to use modern architecture
-    /// 
+    ///
     /// This is a code reference demonstrating:
     /// - Dependency injection pattern
     /// - Service layer usage
     /// - Async/await pattern
     /// - Proper error handling
     /// - Form validation
-    /// 
+    ///
     /// To integrate this into actual forms, adapt the patterns shown here.
     /// This file is not a complete form implementation.
     /// </summary>
@@ -173,7 +173,7 @@ namespace kingdom_Preparatory_School_Management_System.Examples
         /// Example: Create student model from form values
         /// </summary>
         public Student CreateStudentModel(
-            string firstName, 
+            string firstName,
             string lastName,
             DateTime dateOfBirth,
             string gender,

@@ -29,11 +29,12 @@ namespace kingdom_Preparatory_School_Management_System
         {
             InitializeComponent();
             this.Icon = Branding.AppIcon;
-            
+
             _userRepo = new Data.UserRepository(AppConfig.ConnectionString);
             _studentRepo = new StudentRepository(AppConfig.ConnectionString);
             _employeeRepo = new EmployeeRepository(AppConfig.ConnectionString);
             _smsRepo = new SmsOutboxRepository(AppConfig.ConnectionString);
+            if (!AuthService.RequireAccess("frmAdminDashboard", this)) return;
 
             BuildUi();
             Load += async (s, e) => await RefreshAllAsync();
@@ -59,7 +60,7 @@ namespace kingdom_Preparatory_School_Management_System
             };
             shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 86));
             shell.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-            shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 88));
+            shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 92));
             Controls.Add(shell);
 
             var titlePanel = new Panel { Dock = DockStyle.Fill, BackColor = UiTheme.Page, Padding = new Padding(0, 0, 0, 14) };
@@ -181,10 +182,10 @@ namespace kingdom_Preparatory_School_Management_System
                 BackColor = UiTheme.Page,
                 ColumnCount = 2,
                 RowCount = 1,
-                Padding = new Padding(0, 12, 0, 18)
+                Padding = new Padding(0, 12, 0, 16)
             };
             bar.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-            bar.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 650));
+            bar.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 690));
 
             _statusLabel = new Label
             {
@@ -197,27 +198,33 @@ namespace kingdom_Preparatory_School_Management_System
             };
             bar.Controls.Add(_statusLabel, 0, 0);
 
-            var buttons = new FlowLayoutPanel
+            var buttons = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
                 BackColor = UiTheme.Page,
-                FlowDirection = FlowDirection.RightToLeft,
-                WrapContents = false,
-                Padding = new Padding(0)
+                ColumnCount = 3,
+                RowCount = 1,
+                Padding = new Padding(0, 2, 0, 2)
             };
+            buttons.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.33F));
+            buttons.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.33F));
+            buttons.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.34F));
+            buttons.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
             var btnRefresh = CreateAdminButton("Refresh Data", UiTheme.Navy, Color.White);
             btnRefresh.Click += async (s, e) => await RefreshAllAsync();
-            
+
             _restoreButton = CreateAdminButton("Restore Selected", UiTheme.Success, Color.White);
             _restoreButton.Click += async (s, e) => await HandleRestoreAsync();
 
-            _deleteButton = CreateAdminButton("Delete User", Color.FromArgb(190, 18, 60), Color.White);
+            _deleteButton = CreateAdminButton("Delete User", UiTheme.Danger, Color.White);
             _deleteButton.Click += async (s, e) => await HandleDeleteAsync();
+            UiPermissionService.ApplyActionVisibility(_restoreButton, "Admin.Archive.Restore");
+            UiPermissionService.ApplyActionVisibility(_deleteButton, "Admin.Users.Manage");
 
-            buttons.Controls.Add(_deleteButton);
-            buttons.Controls.Add(_restoreButton);
-            buttons.Controls.Add(btnRefresh);
+            buttons.Controls.Add(btnRefresh, 0, 0);
+            buttons.Controls.Add(_restoreButton, 1, 0);
+            buttons.Controls.Add(_deleteButton, 2, 0);
             bar.Controls.Add(buttons, 1, 0);
             return bar;
         }
@@ -227,10 +234,11 @@ namespace kingdom_Preparatory_School_Management_System
             return new Guna2Button
             {
                 Text = text,
-                Size = new Size(188, 44),
-                Margin = new Padding(10, 0, 0, 0),
-                Height = 44,
-                BorderRadius = 4,
+                Dock = DockStyle.Fill,
+                MinimumSize = new Size(0, 48),
+                Margin = new Padding(8, 0, 0, 0),
+                Height = 48,
+                BorderRadius = 5,
                 FillColor = fill,
                 ForeColor = fore,
                 Font = new Font("Segoe UI Semibold", 9.25F, FontStyle.Bold),
@@ -280,13 +288,18 @@ namespace kingdom_Preparatory_School_Management_System
             var canRestore = tab == "Student Archive" || tab == "Staff Archive";
             var canDelete = tab == "User Accounts";
 
-            _restoreButton.Enabled = canRestore;
-            _restoreButton.FillColor = canRestore ? UiTheme.Success : Color.FromArgb(203, 213, 225);
-            _restoreButton.ForeColor = canRestore ? Color.White : UiTheme.Muted;
+            SetActionButtonState(_restoreButton, canRestore, UiTheme.Success);
+            SetActionButtonState(_deleteButton, canDelete, UiTheme.Danger);
+        }
 
-            _deleteButton.Enabled = canDelete;
-            _deleteButton.FillColor = canDelete ? Color.FromArgb(190, 18, 60) : Color.FromArgb(203, 213, 225);
-            _deleteButton.ForeColor = canDelete ? Color.White : UiTheme.Muted;
+        private static void SetActionButtonState(Guna2Button button, bool enabled, Color activeFill)
+        {
+            if (!button.Visible) return;
+            button.Enabled = enabled;
+            button.FillColor = enabled ? activeFill : UiTheme.DisabledBack;
+            button.ForeColor = enabled ? Color.White : UiTheme.DisabledText;
+            button.HoverState.FillColor = enabled ? ControlPaint.Dark(activeFill, 0.06F) : UiTheme.DisabledBack;
+            button.Cursor = enabled ? Cursors.Hand : Cursors.Default;
         }
 
         private async Task RefreshAllAsync()
@@ -321,6 +334,9 @@ namespace kingdom_Preparatory_School_Management_System
 
         private async Task HandleRestoreAsync()
         {
+            if (!AuthService.RequireWriteAccess("Admin.Archive.Restore", "Restore Archived Record"))
+                return;
+
             var tab = _tabs.SelectedTab.Text;
             if (tab == "Student Archive") await RestoreStudent();
             else if (tab == "Staff Archive") await RestoreEmployee();
@@ -329,6 +345,9 @@ namespace kingdom_Preparatory_School_Management_System
 
         private async Task RestoreStudent()
         {
+            if (!AuthService.RequireWriteAccess("Admin.Archive.Restore", "Restore Student"))
+                return;
+
             if (_studentArchiveGrid.CurrentRow == null) return;
             string id = _studentArchiveGrid.CurrentRow.Cells["ID"].Value.ToString();
             if (ConfirmationHelper.ConfirmBulkOperation("restore student", 1))
@@ -343,6 +362,9 @@ namespace kingdom_Preparatory_School_Management_System
 
         private async Task RestoreEmployee()
         {
+            if (!AuthService.RequireWriteAccess("Admin.Archive.Restore", "Restore Employee"))
+                return;
+
             if (_staffArchiveGrid.CurrentRow == null) return;
             string id = _staffArchiveGrid.CurrentRow.Cells["ID"].Value.ToString();
             if (ConfirmationHelper.ConfirmBulkOperation("restore employee", 1))
@@ -357,6 +379,9 @@ namespace kingdom_Preparatory_School_Management_System
 
         private async Task HandleDeleteAsync()
         {
+            if (!AuthService.RequireWriteAccess("Admin.Users.Manage", "Delete User Account"))
+                return;
+
             if (_tabs.SelectedTab.Text == "User Accounts")
             {
                 if (_userGrid.CurrentRow == null) return;

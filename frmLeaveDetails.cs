@@ -1,11 +1,11 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Windows.Forms;
 using kingdom_Preparatory_School_Management_System.Common;
 using kingdom_Preparatory_School_Management_System.Data;
 using kingdom_Preparatory_School_Management_System.Services;
-using kingdom_Preparatory_School_Management_System.Models;
+using KingdomPrep.Shared.Models;
 
 namespace kingdom_Preparatory_School_Management_System
 {
@@ -26,6 +26,8 @@ namespace kingdom_Preparatory_School_Management_System
 
             // Wire events commented-out in designer
             gunaPictureBox2.Click += gunaPictureBox2_Click;
+            gunaButton3.Enabled = AuthService.CanWrite("Leave.Approve");
+            gunaButton3.Visible = AuthService.CanWrite("Leave.Approve");
         }
 
         public frmLeaveDetails(Dictionary<string, string> rowData) : this()
@@ -62,6 +64,9 @@ namespace kingdom_Preparatory_School_Management_System
         {
             try
             {
+                if (!AuthService.RequireWriteAccess("Leave.Approve", "Update Leave Status"))
+                    return;
+
                 // 1. Validation guards
                 if (!FormValidationHelper.ValidateRequired(txtEmployeeId, "Employee ID")) return;
                 if (!FormValidationHelper.ValidateRequired(txtName, "Employee Name")) return;

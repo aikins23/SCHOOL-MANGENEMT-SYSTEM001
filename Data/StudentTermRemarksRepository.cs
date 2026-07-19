@@ -1,15 +1,16 @@
 using System;
 using System.Data;
-using System.Data.OleDb;
+using Microsoft.Data.SqlClient;
 using System.Threading.Tasks;
-using kingdom_Preparatory_School_Management_System.Models;
+using KingdomPrep.Shared.Models;
+using kingdom_Preparatory_School_Management_System.Common;
 using kingdom_Preparatory_School_Management_System.Services;
 
 namespace kingdom_Preparatory_School_Management_System.Data
 {
     /// <summary>
-    /// OleDb implementation of StudentTermRemarks repository.
-    /// Uses positional parameters (?) for OLE DB compatibility.
+    /// SQL Server implementation of StudentTermRemarks repository.
+    /// Uses positional parameters (?) for SQL Server compatibility.
     /// </summary>
     public class StudentTermRemarksRepository : IStudentTermRemarksRepository
     {
@@ -24,19 +25,24 @@ namespace kingdom_Preparatory_School_Management_System.Data
         {
             try
             {
-                using (var connection = new OleDbConnection(_connectionString))
+                using (var connection = new SqlConnection(SqlCommandExtensions.StripProvider(_connectionString)))
                 {
                     await connection.OpenAsync();
 
-                    const string query = @"
+                    var query = @"
                         SELECT * FROM StudentTermRemarks
-                        WHERE StudentID = ? AND Term = ? AND [Year] = ?";
+                        WHERE CAST(StudentID AS NVARCHAR(50)) IN (?, ?) AND Term = ? AND [Year] = ?";
+                    var tenant = await TenantContext.HasSchoolIdColumnAsync(connection, "StudentTermRemarks");
+                    if (tenant) query += TenantContext.FilterClauseSql();
 
-                    using (var cmd = new OleDbCommand(query, connection))
+                    using (var cmd = new SqlCommand(query, connection))
                     {
-                        cmd.Parameters.AddWithValue("?", studentId);
-                        cmd.Parameters.AddWithValue("?", term);
-                        cmd.Parameters.AddWithValue("?", year);
+                        var ids = BuildStudentIdCandidates(studentId);
+                        cmd.AddPositionalParameter(ids[0]);
+                        cmd.AddPositionalParameter(ids[1]);
+                        cmd.AddPositionalParameter(term);
+                        cmd.AddPositionalParameter(year);
+                        if (tenant) TenantContext.AddSchoolParameter(cmd);
 
                         using (var reader = await cmd.ExecuteReaderAsync())
                         {
@@ -74,7 +80,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
         {
             try
             {
-                using (var connection = new OleDbConnection(_connectionString))
+                using (var connection = new SqlConnection(SqlCommandExtensions.StripProvider(_connectionString)))
                 {
                     await connection.OpenAsync();
 
@@ -83,19 +89,25 @@ namespace kingdom_Preparatory_School_Management_System.Data
                         (StudentID, Term, [Year], ClassTeacherRemarks, HeadTeacherRemarks, Attitude, Interest, Conduct, CreatedDate)
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
-                    using (var cmd = new OleDbCommand(query, connection))
+                    using (var cmd = new SqlCommand(query, connection))
                     {
-                        cmd.Parameters.AddWithValue("?", remarks.StudentID);
-                        cmd.Parameters.AddWithValue("?", remarks.Term);
-                        cmd.Parameters.AddWithValue("?", remarks.Year);
-                        cmd.Parameters.AddWithValue("?", remarks.ClassTeacherRemarks ?? "");
-                        cmd.Parameters.AddWithValue("?", remarks.HeadTeacherRemarks ?? "");
-                        cmd.Parameters.AddWithValue("?", remarks.Attitude ?? "");
-                        cmd.Parameters.AddWithValue("?", remarks.Interest ?? "");
-                        cmd.Parameters.AddWithValue("?", remarks.Conduct ?? "");
-                        cmd.Parameters.AddWithValue("?", DateTime.Now);
+                        cmd.AddPositionalParameter(remarks.StudentID);
+                        cmd.AddPositionalParameter(remarks.Term);
+                        cmd.AddPositionalParameter(remarks.Year);
+                        cmd.AddPositionalParameter(remarks.ClassTeacherRemarks ?? "");
+                        cmd.AddPositionalParameter(remarks.HeadTeacherRemarks ?? "");
+                        cmd.AddPositionalParameter(remarks.Attitude ?? "");
+                        cmd.AddPositionalParameter(remarks.Interest ?? "");
+                        cmd.AddPositionalParameter(remarks.Conduct ?? "");
+                        cmd.AddPositionalParameter(DateTime.Now);
 
-                        return await cmd.ExecuteNonQueryAsync() > 0;
+                        var saved = await cmd.ExecuteNonQueryAsync() > 0;
+                        if (saved)
+                        {
+                            var id = await GetLastIdentityAsync(connection);
+                            await TryRecordSyncUpsertAsync("ID", id, "Insert");
+                        }
+                        return saved;
                     }
                 }
             }
@@ -110,11 +122,11 @@ namespace kingdom_Preparatory_School_Management_System.Data
         {
             try
             {
-                using (var connection = new OleDbConnection(_connectionString))
+                using (var connection = new SqlConnection(SqlCommandExtensions.StripProvider(_connectionString)))
                 {
                     await connection.OpenAsync();
 
-                    const string query = @"
+                    var query = @"
                         UPDATE StudentTermRemarks
                         SET ClassTeacherRemarks = ?,
                             HeadTeacherRemarks = ?,
@@ -122,24 +134,31 @@ namespace kingdom_Preparatory_School_Management_System.Data
                             Interest = ?,
                             Conduct = ?,
                             ModifiedDate = ?
-                        WHERE StudentID = ? AND Term = ? AND [Year] = ?";
+                        WHERE CAST(StudentID AS NVARCHAR(50)) IN (?, ?) AND Term = ? AND [Year] = ?";
+                    var tenant = await TenantContext.HasSchoolIdColumnAsync(connection, "StudentTermRemarks");
+                    if (tenant) query += TenantContext.FilterClauseSql();
 
-                    using (var cmd = new OleDbCommand(query, connection))
+                    using (var cmd = new SqlCommand(query, connection))
                     {
                         // Set columns
-                        cmd.Parameters.AddWithValue("?", remarks.ClassTeacherRemarks ?? "");
-                        cmd.Parameters.AddWithValue("?", remarks.HeadTeacherRemarks ?? "");
-                        cmd.Parameters.AddWithValue("?", remarks.Attitude ?? "");
-                        cmd.Parameters.AddWithValue("?", remarks.Interest ?? "");
-                        cmd.Parameters.AddWithValue("?", remarks.Conduct ?? "");
-                        cmd.Parameters.AddWithValue("?", DateTime.Now);
-                        
-                        // Where clause
-                        cmd.Parameters.AddWithValue("?", remarks.StudentID);
-                        cmd.Parameters.AddWithValue("?", remarks.Term);
-                        cmd.Parameters.AddWithValue("?", remarks.Year);
+                        cmd.AddPositionalParameter(remarks.ClassTeacherRemarks ?? "");
+                        cmd.AddPositionalParameter(remarks.HeadTeacherRemarks ?? "");
+                        cmd.AddPositionalParameter(remarks.Attitude ?? "");
+                        cmd.AddPositionalParameter(remarks.Interest ?? "");
+                        cmd.AddPositionalParameter(remarks.Conduct ?? "");
+                        cmd.AddPositionalParameter(DateTime.Now);
 
-                        return await cmd.ExecuteNonQueryAsync() > 0;
+                        // Where clause
+                        var ids = BuildStudentIdCandidates(remarks.StudentID);
+                        cmd.AddPositionalParameter(ids[0]);
+                        cmd.AddPositionalParameter(ids[1]);
+                        cmd.AddPositionalParameter(remarks.Term);
+                        cmd.AddPositionalParameter(remarks.Year);
+                        if (tenant) TenantContext.AddSchoolParameter(cmd);
+
+                        var saved = await cmd.ExecuteNonQueryAsync() > 0;
+                        if (saved) await TryRecordSyncByCompositeAsync(remarks.StudentID, remarks.Term, remarks.Year, "Update");
+                        return saved;
                     }
                 }
             }
@@ -154,17 +173,25 @@ namespace kingdom_Preparatory_School_Management_System.Data
         {
             try
             {
-                using (var connection = new OleDbConnection(_connectionString))
+                using (var connection = new SqlConnection(SqlCommandExtensions.StripProvider(_connectionString)))
                 {
                     await connection.OpenAsync();
 
-                    const string query = "DELETE FROM StudentTermRemarks WHERE StudentID = ? AND Term = ? AND [Year] = ?";
+                    var syncId = await FindSyncIdAsync(connection, studentId, term, year);
+                    if (syncId != Guid.Empty) await TryRecordDeleteBySyncIdAsync(syncId);
 
-                    using (var cmd = new OleDbCommand(query, connection))
+                    var query = "DELETE FROM StudentTermRemarks WHERE CAST(StudentID AS NVARCHAR(50)) IN (?, ?) AND Term = ? AND [Year] = ?";
+                    var tenant = await TenantContext.HasSchoolIdColumnAsync(connection, "StudentTermRemarks");
+                    if (tenant) query += TenantContext.FilterClauseSql();
+
+                    using (var cmd = new SqlCommand(query, connection))
                     {
-                        cmd.Parameters.AddWithValue("?", studentId);
-                        cmd.Parameters.AddWithValue("?", term);
-                        cmd.Parameters.AddWithValue("?", year);
+                        var ids = BuildStudentIdCandidates(studentId);
+                        cmd.AddPositionalParameter(ids[0]);
+                        cmd.AddPositionalParameter(ids[1]);
+                        cmd.AddPositionalParameter(term);
+                        cmd.AddPositionalParameter(year);
+                        if (tenant) TenantContext.AddSchoolParameter(cmd);
 
                         return await cmd.ExecuteNonQueryAsync() > 0;
                     }
@@ -175,6 +202,97 @@ namespace kingdom_Preparatory_School_Management_System.Data
                 LoggerHelper.LogError($"Failed to delete student term remarks for student {studentId}, term {term}, year {year}", ex);
                 throw new RepositoryException("Error deleting student term remarks", ex);
             }
+        }
+
+        private async Task TryRecordSyncUpsertAsync(string primaryKeyName, object primaryKeyValue, string operation)
+        {
+            try
+            {
+                if (primaryKeyValue == null || string.IsNullOrWhiteSpace(Convert.ToString(primaryKeyValue))) return;
+                await new SyncChangeRecorder(_connectionString).RecordUpsertAsync("StudentTermRemarks", primaryKeyName, primaryKeyValue, operation);
+            }
+            catch (Exception ex)
+            {
+                LoggerHelper.LogWarning("Student term remarks sync capture skipped: " + ex.Message);
+            }
+        }
+
+        private async Task TryRecordSyncByCompositeAsync(string studentId, string term, string year, string operation)
+        {
+            try
+            {
+                using (var connection = new SqlConnection(SqlCommandExtensions.StripProvider(_connectionString)))
+                {
+                    await connection.OpenAsync();
+                    var syncId = await FindSyncIdAsync(connection, studentId, term, year);
+                    if (syncId != Guid.Empty)
+                        await new SyncChangeRecorder(_connectionString).RecordUpsertBySyncIdAsync("StudentTermRemarks", syncId, operation);
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggerHelper.LogWarning("Student term remarks sync capture skipped: " + ex.Message);
+            }
+        }
+
+        private async Task TryRecordDeleteBySyncIdAsync(Guid syncId)
+        {
+            try
+            {
+                if (syncId == Guid.Empty) return;
+                await new SyncChangeRecorder(_connectionString).RecordDeleteAsync("StudentTermRemarks", "SyncId", syncId);
+            }
+            catch (Exception ex)
+            {
+                LoggerHelper.LogWarning("Student term remarks delete sync capture skipped: " + ex.Message);
+            }
+        }
+
+        private async Task<Guid> FindSyncIdAsync(SqlConnection connection, string studentId, string term, string year)
+        {
+            var schoolId = TenantContext.RequireSchoolId();
+            await SyncSchema.EnsureSyncInfrastructureAsync(connection, schoolId);
+            var tenant = await TenantContext.HasSchoolIdColumnAsync(connection, "StudentTermRemarks");
+            var query = "SELECT TOP 1 SyncId FROM StudentTermRemarks WHERE CAST(StudentID AS NVARCHAR(50)) IN (?, ?) AND Term = ? AND [Year] = ?";
+            if (tenant) query += TenantContext.FilterClauseSql();
+            query += " ORDER BY ID DESC";
+            using (var cmd = new SqlCommand(query, connection))
+            {
+                var ids = BuildStudentIdCandidates(studentId);
+                cmd.AddPositionalParameter(ids[0]);
+                cmd.AddPositionalParameter(ids[1]);
+                cmd.AddPositionalParameter(term);
+                cmd.AddPositionalParameter(year);
+                if (tenant) TenantContext.AddSchoolParameter(cmd);
+                var value = await cmd.ExecuteScalarAsync();
+                if (value is Guid id) return id;
+                return Guid.TryParse(Convert.ToString(value), out var parsed) ? parsed : Guid.Empty;
+            }
+        }
+
+        private static async Task<object> GetLastIdentityAsync(SqlConnection connection)
+        {
+            using (var cmd = new SqlCommand("SELECT @@IDENTITY", connection))
+            {
+                var value = await cmd.ExecuteScalarAsync();
+                return value == null || value == DBNull.Value ? 0 : value;
+            }
+        }
+
+        private static string[] BuildStudentIdCandidates(string studentId)
+        {
+            var raw = (studentId ?? "").Trim();
+            var numeric = StudentId.Parse(raw);
+            var display = StudentId.Display(string.IsNullOrWhiteSpace(numeric) ? raw : numeric);
+            if (string.Equals(numeric, display, StringComparison.OrdinalIgnoreCase))
+            {
+                display = raw;
+            }
+            if (string.IsNullOrWhiteSpace(display))
+            {
+                display = numeric;
+            }
+            return new[] { numeric, display };
         }
     }
 

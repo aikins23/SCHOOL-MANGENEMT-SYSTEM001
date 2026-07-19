@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
-using System.Data.OleDb;
+
 using System.Drawing;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -57,6 +57,7 @@ namespace kingdom_Preparatory_School_Management_System
 
         public frmDatabaseCoverageAudit()
         {
+            if (!AuthService.RequireAccess("frmDatabaseCoverageAudit", this)) return;
             InitializeComponent();
             _ = LoadCoverageAsync();
         }
@@ -159,17 +160,18 @@ namespace kingdom_Preparatory_School_Management_System
         {
             var result = CreateResultTable();
 
-            using (var connection = new OleDbConnection(AppConfig.ConnectionString))
+            using (var connection = new Microsoft.Data.SqlClient.SqlConnection(SqlCommandExtensions.StripProvider(AppConfig.ConnectionString)))
             {
                 await connection.OpenAsync();
                 const string sql = @"
                     SELECT t.name AS TableName, SUM(p.rows) AS [TableRows]
                     FROM sys.tables t
-                    LEFT JOIN sys.partitions p ON p.object_id = t.object_id AND p.index_id IN (0, 1)
+                    INNER JOIN sys.partitions p ON t.object_id = p.object_id
+                    WHERE t.is_ms_shipped = 0
                     GROUP BY t.name
                     ORDER BY t.name";
 
-                using (var command = new OleDbCommand(sql, connection))
+                using (var command = new Microsoft.Data.SqlClient.SqlCommand(sql, connection))
                 using (var reader = await command.ExecuteReaderAsync())
                 {
                     while (await reader.ReadAsync())

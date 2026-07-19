@@ -7,7 +7,7 @@ using System.Linq;
 using kingdom_Preparatory_School_Management_System.Common;
 using kingdom_Preparatory_School_Management_System.Data;
 using kingdom_Preparatory_School_Management_System.Services;
-using kingdom_Preparatory_School_Management_System.Models;
+using KingdomPrep.Shared.Models;
 
 namespace kingdom_Preparatory_School_Management_System
 {
@@ -1083,6 +1083,11 @@ namespace kingdom_Preparatory_School_Management_System
                 var employee = MapFormToEmployee();
 
                 bool isNew = await _employeeService.GetEmployeeAsync(employee.EmployeeID) == null;
+                string actionKey = isNew ? "Staff.Register" : "Staff.Edit";
+                string actionName = isNew ? "Register Employee" : "Update Employee";
+                if (!AuthService.RequireWriteAccess(actionKey, actionName))
+                    return;
+
                 var (success, message) = isNew
                     ? await _employeeService.AddEmployeeAsync(employee)
                     : await _employeeService.UpdateEmployeeAsync(employee);
@@ -1127,6 +1132,9 @@ namespace kingdom_Preparatory_School_Management_System
         {
             try
             {
+                if (!AuthService.RequireWriteAccess("Staff.Delete", "Delete Employee"))
+                    return;
+
                 if (string.IsNullOrWhiteSpace(txtEMdID.Text))
                 {
                     UIHelper.ShowWarning("Please select an employee to delete.", "Employee Registration");

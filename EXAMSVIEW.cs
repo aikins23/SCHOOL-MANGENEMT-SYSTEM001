@@ -2,11 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Drawing;
+using System.Globalization;
+using System.IO;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using kingdom_Preparatory_School_Management_System.Common;
 using kingdom_Preparatory_School_Management_System.Data;
-using kingdom_Preparatory_School_Management_System.Models;
+using KingdomPrep.Shared.Models;
 using kingdom_Preparatory_School_Management_System.Services;
 
 namespace kingdom_Preparatory_School_Management_System
@@ -66,7 +68,7 @@ namespace kingdom_Preparatory_School_Management_System
             MinimumSize = new Size(1220, 760);
 
             var root = new TableLayoutPanel { Dock = DockStyle.Fill, RowCount = 4, ColumnCount = 1, BackColor = PageBackColor, Padding = new Padding(26) };
-            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 78));
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 94));
             root.RowStyles.Add(new RowStyle(SizeType.Absolute, 128));
             root.RowStyles.Add(new RowStyle(SizeType.Absolute, 76));
             root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
@@ -81,46 +83,40 @@ namespace kingdom_Preparatory_School_Management_System
 
         private Control BuildHeader()
         {
-            var header = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, BackColor = PageBackColor };
-            header.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 55));
-            header.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 45));
+            var header = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 1, BackColor = PageBackColor, Padding = new Padding(0, 0, 0, 8) };
+            header.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 52));
+            header.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 48));
 
-            var title = new Panel { Dock = DockStyle.Fill, BackColor = PageBackColor };
-            title.Controls.Add(new Label { Dock = DockStyle.Top, Height = 40, Text = "Exam Results", ForeColor = TextColor, Font = new Font("Segoe UI Semibold", 22F, FontStyle.Bold), TextAlign = ContentAlignment.MiddleLeft });
-            title.Controls.Add(new Label { Dock = DockStyle.Bottom, Height = 28, Text = "Search results, review rankings, and generate report cards", ForeColor = MutedTextColor, Font = new Font("Segoe UI", 10F), TextAlign = ContentAlignment.MiddleLeft });
+            var title = new TableLayoutPanel { Dock = DockStyle.Fill, RowCount = 2, ColumnCount = 1, BackColor = PageBackColor };
+            title.RowStyles.Add(new RowStyle(SizeType.Absolute, 48));
+            title.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));
+            title.Controls.Add(new Label { Dock = DockStyle.Fill, Text = "Exam Results", ForeColor = TextColor, Font = new Font("Segoe UI Semibold", 22F, FontStyle.Bold), TextAlign = ContentAlignment.MiddleLeft }, 0, 0);
+            title.Controls.Add(new Label { Dock = DockStyle.Fill, Text = "Search results, review rankings, and generate report cards", ForeColor = MutedTextColor, Font = new Font("Segoe UI", 10F), TextAlign = ContentAlignment.MiddleLeft }, 0, 1);
 
-            // Use TableLayoutPanel instead of FlowLayoutPanel so buttons never wrap to a second row.
-            // Columns: [spacer (fills leftover)] [Enter Scores] [Print PDF] [View Details] [Refresh]
-            var actions = new TableLayoutPanel
+            var actions = new FlowLayoutPanel
             {
                 Dock = DockStyle.Fill,
-                ColumnCount = 5,
+                FlowDirection = FlowDirection.RightToLeft,
+                WrapContents = false,
                 BackColor = PageBackColor,
-                Padding = new Padding(0, 18, 12, 0) // 12 px right gap keeps buttons off the form edge
+                Padding = new Padding(0, 18, 6, 0)
             };
-            actions.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); // spacer
-            actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 108)); // Enter Scores
-            actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 90));  // Print PDF
-            actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 100)); // View Details
-            actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 84));  // Refresh
-
-            actions.Controls.Add(new Panel { BackColor = PageBackColor }, 0, 0);
-            actions.Controls.Add(MakeHeaderBtn("Enter Scores", () => new EXAMS().Show(), true), 1, 0);
-            actions.Controls.Add(CreatePrintReportCardButton(), 2, 0);
-            actions.Controls.Add(MakeHeaderBtn("View Details", OpenSelectedResult, false), 3, 0);
-            actions.Controls.Add(MakeHeaderBtn("Refresh", async () => await LoadResults(), false), 4, 0);
+            actions.Controls.Add(MakeHeaderBtn("Refresh", async () => await LoadResults(), false, 84));
+            actions.Controls.Add(MakeHeaderBtn("View Details", OpenSelectedResult, false, 104));
+            actions.Controls.Add(CreatePrintReportCardButton());
+            actions.Controls.Add(MakeHeaderBtn("Enter Scores", () => new EXAMS().Show(), true, 112));
 
             header.Controls.Add(title, 0, 0);
             header.Controls.Add(actions, 1, 0);
             return header;
         }
 
-        /// <summary>Header button that fills its TableLayoutPanel cell (no fixed Width).</summary>
-        private Button MakeHeaderBtn(string text, Action action, bool primary)
+        private Button MakeHeaderBtn(string text, Action action, bool primary, int width)
         {
             var btn = new Button
             {
-                Dock = DockStyle.Fill,
+                Width = width,
+                Height = 38,
                 Margin = new Padding(8, 0, 0, 0),
                 Text = text,
                 FlatStyle = FlatStyle.Flat,
@@ -212,7 +208,7 @@ namespace kingdom_Preparatory_School_Management_System
             resultsGrid.DefaultCellStyle.SelectionForeColor = TextColor;
             resultsGrid.AlternatingRowsDefaultCellStyle.BackColor = SurfaceAlt;
             resultsGrid.GridColor = BorderColor;
-            
+
             shell.Controls.Add(resultsGrid);
             return shell;
         }
@@ -223,9 +219,41 @@ namespace kingdom_Preparatory_School_Management_System
             try
             {
                 string colName = resultsGrid.Columns[e.ColumnIndex].Name;
-                e.Value = _activeView[e.RowIndex][colName];
+                e.Value = FormatVirtualGridValue(colName, _activeView[e.RowIndex][colName]);
             }
             catch { e.Value = null; }
+        }
+
+        private static object FormatVirtualGridValue(string columnName, object value)
+        {
+            if (value == null || value == DBNull.Value) return value;
+
+            decimal parsed;
+            if (!ShouldFormatVirtualGridNumber(columnName, value, out parsed))
+                return value;
+
+            return parsed.ToString("0.00", CultureInfo.CurrentCulture);
+        }
+
+        private static bool ShouldFormatVirtualGridNumber(string columnName, object value, out decimal parsed)
+        {
+            parsed = 0m;
+            string text = Convert.ToString(value, CultureInfo.CurrentCulture);
+            if (!decimal.TryParse(text, NumberStyles.Any, CultureInfo.CurrentCulture, out parsed) &&
+                !decimal.TryParse(text, NumberStyles.Any, CultureInfo.InvariantCulture, out parsed))
+            {
+                return false;
+            }
+
+            string key = (columnName ?? string.Empty).Trim().ToUpperInvariant();
+            if (key == "STUDENTID" || key == "ID" || key == "YEAR" || key == "CLASS" || key == "TERMS" ||
+                key == "TERM" || key == "NAME" || key.Contains("RANK") || key.Contains("POSITION") ||
+                key.EndsWith(" POS"))
+            {
+                return false;
+            }
+
+            return true;
         }
 
         private Control CreateMetricCard(string title, Label valueLabel, string caption)
@@ -291,7 +319,8 @@ namespace kingdom_Preparatory_School_Management_System
             var btn = new Button
             {
                 Text = "Print PDF",
-                Dock = DockStyle.Fill,
+                Width = 94,
+                Height = 38,
                 Margin = new Padding(8, 0, 0, 0),
                 FlatStyle = FlatStyle.Flat,
                 Font = new Font("Segoe UI Semibold", 9.25F, FontStyle.Bold),
@@ -304,23 +333,25 @@ namespace kingdom_Preparatory_School_Management_System
 
             btn.Click += async (sender, args) =>
             {
+                if (!btn.Enabled) return;
+
                 if (resultsGrid.SelectedRows.Count == 0)
                 {
                     UIHelper.ShowWarning("Please select a student first", "Generate Report Card");
                     return;
                 }
 
-                var selectedRow = resultsGrid.SelectedRows[0];
-                var studentName = selectedRow.Cells["NAME"].Value.ToString();
-                var term = termFilter.SelectedItem?.ToString() ?? "All terms";
-                var year = selectedRow.Cells["YEAR"].Value?.ToString() ?? "2024/2025";
-
-                // Retrieve StudentID from the grid (now included in the query)
-                string studentId = "";
-                if (resultsGrid.Columns.Contains("StudentID"))
+                var selected = GetSelectedRowView();
+                if (selected == null)
                 {
-                    studentId = selectedRow.Cells["StudentID"].Value?.ToString() ?? "";
+                    UIHelper.ShowWarning("Please select a student first", "Generate Report Card");
+                    return;
                 }
+
+                var studentName = selected.Row.Table.Columns.Contains("NAME") ? selected["NAME"]?.ToString() ?? "" : "";
+                var term = termFilter.SelectedItem?.ToString() ?? "All terms";
+                var year = selected.Row.Table.Columns.Contains("YEAR") ? selected["YEAR"]?.ToString() ?? CurrentAcademicYearLabel() : CurrentAcademicYearLabel();
+                string studentId = selected.Row.Table.Columns.Contains("StudentID") ? selected["StudentID"]?.ToString() ?? "" : "";
 
                 if (string.IsNullOrEmpty(studentId))
                 {
@@ -330,6 +361,9 @@ namespace kingdom_Preparatory_School_Management_System
 
                 try
                 {
+                    btn.Enabled = false;
+                    Cursor = Cursors.WaitCursor;
+
                     if (term == "All terms" || string.IsNullOrEmpty(term))
                     {
                         UIHelper.ShowWarning("Please select a specific term from the filter first.", "Generate Report Card");
@@ -344,14 +378,19 @@ namespace kingdom_Preparatory_School_Management_System
                     var printer = new ReportCardPrinter();
                     var manager = new ReportCardManager(dataService, pdfGenerator, printer);
 
-                    // Show print dialog
-                    if (printer.ShowPrintDialog(out var selectedPrinter))
-                    {
-                        var action = new ReportCardOutputAction { Type = OutputType.Print, PrinterName = selectedPrinter };
-                        await manager.GenerateAndOutputAsync(studentId, term, year, action);
-                        UIHelper.ShowSuccess($"Report card generated and sent to printer for {studentName}", "Generate Report Card");
-                    }
-                    
+                    var documents = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+                    var folder = Path.Combine(
+                        string.IsNullOrWhiteSpace(documents) ? Path.GetTempPath() : documents,
+                        "Nyansapo Report Cards");
+                    Directory.CreateDirectory(folder);
+
+                    var action = new ReportCardOutputAction { Type = OutputType.Save, SavePath = folder };
+                    var savedPath = await Task.Run(async () =>
+                        await manager.GenerateAndOutputAsync(studentId, term, year, action));
+                    UIHelper.ShowSuccess(
+                        $"Report card generated successfully for {studentName}.\n\nSaved to:\n{savedPath}",
+                        "Generate Report Card");
+
                     if (resultLabel != null) resultLabel.Text = "Ready.";
                 }
                 catch (Exception ex)
@@ -360,9 +399,24 @@ namespace kingdom_Preparatory_School_Management_System
                     UIHelper.ShowError($"Failed to generate report: {ex.Message}", "Generate Report Card");
                     if (resultLabel != null) resultLabel.Text = "Generation failed.";
                 }
+                finally
+                {
+                    Cursor = Cursors.Default;
+                    btn.Enabled = true;
+                }
             };
 
             return btn;
+        }
+
+        private DataRowView GetSelectedRowView()
+        {
+            if (_activeView == null || resultsGrid == null) return null;
+            int index = resultsGrid.SelectedRows.Count > 0
+                ? resultsGrid.SelectedRows[0].Index
+                : resultsGrid.CurrentRow?.Index ?? -1;
+            if (index < 0 || index >= _activeView.Count) return null;
+            return _activeView[index];
         }
 
         private async System.Threading.Tasks.Task LoadResults()
@@ -384,10 +438,10 @@ namespace kingdom_Preparatory_School_Management_System
                         resultsGrid.Columns.Add(col.ColumnName, col.ColumnName);
                     }
                 }
-                
+
                 // 2. Configure visibility and headers
                 ConfigureGridColumns();
-                
+
                 // 3. Setup filters
                 LoadFilterValues();
                 await ApplyTeacherScopeAsync();
@@ -410,7 +464,7 @@ namespace kingdom_Preparatory_School_Management_System
             if (resultsGrid.Columns.Count == 0) return;
 
             // Define protected/system columns that should always be visible (or specifically hidden)
-            var systemColumns = new HashSet<string>(StringComparer.OrdinalIgnoreCase) 
+            var systemColumns = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
             { "NAME", "CLASS", "TERMS", "YEAR", "TOTAL_SCORE", "TOTAL_RANK" };
 
             foreach (DataGridViewColumn column in resultsGrid.Columns)
@@ -429,11 +483,11 @@ namespace kingdom_Preparatory_School_Management_System
 
                 // 3. Show everything else (system columns + all subject scores)
                 column.Visible = true;
-                
+
                 // 4. Set pretty headers for system columns
                 if (name == "NAME") column.HeaderText = "Student";
                 else if (name == "TERMS") column.HeaderText = "Term";
-                else if (name == "TOTAL_SCORE") column.HeaderText = "Total";
+                else if (name == "TOTAL_SCORE") column.HeaderText = "Average";
                 else if (name == "TOTAL_RANK") column.HeaderText = "Rank";
                 else if (name == "YEAR") column.HeaderText = "Year";
                 else if (name == "CLASS") column.HeaderText = "Class";
@@ -530,7 +584,7 @@ namespace kingdom_Preparatory_School_Management_System
                 }
             }
 
-            averageScoreLabel.Text = (total / count).ToString("0.0");
+            averageScoreLabel.Text = (total / count).ToString("0.00");
             topStudentLabel.Text = bestName;
         }
 
@@ -554,7 +608,7 @@ namespace kingdom_Preparatory_School_Management_System
             new examsviewdetails(rowData).Show();
         }
 
-        private void ExportSelectedReportCard()
+        private async void ExportSelectedReportCard()
         {
             Dictionary<string, string> rowData = SelectedRowData();
             if (rowData == null)
@@ -563,19 +617,24 @@ namespace kingdom_Preparatory_School_Management_System
                 return;
             }
 
-            // Enrich with any extra display fields the PDF layout uses
-            if (!rowData.ContainsKey("CLOSING_DATE"))
-                rowData["CLOSING_DATE"] = "FRIDAY, 1ST AUGUST, 2025";
-            if (!rowData.ContainsKey("RESUMING_DATE"))
-                rowData["RESUMING_DATE"] = "MON., 1ST SEPTEMBER, 2025";
+            await UIHelper.RunBusyAsync(
+                this,
+                resultLabel,
+                "Generating report card PDF...",
+                new Control[] { resultsGrid },
+                async () => await ReportCardPdfService.ExportAsync(rowData));
+        }
 
-            ReportCardPdfService.Export(rowData);
+        private static string CurrentAcademicYearLabel()
+        {
+            int year = DateTime.Today.Year;
+            return $"{year}/{year + 1}";
         }
 
         private Dictionary<string, string> SelectedRowData()
         {
             if (resultsGrid.CurrentRow == null || _activeView == null) return null;
-            
+
             int idx = resultsGrid.CurrentRow.Index;
             if (idx < 0 || idx >= _activeView.Count) return null;
 
@@ -584,18 +643,53 @@ namespace kingdom_Preparatory_School_Management_System
 
             foreach (DataGridViewColumn col in resultsGrid.Columns)
             {
-                rowData[col.Name] = row[col.Name]?.ToString() ?? "";
+                rowData[col.Name] = FormatVirtualGridValue(col.Name, row[col.Name])?.ToString() ?? "";
             }
             return rowData;
         }
 
         private void ResultsGrid_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
         {
+            if (e.RowIndex < 0 || e.Value == null) return;
+
             if (resultsGrid.Columns[e.ColumnIndex].Name == "TOTAL_RANK" && e.Value != null && int.TryParse(e.Value.ToString(), out int rank))
             {
                 e.Value = rank + GetOrdinalSuffix(rank);
                 e.FormattingApplied = true;
+                return;
             }
+
+            if (IsTwoDecimalColumn(resultsGrid.Columns[e.ColumnIndex].Name))
+            {
+                decimal value;
+                if (decimal.TryParse(e.Value.ToString(), NumberStyles.Any, CultureInfo.CurrentCulture, out value)
+                    || decimal.TryParse(e.Value.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out value))
+                {
+                    e.Value = value.ToString("0.00", CultureInfo.CurrentCulture);
+                    e.FormattingApplied = true;
+                }
+            }
+        }
+
+        private static bool IsTwoDecimalColumn(string columnName)
+        {
+            if (string.IsNullOrWhiteSpace(columnName)) return false;
+
+            var key = columnName.ToUpperInvariant();
+            if (key.Contains("ID") || key == "YEAR" || key.Contains("RANK") || key.Contains("POSITION"))
+            {
+                return false;
+            }
+
+            return key.Contains("SCORE")
+                || key.Contains("AVERAGE")
+                || key.Contains("TOTAL")
+                || key.Contains("BALANCE")
+                || key.Contains("PAID")
+                || key.Contains("AMOUNT")
+                || key == "GT"
+                || key.StartsWith("CAT", StringComparison.OrdinalIgnoreCase)
+                || key.Contains("EXAM");
         }
 
         private string GetOrdinalSuffix(int number)
@@ -632,4 +726,3 @@ namespace kingdom_Preparatory_School_Management_System
         }
     }
 }
-

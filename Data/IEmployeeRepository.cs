@@ -1,3 +1,4 @@
+using KingdomPrep.Shared.Models;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -10,11 +11,11 @@ namespace kingdom_Preparatory_School_Management_System.Data
     /// </summary>
     public interface IEmployeeRepository
     {
-        Task<Models.Employee> GetByIdAsync(string employeeId);
-        Task<IEnumerable<Models.Employee>> GetAllAsync();
-        Task<IEnumerable<Models.Employee>> GetByDepartmentAsync(string department);
-        Task<bool> AddAsync(Models.Employee employee);
-        Task<bool> UpdateAsync(Models.Employee employee);
+        Task<KingdomPrep.Shared.Models.Employee> GetByIdAsync(string employeeId);
+        Task<IEnumerable<KingdomPrep.Shared.Models.Employee>> GetAllAsync();
+        Task<IEnumerable<KingdomPrep.Shared.Models.Employee>> GetByDepartmentAsync(string department);
+        Task<bool> AddAsync(KingdomPrep.Shared.Models.Employee employee);
+        Task<bool> UpdateAsync(KingdomPrep.Shared.Models.Employee employee);
         Task<bool> DeleteAsync(string employeeId);
         Task<bool> ExistsAsync(string employeeId);
         Task<string> GenerateNextEmployeeIdAsync();

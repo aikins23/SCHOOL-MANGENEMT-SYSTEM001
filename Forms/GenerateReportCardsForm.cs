@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using kingdom_Preparatory_School_Management_System.Common;
 using kingdom_Preparatory_School_Management_System.Data;
-using kingdom_Preparatory_School_Management_System.Models;
+using KingdomPrep.Shared.Models;
 using kingdom_Preparatory_School_Management_System.Services;
 
 namespace kingdom_Preparatory_School_Management_System
@@ -15,6 +15,7 @@ namespace kingdom_Preparatory_School_Management_System
     {
         private readonly ReportCardManager _reportCardManager;
         private List<string> _selectedStudentIds;
+        private bool _isGenerating;
 
         public GenerateReportCardsForm(ReportCardManager reportCardManager)
         {
@@ -23,24 +24,71 @@ namespace kingdom_Preparatory_School_Management_System
             if (!AuthService.RequireAccess("GenerateReportCardsForm", this)) return;
             _reportCardManager = reportCardManager;
             UiTheme.Apply(this);
-            LoadFilters();
+            btnGenerate.Click += btnGenerate_Click;
+            Shown += async (s, e) => await LoadFiltersAsync();
         }
 
-        private void LoadFilters()
+        private async Task LoadFiltersAsync()
         {
-            // Load terms: TERM 1, TERM 2, TERM 3
-            cmbTerm.Items.AddRange(new[] { "TERM 1", "TERM 2", "TERM 3", "All Terms" });
-            cmbTerm.SelectedIndex = 2;  // Default to TERM 3
+            btnGenerate.Enabled = false;
+            lblStatus.Text = "Loading academic filters...";
 
-            // Load years
-            cmbYear.Items.AddRange(new[] { "2024/2025", "2025/2026", "All Years" });
-            cmbYear.SelectedIndex = 0;
+            try
+            {
+                var sessionService = new AcademicSessionService();
+                var terms = await sessionService.GetTermsAsync();
+                var years = await sessionService.GetYearsAsync();
+                var activeTerm = await sessionService.GetActiveTermAsync();
 
-            // Load classes from database
-            LoadClassesAsync();
+                cmbTerm.Items.Clear();
+                foreach (var name in terms
+                    .Select(t => t.TermName)
+                    .Where(name => !string.IsNullOrWhiteSpace(name))
+                    .Distinct(StringComparer.OrdinalIgnoreCase))
+                {
+                    cmbTerm.Items.Add(name);
+                }
+                cmbTerm.Items.Add("All Terms");
+                cmbTerm.SelectedItem = activeTerm?.TermName;
+                if (cmbTerm.SelectedIndex < 0 && cmbTerm.Items.Count > 0)
+                    cmbTerm.SelectedIndex = 0;
+
+                cmbYear.Items.Clear();
+                foreach (var year in years
+                    .Select(y => y.DisplayName)
+                    .Where(name => !string.IsNullOrWhiteSpace(name))
+                    .Distinct(StringComparer.OrdinalIgnoreCase))
+                {
+                    cmbYear.Items.Add(year);
+                }
+                cmbYear.Items.Add("All Years");
+                cmbYear.SelectedItem = activeTerm?.AcademicYearName;
+                if (cmbYear.SelectedIndex < 0 && cmbYear.Items.Count > 0)
+                    cmbYear.SelectedIndex = 0;
+            }
+            catch (Exception ex)
+            {
+                LoggerHelper.LogWarning("Falling back to static report card filters: " + ex.Message);
+                LoadFallbackFilters();
+            }
+
+            await LoadClassesAsync();
+            lblStatus.Text = "Ready";
+            btnGenerate.Enabled = true;
         }
 
-        private async void LoadClassesAsync()
+        private void LoadFallbackFilters()
+        {
+            cmbTerm.Items.Clear();
+            cmbTerm.Items.AddRange(new object[] { "TERM 1", "TERM 2", "TERM 3", "All Terms" });
+            cmbTerm.SelectedIndex = 2;
+
+            cmbYear.Items.Clear();
+            cmbYear.Items.AddRange(new object[] { "2024/2025", "2025/2026", "All Years" });
+            cmbYear.SelectedIndex = 0;
+        }
+
+        private async Task LoadClassesAsync()
         {
             try
             {
@@ -85,12 +133,18 @@ namespace kingdom_Preparatory_School_Management_System
         private async Task<List<string>> GetAllClassesAsync()
         {
             var classes = new List<string>();
-            using (var connection = new System.Data.OleDb.OleDbConnection(AppConfig.ConnectionString))
+            using (var connection = new Microsoft.Data.SqlClient.SqlConnection(kingdom_Preparatory_School_Management_System.Common.SqlCommandExtensions.StripProvider(AppConfig.ConnectionString)))
             {
                 await connection.OpenAsync();
-                const string query = "SELECT DISTINCT ClassID FROM Student ORDER BY ClassID";
-                using (var cmd = new System.Data.OleDb.OleDbCommand(query, connection))
+                var query = "SELECT DISTINCT ClassID FROM Students WHERE 1=1";
+                var tenant = await TenantContext.HasSchoolIdColumnAsync(connection, "Students");
+                if (tenant)
+                    query += TenantContext.FilterClauseSql();
+                query += " ORDER BY ClassID";
+                using (var cmd = new Microsoft.Data.SqlClient.SqlCommand(query, connection))
                 {
+                    if (tenant)
+                        TenantContext.AddSchoolParameter(cmd);
                     using (var reader = await cmd.ExecuteReaderAsync())
                     {
                         while (reader.Read())
@@ -103,6 +157,8 @@ namespace kingdom_Preparatory_School_Management_System
 
         private async void btnGenerate_Click(object sender, EventArgs e)
         {
+            if (_isGenerating) return;
+
             try
             {
                 // For Teacher: always route through the filtered path so the
@@ -124,30 +180,126 @@ namespace kingdom_Preparatory_School_Management_System
                     return;
                 }
 
-                // Ask user: Print or Save
-                var result = MessageBox.Show(
-                    $"Generate report cards for {_selectedStudentIds.Count} students?\n\nPrint to Printer or Save to Folder?",
-                    "Generate Report Cards",
-                    MessageBoxButtons.YesNoCancel);
-
-                if (result == DialogResult.Yes)
+                var selectedTerm = cmbTerm.Text;
+                var selectedYear = cmbYear.Text;
+                if (selectedTerm == "All Terms" || selectedYear == "All Years")
                 {
-                    // Print all
-                    await GenerateAndPrintAsync();
+                    UIHelper.ShowWarning("Select a specific academic term and year before generating report cards.", "Generate Report Cards");
+                    return;
                 }
-                else if (result == DialogResult.No)
+
+                // Ask user: Print, Save, or Email
+                var dialog = new frmReportCardOutputAction(_selectedStudentIds.Count);
+                if (dialog.ShowDialog() == DialogResult.OK)
                 {
-                    // Save to folder
-                    var folderDialog = new FolderBrowserDialog();
-                    if (folderDialog.ShowDialog() == DialogResult.OK)
+                    _isGenerating = true;
+                    if (dialog.SelectedAction == OutputDialogAction.Print)
                     {
-                        await GenerateAndSaveAsync(folderDialog.SelectedPath);
+                        await UIHelper.RunBusyAsync(
+                            this,
+                            lblStatus,
+                            "Preparing report cards for printing...",
+                            new Control[] { btnGenerate, cmbClass, cmbTerm, cmbYear, chkPrintAll },
+                            GenerateAndPrintAsync);
+                    }
+                    else if (dialog.SelectedAction == OutputDialogAction.Save)
+                    {
+                        var folderDialog = new FolderBrowserDialog();
+                        if (folderDialog.ShowDialog() == DialogResult.OK)
+                        {
+                            await UIHelper.RunBusyAsync(
+                                this,
+                                lblStatus,
+                                "Generating report card PDFs...",
+                                new Control[] { btnGenerate, cmbClass, cmbTerm, cmbYear, chkPrintAll },
+                                async () => await GenerateAndSaveAsync(folderDialog.SelectedPath));
+                        }
+                    }
+                    else if (dialog.SelectedAction == OutputDialogAction.Email)
+                    {
+                        if (!AppConfig.Email.IsConfigured)
+                        {
+                            UIHelper.ShowError("Email service is not configured. Please set up email settings first.", "Configuration Error");
+                            return;
+                        }
+
+                        if (ConfirmationHelper.ConfirmBulkOperation("email report cards to parents", _selectedStudentIds.Count))
+                        {
+                            await UIHelper.RunBusyAsync(
+                                this,
+                                lblStatus,
+                                "Emailing report cards...",
+                                new Control[] { btnGenerate, cmbClass, cmbTerm, cmbYear, chkPrintAll },
+                                GenerateAndEmailAsync);
+                        }
                     }
                 }
             }
             catch (Exception ex)
             {
                 UIHelper.ShowError($"Error: {ex.Message}", "Generate Report Cards");
+            }
+            finally
+            {
+                _isGenerating = false;
+            }
+        }
+
+        private async Task GenerateAndEmailAsync()
+        {
+            try
+            {
+                int successCount = 0;
+                int failureCount = 0;
+
+                string term = cmbTerm.Text;
+                string year = cmbYear.Text;
+                if (term == "All Terms" || year == "All Years")
+                {
+                    UIHelper.ShowWarning("Please select a specific Term and Year for email distribution.");
+                    return;
+                }
+
+                foreach (var studentId in _selectedStudentIds)
+                {
+                    lblStatus.Text = $"Emailing report card {successCount + failureCount + 1} of {_selectedStudentIds.Count}...";
+                    try
+                    {
+                        // 1. Fetch student data to get email
+                        var studentRepo = new StudentRepository(AppConfig.ConnectionString);
+                        var student = await studentRepo.GetByIdAsync(studentId);
+
+                        if (student == null || string.IsNullOrWhiteSpace(student.GuardianEmail))
+                        {
+                            failureCount++;
+                            LoggerHelper.LogWarning($"Skipping {studentId} - No guardian email found.");
+                            continue;
+                        }
+
+                        // 2. Generate PDF
+                        var data = await _reportCardManager.GetReportCardDataAsync(studentId, term, year);
+                        var pdfGenerator = new ReportCardPDFGenerator();
+                        byte[] pdfBytes = await pdfGenerator.GeneratePDFAsync(data);
+
+                        // 3. Email PDF
+                        var result = await NotificationService.SendReportCardAsync(
+                            student.FullName, student.GuardianEmail, term, year, pdfBytes);
+
+                        if (result.Success) successCount++;
+                        else failureCount++;
+                    }
+                    catch (Exception ex)
+                    {
+                        failureCount++;
+                        LoggerHelper.LogError($"Failed to email report for {studentId}", ex);
+                    }
+                }
+
+                UIHelper.ShowInfo($"Email dispatch complete.\nSent: {successCount}\nFailed/No Email: {failureCount}", "Report Cards");
+            }
+            catch (Exception ex)
+            {
+                UIHelper.ShowError($"Bulk email failed: {ex.Message}", "Generate Report Cards");
             }
         }
 
@@ -159,15 +311,43 @@ namespace kingdom_Preparatory_School_Management_System
 
             var term = cmbTerm.SelectedItem.ToString();
             var year = cmbYear.SelectedItem.ToString();
-
-            var progress = new Progress<BatchProgressReport>(report =>
+            var printer = new ReportCardPrinter();
+            if (!printer.ShowPrintDialog(out string printerName))
             {
-                prgProgress.Value = report.Current;
-                lblStatus.Text = $"Generating {report.Current} of {report.Total}...";
-            });
+                prgProgress.Visible = false;
+                lblStatus.Text = "Print cancelled.";
+                return;
+            }
 
-            await _reportCardManager.GenerateBatchAsync(_selectedStudentIds, term, year, "", progress);
-            UIHelper.ShowSuccess($"Successfully generated {_selectedStudentIds.Count} report cards", "Generate Report Cards");
+            var action = new ReportCardOutputAction
+            {
+                Type = OutputType.Print,
+                PrinterName = printerName
+            };
+
+            var savedFallbacks = new List<string>();
+            for (int i = 0; i < _selectedStudentIds.Count; i++)
+            {
+                var studentId = _selectedStudentIds[i];
+                lblStatus.Text = $"Generating report card {i + 1} of {_selectedStudentIds.Count}...";
+                var fallbackPath = await Task.Run(async () =>
+                    await _reportCardManager.GenerateAndOutputAsync(studentId, term, year, action));
+                if (!string.IsNullOrWhiteSpace(fallbackPath))
+                    savedFallbacks.Add(fallbackPath);
+                prgProgress.Value = i + 1;
+                lblStatus.Text = $"Printing {i + 1} of {_selectedStudentIds.Count}...";
+            }
+
+            if (savedFallbacks.Count == 0)
+            {
+                UIHelper.ShowSuccess($"Successfully sent {_selectedStudentIds.Count} report cards to the printer", "Generate Report Cards");
+            }
+            else
+            {
+                UIHelper.ShowInfo(
+                    $"{savedFallbacks.Count} report card(s) were generated and saved as PDF files.\n\nWindows did not allow direct printing from the app on this computer, so open the PDFs and print them from the viewer.\n\nSaved in:\n{System.IO.Path.GetDirectoryName(savedFallbacks[0])}",
+                    "Generate Report Cards");
+            }
             this.Close();
         }
 
@@ -186,7 +366,8 @@ namespace kingdom_Preparatory_School_Management_System
                 lblStatus.Text = $"Saving {report.Current} of {report.Total}...";
             });
 
-            await _reportCardManager.GenerateBatchAsync(_selectedStudentIds, term, year, folderPath, progress);
+            await Task.Run(async () =>
+                await _reportCardManager.GenerateBatchAsync(_selectedStudentIds, term, year, folderPath, progress));
             UIHelper.ShowSuccess($"Report cards saved to {folderPath}", "Generate Report Cards");
             this.Close();
         }
@@ -194,12 +375,18 @@ namespace kingdom_Preparatory_School_Management_System
         private async Task<List<string>> GetAllStudentIdsAsync()
         {
             var students = new List<string>();
-            using (var connection = new System.Data.OleDb.OleDbConnection(AppConfig.ConnectionString))
+            using (var connection = new Microsoft.Data.SqlClient.SqlConnection(kingdom_Preparatory_School_Management_System.Common.SqlCommandExtensions.StripProvider(AppConfig.ConnectionString)))
             {
                 await connection.OpenAsync();
-                const string query = "SELECT StudentID FROM Student ORDER BY StudentID";
-                using (var cmd = new System.Data.OleDb.OleDbCommand(query, connection))
+                var query = "SELECT CAST(StudentID AS NVARCHAR(50)) AS StudentID FROM Students WHERE 1=1";
+                var tenant = await TenantContext.HasSchoolIdColumnAsync(connection, "Students");
+                if (tenant)
+                    query += TenantContext.FilterClauseSql();
+                query += " ORDER BY StudentID";
+                using (var cmd = new Microsoft.Data.SqlClient.SqlCommand(query, connection))
                 {
+                    if (tenant)
+                        TenantContext.AddSchoolParameter(cmd);
                     using (var reader = await cmd.ExecuteReaderAsync())
                     {
                         while (reader.Read())
@@ -215,16 +402,22 @@ namespace kingdom_Preparatory_School_Management_System
             var students = new List<string>();
             var classFilter = cmbClass.SelectedItem.ToString();
 
-            using (var connection = new System.Data.OleDb.OleDbConnection(AppConfig.ConnectionString))
+            using (var connection = new Microsoft.Data.SqlClient.SqlConnection(kingdom_Preparatory_School_Management_System.Common.SqlCommandExtensions.StripProvider(AppConfig.ConnectionString)))
             {
                 await connection.OpenAsync();
 
-                var query = "SELECT StudentID FROM Student WHERE 1=1";
+                var query = "SELECT CAST(StudentID AS NVARCHAR(50)) AS StudentID FROM Students WHERE 1=1";
+                var tenant = await TenantContext.HasSchoolIdColumnAsync(connection, "Students");
+                if (tenant)
+                    query += TenantContext.FilterClauseSql();
                 if (classFilter != "All Classes")
                     query += " AND ClassID = @ClassID";
+                query += " ORDER BY StudentID";
 
-                using (var cmd = new System.Data.OleDb.OleDbCommand(query, connection))
+                using (var cmd = new Microsoft.Data.SqlClient.SqlCommand(query, connection))
                 {
+                    if (tenant)
+                        TenantContext.AddSchoolParameter(cmd);
                     if (classFilter != "All Classes")
                         cmd.Parameters.AddWithValue("@ClassID", classFilter);
 

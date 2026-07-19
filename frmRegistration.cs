@@ -7,7 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using System.Data.OleDb;
+
 using kingdom_Preparatory_School_Management_System.Common;
 using kingdom_Preparatory_School_Management_System.Data;
 using kingdom_Preparatory_School_Management_System.Services;
@@ -15,7 +15,7 @@ using kingdom_Preparatory_School_Management_System.Services;
 
 namespace kingdom_Preparatory_School_Management_System
 {
-   
+
 
     public partial class frmRegistration : Form
     {
@@ -389,11 +389,11 @@ namespace kingdom_Preparatory_School_Management_System
         private async System.Threading.Tasks.Task<DataTable> LoadEmployeesAsync()
         {
             var dt = new DataTable();
-            using (var conn = new OleDbConnection(AppConfig.ConnectionString))
+            using (var conn = new Microsoft.Data.SqlClient.SqlConnection(SqlCommandExtensions.StripProvider(AppConfig.ConnectionString)))
             {
                 await conn.OpenAsync();
-                using (var cmd = new OleDbCommand("SELECT employmentID, fullName, department FROM Employee ORDER BY fullName", conn))
-                using (var adapter = new OleDbDataAdapter(cmd))
+                using (var cmd = new Microsoft.Data.SqlClient.SqlCommand("SELECT employmentID, fullName, department FROM Employee ORDER BY fullName", conn))
+                using (var adapter = new Microsoft.Data.SqlClient.SqlDataAdapter(cmd))
                 {
                     adapter.Fill(dt);
                 }
@@ -440,7 +440,7 @@ namespace kingdom_Preparatory_School_Management_System
 
                 var prompt = new Label { Dock = DockStyle.Top, Height = 48, Text = "Select the student for this parent account:", TextAlign = ContentAlignment.MiddleLeft };
                 var combo = new ComboBox { Dock = DockStyle.Top, DropDownStyle = ComboBoxStyle.DropDownList, Height = 30 };
-                
+
                 foreach (DataRow row in students.Rows)
                 {
                     string id = row["ID"].ToString();
@@ -473,6 +473,9 @@ namespace kingdom_Preparatory_School_Management_System
         {
             try
             {
+                if (!AuthService.RequireWriteAccess("Admin.Users.Manage", "Create User Account"))
+                    return;
+
                 // 1. Validation guards
                 if (!FormValidationHelper.ValidateRequired(TXTUsers, "Username")) return;
                 if (!FormValidationHelper.ValidateRequired(TXTPass, "Password")) return;
@@ -566,4 +569,3 @@ namespace kingdom_Preparatory_School_Management_System
         }
     }
 }
-

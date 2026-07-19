@@ -4,7 +4,7 @@ using System.Data;
 using System.Threading.Tasks;
 using kingdom_Preparatory_School_Management_System.Common;
 using kingdom_Preparatory_School_Management_System.Data;
-using kingdom_Preparatory_School_Management_System.Models;
+using KingdomPrep.Shared.Models;
 
 namespace kingdom_Preparatory_School_Management_System.Services
 {
@@ -22,7 +22,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
             _employeeService = employeeService;
         }
 
-        public async Task<(bool Success, string Message)> ApplyForLeaveAsync(Models.LeaveRequest request)
+        public async Task<(bool Success, string Message)> ApplyForLeaveAsync(KingdomPrep.Shared.Models.LeaveRequest request)
         {
             try
             {
@@ -81,7 +81,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
             return await _repository.GetLeaveBalanceTableAsync(term.Start, term.End, AppConfig.Leave.DaysPerTerm);
         }
 
-        public async Task<(bool Success, string Message)> UpdateLeaveStatusAsync(Models.LeaveRequest request, string newStatus)
+        public async Task<(bool Success, string Message)> UpdateLeaveStatusAsync(KingdomPrep.Shared.Models.LeaveRequest request, string newStatus)
         {
             try
             {
@@ -110,13 +110,13 @@ namespace kingdom_Preparatory_School_Management_System.Services
             return await _repository.GetLeaveRequestsByStatusAsync(statusFilter);
         }
 
-        public async Task<IEnumerable<Models.LeaveRequest>> GetStaffLeaveHistoryAsync(string employeeId)
+        public async Task<IEnumerable<KingdomPrep.Shared.Models.LeaveRequest>> GetStaffLeaveHistoryAsync(string employeeId)
         {
             return await _repository.GetEmployeeLeaveHistoryAsync(employeeId);
         }
 
         // Fire-and-forget; resolves the employee's contact and sends email + SMS.
-        private async Task NotifyLeaveSubmittedAsync(Models.LeaveRequest request)
+        private async Task NotifyLeaveSubmittedAsync(KingdomPrep.Shared.Models.LeaveRequest request)
         {
             if (_employeeService == null) return;
             try
@@ -147,7 +147,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
             }
         }
 
-        private async Task NotifyLeaveDecisionAsync(Models.LeaveRequest request, string status)
+        private async Task NotifyLeaveDecisionAsync(KingdomPrep.Shared.Models.LeaveRequest request, string status)
         {
             if (_employeeService == null) return;
             try

@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using kingdom_Preparatory_School_Management_System.Data;
-using kingdom_Preparatory_School_Management_System.Models;
+using KingdomPrep.Shared.Models;
 
 namespace kingdom_Preparatory_School_Management_System.Services
 {
@@ -90,13 +90,23 @@ namespace kingdom_Preparatory_School_Management_System.Services
             decimal schoolBalanceAfter = Math.Max(0m, d.TermTotal - d.SchoolFeePaid);
 
             // Admission fee row first (carries the current school balance — does not change it).
-            await _fees.AddPaymentRecordAsync(student.StudentID, student.ClassID, student.FullName,
+            var admissionPaymentSaved = await _fees.AddPaymentRecordAsync(student.StudentID, student.ClassID, student.FullName,
                 d.AdmissionFee, d.TermTotal, "Admission Fee", bursarName, DateTime.Today);
+            if (!admissionPaymentSaved)
+            {
+                LoggerHelper.LogError("Admission approval failed after student creation because the admission fee payment row was not saved.");
+                return (false, "The student was created, but the admission fee payment record was not saved. Do not approve this draft again until the fee record is checked.", student);
+            }
 
             // School-fee payment row LAST so GetLatestBalanceAsync returns the school balance.
-            await _fees.AddPaymentRecordAsync(student.StudentID, student.ClassID, student.FullName,
+            var schoolPaymentSaved = await _fees.AddPaymentRecordAsync(student.StudentID, student.ClassID, student.FullName,
                 d.SchoolFeePaid, schoolBalanceAfter, string.IsNullOrWhiteSpace(d.PaymentMode) ? "Cash" : d.PaymentMode,
                 bursarName, DateTime.Today);
+            if (!schoolPaymentSaved)
+            {
+                LoggerHelper.LogError("Admission approval failed after student creation because the school fee payment row was not saved.");
+                return (false, "The student was created, but the school-fee payment record was not saved. Check the student's fee ledger before approving this draft again.", student);
+            }
 
             if (d.BusRouteId.HasValue && int.TryParse(student.StudentID, out int sidForBus))
             {

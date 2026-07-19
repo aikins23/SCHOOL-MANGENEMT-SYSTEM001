@@ -1,3 +1,4 @@
+using KingdomPrep.Shared.Models;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -32,7 +33,14 @@ namespace kingdom_Preparatory_School_Management_System.Services
                     }
                     catch (Exception exInner)
                     {
-                        try { await repo.MarkAttemptFailedAsync(item.Id, exInner.Message, maxAttempts); } catch { }
+                        try
+                        {
+                            await repo.MarkAttemptFailedAsync(item.Id, exInner.Message, maxAttempts);
+                        }
+                        catch (Exception markEx)
+                        {
+                            LoggerHelper.LogWarning($"SmsOutbox: could not record failed attempt for message {item.Id}: {markEx.Message}");
+                        }
                     }
                 }
                 if (sent > 0) LoggerHelper.LogInfo($"SmsOutbox: delivered {sent} queued message(s).");

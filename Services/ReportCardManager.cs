@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using kingdom_Preparatory_School_Management_System.Models;
+using KingdomPrep.Shared.Models;
 
 namespace kingdom_Preparatory_School_Management_System.Services
 {
@@ -25,10 +25,15 @@ namespace kingdom_Preparatory_School_Management_System.Services
             _printer = printer ?? throw new ArgumentNullException(nameof(printer));
         }
 
+        public async Task<ReportCardData> GetReportCardDataAsync(string studentId, string term, string year)
+        {
+            return await _dataService.GetStudentReportCardDataAsync(studentId, term, year);
+        }
+
         /// <summary>
         /// Main entry point: Generate and output single student report card
         /// </summary>
-        public async Task GenerateAndOutputAsync(
+        public async Task<string> GenerateAndOutputAsync(
             string studentId,
             string term,
             string year,
@@ -51,8 +56,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
                 switch (action.Type)
                 {
                     case OutputType.Print:
-                        await _printer.PrintToPrinterAsync(pdfBytes, action.PrinterName);
-                        break;
+                        return await _printer.PrintToPrinterAsync(pdfBytes, action.PrinterName);
 
                     case OutputType.Save:
                         if (string.IsNullOrEmpty(action.SavePath))
@@ -60,8 +64,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
 
                         var fileName = $"{studentId}_{reportData.StudentName.Replace(" ", "_")}_ReportCard.pdf";
                         var filePath = System.IO.Path.Combine(action.SavePath, fileName);
-                        await _printer.SaveToFileAsync(pdfBytes, filePath);
-                        break;
+                        return await _printer.SaveToFileAsync(pdfBytes, filePath);
 
                     default:
                         throw new InvalidOperationException($"Unknown output type: {action.Type}");
@@ -70,8 +73,9 @@ namespace kingdom_Preparatory_School_Management_System.Services
             catch (Exception ex)
             {
                 LoggerHelper.LogError($"Failed to generate report card for student {studentId}", ex);
+                var detail = GetInnermostMessage(ex);
                 throw new ReportCardGenerationException(
-                    $"Failed to generate report card for student {studentId}", ex);
+                    $"Failed to generate report card for student {studentId}: {detail}", ex);
             }
         }
 
@@ -114,6 +118,12 @@ namespace kingdom_Preparatory_School_Management_System.Services
                     LoggerHelper.LogError($"Error generating batch report card for {studentId}", ex);
                 }
             }
+        }
+
+        private static string GetInnermostMessage(Exception ex)
+        {
+            while (ex?.InnerException != null) ex = ex.InnerException;
+            return string.IsNullOrWhiteSpace(ex?.Message) ? "Unknown error" : ex.Message;
         }
     }
 

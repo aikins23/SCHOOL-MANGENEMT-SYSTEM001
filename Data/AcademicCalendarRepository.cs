@@ -1,9 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
-using System.Data.OleDb;
+using Microsoft.Data.SqlClient;
 using System.Threading.Tasks;
-using kingdom_Preparatory_School_Management_System.Models;
+using KingdomPrep.Shared.Models;
+using kingdom_Preparatory_School_Management_System.Common;
 
 namespace kingdom_Preparatory_School_Management_System.Data
 {
@@ -19,23 +20,28 @@ namespace kingdom_Preparatory_School_Management_System.Data
         public async Task<List<AcademicTerm>> GetAllTermsAsync()
         {
             var list = new List<AcademicTerm>();
-            using (var conn = new OleDbConnection(_connectionString))
+            using (var conn = new SqlConnection(SqlCommandExtensions.StripProvider(_connectionString)))
             {
                 await conn.OpenAsync();
+                var tenant = await TenantContext.HasSchoolIdColumnAsync(conn, "AcademicCalendar");
                 var query = "SELECT * FROM AcademicCalendar ORDER BY StartDate DESC";
-                using (var cmd = new OleDbCommand(query, conn))
-                using (var reader = await cmd.ExecuteReaderAsync())
+                if (tenant) query = "SELECT * FROM AcademicCalendar WHERE 1=1" + TenantContext.FilterClauseSql() + " ORDER BY StartDate DESC";
+                using (var cmd = new SqlCommand(query, conn))
                 {
-                    while (reader.Read())
+                    if (tenant) TenantContext.AddSchoolParameter(cmd);
+                    using (var reader = await cmd.ExecuteReaderAsync())
                     {
-                        list.Add(new AcademicTerm
+                        while (reader.Read())
                         {
-                            TermID = Convert.ToInt32(reader["TermID"]),
-                            TermName = reader["TermName"].ToString(),
-                            StartDate = (DateTime)reader["StartDate"],
-                            EndDate = (DateTime)reader["EndDate"],
-                            IsActive = ToBool(reader["IsActive"])
-                        });
+                            list.Add(new AcademicTerm
+                            {
+                                TermID = Convert.ToInt32(reader["TermID"]),
+                                TermName = reader["TermName"].ToString(),
+                                StartDate = (DateTime)reader["StartDate"],
+                                EndDate = (DateTime)reader["EndDate"],
+                                IsActive = ToBool(reader["IsActive"])
+                            });
+                        }
                     }
                 }
             }
@@ -44,23 +50,47 @@ namespace kingdom_Preparatory_School_Management_System.Data
 
         public async Task<bool> SaveTermAsync(AcademicTerm term)
         {
-            using (var conn = new OleDbConnection(_connectionString))
+            using (var conn = new SqlConnection(SqlCommandExtensions.StripProvider(_connectionString)))
             {
                 await conn.OpenAsync();
+                var tenant = await TenantContext.HasSchoolIdColumnAsync(conn, "AcademicCalendar");
                 string query;
                 if (term.TermID == 0)
-                    query = "INSERT INTO AcademicCalendar (TermName, StartDate, EndDate, IsActive) VALUES (?, ?, ?, ?)";
+                    query = tenant
+                        ? "INSERT INTO AcademicCalendar (TermName, StartDate, EndDate, IsActive, SchoolId) VALUES (?, ?, ?, ?, ?)"
+                        : "INSERT INTO AcademicCalendar (TermName, StartDate, EndDate, IsActive) VALUES (?, ?, ?, ?)";
                 else
-                    query = "UPDATE AcademicCalendar SET TermName=?, StartDate=?, EndDate=?, IsActive=? WHERE TermID=?";
-
-                using (var cmd = new OleDbCommand(query, conn))
                 {
-                    cmd.Parameters.AddWithValue("?", term.TermName);
-                    cmd.Parameters.AddWithValue("?", term.StartDate);
-                    cmd.Parameters.AddWithValue("?", term.EndDate);
-                    cmd.Parameters.AddWithValue("?", term.IsActive);
-                    if (term.TermID != 0) cmd.Parameters.AddWithValue("?", term.TermID);
-                    return await cmd.ExecuteNonQueryAsync() > 0;
+                    query = "UPDATE AcademicCalendar SET TermName=?, StartDate=?, EndDate=?, IsActive=? WHERE TermID=?";
+                    if (tenant) query += TenantContext.FilterClauseSql();
+                }
+
+                using (var cmd = new SqlCommand(query, conn))
+                {
+                    cmd.AddPositionalParameter(term.TermName);
+                    cmd.AddPositionalParameter(term.StartDate);
+                    cmd.AddPositionalParameter(term.EndDate);
+                    cmd.AddPositionalParameter(term.IsActive);
+                    if (term.TermID == 0 && tenant) TenantContext.AddSchoolParameter(cmd);
+                    if (term.TermID != 0) cmd.AddPositionalParameter(term.TermID);
+                    if (term.TermID != 0 && tenant) TenantContext.AddSchoolParameter(cmd);
+                    var saved = await cmd.ExecuteNonQueryAsync() > 0;
+                    var termId = term.TermID;
+                    if (saved && term.TermID == 0)
+                    {
+                        using (var idCmd = new SqlCommand("SELECT @@IDENTITY", conn))
+                        {
+                            var id = await idCmd.ExecuteScalarAsync();
+                            termId = id == null || id == DBNull.Value ? 0 : Convert.ToInt32(id);
+                        }
+                    }
+
+                    if (saved)
+                    {
+                        await TryRecordSyncUpsertAsync(termId, term.TermID == 0 ? "Insert" : "Update");
+                    }
+
+                    return saved;
                 }
             }
         }
@@ -68,14 +98,20 @@ namespace kingdom_Preparatory_School_Management_System.Data
         public async Task<List<SchoolEvent>> GetEventsAsync(DateTime start, DateTime end)
         {
             var list = new List<SchoolEvent>();
-            using (var conn = new OleDbConnection(_connectionString))
+            using (var conn = new SqlConnection(SqlCommandExtensions.StripProvider(_connectionString)))
             {
                 await conn.OpenAsync();
+                var tenant = await TenantContext.HasSchoolIdColumnAsync(conn, "SchoolHolidays");
                 var query = "SELECT * FROM SchoolHolidays WHERE EventDate BETWEEN ? AND ? ORDER BY EventDate";
-                using (var cmd = new OleDbCommand(query, conn))
+                if (tenant)
                 {
-                    cmd.Parameters.AddWithValue("?", start);
-                    cmd.Parameters.AddWithValue("?", end);
+                    query = "SELECT * FROM SchoolHolidays WHERE EventDate BETWEEN ? AND ?" + TenantContext.FilterClauseSql() + " ORDER BY EventDate";
+                }
+                using (var cmd = new SqlCommand(query, conn))
+                {
+                    cmd.AddPositionalParameter(start);
+                    cmd.AddPositionalParameter(end);
+                    if (tenant) TenantContext.AddSchoolParameter(cmd);
                     using (var reader = await cmd.ExecuteReaderAsync())
                     {
                         while (reader.Read())
@@ -106,6 +142,19 @@ namespace kingdom_Preparatory_School_Management_System.Data
             if (bool.TryParse(text, out var parsedBool)) return parsedBool;
             if (int.TryParse(text, out var parsedInt)) return parsedInt != 0;
             return false;
+        }
+
+        private async Task TryRecordSyncUpsertAsync(int termId, string operation)
+        {
+            if (termId <= 0) return;
+            try
+            {
+                await new SyncChangeRecorder(_connectionString).RecordUpsertAsync("AcademicCalendar", "TermID", termId, operation);
+            }
+            catch (Exception ex)
+            {
+                Services.LoggerHelper.LogWarning("Academic calendar sync capture skipped: " + ex.Message);
+            }
         }
     }
 }

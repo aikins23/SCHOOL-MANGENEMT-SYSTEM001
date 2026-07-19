@@ -40,6 +40,18 @@ namespace kingdom_Preparatory_School_Management_System.Common
 
                 // Already present → just keep it on top (a later docked panel may have covered it).
                 var existing = form.Controls.Find(SignOutName, true);
+                if (form.Controls.Find("pnlGlobalSidebar", true).Length > 0)
+                {
+                    foreach (var control in existing)
+                    {
+                        if (!control.IsDisposed)
+                        {
+                            form.Controls.Remove(control);
+                            control.Dispose();
+                        }
+                    }
+                    return;
+                }
                 if (existing.Length > 0)
                 {
                     if (!existing[0].IsDisposed) existing[0].BringToFront();
@@ -54,7 +66,7 @@ namespace kingdom_Preparatory_School_Management_System.Common
                     FlatStyle = FlatStyle.Flat,
                     Font      = new Font("Segoe UI Semibold", 9F, FontStyle.Bold),
                     BackColor = Color.White,
-                    ForeColor = Color.FromArgb(190, 18, 60), // AccentRed
+                    ForeColor = AppConfig.Colors.DangerColor,
                     Cursor    = Cursors.Hand,
                     TabStop   = false,
                     Anchor    = AnchorStyles.Top | AnchorStyles.Right

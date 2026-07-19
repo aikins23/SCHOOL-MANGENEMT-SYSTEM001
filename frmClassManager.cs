@@ -8,7 +8,7 @@ using System.Windows.Forms;
 using Guna.UI2.WinForms;
 using kingdom_Preparatory_School_Management_System.Common;
 using kingdom_Preparatory_School_Management_System.Data;
-using kingdom_Preparatory_School_Management_System.Models;
+using KingdomPrep.Shared.Models;
 using kingdom_Preparatory_School_Management_System.Services;
 
 namespace kingdom_Preparatory_School_Management_System
@@ -28,6 +28,8 @@ namespace kingdom_Preparatory_School_Management_System
         private Label _selectedClassLabel;
         private Label _teacherSummaryLabel;
         private Label _subjectSummaryLabel;
+        private Label _subjectStateLabel;
+        private Guna2Button _saveSubjectsButton;
         private List<Employee> _teachers = new List<Employee>();
         private string _selectedClass = null;
         private bool _loadingSubjects;
@@ -40,6 +42,7 @@ namespace kingdom_Preparatory_School_Management_System
             _classRepo = new ClassRepository(AppConfig.ConnectionString);
             _subjectRepo = new SubjectRepository(AppConfig.ConnectionString);
             _employeeService = new EmployeeService(new EmployeeRepository(AppConfig.ConnectionString));
+            if (!AuthService.RequireAccess("frmClassManager", this)) return;
 
             SetupRobustUI();
             _ = LoadDataAsync();
@@ -182,6 +185,7 @@ namespace kingdom_Preparatory_School_Management_System
 
             var btnSaveClass = CreateButton("Save Class", UiTheme.Navy, Color.White);
             btnSaveClass.Click += async (s, e) => await SaveClassAsync();
+            btnSaveClass.Visible = AuthService.CanWrite("Academics.ClassStructure.Manage");
             classBody.Controls.Add(_selectedClassLabel, 0, 0);
             classBody.SetColumnSpan(_selectedClassLabel, 3);
             classBody.Controls.Add(_classNameTxt, 0, 1);
@@ -231,6 +235,7 @@ namespace kingdom_Preparatory_School_Management_System
             };
             var btnAssign = CreateButton("Update Assignment", UiTheme.Gold, Color.FromArgb(42, 36, 0));
             btnAssign.Click += async (s, e) => await AssignTeacherAsync();
+            btnAssign.Visible = AuthService.CanWrite("Academics.ClassStructure.Manage");
             teacherBody.Controls.Add(_teacherSummaryLabel, 0, 0);
             teacherBody.SetColumnSpan(_teacherSummaryLabel, 2);
             teacherBody.Controls.Add(_teacherCombo, 0, 1);
@@ -267,15 +272,16 @@ namespace kingdom_Preparatory_School_Management_System
                 Dock = DockStyle.Fill,
                 BackgroundColor = Color.White,
                 BorderStyle = BorderStyle.None,
+                AllowUserToAddRows = false,
+                AllowUserToDeleteRows = false,
                 AllowUserToResizeRows = false,
-                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill
+                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
+                SelectionMode = DataGridViewSelectionMode.FullRowSelect,
+                MultiSelect = false
             };
             _subjectGrid.Columns.Add("SubjectName", "Subject Name");
             StyleManagementGrid(_subjectGrid, true);
             _subjectGrid.CellValueChanged += (s, e) => MarkSubjectsDirty();
-            _subjectGrid.UserAddedRow += (s, e) => MarkSubjectsDirty();
-            _subjectGrid.UserDeletedRow += (s, e) => MarkSubjectsDirty();
-            _subjectGrid.RowsRemoved += (s, e) => MarkSubjectsDirty();
             _subjectGrid.CurrentCellDirtyStateChanged += (s, e) =>
             {
                 if (_subjectGrid.IsCurrentCellDirty)
@@ -285,21 +291,74 @@ namespace kingdom_Preparatory_School_Management_System
             };
             curriculumBody.Controls.Add(_subjectGrid);
 
-            var subButtons = new FlowLayoutPanel
+            var subjectFooter = new TableLayoutPanel
             {
                 Dock = DockStyle.Bottom,
-                Height = 56,
+                Height = 64,
+                ColumnCount = 2,
+                RowCount = 1,
+                BackColor = Color.White,
+                Padding = new Padding(0, 10, 24, 10)
+            };
+            subjectFooter.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            subjectFooter.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 650));
+            subjectFooter.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+
+            var subButtons = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Fill,
                 FlowDirection = FlowDirection.RightToLeft,
-                Padding = new Padding(0, 8, 24, 8),
+                WrapContents = false,
+                Padding = new Padding(0),
                 BackColor = Color.White
             };
-            var btnSaveSubs = CreateButton("Save Curriculum", UiTheme.Success, Color.White, 0, 0, 176);
-            btnSaveSubs.Margin = Padding.Empty;
-            btnSaveSubs.Click += async (s, e) => await SaveSubjectsAsync();
-            subButtons.Controls.Add(btnSaveSubs);
+            _saveSubjectsButton = CreateButton("Save Curriculum", UiTheme.Success, Color.White, 0, 0, 168);
+            _saveSubjectsButton.Margin = new Padding(8, 0, 0, 0);
+            _saveSubjectsButton.Click += async (s, e) => await SaveSubjectsAsync();
+            _saveSubjectsButton.Visible = AuthService.CanWrite("Academics.ClassStructure.Manage");
+
+            var btnRemoveSubject = CreateButton("Remove", UiTheme.Danger, Color.White, 0, 0, 106);
+            btnRemoveSubject.Margin = new Padding(8, 0, 0, 0);
+            btnRemoveSubject.Click += (s, e) => RemoveSelectedSubject();
+            btnRemoveSubject.Visible = AuthService.CanWrite("Academics.ClassStructure.Manage");
+
+            var btnMoveDown = CreateButton("Move Down", UiTheme.Navy, Color.White, 0, 0, 116);
+            btnMoveDown.Margin = new Padding(8, 0, 0, 0);
+            btnMoveDown.Click += (s, e) => MoveSelectedSubject(1);
+            btnMoveDown.Visible = AuthService.CanWrite("Academics.ClassStructure.Manage");
+
+            var btnMoveUp = CreateButton("Move Up", UiTheme.Navy, Color.White, 0, 0, 104);
+            btnMoveUp.Margin = new Padding(8, 0, 0, 0);
+            btnMoveUp.Click += (s, e) => MoveSelectedSubject(-1);
+            btnMoveUp.Visible = AuthService.CanWrite("Academics.ClassStructure.Manage");
+
+            var btnAddSubject = CreateButton("Add Subject", UiTheme.Gold, Color.FromArgb(42, 36, 0), 0, 0, 126);
+            btnAddSubject.Margin = new Padding(8, 0, 0, 0);
+            btnAddSubject.Click += (s, e) => AddSubjectRow();
+            btnAddSubject.Visible = AuthService.CanWrite("Academics.ClassStructure.Manage");
+
+            _subjectStateLabel = new Label
+            {
+                Dock = DockStyle.Fill,
+                Text = "No unsaved subject changes.",
+                ForeColor = UiTheme.Muted,
+                Font = new Font("Segoe UI", 9F),
+                TextAlign = ContentAlignment.MiddleLeft,
+                Padding = new Padding(24, 0, 0, 0),
+                BackColor = Color.White
+            };
+
+            subButtons.Controls.Add(_saveSubjectsButton);
+            subButtons.Controls.Add(btnRemoveSubject);
+            subButtons.Controls.Add(btnMoveDown);
+            subButtons.Controls.Add(btnMoveUp);
+            subButtons.Controls.Add(btnAddSubject);
+            subjectFooter.Controls.Add(_subjectStateLabel, 0, 0);
+            subjectFooter.Controls.Add(subButtons, 1, 0);
             curriculumCard.Controls.Add(curriculumBody);
-            curriculumCard.Controls.Add(subButtons);
+            curriculumCard.Controls.Add(subjectFooter);
             curriculumCard.Controls.Add(_subjectSummaryLabel);
+            SetSubjectDirtyState(false);
         }
 
         private Guna2Panel CreateCard(string title)
@@ -572,7 +631,7 @@ namespace kingdom_Preparatory_School_Management_System
                 _subjectSummaryLabel.Text = subjects.Any()
                     ? subjects.Count() + " subjects assigned to " + _selectedClass
                     : "No subjects added yet for " + _selectedClass;
-                _subjectsDirty = false;
+                SetSubjectDirtyState(false);
             }
             finally
             {
@@ -582,6 +641,9 @@ namespace kingdom_Preparatory_School_Management_System
 
         private async Task AssignTeacherAsync()
         {
+            if (!AuthService.RequireWriteAccess("Academics.ClassStructure.Manage", "Assign Class Teacher"))
+                return;
+
             if (string.IsNullOrEmpty(_selectedClass)) return;
             int? empId = null;
             if (_teacherCombo.SelectedIndex > 0)
@@ -599,6 +661,9 @@ namespace kingdom_Preparatory_School_Management_System
 
         private async Task SaveClassAsync()
         {
+            if (!AuthService.RequireWriteAccess("Academics.ClassStructure.Manage", "Save Class"))
+                return;
+
             string className = _classNameTxt.Text.Trim().ToUpperInvariant();
             if (string.IsNullOrWhiteSpace(className))
             {
@@ -654,6 +719,9 @@ namespace kingdom_Preparatory_School_Management_System
 
         private async Task SaveSubjectsAsync()
         {
+            if (!AuthService.RequireWriteAccess("Academics.ClassStructure.Manage", "Save Class Curriculum"))
+                return;
+
             if (string.IsNullOrEmpty(_selectedClass)) return;
             _subjectGrid.EndEdit();
 
@@ -678,17 +746,123 @@ namespace kingdom_Preparatory_School_Management_System
                 return;
             }
 
-            await _subjectRepo.SetSubjectsForClassAsync(_selectedClass, list);
-            SubjectCatalog.Refresh();
-            _subjectsDirty = false;
-            await RefreshSubjectGridAsync();
-            UIHelper.ShowSuccess("Subjects updated successfully");
+            _saveSubjectsButton.Enabled = false;
+            try
+            {
+                await _subjectRepo.SetSubjectsForClassAsync(_selectedClass, list);
+                SubjectCatalog.Refresh(_selectedClass);
+                SetSubjectDirtyState(false);
+                await RefreshSubjectGridAsync();
+                UIHelper.ShowSuccess("Subjects updated successfully");
+            }
+            finally
+            {
+                SetSubjectDirtyState(_subjectsDirty);
+            }
         }
 
         private void MarkSubjectsDirty()
         {
             if (_loadingSubjects) return;
-            _subjectsDirty = true;
+            SetSubjectDirtyState(true);
+            UpdateSubjectSummaryPreview();
+        }
+
+        private void SetSubjectDirtyState(bool dirty)
+        {
+            _subjectsDirty = dirty;
+            if (_subjectStateLabel != null)
+            {
+                _subjectStateLabel.Text = dirty
+                    ? "Unsaved subject changes. Save Curriculum to apply them."
+                    : "No unsaved subject changes.";
+                _subjectStateLabel.ForeColor = dirty ? UiTheme.WarningText : UiTheme.Muted;
+            }
+
+            if (_saveSubjectsButton != null)
+            {
+                _saveSubjectsButton.Enabled = dirty && !string.IsNullOrWhiteSpace(_selectedClass);
+                _saveSubjectsButton.FillColor = dirty ? UiTheme.Success : UiTheme.DisabledBack;
+                _saveSubjectsButton.ForeColor = dirty ? Color.White : UiTheme.DisabledText;
+                _saveSubjectsButton.HoverState.FillColor = dirty ? ControlPaint.Dark(UiTheme.Success, 0.06F) : UiTheme.DisabledBack;
+            }
+        }
+
+        private void AddSubjectRow()
+        {
+            if (!AuthService.RequireWriteAccess("Academics.ClassStructure.Manage", "Edit Class Curriculum"))
+                return;
+
+            if (string.IsNullOrWhiteSpace(_selectedClass))
+            {
+                UIHelper.ShowWarning("Select a class before adding subjects.", "Class Manager");
+                return;
+            }
+
+            int rowIndex = _subjectGrid.Rows.Add("");
+            _subjectGrid.CurrentCell = _subjectGrid.Rows[rowIndex].Cells["SubjectName"];
+            _subjectGrid.BeginEdit(true);
+            SetSubjectDirtyState(true);
+        }
+
+        private void RemoveSelectedSubject()
+        {
+            if (!AuthService.RequireWriteAccess("Academics.ClassStructure.Manage", "Edit Class Curriculum"))
+                return;
+
+            var row = GetSelectedSubjectRow();
+            if (row == null) return;
+
+            _subjectGrid.Rows.Remove(row);
+            SetSubjectDirtyState(true);
+            UpdateSubjectSummaryPreview();
+        }
+
+        private void MoveSelectedSubject(int direction)
+        {
+            if (!AuthService.RequireWriteAccess("Academics.ClassStructure.Manage", "Edit Class Curriculum"))
+                return;
+
+            var row = GetSelectedSubjectRow();
+            if (row == null) return;
+
+            int currentIndex = row.Index;
+            int targetIndex = currentIndex + direction;
+            if (targetIndex < 0 || targetIndex >= _subjectGrid.Rows.Count) return;
+
+            object value = row.Cells["SubjectName"].Value;
+            _subjectGrid.Rows.RemoveAt(currentIndex);
+            _subjectGrid.Rows.Insert(targetIndex, value);
+            _subjectGrid.ClearSelection();
+            _subjectGrid.Rows[targetIndex].Selected = true;
+            _subjectGrid.CurrentCell = _subjectGrid.Rows[targetIndex].Cells["SubjectName"];
+            SetSubjectDirtyState(true);
+        }
+
+        private DataGridViewRow GetSelectedSubjectRow()
+        {
+            if (_subjectGrid.CurrentRow != null && !_subjectGrid.CurrentRow.IsNewRow)
+            {
+                return _subjectGrid.CurrentRow;
+            }
+
+            if (_subjectGrid.SelectedRows.Count > 0 && !_subjectGrid.SelectedRows[0].IsNewRow)
+            {
+                return _subjectGrid.SelectedRows[0];
+            }
+
+            return null;
+        }
+
+        private void UpdateSubjectSummaryPreview()
+        {
+            if (string.IsNullOrWhiteSpace(_selectedClass) || _subjectSummaryLabel == null) return;
+
+            int count = _subjectGrid.Rows.Cast<DataGridViewRow>()
+                .Count(row => !row.IsNewRow && !string.IsNullOrWhiteSpace(row.Cells["SubjectName"].Value?.ToString()));
+            _subjectSummaryLabel.Text = count == 0
+                ? "No subjects added yet for " + _selectedClass
+                : count + " subjects assigned to " + _selectedClass;
         }
 
         private async Task RefreshActiveClassAsync()
@@ -697,7 +871,7 @@ namespace kingdom_Preparatory_School_Management_System
 
             try
             {
-                SubjectCatalog.Refresh();
+                SubjectCatalog.Refresh(_selectedClass);
                 await RefreshSubjectGridAsync();
             }
             catch (Exception ex)

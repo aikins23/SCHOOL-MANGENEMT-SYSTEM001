@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using kingdom_Preparatory_School_Management_System.Common;
 using kingdom_Preparatory_School_Management_System.Data;
-using kingdom_Preparatory_School_Management_System.Models;
+using KingdomPrep.Shared.Models;
 using kingdom_Preparatory_School_Management_System.Services;
 
 namespace kingdom_Preparatory_School_Management_System
@@ -167,7 +167,7 @@ namespace kingdom_Preparatory_School_Management_System
                 _lblFee.Text = "GHS " + _route.Fee.ToString("N2");
                 _lblPaid.Text = "GHS " + _paid.ToString("N2");
                 _lblBalance.Text = "GHS " + balance.ToString("N2");
-                _btnRecord.Enabled = true;
+                _btnRecord.Enabled = AuthService.CanWrite("Finance.TransportPayment.Record");
 
                 _history.DataSource = await _transport.GetStudentTransportHistoryAsync(_studentId);
             }
@@ -178,6 +178,7 @@ namespace kingdom_Preparatory_School_Management_System
         {
             try
             {
+                if (!AuthService.RequireWriteAccess("Finance.TransportPayment.Record", "Record transport payment")) return;
                 if (_route == null || _studentId <= 0) return;
                 if (!decimal.TryParse(_txtAmount.Text, out decimal amount) || amount <= 0m)
                 { UIHelper.ShowError("Enter a payment amount greater than zero.", "Transport"); return; }

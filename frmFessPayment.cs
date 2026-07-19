@@ -33,6 +33,7 @@ namespace kingdom_Preparatory_School_Management_System
         private Label statusLabel;
         private Label receiptNumberLabel;
         private ReceiptPrintData lastPrintedReceipt;
+        private KingdomPrep.Shared.Models.StudentBillingBreakdown _currentBillingBreakdown;
 
         // Wizard navigation
         private int _currentStep = 1;
@@ -46,6 +47,7 @@ namespace kingdom_Preparatory_School_Management_System
         // Reset whenever the amount changes so a new figure must be re-approved.
         private bool _overpaymentApproved;
         private decimal _approvedOverpayment;
+        private bool _paymentBusy;
 
         // Step container panels
         private Panel _stepContainer;
@@ -69,6 +71,7 @@ namespace kingdom_Preparatory_School_Management_System
         private Button _continueToPaymentBtn;
         private Button _lookupStudentBtn;
         private Button _previewReceiptBtn;
+        private Button _printStatementBtn;
 
         // Step 3 receipt preview value labels
         private Label _rpStudentIdLbl;
@@ -112,11 +115,28 @@ namespace kingdom_Preparatory_School_Management_System
             public string PaymentMode { get; set; }
             public string CashChequeNo { get; set; }
             public string Balance { get; set; }
+            public string PreviousBalance { get; set; }
+            public string CurrentTermFee { get; set; }
             public string BursarName { get; set; }
             public DateTime PaymentDate { get; set; }
         }
 
-        private Models.DraftAdmission _admissionDraft;
+        private sealed class FeeStatementPrintData
+        {
+            public string StudentId { get; set; }
+            public string StudentName { get; set; }
+            public string ClassName { get; set; }
+            public string TermName { get; set; }
+            public decimal PreviousBalance { get; set; }
+            public decimal CurrentTermFee { get; set; }
+            public decimal TotalExpected { get; set; }
+            public decimal AmountPaid { get; set; }
+            public decimal Balance { get; set; }
+            public string PreparedBy { get; set; }
+            public DateTime GeneratedAt { get; set; }
+        }
+
+        private KingdomPrep.Shared.Models.DraftAdmission _admissionDraft;
         private Button _recordBtn;
 
         public frmFessPayment() : this(true) { }
@@ -126,7 +146,7 @@ namespace kingdom_Preparatory_School_Management_System
         /// approval. Skips the Accountant-only access check used for normal fee
         /// payments (the admin's authority comes from the admission screen).
         /// </summary>
-        public frmFessPayment(Models.DraftAdmission draft) : this(false)
+        public frmFessPayment(KingdomPrep.Shared.Models.DraftAdmission draft) : this(false)
         {
             _admissionDraft = draft;
             EnterAdmissionMode();
@@ -194,7 +214,7 @@ namespace kingdom_Preparatory_School_Management_System
             {
                 Dock = DockStyle.Top,
                 Height = 148, // Increased from 120
-                BackColor = Color.FromArgb(238, 242, 251),
+                BackColor = UiTheme.GoldSoft,
                 Margin = new Padding(0, 16, 0, 0),
                 Padding = new Padding(24, 16, 24, 16)
             };
@@ -345,9 +365,9 @@ namespace kingdom_Preparatory_School_Management_System
             layout.Controls.Add(BuildWizardTitleRow(), 0, 0);
             layout.Controls.Add(BuildProgressIndicator(), 0, 1);
 
-            _stepContainer = new Panel 
-            { 
-                Dock = DockStyle.Fill, 
+            _stepContainer = new Panel
+            {
+                Dock = DockStyle.Fill,
                 BackColor = SurfaceColor,
                 AutoScroll = true // Fail-safe for small screens or high scaling
             };
@@ -406,7 +426,7 @@ namespace kingdom_Preparatory_School_Management_System
                 Close();
                 new frmDashboard().Show();
             }));
-            actions.Controls.Add(CreateSecondaryButton("View Payment History", () => new frmPaymentHistory().Show()));
+            actions.Controls.Add(CreateSecondaryButton("View Payment History", OpenPaymentHistoryForCurrentStudent));
 
             row.Controls.Add(titleBlock, 0, 0);
             row.Controls.Add(actions, 1, 0);
@@ -438,9 +458,9 @@ namespace kingdom_Preparatory_School_Management_System
             string[] stepLabels = { "LOOK UP", "PAYMENT", "RECEIPT" };
 
             Color navyColor     = PrimaryColor;
-            Color greenColor    = Color.FromArgb(76, 175, 80);
-            Color greyCircle    = Color.FromArgb(210, 213, 220);
-            Color greyText      = Color.FromArgb(160, 163, 172);
+            Color greenColor    = UiTheme.Success;
+            Color greyCircle    = UiTheme.Border;
+            Color greyText      = UiTheme.Muted;
 
             using (var labelFontActive   = new Font("Segoe UI Semibold", 7.5F, FontStyle.Bold))
             using (var labelFontInactive = new Font("Segoe UI", 7.5F))
@@ -559,7 +579,7 @@ namespace kingdom_Preparatory_School_Management_System
             {
                 Dock = DockStyle.Fill,
                 Text = "No student found with this ID",
-                ForeColor = Color.FromArgb(192, 57, 43),
+                ForeColor = UiTheme.Danger,
                 Font = new Font("Segoe UI", 9F),
                 TextAlign = ContentAlignment.MiddleLeft,
                 Visible = false
@@ -570,7 +590,7 @@ namespace kingdom_Preparatory_School_Management_System
             _studentInfoCard = new Panel
             {
                 Dock = DockStyle.Fill,
-                BackColor = Color.FromArgb(238, 242, 251),
+                BackColor = UiTheme.GoldSoft,
                 Visible = false,
                 BorderStyle = BorderStyle.None,
                 Padding = new Padding(16, 10, 16, 10),
@@ -581,7 +601,7 @@ namespace kingdom_Preparatory_School_Management_System
                 Dock = DockStyle.Fill,
                 ColumnCount = 2,
                 RowCount = 1,
-                BackColor = Color.FromArgb(238, 242, 251)
+                BackColor = UiTheme.GoldSoft
             };
             infoRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 60));
             infoRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 40));
@@ -633,7 +653,7 @@ namespace kingdom_Preparatory_School_Management_System
             _studentInfoBalanceLbl = new Label
             {
                 Location = new Point(0, 28),
-                ForeColor = Color.FromArgb(192, 57, 43),
+                ForeColor = UiTheme.Danger,
                 Font = new Font("Segoe UI Semibold", 13F, FontStyle.Bold),
                 TextAlign = ContentAlignment.MiddleRight,
                 AutoSize = false,
@@ -698,7 +718,7 @@ namespace kingdom_Preparatory_School_Management_System
             {
                 var lb = (ListBox)s;
                 bool selected = (ev.State & DrawItemState.Selected) == DrawItemState.Selected;
-                Color bg = selected ? Color.FromArgb(238, 242, 251) : SurfaceColor;
+                Color bg = selected ? UiTheme.GoldSoft : SurfaceColor;
                 Color fg = selected ? PrimaryColor : TextColor;
                 ev.Graphics.FillRectangle(new SolidBrush(bg), ev.Bounds);
                 if (ev.Index >= 0 && ev.Index < lb.Items.Count)
@@ -750,10 +770,28 @@ namespace kingdom_Preparatory_School_Management_System
 
         private void UpdateContinueButton()
         {
-            if (_continueToPaymentBtn == null) return;
             bool hasStudent = !string.IsNullOrWhiteSpace(studentNameBox?.Text);
             bool hasFeeType = !string.IsNullOrWhiteSpace(feeTypeBox?.Text);
-            _continueToPaymentBtn.Enabled = hasStudent && hasFeeType;
+            if (_continueToPaymentBtn != null)
+            {
+                _continueToPaymentBtn.Enabled = hasStudent && hasFeeType;
+            }
+            if (_printStatementBtn != null)
+            {
+                _printStatementBtn.Enabled = hasStudent && !string.IsNullOrWhiteSpace(studentIdBox?.Text);
+            }
+        }
+
+        private void OpenPaymentHistoryForCurrentStudent()
+        {
+            string studentId = studentIdBox == null ? "" : studentIdBox.Text.Trim();
+            if (string.IsNullOrWhiteSpace(studentId))
+            {
+                new frmPaymentHistory().Show(this);
+                return;
+            }
+
+            new frmPaymentHistory(studentId).Show(this);
         }
 
         private void SetStudentInfoCardVisible(bool visible)
@@ -812,11 +850,21 @@ namespace kingdom_Preparatory_School_Management_System
             _previewReceiptBtn.Name = "_previewReceiptBtn";
             _previewReceiptBtn.Enabled = false;
 
+            _printStatementBtn = CreateSecondaryButton("Print Statement", PrintFeeStatementPreview);
+            _printStatementBtn.Dock = DockStyle.None;
+            _printStatementBtn.Size = new Size(220, 40);
+            _printStatementBtn.Margin = Padding.Empty;
+            _printStatementBtn.Enabled = false;
+
             btnRow.Resize += (s, e) =>
             {
-                _previewReceiptBtn.Location = new Point(btnRow.Width - 240, 15);
+                int totalRight = 220 + 14 + 240;
+                int startRight = Math.Max(140, btnRow.Width - totalRight);
+                _printStatementBtn.Location = new Point(startRight, 15);
+                _previewReceiptBtn.Location = new Point(startRight + 220 + 14, 15);
             };
             btnRow.Controls.Add(backBtn2);
+            btnRow.Controls.Add(_printStatementBtn);
             btnRow.Controls.Add(_previewReceiptBtn);
             _step2Panel.Controls.Add(btnRow);
 
@@ -853,7 +901,7 @@ namespace kingdom_Preparatory_School_Management_System
             {
                 Dock = DockStyle.Fill,
                 ColumnCount = 2,
-                BackColor = Color.FromArgb(238, 242, 251),
+                BackColor = UiTheme.GoldSoft,
                 Margin = new Padding(0, 0, 0, 12),
                 Padding = new Padding(15, 0, 15, 0),
                 Name = "step2SummaryBar"
@@ -872,7 +920,7 @@ namespace kingdom_Preparatory_School_Management_System
             _step2BalanceLbl = new Label
             {
                 Dock = DockStyle.Fill,
-                ForeColor = Color.FromArgb(192, 57, 43),
+                ForeColor = UiTheme.Danger,
                 Font = new Font("Segoe UI Semibold", 11F, FontStyle.Bold),
                 TextAlign = ContentAlignment.MiddleRight,
                 Name = "step2BalanceLbl"
@@ -983,7 +1031,7 @@ namespace kingdom_Preparatory_School_Management_System
             actionContainer.Paint += (s, e) =>
             {
                 var p = (Panel)s;
-                using (var pen = new Pen(Color.FromArgb(210, 213, 220), 1))
+                using (var pen = new Pen(UiTheme.Border, 1))
                     e.Graphics.DrawLine(pen, 0, 0, p.Width, 0);
             };
             _preRecordActions  = BuildPreRecordActions();
@@ -999,7 +1047,7 @@ namespace kingdom_Preparatory_School_Management_System
             {
                 Dock = DockStyle.Top,
                 Height = 0,
-                BackColor = Color.FromArgb(232, 245, 233),
+                BackColor = UiTheme.SuccessSoft,
                 Visible = false,
                 Padding = new Padding(14, 4, 14, 4)
             };
@@ -1007,7 +1055,7 @@ namespace kingdom_Preparatory_School_Management_System
             {
                 Dock = DockStyle.Fill,
                 ColumnCount = 2,
-                BackColor = Color.FromArgb(232, 245, 233)
+                BackColor = UiTheme.SuccessSoft
             };
             successRow.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 28));
             successRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
@@ -1015,14 +1063,14 @@ namespace kingdom_Preparatory_School_Management_System
             {
                 Dock = DockStyle.Fill,
                 Text = "✓",
-                ForeColor = Color.FromArgb(76, 175, 80),
+                ForeColor = UiTheme.Success,
                 Font = new Font("Segoe UI", 14F, FontStyle.Bold),
                 TextAlign = ContentAlignment.MiddleCenter
             }, 0, 0);
             _successBannerLbl = new Label
             {
                 Dock = DockStyle.Fill,
-                ForeColor = Color.FromArgb(46, 125, 50),
+                ForeColor = UiTheme.SuccessText,
                 Font = new Font("Segoe UI", 9.5F),
                 TextAlign = ContentAlignment.MiddleLeft
             };
@@ -1051,7 +1099,7 @@ namespace kingdom_Preparatory_School_Management_System
             backBtn.Location = new Point(0, 10);
             backBtn.Margin = Padding.Empty;
 
-            var recordBtn = CreateRoundedPrimaryButton("Record Payment", RecordPayment);
+            var recordBtn = CreateRoundedPrimaryButton("Record Payment", async () => await RecordPaymentAsync());
             recordBtn.Dock = DockStyle.None;
             recordBtn.Size = new Size(380, 36);
             recordBtn.Margin = Padding.Empty;
@@ -1087,9 +1135,9 @@ namespace kingdom_Preparatory_School_Management_System
             newPayBtn.Dock = DockStyle.None;
             newPayBtn.Size = new Size(240, 36);
             newPayBtn.Margin = Padding.Empty;
-            newPayBtn.BackColor = Color.FromArgb(232, 245, 233);
-            newPayBtn.ForeColor = Color.FromArgb(46, 125, 50);
-            newPayBtn.FlatAppearance.BorderColor = Color.FromArgb(165, 214, 167);
+            newPayBtn.BackColor = UiTheme.SuccessSoft;
+            newPayBtn.ForeColor = UiTheme.SuccessText;
+            newPayBtn.FlatAppearance.BorderColor = UiTheme.Success;
 
             row.Resize += (s, e) =>
             {
@@ -1143,9 +1191,9 @@ namespace kingdom_Preparatory_School_Management_System
             card.Paint += (s, e) =>
             {
                 var p = (Panel)s;
-                using (var pen = new Pen(Color.FromArgb(200, 205, 215), 1))
+                using (var pen = new Pen(UiTheme.Border, 1))
                     e.Graphics.DrawRectangle(pen, 0, 0, p.Width - 1, p.Height - 1);
-                using (var accent = new Pen(Color.FromArgb(192, 165, 65), 3))
+                using (var accent = new Pen(UiTheme.Gold, 3))
                     e.Graphics.DrawLine(accent, 40, 0, p.Width - 40, 0);
             };
 
@@ -1192,16 +1240,8 @@ namespace kingdom_Preparatory_School_Management_System
                 BackColor = Color.White,
                 Margin = new Padding(0, 0, 16, 0)
             };
-            string logoPath = GetSchoolLogoPath();
-            if (!string.IsNullOrWhiteSpace(logoPath))
-            {
-                try
-                {
-                    using (var tmp = Image.FromFile(logoPath))
-                        _rpLogoPictureBox.Image = new Bitmap(tmp);
-                }
-                catch { }
-            }
+            var previewLogo = LoadSchoolLogo();
+            if (previewLogo != null) _rpLogoPictureBox.Image = previewLogo;
             var schoolText = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
@@ -1215,7 +1255,7 @@ namespace kingdom_Preparatory_School_Management_System
             schoolText.Controls.Add(new Label
             {
                 Dock = DockStyle.Fill,
-                Text = "NYANSAPO SCHOOL ERP",
+                Text = Common.SchoolProfile.DisplayName.ToUpperInvariant(),
                 ForeColor = PrimaryColor,
                 Font = new Font("Segoe UI Semibold", 16F, FontStyle.Bold),
                 TextAlign = ContentAlignment.BottomCenter
@@ -1223,7 +1263,7 @@ namespace kingdom_Preparatory_School_Management_System
             schoolText.Controls.Add(new Label
             {
                 Dock = DockStyle.Fill,
-                Text = "P. O. BOX 7 AKIM ODA",
+                Text = Common.SchoolProfile.Address,
                 ForeColor = PrimaryColor,
                 Font = new Font("Georgia", 10.5F, FontStyle.Bold),
                 TextAlign = ContentAlignment.MiddleCenter
@@ -1231,7 +1271,7 @@ namespace kingdom_Preparatory_School_Management_System
             schoolText.Controls.Add(new Label
             {
                 Dock = DockStyle.Fill,
-                Text = "Tel: 0548 050 141 | 0200 369 762 | 0201 455 533",
+                Text = Common.SchoolProfile.Phones,
                 ForeColor = MutedTextColor,
                 Font = new Font("Georgia", 9F),
                 TextAlign = ContentAlignment.TopCenter
@@ -1258,7 +1298,7 @@ namespace kingdom_Preparatory_School_Management_System
             {
                 var tlp = (TableLayoutPanel)s;
                 int y = tlp.Height - 2;
-                using (var pen = new Pen(Color.FromArgb(210, 213, 220), 1))
+                using (var pen = new Pen(UiTheme.Border, 1))
                     e.Graphics.DrawLine(pen, 0, y, tlp.Width, y);
             };
             var titleBox = new Label
@@ -1281,7 +1321,7 @@ namespace kingdom_Preparatory_School_Management_System
             _rpReceiptNumLbl = new Label
             {
                 Dock = DockStyle.Fill,
-                ForeColor = Color.FromArgb(192, 57, 43),
+                ForeColor = UiTheme.Danger,
                 Font = new Font("Consolas", 12F, FontStyle.Bold),
                 TextAlign = ContentAlignment.MiddleRight
             };
@@ -1316,7 +1356,7 @@ namespace kingdom_Preparatory_School_Management_System
             _rpClassLbl     = CreateReceiptTile("CLASS",       out clsTile);
             _rpNameLbl      = CreateReceiptTile("RECEIVED FROM", out namTile);
             foreach (var t in new[] { idTile, clsTile, namTile })
-                t.BackColor = Color.FromArgb(248, 249, 251);
+                t.BackColor = UiTheme.SurfaceAlt;
             studentRow.Controls.Add(idTile,  0, 0);
             studentRow.Controls.Add(clsTile, 1, 0);
             studentRow.Controls.Add(namTile, 2, 0);
@@ -1326,7 +1366,7 @@ namespace kingdom_Preparatory_School_Management_System
             Panel sumTile;
             _rpAmountWordsLbl = CreateReceiptTile("THE SUM OF", out sumTile);
             _rpAmountWordsLbl.Font = new Font("Georgia", 12F, FontStyle.Italic);
-            sumTile.BackColor = Color.FromArgb(245, 247, 252);
+            sumTile.BackColor = UiTheme.SurfaceAlt;
             sumTile.Paint += (s, e) =>
             {
                 using (var pen = new Pen(PrimaryColor, 3))
@@ -1347,8 +1387,8 @@ namespace kingdom_Preparatory_School_Management_System
             Panel beiTile, modTile;
             _rpBeingLbl = CreateReceiptTile("BEING:",        out beiTile);
             _rpModeLbl  = CreateReceiptTile("PAYMENT MODE:", out modTile);
-            beiTile.BackColor = Color.FromArgb(248, 249, 251);
-            modTile.BackColor = Color.FromArgb(248, 249, 251);
+            beiTile.BackColor = UiTheme.SurfaceAlt;
+            modTile.BackColor = UiTheme.SurfaceAlt;
             beingRow.Controls.Add(beiTile, 0, 0);
             beingRow.Controls.Add(modTile, 1, 0);
             layout.Controls.Add(beingRow, 0, 6);
@@ -1367,7 +1407,7 @@ namespace kingdom_Preparatory_School_Management_System
             var amtBoxPanel = new Panel
             {
                 Dock = DockStyle.Fill,
-                BackColor = Color.FromArgb(238, 242, 251),
+                BackColor = UiTheme.GoldSoft,
                 Padding = new Padding(20, 8, 20, 8),
                 Margin = new Padding(0, 3, 12, 3)
             };
@@ -1421,7 +1461,7 @@ namespace kingdom_Preparatory_School_Management_System
             var balPanel = new Panel
             {
                 Dock = DockStyle.Fill,
-                BackColor = Color.FromArgb(232, 245, 233),
+                BackColor = UiTheme.SuccessSoft,
                 Padding = new Padding(18, 8, 18, 8),
                 Margin = new Padding(0, 3, 0, 3)
             };
@@ -1430,13 +1470,13 @@ namespace kingdom_Preparatory_School_Management_System
                 Text = "OUTSTANDING BALANCE AFTER",
                 Dock = DockStyle.Top,
                 Height = 18,
-                ForeColor = Color.FromArgb(46, 125, 50),
+                ForeColor = UiTheme.SuccessText,
                 Font = new Font("Segoe UI", 8F, FontStyle.Bold)
             };
             _rpBalanceLbl = new Label
             {
                 Dock = DockStyle.Fill,
-                ForeColor = Color.FromArgb(46, 125, 50),
+                ForeColor = UiTheme.SuccessText,
                 Font = new Font("Segoe UI Semibold", 18F, FontStyle.Bold),
                 TextAlign = ContentAlignment.MiddleLeft
             };
@@ -1444,7 +1484,7 @@ namespace kingdom_Preparatory_School_Management_System
             {
                 Dock = DockStyle.Bottom,
                 Height = 16,
-                ForeColor = Color.FromArgb(176, 90, 0),
+                ForeColor = UiTheme.WarningText,
                 Font = new Font("Segoe UI Semibold", 8.5F, FontStyle.Bold),
                 TextAlign = ContentAlignment.MiddleLeft,
                 Visible = false
@@ -1467,7 +1507,7 @@ namespace kingdom_Preparatory_School_Management_System
             bursarRow.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
             Panel burTile;
             _rpBursarLbl = CreateReceiptTile("BURSAR / CASHIER", out burTile);
-            burTile.BackColor = Color.FromArgb(248, 249, 251);
+            burTile.BackColor = UiTheme.SurfaceAlt;
             bursarRow.Controls.Add(burTile, 0, 0);
             bursarRow.Controls.Add(new Label
             {
@@ -1510,7 +1550,7 @@ namespace kingdom_Preparatory_School_Management_System
             var tilePanel = new Panel
             {
                 Dock = DockStyle.Fill,
-                BackColor = Color.FromArgb(247, 249, 255),
+                BackColor = UiTheme.SurfaceAlt,
                 Margin = new Padding(0, 0, 6, 0),
                 Padding = new Padding(14, 8, 10, 6)
             };
@@ -1697,7 +1737,7 @@ namespace kingdom_Preparatory_School_Management_System
                     AutoSize = true,
                     Height = 26,
                     FlatStyle = FlatStyle.Flat,
-                    BackColor = Color.FromArgb(240, 242, 245),
+                    BackColor = UiTheme.SurfaceAlt,
                     ForeColor = TextColor,
                     Cursor = Cursors.Hand,
                     Font = new Font("Segoe UI", 8F),
@@ -1714,8 +1754,8 @@ namespace kingdom_Preparatory_School_Management_System
                 AutoSize = true,
                 Height = 26,
                 FlatStyle = FlatStyle.Flat,
-                BackColor = Color.FromArgb(232, 245, 233),
-                ForeColor = Color.FromArgb(46, 125, 50),
+                BackColor = UiTheme.SuccessSoft,
+                ForeColor = UiTheme.SuccessText,
                 Cursor = Cursors.Hand,
                 Font = new Font("Segoe UI Semibold", 8F, FontStyle.Bold),
                 Margin = new Padding(10, 0, 0, 0)
@@ -1737,7 +1777,7 @@ namespace kingdom_Preparatory_School_Management_System
                 logoPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources", "app_logo.png");
             if (!File.Exists(logoPath))
                 logoPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources", "school_logo.png");
-            
+
             // Try dev-mode paths
             if (!File.Exists(logoPath))
                 logoPath = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "Resources", "plogo.png"));
@@ -1752,11 +1792,15 @@ namespace kingdom_Preparatory_School_Management_System
             try
             {
                 // Prefer the profile's uploaded logo or branding assets
-                var logo = Branding.Logo;
+                var logo = Branding.GetLogo(true);
                 if (logo != null) return logo;
 
                 string path = GetSchoolLogoPath();
-                if (!string.IsNullOrEmpty(path)) return Image.FromFile(path);
+                if (!string.IsNullOrEmpty(path))
+                {
+                    using (var tmp = Image.FromFile(path))
+                        return new Bitmap(tmp);
+                }
             }
             catch { }
             return null;
@@ -1772,12 +1816,8 @@ namespace kingdom_Preparatory_School_Management_System
                 Margin = new Padding(0, 0, 14, 4)
             };
 
-            string logoPath = GetSchoolLogoPath();
-            if (!string.IsNullOrWhiteSpace(logoPath))
-            {
-                try { box.Image = Image.FromFile(logoPath); }
-                catch { }
-            }
+            var logo = LoadSchoolLogo();
+            if (logo != null) box.Image = logo;
 
             return box;
         }
@@ -1799,7 +1839,7 @@ namespace kingdom_Preparatory_School_Management_System
             header.Controls.Add(new Label
             {
                 Dock = DockStyle.Fill,
-                Text = "KINGDOM PREPARATORY & J.H.S",
+                Text = Common.SchoolProfile.DisplayName.ToUpperInvariant(),
                 ForeColor = PrimaryColor,
                 Font = new Font("Arial Narrow", 24F, FontStyle.Bold),
                 TextAlign = ContentAlignment.BottomCenter
@@ -1807,7 +1847,7 @@ namespace kingdom_Preparatory_School_Management_System
             header.Controls.Add(new Label
             {
                 Dock = DockStyle.Fill,
-                Text = "P. O. BOX 7 AKIM ODA",
+                Text = Common.SchoolProfile.Address,
                 ForeColor = PrimaryColor,
                 Font = new Font("Georgia", 13.5F, FontStyle.Bold),
                 TextAlign = ContentAlignment.MiddleCenter
@@ -1815,7 +1855,7 @@ namespace kingdom_Preparatory_School_Management_System
             header.Controls.Add(new Label
             {
                 Dock = DockStyle.Fill,
-                Text = "Tel: 0548 050 141 | 0200 369 762 | 0201 455 533",
+                Text = Common.SchoolProfile.Phones,
                 ForeColor = PrimaryColor,
                 Font = new Font("Georgia", 11.5F, FontStyle.Regular),
                 TextAlign = ContentAlignment.TopCenter
@@ -1990,6 +2030,46 @@ namespace kingdom_Preparatory_School_Management_System
             }
         }
 
+        private void PrintFeeStatementPreview()
+        {
+            try
+            {
+                var statementData = BuildFeeStatementPrintData();
+                if (statementData == null)
+                {
+                    UIHelper.ShowWarning("Look up a student before printing a fee statement.", "Fee Statement");
+                    return;
+                }
+
+                var document = new PrintDocument
+                {
+                    DocumentName = "Student Fee Statement"
+                };
+                document.DefaultPageSettings.Landscape = false;
+                document.PrintPage += (sender, args) =>
+                {
+                    DrawFeeStatement(args.Graphics, args.MarginBounds, statementData);
+                    args.HasMorePages = false;
+                };
+
+                using (var preview = new PrintPreviewDialog())
+                {
+                    preview.Document = document;
+                    preview.StartPosition = FormStartPosition.CenterParent;
+                    preview.Width = 940;
+                    preview.Height = 780;
+                    preview.ShowDialog(this);
+                }
+
+                statusLabel.Text = "Fee statement preview opened.";
+            }
+            catch (Exception ex)
+            {
+                LoggerHelper.LogError("Print fee statement preview failed", ex);
+                UIHelper.ShowError("Could not open fee statement: " + ex.Message, "Fee Statement");
+            }
+        }
+
         private ReceiptPrintData BuildReceiptPrintData()
         {
             decimal amount = 0m;
@@ -2003,6 +2083,8 @@ namespace kingdom_Preparatory_School_Management_System
                 pesewas = 0;
             }
 
+            var billing = GetCurrentBillingBreakdownForReceipt();
+
             return new ReceiptPrintData
             {
                 ReceiptNumber = CleanReceiptNumber(receiptNumberLabel != null ? receiptNumberLabel.Text : "").ToUpperInvariant(),
@@ -2014,8 +2096,68 @@ namespace kingdom_Preparatory_School_Management_System
                 PaymentMode = (paymentModeBox != null ? paymentModeBox.Text.Trim() : "CASH").ToUpperInvariant(),
                 CashChequeNo = (cashChequeBox != null ? cashChequeBox.Text.Trim() : "").ToUpperInvariant(),
                 Balance = (balanceBox != null ? balanceBox.Text.Trim() : "").ToUpperInvariant(),
+                PreviousBalance = billing == null ? "" : "GHC " + billing.PreviousBalance.ToString("N2"),
+                CurrentTermFee = billing == null ? "" : "GHC " + billing.CurrentTermFee.ToString("N2"),
                 BursarName = (bursarBox != null ? bursarBox.Text.Trim() : "").ToUpperInvariant(),
                 PaymentDate = paymentDatePicker != null ? paymentDatePicker.Value.Date : DateTime.Today
+            };
+        }
+
+        private KingdomPrep.Shared.Models.StudentBillingBreakdown GetCurrentBillingBreakdownForReceipt()
+        {
+            return _currentBillingBreakdown;
+        }
+
+        private async System.Threading.Tasks.Task RefreshCurrentBillingBreakdownAsync(string studentId)
+        {
+            _currentBillingBreakdown = null;
+            if (string.IsNullOrWhiteSpace(studentId)) return;
+
+            try
+            {
+                _currentBillingBreakdown = await new AcademicSessionService()
+                    .GetStudentBillingBreakdownAsync(Common.StudentId.Parse(studentId));
+            }
+            catch (Exception ex)
+            {
+                LoggerHelper.LogWarning("Could not load billing breakdown for receipt: " + ex.Message);
+            }
+        }
+
+        private FeeStatementPrintData BuildFeeStatementPrintData()
+        {
+            var rawStudentId = studentIdBox == null ? "" : studentIdBox.Text.Trim();
+            if (string.IsNullOrWhiteSpace(rawStudentId) || string.IsNullOrWhiteSpace(studentNameBox?.Text))
+            {
+                return null;
+            }
+
+            var studentId = Common.StudentId.Parse(rawStudentId);
+            var billing = GetCurrentBillingBreakdownForReceipt();
+            decimal fallbackBalance = 0m;
+            decimal.TryParse(balanceBox?.Text, out fallbackBalance);
+
+            decimal currentTermFee = billing?.CurrentTermFee ?? Common.SchoolProfile.FeeForClass(classBox?.Text ?? "");
+            decimal previousBalance = billing?.PreviousBalance ?? Math.Max(0m, fallbackBalance - currentTermFee);
+            decimal totalExpected = billing?.TotalExpected ?? Math.Max(fallbackBalance, previousBalance + currentTermFee);
+            decimal amountPaid = billing?.AmountPaid ?? Math.Max(0m, totalExpected - fallbackBalance);
+            decimal balance = billing?.Balance ?? Math.Max(0m, fallbackBalance);
+
+            return new FeeStatementPrintData
+            {
+                StudentId = Common.StudentId.Display(studentId),
+                StudentName = (studentNameBox.Text ?? "").Trim(),
+                ClassName = (classBox?.Text ?? "").Trim(),
+                TermName = string.IsNullOrWhiteSpace(billing?.TermName)
+                    ? AppConfig.Leave.CurrentTerm.TermName
+                    : billing.TermName,
+                PreviousBalance = previousBalance,
+                CurrentTermFee = currentTermFee,
+                TotalExpected = totalExpected,
+                AmountPaid = amountPaid,
+                Balance = balance,
+                PreparedBy = string.IsNullOrWhiteSpace(bursarBox?.Text) ? AuthService.CurrentUser.DisplayName : bursarBox.Text.Trim(),
+                GeneratedAt = DateTime.Now
             };
         }
 
@@ -2045,7 +2187,7 @@ namespace kingdom_Preparatory_School_Management_System
             graphics.TranslateTransform(left, top);
             graphics.ScaleTransform(scale, scale);
 
-            Color receiptBlue = Color.FromArgb(0, 49, 111);
+            Color receiptBlue = UiTheme.Navy;
             using (var bluePen = new Pen(receiptBlue, 3f))
             using (var dottedPen = new Pen(receiptBlue, 2.4f))
             using (var titleFont = new Font("Arial Narrow", 40f, FontStyle.Bold))
@@ -2068,10 +2210,10 @@ namespace kingdom_Preparatory_School_Management_System
 
                 DrawReceiptLogo(graphics, new RectangleF(28, 8, 112, 125));
 
-                DrawCenteredText(graphics, "NYANSAPO SCHOOL ERP", titleFont, blueBrush, new RectangleF(170, 18, 820, 48));
+                DrawCenteredText(graphics, Common.SchoolProfile.DisplayName.ToUpperInvariant(), titleFont, blueBrush, new RectangleF(170, 18, 820, 48));
                 graphics.DrawLine(bluePen, 175, 78, 985, 78);
-                DrawCenteredText(graphics, "P. O. BOX 7 AKIM ODA", subTitleFont, blueBrush, new RectangleF(245, 82, 655, 32));
-                DrawCenteredText(graphics, "Tel: 0548 050 141 | 0200 369 762 | 0201 455 533", contactFont, blueBrush, new RectangleF(215, 113, 720, 30));
+                DrawCenteredText(graphics, Common.SchoolProfile.Address, subTitleFont, blueBrush, new RectangleF(245, 82, 655, 32));
+                DrawCenteredText(graphics, Common.SchoolProfile.Phones, contactFont, blueBrush, new RectangleF(215, 113, 720, 30));
 
                 // 1. Official Receipt Box - Widened significantly to 560 to prevent any clipping
                 var receiptBox = new RectangleF(28, 154, 560, 74);
@@ -2109,6 +2251,15 @@ graphics.DrawString("BALANCE GHC", labelFont, blueBrush, 640, 675 - 27);
 DrawDottedLine(graphics, dottedPen, 890, 675, 1014, 675);
 DrawValueOnLine(graphics, data.Balance, valueFont, blackBrush, 900, 675 - 28, 1014);
 
+if (!string.IsNullOrWhiteSpace(data.PreviousBalance) || !string.IsNullOrWhiteSpace(data.CurrentTermFee))
+{
+    using (var smallFont = new Font("Georgia", 12f, FontStyle.Regular))
+    {
+        var breakdown = $"PREVIOUS BAL: {data.PreviousBalance}    CURRENT TERM FEE: {data.CurrentTermFee}";
+        DrawCenteredText(graphics, breakdown, smallFont, blackBrush, new RectangleF(40, 688, 970, 24));
+    }
+}
+
 var amountBox = new RectangleF(40, 715, 610, 88);
 graphics.DrawRectangle(bluePen, amountBox.X, amountBox.Y, amountBox.Width, amountBox.Height);
 graphics.DrawLine(bluePen, 178, 715, 178, 803); // Vertical separator after GHC
@@ -2135,21 +2286,169 @@ if (!string.IsNullOrWhiteSpace(data.BursarName))
             }
 
             graphics.Restore(state);
+            Common.PrintBranding.DrawGraphicsFooter(graphics, marginBounds);
+        }
+
+        private void DrawFeeStatement(Graphics graphics, Rectangle marginBounds, FeeStatementPrintData data)
+        {
+            graphics.SmoothingMode = SmoothingMode.AntiAlias;
+            graphics.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
+            graphics.Clear(Color.White);
+
+            const float designWidth = 760f;
+            const float designHeight = 1000f;
+            float scale = Math.Min(marginBounds.Width / designWidth, marginBounds.Height / designHeight);
+            float left = marginBounds.Left + (marginBounds.Width - designWidth * scale) / 2f;
+            float top = marginBounds.Top + (marginBounds.Height - designHeight * scale) / 2f;
+
+            GraphicsState state = graphics.Save();
+            graphics.TranslateTransform(left, top);
+            graphics.ScaleTransform(scale, scale);
+
+            Color navy = UiTheme.Navy;
+            Color gold = UiTheme.Gold;
+            Color paleGold = UiTheme.GoldSoft;
+            Color border = UiTheme.Border;
+            Color text = UiTheme.Text;
+            Color muted = UiTheme.Muted;
+
+            using (var navyBrush = new SolidBrush(navy))
+            using (var goldBrush = new SolidBrush(gold))
+            using (var textBrush = new SolidBrush(text))
+            using (var mutedBrush = new SolidBrush(muted))
+            using (var whiteBrush = new SolidBrush(Color.White))
+            using (var paleGoldBrush = new SolidBrush(paleGold))
+            using (var borderPen = new Pen(border, 1.2f))
+            using (var navyPen = new Pen(navy, 2f))
+            using (var titleFont = new Font("Segoe UI Semibold", 25f, FontStyle.Bold))
+            using (var schoolFont = new Font("Segoe UI Semibold", 18f, FontStyle.Bold))
+            using (var subtitleFont = new Font("Segoe UI", 10f, FontStyle.Regular))
+            using (var headingFont = new Font("Segoe UI Semibold", 13f, FontStyle.Bold))
+            using (var bodyFont = new Font("Segoe UI", 10.5f, FontStyle.Regular))
+            using (var boldFont = new Font("Segoe UI Semibold", 10.5f, FontStyle.Bold))
+            using (var amountFont = new Font("Segoe UI Semibold", 16f, FontStyle.Bold))
+            {
+                graphics.FillRectangle(navyBrush, 0, 0, designWidth, 140);
+                DrawReceiptLogo(graphics, new RectangleF(34, 26, 82, 82));
+                graphics.DrawString(Common.SchoolProfile.DisplayName, schoolFont, whiteBrush, new RectangleF(132, 28, 580, 28));
+                graphics.DrawString(Common.SchoolProfile.Address, subtitleFont, whiteBrush, new RectangleF(132, 62, 580, 22));
+                graphics.DrawString(Common.SchoolProfile.Phones, subtitleFont, whiteBrush, new RectangleF(132, 86, 580, 22));
+                graphics.DrawString("Generated: " + data.GeneratedAt.ToString("dd MMM yyyy, h:mm tt"), subtitleFont, whiteBrush, new RectangleF(132, 110, 580, 22));
+
+                graphics.DrawString("Student Fee Statement", titleFont, textBrush, new RectangleF(34, 170, 480, 42));
+                graphics.DrawString(data.TermName, headingFont, goldBrush, new RectangleF(36, 214, 520, 28));
+
+                var meta = new RectangleF(34, 260, 692, 112);
+                DrawRoundedRectangle(graphics, meta, 8, Color.White, borderPen);
+                DrawStatementInfo(graphics, "Student", data.StudentName, 58, 282, bodyFont, boldFont, mutedBrush, textBrush);
+                DrawStatementInfo(graphics, "Student ID", data.StudentId, 58, 326, bodyFont, boldFont, mutedBrush, textBrush);
+                DrawStatementInfo(graphics, "Class", data.ClassName, 430, 282, bodyFont, boldFont, mutedBrush, textBrush);
+                DrawStatementInfo(graphics, "Prepared by", data.PreparedBy, 430, 326, bodyFont, boldFont, mutedBrush, textBrush);
+
+                var balanceBox = new RectangleF(34, 404, 692, 102);
+                DrawRoundedRectangle(graphics, balanceBox, 8, paleGold, null);
+                graphics.DrawString("Outstanding Balance", headingFont, goldBrush, new RectangleF(58, 428, 320, 28));
+                DrawRightAlignedText(graphics, "GHC " + data.Balance.ToString("N2"), amountFont, textBrush, new RectangleF(386, 421, 300, 42));
+                graphics.DrawString("This is the amount currently payable for this learner's account.", subtitleFont, mutedBrush, new RectangleF(58, 466, 620, 24));
+
+                float y = 548;
+                graphics.DrawString("Fee Breakdown", headingFont, textBrush, new RectangleF(34, y, 320, 28));
+                y += 42;
+                DrawStatementRow(graphics, y, "Previous term debt brought forward", data.PreviousBalance, bodyFont, boldFont, textBrush, mutedBrush, borderPen, false); y += 58;
+                DrawStatementRow(graphics, y, "Current term school fees", data.CurrentTermFee, bodyFont, boldFont, textBrush, mutedBrush, borderPen, false); y += 58;
+                DrawStatementRow(graphics, y, "Total amount expected", data.TotalExpected, bodyFont, boldFont, textBrush, mutedBrush, borderPen, true); y += 58;
+                DrawStatementRow(graphics, y, "Payments received", data.AmountPaid, bodyFont, boldFont, textBrush, mutedBrush, borderPen, false); y += 58;
+                DrawStatementRow(graphics, y, "Balance left", data.Balance, bodyFont, boldFont, textBrush, mutedBrush, borderPen, true); y += 78;
+
+                graphics.DrawLine(navyPen, 34, y, 726, y);
+                y += 28;
+                graphics.DrawString("Note", headingFont, textBrush, new RectangleF(34, y, 140, 26));
+                y += 32;
+                graphics.DrawString(
+                    "Previous debt is carried forward automatically when a term is closed. Payments are recorded against the learner's account and reflected in the current statement.",
+                    bodyFont,
+                    mutedBrush,
+                    new RectangleF(34, y, 692, 58));
+
+                graphics.DrawString("Accounts Office", boldFont, textBrush, new RectangleF(34, 940, 220, 24));
+                graphics.DrawLine(borderPen, 500, 948, 726, 948);
+                DrawCenteredText(graphics, "Authorized Signature", subtitleFont, mutedBrush, new RectangleF(500, 952, 226, 24));
+            }
+
+            graphics.Restore(state);
+            Common.PrintBranding.DrawGraphicsFooter(graphics, marginBounds);
+        }
+
+        private void DrawRoundedRectangle(Graphics graphics, RectangleF bounds, int radius, Color fillColor, Pen borderPen)
+        {
+            using (var path = new GraphicsPath())
+            using (var fillBrush = new SolidBrush(fillColor))
+            {
+                float diameter = radius * 2f;
+                path.AddArc(bounds.X, bounds.Y, diameter, diameter, 180, 90);
+                path.AddArc(bounds.Right - diameter, bounds.Y, diameter, diameter, 270, 90);
+                path.AddArc(bounds.Right - diameter, bounds.Bottom - diameter, diameter, diameter, 0, 90);
+                path.AddArc(bounds.X, bounds.Bottom - diameter, diameter, diameter, 90, 90);
+                path.CloseFigure();
+
+                graphics.FillPath(fillBrush, path);
+                if (borderPen != null)
+                {
+                    graphics.DrawPath(borderPen, path);
+                }
+            }
+        }
+
+        private void DrawStatementInfo(Graphics graphics, string label, string value, float x, float y, Font labelFont, Font valueFont, Brush labelBrush, Brush valueBrush)
+        {
+            graphics.DrawString(label, labelFont, labelBrush, new RectangleF(x, y, 150, 18));
+            using (var format = new StringFormat { Trimming = StringTrimming.EllipsisCharacter, FormatFlags = StringFormatFlags.NoWrap })
+            {
+                graphics.DrawString(string.IsNullOrWhiteSpace(value) ? "-" : value, valueFont, valueBrush, new RectangleF(x, y + 22, 260, 24), format);
+            }
+        }
+
+        private void DrawRightAlignedText(Graphics graphics, string text, Font font, Brush brush, RectangleF bounds)
+        {
+            using (var format = new StringFormat())
+            {
+                format.Alignment = StringAlignment.Far;
+                format.LineAlignment = StringAlignment.Center;
+                format.Trimming = StringTrimming.EllipsisCharacter;
+                format.FormatFlags = StringFormatFlags.NoWrap;
+                graphics.DrawString(text, font, brush, bounds, format);
+            }
+        }
+
+        private void DrawStatementRow(Graphics graphics, float y, string label, decimal amount, Font bodyFont, Font boldFont, Brush textBrush, Brush mutedBrush, Pen borderPen, bool emphasis)
+        {
+            var rowBounds = new RectangleF(34, y, 692, 46);
+            if (emphasis)
+            {
+                using (var fillBrush = new SolidBrush(UiTheme.SurfaceAlt))
+                {
+                    graphics.FillRectangle(fillBrush, rowBounds);
+                }
+            }
+
+            graphics.DrawRectangle(borderPen, rowBounds.X, rowBounds.Y, rowBounds.Width, rowBounds.Height);
+
+            Font labelFont = emphasis ? boldFont : bodyFont;
+            Brush labelBrush = emphasis ? textBrush : mutedBrush;
+            graphics.DrawString(label, labelFont, labelBrush, new RectangleF(52, y + 13, 420, 24));
+            DrawRightAlignedText(graphics, "GHC " + amount.ToString("N2"), emphasis ? boldFont : bodyFont, textBrush, new RectangleF(500, y + 8, 200, 30));
         }
 
         private void DrawReceiptLogo(Graphics graphics, RectangleF bounds)
         {
-            string logoPath = GetSchoolLogoPath();
-            if (string.IsNullOrWhiteSpace(logoPath))
-            {
-                return;
-            }
-
             try
             {
-                using (Image logo = Image.FromFile(logoPath))
+                using (Image logo = LoadSchoolLogo())
                 {
-                    graphics.DrawImage(logo, bounds);
+                    if (logo != null)
+                    {
+                        graphics.DrawImage(logo, bounds);
+                    }
                 }
             }
             catch
@@ -2229,12 +2528,12 @@ if (!string.IsNullOrWhiteSpace(data.BursarName))
             input.Dock = DockStyle.None;
             input.Height = 42; // Increased from 38
             input.Margin = new Padding(0, 0, 0, 0);
-            
-            var inputHost = new Panel 
-            { 
-                Dock = DockStyle.Fill, 
-                BackColor = SurfaceColor, 
-                Margin = Padding.Empty, 
+
+            var inputHost = new Panel
+            {
+                Dock = DockStyle.Fill,
+                BackColor = SurfaceColor,
+                Margin = Padding.Empty,
                 Padding = Padding.Empty,
                 Height = 44
             };
@@ -2258,7 +2557,7 @@ if (!string.IsNullOrWhiteSpace(data.BursarName))
                 AutoSize = false,
                 Height = 38,
                 ReadOnly = readOnly,
-                BackColor = readOnly ? Color.FromArgb(248, 249, 251) : SurfaceColor,
+                BackColor = readOnly ? UiTheme.SurfaceAlt : SurfaceColor,
                 ForeColor = TextColor
             };
         }
@@ -2271,8 +2570,8 @@ if (!string.IsNullOrWhiteSpace(data.BursarName))
             button.FlatAppearance.BorderColor = PrimaryColor;
             button.FlatAppearance.MouseOverBackColor = UiTheme.NavyHover;
 
-            Color disabledBack = Color.FromArgb(220, 224, 232);
-            Color disabledFore = Color.FromArgb(130, 138, 155);
+            Color disabledBack = UiTheme.DisabledBack;
+            Color disabledFore = UiTheme.DisabledText;
             void Sync() {
                 button.BackColor = button.Enabled ? PrimaryColor : disabledBack;
                 button.ForeColor = button.Enabled ? Color.White : disabledFore;
@@ -2288,8 +2587,8 @@ if (!string.IsNullOrWhiteSpace(data.BursarName))
             var button = CreateButton(text, action);
             button.BackColor = SurfaceColor;
             button.ForeColor = TextColor;
-            button.FlatAppearance.BorderColor = Color.FromArgb(200, 205, 215);
-            button.FlatAppearance.MouseOverBackColor = Color.FromArgb(245, 247, 252);
+            button.FlatAppearance.BorderColor = UiTheme.Border;
+            button.FlatAppearance.MouseOverBackColor = UiTheme.SurfaceAlt;
             return button;
         }
 
@@ -2317,10 +2616,10 @@ if (!string.IsNullOrWhiteSpace(data.BursarName))
         private sealed class RoundedButton : Button
         {
             public int CornerRadius { get; set; } = 10;
-            public Color FillColor { get; set; } = Color.FromArgb(25, 25, 112);
-            public Color HoverFillColor { get; set; } = Color.FromArgb(18, 18, 86);
-            public Color DisabledFillColor { get; set; } = Color.FromArgb(220, 224, 232);
-            public Color DisabledTextColor { get; set; } = Color.FromArgb(130, 138, 155);
+            public Color FillColor { get; set; } = UiTheme.Navy;
+            public Color HoverFillColor { get; set; } = UiTheme.NavyHover;
+            public Color DisabledFillColor { get; set; } = UiTheme.DisabledBack;
+            public Color DisabledTextColor { get; set; } = UiTheme.DisabledText;
             private bool _hover;
 
             public RoundedButton()
@@ -2358,7 +2657,7 @@ if (!string.IsNullOrWhiteSpace(data.BursarName))
                         g.FillPath(brush, path);
                     // Subtle border so the button always reads as a button — including
                     // the disabled state on a white surface.
-                    Color borderClr = !Enabled ? Color.FromArgb(196, 202, 214) : fill;
+                    Color borderClr = !Enabled ? UiTheme.Border : fill;
                     using (var pen = new Pen(borderClr, 1f))
                         g.DrawPath(pen, path);
                 }
@@ -2404,6 +2703,26 @@ if (!string.IsNullOrWhiteSpace(data.BursarName))
                 UseVisualStyleBackColor = false
             };
             button.Click += (sender, args) => action();
+            return button;
+        }
+
+        private Button CreateRoundedPrimaryButton(string text, Func<System.Threading.Tasks.Task> action)
+        {
+            var button = new RoundedButton
+            {
+                Text = text,
+                Dock = DockStyle.Fill,
+                Height = 36,
+                Margin = new Padding(8, 8, 0, 2),
+                Font = new Font("Segoe UI Semibold", 9.5F, FontStyle.Bold),
+                ForeColor = Color.White,
+                FillColor = PrimaryColor,
+                HoverFillColor = UiTheme.NavyHover,
+                CornerRadius = 10,
+                Cursor = Cursors.Hand,
+                UseVisualStyleBackColor = false
+            };
+            button.Click += async (sender, args) => await action();
             return button;
         }
 
@@ -2474,6 +2793,7 @@ if (!string.IsNullOrWhiteSpace(data.BursarName))
         {
             if (studentIdBox == null || string.IsNullOrWhiteSpace(studentIdBox.Text))
             {
+                _currentBillingBreakdown = null;
                 studentNameBox.Text = "";
                 classBox.Text = "";
                 balanceBox.Text = "";
@@ -2491,6 +2811,7 @@ if (!string.IsNullOrWhiteSpace(data.BursarName))
 
                 if (student == null)
                 {
+                    _currentBillingBreakdown = null;
                     studentNameBox.Text = "";
                     classBox.Text = "";
                     balanceBox.Text = "";
@@ -2515,6 +2836,8 @@ if (!string.IsNullOrWhiteSpace(data.BursarName))
                 {
                     balance = await _feeRepository.GetDefaultBalanceAsync(studentId, student.ClassID);
                 }
+
+                await RefreshCurrentBillingBreakdownAsync(studentId);
 
                 balanceBox.Text = (balance ?? 0m).ToString("0.00");
                 statusLabel.Text = "Student details loaded";
@@ -2576,11 +2899,16 @@ if (!string.IsNullOrWhiteSpace(data.BursarName))
             Close();
         }
 
-        private async void RecordPayment()
+        private async System.Threading.Tasks.Task RecordPaymentAsync()
         {
+            if (_paymentBusy) return;
+
             try
             {
+                SetPaymentBusy(true, _admissionDraft != null ? "Submitting admission draft..." : "Recording payment...");
+
                 if (_admissionDraft != null) { await SubmitAdmissionDraftAsync(); return; }
+                if (!AuthService.RequireWriteAccess("Finance.FeePayment.Record", "Record fee payment")) return;
                 if (!FormValidationHelper.ValidateRequired(studentIdBox, "Student ID")) return;
                 if (!FormValidationHelper.ValidateNumeric(amountBox, "Amount Paid", out decimal amountPaid)) return;
                 if (!FormValidationHelper.ValidateRequired(bursarBox, "Bursar Name")) return;
@@ -2618,6 +2946,7 @@ if (!string.IsNullOrWhiteSpace(data.BursarName))
                 {
                     decimal newBalance = result.NewBalance;
                     balanceBox.Text = newBalance.ToString("0.00");
+                    await RefreshCurrentBillingBreakdownAsync(studentIdBox.Text);
                     lastPrintedReceipt = BuildReceiptPrintData();
 
                     // Update balance label in receipt preview to the actual saved value
@@ -2646,6 +2975,33 @@ if (!string.IsNullOrWhiteSpace(data.BursarName))
                 statusLabel.Text = "Payment error";
                 UIHelper.ShowError("Record payment failed: " + ex.Message, "Fee Payment");
             }
+            finally
+            {
+                SetPaymentBusy(false, statusLabel?.Text);
+            }
+        }
+
+        private void SetPaymentBusy(bool busy, string status = null)
+        {
+            _paymentBusy = busy;
+            UseWaitCursor = busy;
+            Cursor = busy ? Cursors.WaitCursor : Cursors.Default;
+
+            if (_recordBtn != null) _recordBtn.Enabled = !busy;
+            if (_lookupStudentBtn != null) _lookupStudentBtn.Enabled = !busy;
+            if (_continueToPaymentBtn != null) _continueToPaymentBtn.Enabled = !busy;
+            if (_previewReceiptBtn != null) _previewReceiptBtn.Enabled = !busy;
+            if (_printStatementBtn != null) _printStatementBtn.Enabled = !busy;
+
+            if (studentIdBox != null) studentIdBox.Enabled = !busy;
+            if (amountBox != null) amountBox.Enabled = !busy;
+            if (beingBox != null) beingBox.Enabled = !busy;
+            if (bursarBox != null) bursarBox.Enabled = !busy;
+            if (cashChequeBox != null) cashChequeBox.Enabled = !busy;
+            if (paymentModeBox != null) paymentModeBox.Enabled = !busy;
+            if (paymentDatePicker != null) paymentDatePicker.Enabled = !busy;
+            if (feeTypeBox != null) feeTypeBox.Enabled = !busy;
+            if (statusLabel != null && !string.IsNullOrWhiteSpace(status)) statusLabel.Text = status;
         }
 
         private void ClearPaymentForm()
@@ -2675,7 +3031,7 @@ if (!string.IsNullOrWhiteSpace(data.BursarName))
         }
 
         private void txtStdID_TextChanged(object sender, EventArgs e) { LookupStudent(); }
-        private void pay_Click(object sender, EventArgs e) { RecordPayment(); }
+        private async void pay_Click(object sender, EventArgs e) { await RecordPaymentAsync(); }
         private void gunaDateTimePicker1_ValueChanged(object sender, EventArgs e) { }
         private void guna2TextBox8_TextChanged(object sender, EventArgs e) { }
         private void txtpm_TextChanged(object sender, EventArgs e) { }

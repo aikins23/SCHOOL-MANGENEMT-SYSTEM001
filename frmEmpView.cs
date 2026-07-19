@@ -116,7 +116,10 @@ namespace kingdom_Preparatory_School_Management_System
                 BackColor = PageBackColor,
                 Padding = new Padding(0, 12, 0, 0)
             };
-            actions.Controls.Add(CreatePrimaryButton("Add Employee", () => new frmEmployee().Show()));
+            if (AuthService.CanWrite("Staff.Register"))
+            {
+                actions.Controls.Add(CreatePrimaryButton("Add Employee", () => new frmEmployee().Show()));
+            }
             actions.Controls.Add(CreateSecondaryButton("Dashboard", () =>
             {
                 Close();
@@ -264,7 +267,7 @@ namespace kingdom_Preparatory_School_Management_System
         {
             departmentFilter.Items.Clear();
             departmentFilter.Items.Add("All departments");
-            
+
             var departments = await _employeeService.GetDepartmentsAsync();
             foreach (var dept in departments)
             {
@@ -280,7 +283,7 @@ namespace kingdom_Preparatory_School_Management_System
             {
                 resultLabel.Text = "Loading staff...";
                 DataTable table = await _employeeService.GetEmployeesTableAsync(filterId, filterDept);
-                
+
                 employeesGrid.DataSource = table;
                 resultLabel.Text = table.Rows.Count + " employee record(s)";
 
@@ -398,7 +401,12 @@ namespace kingdom_Preparatory_School_Management_System
         private void menuStrip2_ItemClicked(object sender, ToolStripItemClickedEventArgs e) { }
         private void aPPLICATIONToolStripMenuItem_Click(object sender, EventArgs e) { }
         private void gunaPictureBox2_Click(object sender, EventArgs e) { }
-        private void gunaButton1_Click(object sender, EventArgs e) { new frmEmployee().Show(); }
+        private void gunaButton1_Click(object sender, EventArgs e)
+        {
+            if (!AuthService.RequireWriteAccess("Staff.Register", "Register Employee"))
+                return;
+            new frmEmployee().Show();
+        }
         private void gunaButton2_Click(object sender, EventArgs e) { }
         private async void gunaButton2_Click_1(object sender, EventArgs e) { await LoadEmployees(); }
     }

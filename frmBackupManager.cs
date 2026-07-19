@@ -80,6 +80,7 @@ namespace kingdom_Preparatory_School_Management_System
             btnBackupNow.Font = new System.Drawing.Font("Arial", 10, System.Drawing.FontStyle.Bold);
             btnBackupNow.FlatStyle = FlatStyle.Flat;
             btnBackupNow.FlatAppearance.BorderSize = 0;
+            btnBackupNow.Visible = AuthService.CanWrite("Admin.Backup.Manage");
             grpBackupOps.Controls.Add(btnBackupNow);
 
             btnImport = new Button();
@@ -87,6 +88,7 @@ namespace kingdom_Preparatory_School_Management_System
             btnImport.Location = new System.Drawing.Point(15 + btnWidth3 + 15, 30);
             btnImport.Size = new System.Drawing.Size(btnWidth3, buttonHeight);
             btnImport.Click += BtnImport_Click;
+            btnImport.Visible = AuthService.CanWrite("Admin.Backup.Manage");
             btnImport.BackColor = System.Drawing.Color.FromArgb(245, 158, 11);
             btnImport.ForeColor = System.Drawing.Color.White;
             btnImport.Font = new System.Drawing.Font("Arial", 10, System.Drawing.FontStyle.Bold);
@@ -165,6 +167,7 @@ namespace kingdom_Preparatory_School_Management_System
             btnRestoreSelected.Font = new System.Drawing.Font("Arial", 10, System.Drawing.FontStyle.Bold);
             btnRestoreSelected.FlatStyle = FlatStyle.Flat;
             btnRestoreSelected.FlatAppearance.BorderSize = 0;
+            btnRestoreSelected.Visible = AuthService.CanWrite("Admin.Backup.Manage");
             grpRestoreOps.Controls.Add(btnRestoreSelected);
 
             btnDeleteSelected = new Button();
@@ -177,6 +180,7 @@ namespace kingdom_Preparatory_School_Management_System
             btnDeleteSelected.Font = new System.Drawing.Font("Arial", 10, System.Drawing.FontStyle.Bold);
             btnDeleteSelected.FlatStyle = FlatStyle.Flat;
             btnDeleteSelected.FlatAppearance.BorderSize = 0;
+            btnDeleteSelected.Visible = AuthService.CanWrite("Admin.Backup.Manage");
             grpRestoreOps.Controls.Add(btnDeleteSelected);
 
             this.Controls.Add(grpRestoreOps);
@@ -194,6 +198,7 @@ namespace kingdom_Preparatory_School_Management_System
             chkEnableAutoBackup.Location = new System.Drawing.Point(15, 30);
             chkEnableAutoBackup.Size = new System.Drawing.Size(300, 25);
             chkEnableAutoBackup.CheckedChanged += ChkEnableAutoBackup_CheckedChanged;
+            chkEnableAutoBackup.Enabled = AuthService.CanWrite("Admin.Backup.Manage");
             grpAutoBackup.Controls.Add(chkEnableAutoBackup);
 
             lblAutoBackupTime = new Label();
@@ -271,6 +276,9 @@ namespace kingdom_Preparatory_School_Management_System
 
         private async void BtnBackupNow_Click(object sender, EventArgs e)
         {
+            if (!AuthService.RequireWriteAccess("Admin.Backup.Manage", "Create Backup"))
+                return;
+
             btnBackupNow.Enabled = false;
             progressBar.Visible = true;
             progressBar.Style = ProgressBarStyle.Marquee;
@@ -316,6 +324,9 @@ namespace kingdom_Preparatory_School_Management_System
 
         private void BtnImport_Click(object sender, EventArgs e)
         {
+            if (!AuthService.RequireWriteAccess("Admin.Backup.Manage", "Import Backup"))
+                return;
+
             using (var dialog = new OpenFileDialog())
             {
                 dialog.Title = "Select backup file to import";
@@ -374,6 +385,9 @@ namespace kingdom_Preparatory_School_Management_System
 
         private async void BtnRestoreSelected_Click(object sender, EventArgs e)
         {
+            if (!AuthService.RequireWriteAccess("Admin.Backup.Manage", "Restore Backup"))
+                return;
+
             var backup = lstBackups.SelectedItem as Services.BackupFileInfo;
             if (backup == null)
             {
@@ -429,6 +443,9 @@ namespace kingdom_Preparatory_School_Management_System
 
         private void BtnDeleteSelected_Click(object sender, EventArgs e)
         {
+            if (!AuthService.RequireWriteAccess("Admin.Backup.Manage", "Delete Backup"))
+                return;
+
             var backup = lstBackups.SelectedItem as Services.BackupFileInfo;
             if (backup == null)
             {
@@ -461,6 +478,14 @@ namespace kingdom_Preparatory_School_Management_System
 
         private void ChkEnableAutoBackup_CheckedChanged(object sender, EventArgs e)
         {
+            if (!AuthService.RequireWriteAccess("Admin.Backup.Manage", "Configure Auto Backup"))
+            {
+                chkEnableAutoBackup.CheckedChanged -= ChkEnableAutoBackup_CheckedChanged;
+                chkEnableAutoBackup.Checked = !chkEnableAutoBackup.Checked;
+                chkEnableAutoBackup.CheckedChanged += ChkEnableAutoBackup_CheckedChanged;
+                return;
+            }
+
             numAutoBackupHour.Enabled = chkEnableAutoBackup.Checked;
 
             if (chkEnableAutoBackup.Checked)

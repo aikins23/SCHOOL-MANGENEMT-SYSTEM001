@@ -6,7 +6,7 @@ using System.Windows.Forms;
 using kingdom_Preparatory_School_Management_System.Common;
 using kingdom_Preparatory_School_Management_System.Data;
 using kingdom_Preparatory_School_Management_System.Services;
-using kingdom_Preparatory_School_Management_System.Models;
+using KingdomPrep.Shared.Models;
 
 namespace kingdom_Preparatory_School_Management_System
 {
@@ -66,6 +66,12 @@ namespace kingdom_Preparatory_School_Management_System
 
             var btnDelete = new Guna.UI2.WinForms.Guna2Button { Text = "Delete", FillColor = Color.Firebrick, Width = 100, Height = 40, Location = new Point(170, 140), Cursor = Cursors.Hand };
             btnDelete.Click += (s, e) => DeleteClass();
+            bool canManageClassStructure = AuthService.CanWrite("Academics.ClassStructure.Manage");
+            txtClassName.Enabled = canManageClassStructure;
+            txtFee.Enabled = canManageClassStructure;
+            txtLevel.Enabled = canManageClassStructure;
+            btnSave.Visible = canManageClassStructure;
+            btnDelete.Visible = canManageClassStructure;
 
             entryPanel.Controls.Add(new Label { Text = "Add/Edit Class", Font = new Font("Segoe UI", 14, FontStyle.Bold), ForeColor = Navy, AutoSize = true });
             entryPanel.Controls.Add(txtClassName);
@@ -107,6 +113,9 @@ namespace kingdom_Preparatory_School_Management_System
         {
             try
             {
+                if (!AuthService.RequireWriteAccess("Academics.ClassStructure.Manage", "Save Class"))
+                    return;
+
                 if (!FormValidationHelper.ValidateRequired(txtClassName, "Class Name")) return;
                 if (!FormValidationHelper.ValidateNumeric(txtFee, "Tuition Fee", out decimal fee)) return;
                 if (!FormValidationHelper.ValidateNumeric(txtLevel, "Promotion Order", out decimal levelDec)) return;
@@ -138,6 +147,9 @@ namespace kingdom_Preparatory_School_Management_System
         {
             try
             {
+                if (!AuthService.RequireWriteAccess("Academics.ClassStructure.Manage", "Delete Class"))
+                    return;
+
                 if (!FormValidationHelper.ValidateRequired(txtClassName, "Class Name")) return;
                 if (!ConfirmationHelper.ConfirmDelete("Class", $"Class Name: {txtClassName.Text.Trim().ToUpperInvariant()}")) return;
 

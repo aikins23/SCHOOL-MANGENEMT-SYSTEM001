@@ -71,13 +71,13 @@ namespace kingdom_Preparatory_School_Management_System.Common
 
         /// <summary>
         /// The logo to show in app chrome: the buyer's configured logo if set, else the bundled
-        /// product logo. 
+        /// product logo.
         /// </summary>
         public static Image Logo => GetLogo(false);
 
         /// <summary>
         /// The logo to show in app chrome: the buyer's configured logo if set, else the bundled
-        /// product logo. 
+        /// product logo.
         /// </summary>
         /// <param name="onBlue">True to prefer the on-blue version if using the bundled logo.</param>
         public static Image GetLogo(bool onBlue)
@@ -93,7 +93,7 @@ namespace kingdom_Preparatory_School_Management_System.Common
             return onBlue ? AppLogoOnBlue : AppLogo;
         }
 
-        /// <summary>Window/taskbar icon from Resources\app_icon.png, then icon.png. Null if absent.</summary>
+        /// <summary>Window/taskbar icon from Resources\app_icon.ico, then bundled PNG fallbacks. Null if absent.</summary>
         public static Icon AppIcon
         {
             get
@@ -101,7 +101,7 @@ namespace kingdom_Preparatory_School_Management_System.Common
                 if (!_appIconTried)
                 {
                     _appIconTried = true;
-                    _appIcon = LoadIcon("icon_bg.png", "app_icon.png", "icon.png");
+                    _appIcon = LoadIcon("app_icon.ico", "icon_bg.png", "app_icon.png", "icon.png");
                 }
                 return _appIcon;
             }
@@ -115,7 +115,7 @@ namespace kingdom_Preparatory_School_Management_System.Common
                 if (!_appIconOnBlueTried)
                 {
                     _appIconOnBlueTried = true;
-                    _appIconOnBlue = LoadIcon("app_icon_bg.png", "icon_bg.png");
+                    _appIconOnBlue = LoadIcon("app_icon.ico", "app_icon_bg.png", "icon_bg.png");
                     if (_appIconOnBlue == null) _appIconOnBlue = AppIcon;
                 }
                 return _appIconOnBlue;
@@ -182,6 +182,9 @@ namespace kingdom_Preparatory_School_Management_System.Common
             {
                 string path = Resolve(fileNames);
                 if (path == null) return null;
+                if (Path.GetExtension(path).Equals(".ico", StringComparison.OrdinalIgnoreCase))
+                    return new Icon(path);
+
                 using (var bmp = new Bitmap(path))
                     return Icon.FromHandle(bmp.GetHicon());
             }

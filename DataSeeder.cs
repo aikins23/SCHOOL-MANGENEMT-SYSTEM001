@@ -1,7 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using kingdom_Preparatory_School_Management_System.Data;
-using kingdom_Preparatory_School_Management_System.Models;
+using KingdomPrep.Shared.Models;
 using kingdom_Preparatory_School_Management_System.Services;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,7 +15,7 @@ namespace kingdom_Preparatory_School_Management_System
             try
             {
                 var employeeRepo = new EmployeeRepository(Common.AppConfig.ConnectionString);
-                
+
                 // Check if we already have employees to avoid duplicates
                 var existing = await employeeRepo.GetAllAsync();
                 if (existing != null && existing.Count() > 0)
@@ -55,20 +55,20 @@ namespace kingdom_Preparatory_School_Management_System
                 foreach (var emp in existing)
                 {
                     if (string.IsNullOrEmpty(emp.EmployeeID)) continue;
-                    
+
                     int empId = int.Parse(emp.EmployeeID);
                     string username = emp.FullName.Split(' ')[0].ToLower(); // e.g. "emmanuel", "sarah"
                     string userType = "TEACHER";
 
-                    if (emp.Position == "Principal") 
+                    if (emp.Position == "Principal")
                     {
-                        username = "admin"; 
-                        userType = "ADMINISTRATOR"; 
+                        username = "admin";
+                        userType = "ADMINISTRATOR";
                     }
-                    else if (emp.Position == "Bursar") 
+                    else if (emp.Position == "Bursar")
                     {
-                        username = "bursar"; 
-                        userType = "ACCOUNTANT"; 
+                        username = "bursar";
+                        userType = "ACCOUNTANT";
                     }
                     else if (emp.Position == "Security Guard")
                     {

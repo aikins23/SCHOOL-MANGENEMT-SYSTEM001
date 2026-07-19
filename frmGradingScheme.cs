@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using kingdom_Preparatory_School_Management_System.Common;
 using kingdom_Preparatory_School_Management_System.Data;
-using kingdom_Preparatory_School_Management_System.Models;
+using KingdomPrep.Shared.Models;
 using kingdom_Preparatory_School_Management_System.Services;
 
 namespace kingdom_Preparatory_School_Management_System
@@ -18,6 +18,7 @@ namespace kingdom_Preparatory_School_Management_System
     public class frmGradingScheme : Form
     {
         private readonly GradingSchemeRepository _repo = new GradingSchemeRepository(AppConfig.ConnectionString);
+        private bool CanManageGradingScheme => AuthService.CanWrite("Settings.GradingScheme.Manage");
         private DataGridView _grid;
         private Button _addBtn, _removeBtn, _saveBtn, _cancelBtn;
         private Label _status;
@@ -49,7 +50,7 @@ namespace kingdom_Preparatory_School_Management_System
             var hint = new Label
             {
                 Dock = DockStyle.Top, Height = 24,
-                Text = "  Score >= Min % maps to this Code (grade) and Label (remark). Include one row with Min % = 0.",
+                Text = "  SQL Server connected: exams and report cards use these saved bands. Include one row with Min % = 0.",
                 ForeColor = AppConfig.Colors.MutedTextColor, Font = new Font("Segoe UI", 9F),
                 TextAlign = ContentAlignment.MiddleLeft
             };
@@ -77,6 +78,7 @@ namespace kingdom_Preparatory_School_Management_System
             _cancelBtn.Click += (s, e) => Close();
             bar.Controls.Add(_addBtn); bar.Controls.Add(_removeBtn);
             bar.Controls.Add(_saveBtn); bar.Controls.Add(_cancelBtn); bar.Controls.Add(_status);
+            ApplyWriteAccess();
 
             Controls.Add(_grid);
             Controls.Add(bar);
@@ -90,10 +92,14 @@ namespace kingdom_Preparatory_School_Management_System
             {
                 await _repo.EnsureTableAsync();
                 var bands = await _repo.GetBandsAsync();
-                if (bands.Count == 0) bands = GradingSchemeRepository.LegacyBands();
+                bool usedDefaultSeed = bands.Count == 0;
+                if (usedDefaultSeed) bands = GradingSchemeRepository.LegacyBands();
                 _grid.Rows.Clear();
                 foreach (var b in bands)
                     _grid.Rows.Add(b.MinScore.ToString(), b.Code, b.Label);
+                _status.Text = usedDefaultSeed
+                    ? "Loaded default seed. Save to persist for this school."
+                    : "Loaded from SQL Server for this school.";
             }
             catch (Exception ex)
             {
@@ -103,6 +109,7 @@ namespace kingdom_Preparatory_School_Management_System
 
         private async Task SaveAsync()
         {
+            if (!AuthService.RequireWriteAccess("Settings.GradingScheme.Manage", "Save grading scheme")) return;
             var bands = new List<GradeBand>();
             var seenMins = new HashSet<int>();
             bool hasFloor = false;
@@ -140,6 +147,16 @@ namespace kingdom_Preparatory_School_Management_System
                 UIHelper.ShowError("Could not save: " + ex.Message, "Grading Scheme");
             }
             finally { _saveBtn.Enabled = true; }
+        }
+
+        private void ApplyWriteAccess()
+        {
+            bool canWrite = CanManageGradingScheme;
+            _grid.ReadOnly = !canWrite;
+            _addBtn.Enabled = canWrite;
+            _removeBtn.Enabled = canWrite;
+            _saveBtn.Enabled = canWrite;
+            _saveBtn.Text = canWrite ? "Save" : "Read only";
         }
     }
 }

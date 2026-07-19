@@ -1,6 +1,6 @@
 using System;
 using System.Data;
-using System.Data.OleDb;
+
 using System.Drawing;
 using System.Linq;
 using System.Threading.Tasks;
@@ -225,6 +225,7 @@ namespace kingdom_Preparatory_School_Management_System
             grid.Controls.Add(MakeActionButton("Enter Scores",        () => new EXAMS().Show()));
             grid.Controls.Add(MakeActionButton("View Results",        () => new EXAMSVIEW().Show()));
             grid.Controls.Add(MakeActionButton("Generate Report Cards", OpenReportCardForm));
+            grid.Controls.Add(MakeActionButton("Performance Reports", () => new frmPerformanceReports().Show()));
             grid.Controls.Add(MakeActionButton("Outstanding Fees",    () => new frmOutstandingFees().Show()));
             grid.Controls.Add(MakeActionButton("Apply for Leave",     () => new frmEmpLeave().Show()));
             grid.Controls.Add(MakeActionButton("My Leave Balance",    () => new frmLeaveBalanceReport().Show()));
@@ -343,7 +344,7 @@ namespace kingdom_Preparatory_School_Management_System
                 decimal owed    = await GetOutstandingForClassAsync(_myClass);
 
                 tileStudentsValue.Text    = students.ToString();
-                tileAvgScoreValue.Text    = avg > 0 ? avg.ToString("0.0") : "—";
+                tileAvgScoreValue.Text    = avg > 0 ? avg.ToString("0.00") : "—";
                 tileAttendanceValue.Text  = attRate >= 0 ? attRate.ToString("0") + "%" : "—";
                 tileOutstandingValue.Text = "GHS " + owed.ToString("#,##0");
 
@@ -358,12 +359,12 @@ namespace kingdom_Preparatory_School_Management_System
 
         private async Task<string> GetTeacherNameAsync(int empId)
         {
-            using (var conn = new OleDbConnection(AppConfig.ConnectionString))
+            using (var conn = new Microsoft.Data.SqlClient.SqlConnection(SqlCommandExtensions.StripProvider(AppConfig.ConnectionString)))
             {
                 await conn.OpenAsync();
-                using (var cmd = new OleDbCommand("SELECT fullName FROM Employee WHERE employmentID = ?", conn))
+                using (var cmd = new Microsoft.Data.SqlClient.SqlCommand("SELECT fullName FROM Employee WHERE employmentID = @empId", conn))
                 {
-                    cmd.Parameters.AddWithValue("?", empId);
+                    cmd.Parameters.AddWithValue("@empId", empId);
                     var result = await cmd.ExecuteScalarAsync();
                     return result == null || result == DBNull.Value ? "Teacher" : result.ToString();
                 }
@@ -372,12 +373,12 @@ namespace kingdom_Preparatory_School_Management_System
 
         private async Task<int> GetStudentCountAsync(string className)
         {
-            using (var conn = new OleDbConnection(AppConfig.ConnectionString))
+            using (var conn = new Microsoft.Data.SqlClient.SqlConnection(SqlCommandExtensions.StripProvider(AppConfig.ConnectionString)))
             {
                 await conn.OpenAsync();
-                using (var cmd = new OleDbCommand("SELECT COUNT(*) FROM Students WHERE ClassID = ?", conn))
+                using (var cmd = new Microsoft.Data.SqlClient.SqlCommand("SELECT COUNT(*) FROM Students WHERE ClassID = @classId", conn))
                 {
-                    cmd.Parameters.AddWithValue("?", className);
+                    cmd.Parameters.AddWithValue("@classId", className);
                     var result = await cmd.ExecuteScalarAsync();
                     return result == null || result == DBNull.Value ? 0 : Convert.ToInt32(result);
                 }
@@ -386,12 +387,12 @@ namespace kingdom_Preparatory_School_Management_System
 
         private async Task<double> GetAverageScoreAsync(string className)
         {
-            using (var conn = new OleDbConnection(AppConfig.ConnectionString))
+            using (var conn = new Microsoft.Data.SqlClient.SqlConnection(SqlCommandExtensions.StripProvider(AppConfig.ConnectionString)))
             {
                 await conn.OpenAsync();
-                using (var cmd = new OleDbCommand("SELECT AVG(gt) FROM examss WHERE std_class = ?", conn))
+                using (var cmd = new Microsoft.Data.SqlClient.SqlCommand("SELECT AVG(gt) FROM examss WHERE std_class = @classId", conn))
                 {
-                    cmd.Parameters.AddWithValue("?", className);
+                    cmd.Parameters.AddWithValue("@classId", className);
                     var result = await cmd.ExecuteScalarAsync();
                     return result == null || result == DBNull.Value ? 0 : Convert.ToDouble(result);
                 }
@@ -408,16 +409,16 @@ namespace kingdom_Preparatory_School_Management_System
                 FROM Attendance a
                 INNER JOIN Students s ON s.StudentID = a.ReferenceID
                 WHERE UPPER(a.ReferenceType) = 'STUDENT'
-                  AND s.ClassID = ?
-                  AND a.[Date] >= ?";
+                  AND s.ClassID = @classId
+                  AND a.[Date] >= @dateThreshold";
 
-            using (var conn = new OleDbConnection(AppConfig.ConnectionString))
+            using (var conn = new Microsoft.Data.SqlClient.SqlConnection(SqlCommandExtensions.StripProvider(AppConfig.ConnectionString)))
             {
                 await conn.OpenAsync();
-                using (var cmd = new OleDbCommand(query, conn))
+                using (var cmd = new Microsoft.Data.SqlClient.SqlCommand(query, conn))
                 {
-                    cmd.Parameters.AddWithValue("?", className);
-                    cmd.Parameters.AddWithValue("?", DateTime.Today.AddDays(-days));
+                    cmd.Parameters.AddWithValue("@classId", className);
+                    cmd.Parameters.AddWithValue("@dateThreshold", DateTime.Today.AddDays(-days));
                     var result = await cmd.ExecuteScalarAsync();
                     return result == null || result == DBNull.Value ? -1 : Convert.ToDouble(result);
                 }
@@ -433,14 +434,14 @@ namespace kingdom_Preparatory_School_Management_System
                            ROW_NUMBER() OVER (PARTITION BY pr.StudentID ORDER BY pr.[Date] DESC, pr.tm DESC) AS rn
                     FROM payment_record pr
                 ) latest
-                WHERE rn = 1 AND Balance > 0 AND classID = ?";
+                WHERE rn = 1 AND Balance > 0 AND classID = @classId";
 
-            using (var conn = new OleDbConnection(AppConfig.ConnectionString))
+            using (var conn = new Microsoft.Data.SqlClient.SqlConnection(SqlCommandExtensions.StripProvider(AppConfig.ConnectionString)))
             {
                 await conn.OpenAsync();
-                using (var cmd = new OleDbCommand(query, conn))
+                using (var cmd = new Microsoft.Data.SqlClient.SqlCommand(query, conn))
                 {
-                    cmd.Parameters.AddWithValue("?", className);
+                    cmd.Parameters.AddWithValue("@classId", className);
                     var result = await cmd.ExecuteScalarAsync();
                     return result == null || result == DBNull.Value ? 0m : Convert.ToDecimal(result);
                 }

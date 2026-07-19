@@ -1,6 +1,7 @@
+using KingdomPrep.Shared.Models;
 using System;
 using System.Collections.Generic;
-using System.Data.OleDb;
+using Microsoft.Data.SqlClient;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -10,10 +11,13 @@ using kingdom_Preparatory_School_Management_System.Common;
 namespace kingdom_Preparatory_School_Management_System.Services
 {
     /// <summary>
-    /// Service for SQL Server (LocalDB) database backup and recovery via T-SQL.
+    /// Service for SQL Server database backup and recovery via T-SQL.
     /// </summary>
     public static class DatabaseBackupService
     {
+        private const string BackupFilePrefix = "Nyansapo_Backup_";
+        private const string LegacyBackupFilePrefix = "KPS_Backup_";
+
         private static readonly string BackupFolder = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
             "IPMC_Backups"
@@ -28,25 +32,42 @@ namespace kingdom_Preparatory_School_Management_System.Services
         /// </summary>
         public static async Task<(bool Success, string Message)> CreateBackupAsync()
         {
+            var result = await CreateBackupFileAsync("", $"{PrintBranding.BrandName} Full Backup", "SUCCESS");
+            return (result.Success, result.Message);
+        }
+
+        /// <summary>
+        /// Creates a named safety checkpoint immediately before system recovery changes accounts.
+        /// </summary>
+        public static async Task<(bool Success, string Message, string BackupPath)> CreateRecoveryCheckpointAsync()
+        {
+            return await CreateBackupFileAsync("_recovery_checkpoint", $"{PrintBranding.BrandName} Recovery Checkpoint", "RECOVERY_CHECKPOINT");
+        }
+
+        private static async Task<(bool Success, string Message, string BackupPath)> CreateBackupFileAsync(
+            string fileSuffix,
+            string backupSetName,
+            string successEventType)
+        {
             try
             {
                 string dbName = ExtractDatabaseName(AppConfig.ConnectionString);
                 if (string.IsNullOrWhiteSpace(dbName))
-                    return (false, "Could not determine database name from connection string.");
+                    return (false, "Could not determine database name from connection string.", null);
 
                 EnsureBackupFolder();
 
                 string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
-                string backupFileName = $"KPS_Backup_{timestamp}.bak";
+                string backupFileName = $"{BackupFilePrefix}{timestamp}{fileSuffix}.bak";
                 string backupPath = Path.Combine(BackupFolder, backupFileName);
 
                 string sql = $"BACKUP DATABASE [{dbName}] TO DISK = N'{backupPath.Replace("'", "''")}' " +
-                             "WITH FORMAT, INIT, NAME = N'KPS Full Backup', SKIP, STATS = 10";
+                             $"WITH FORMAT, INIT, NAME = N'{backupSetName.Replace("'", "''")}', SKIP, STATS = 10";
 
-                using (var connection = new OleDbConnection(GetMasterConnectionString(AppConfig.ConnectionString)))
+                using (var connection = new SqlConnection(kingdom_Preparatory_School_Management_System.Common.SqlCommandExtensions.StripProvider(GetMasterConnectionString(AppConfig.ConnectionString))))
                 {
                     await connection.OpenAsync();
-                    using (var command = new OleDbCommand(sql, connection))
+                    using (var command = new SqlCommand(sql, connection))
                     {
                         command.CommandTimeout = 300;
                         await command.ExecuteNonQueryAsync();
@@ -54,22 +75,22 @@ namespace kingdom_Preparatory_School_Management_System.Services
                 }
 
                 if (!File.Exists(backupPath))
-                    return (false, "Backup file was not created. Check SQL Server file permissions on the backup folder.");
+                    return (false, "Backup file was not created. Check SQL Server file permissions on the backup folder.", null);
 
                 var fileInfo = new FileInfo(backupPath);
                 string sizeStr = FormatFileSize(fileInfo.Length);
 
-                LogBackupEvent("SUCCESS", $"Created backup: {backupFileName} ({sizeStr})");
+                LogBackupEvent(successEventType, $"Created backup: {backupFileName} ({sizeStr})");
 
                 return (true, $"✅ Backup created successfully!\n\n" +
                               $"Location: {backupPath}\n" +
                               $"Size: {sizeStr}\n" +
-                              $"Date: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+                              $"Date: {DateTime.Now:yyyy-MM-dd HH:mm:ss}", backupPath);
             }
             catch (Exception ex)
             {
                 LogBackupEvent("FAILED", $"Backup failed: {ex.Message}");
-                return (false, $"❌ Backup failed: {ex.Message}");
+                return (false, $"❌ Backup failed: {ex.Message}", null);
             }
         }
 
@@ -91,12 +112,12 @@ namespace kingdom_Preparatory_School_Management_System.Services
                 if (string.IsNullOrWhiteSpace(dbName))
                     return (false, "Could not determine database name.");
 
-                using (var connection = new OleDbConnection(GetMasterConnectionString(AppConfig.ConnectionString)))
+                using (var connection = new SqlConnection(kingdom_Preparatory_School_Management_System.Common.SqlCommandExtensions.StripProvider(GetMasterConnectionString(AppConfig.ConnectionString))))
                 {
                     await connection.OpenAsync();
 
                     // Kick out any other connections so RESTORE can proceed
-                    using (var cmd = new OleDbCommand(
+                    using (var cmd = new SqlCommand(
                         $"ALTER DATABASE [{dbName}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE", connection))
                     {
                         cmd.CommandTimeout = 60;
@@ -107,7 +128,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
                     {
                         string sql = $"RESTORE DATABASE [{dbName}] FROM DISK = N'{managedBackupPath.Replace("'", "''")}' " +
                                      "WITH REPLACE, RECOVERY, STATS = 10";
-                        using (var cmd = new OleDbCommand(sql, connection))
+                        using (var cmd = new SqlCommand(sql, connection))
                         {
                             cmd.CommandTimeout = 300;
                             await cmd.ExecuteNonQueryAsync();
@@ -118,7 +139,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
                         // Always return the DB to multi-user mode, even if restore failed
                         try
                         {
-                            using (var cmd = new OleDbCommand(
+                            using (var cmd = new SqlCommand(
                                 $"ALTER DATABASE [{dbName}] SET MULTI_USER", connection))
                             {
                                 cmd.CommandTimeout = 60;
@@ -157,7 +178,9 @@ namespace kingdom_Preparatory_School_Management_System.Services
                 if (!Directory.Exists(BackupFolder))
                     return backups;
 
-                var files = Directory.GetFiles(BackupFolder, "KPS_Backup_*.bak")
+                var files = Directory.GetFiles(BackupFolder, $"{BackupFilePrefix}*.bak")
+                    .Concat(Directory.GetFiles(BackupFolder, $"{LegacyBackupFilePrefix}*.bak"))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
                     .OrderByDescending(f => File.GetCreationTime(f))
                     .ToList();
 
@@ -272,10 +295,10 @@ namespace kingdom_Preparatory_School_Management_System.Services
                     Directory.CreateDirectory(BackupFolder);
 
                 string fileName = Path.GetFileName(sourceFilePath);
-                if (!fileName.StartsWith("KPS_Backup_") || !fileName.EndsWith(".bak"))
+                if (!IsManagedBackupFileName(fileName))
                 {
                     string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
-                    fileName = $"KPS_Backup_{timestamp}_imported.bak";
+                    fileName = $"{BackupFilePrefix}{timestamp}_imported.bak";
                 }
 
                 string destPath = Path.Combine(BackupFolder, fileName);
@@ -371,7 +394,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
 
                 if (!IsManagedBackupFileName(fileName))
                 {
-                    error = "Invalid backup file name. Expected a KPS_Backup_*.bak file.";
+                    error = $"Invalid backup file name. Expected a {BackupFilePrefix}*.bak file.";
                     return false;
                 }
 
@@ -388,7 +411,8 @@ namespace kingdom_Preparatory_School_Management_System.Services
         private static bool IsManagedBackupFileName(string fileName)
         {
             return !string.IsNullOrWhiteSpace(fileName)
-                && fileName.StartsWith("KPS_Backup_", StringComparison.OrdinalIgnoreCase)
+                && (fileName.StartsWith(BackupFilePrefix, StringComparison.OrdinalIgnoreCase)
+                    || fileName.StartsWith(LegacyBackupFilePrefix, StringComparison.OrdinalIgnoreCase))
                 && fileName.EndsWith(".bak", StringComparison.OrdinalIgnoreCase);
         }
 

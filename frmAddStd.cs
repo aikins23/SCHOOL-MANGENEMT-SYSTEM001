@@ -5,13 +5,16 @@ using System.Windows.Forms;
 using kingdom_Preparatory_School_Management_System.Common;
 using kingdom_Preparatory_School_Management_System.Data;
 using kingdom_Preparatory_School_Management_System.Services;
-using kingdom_Preparatory_School_Management_System.Models;
+using KingdomPrep.Shared.Models;
 
 namespace kingdom_Preparatory_School_Management_System
 {
     public partial class frmAddStd : Form
     {
         private readonly StudentService _studentService;
+        private bool CanRegisterStudents => AuthService.CanWrite("Students.Register");
+        private bool CanEditStudents => AuthService.CanWrite("Students.Edit");
+        private bool CanRollOutStudents => AuthService.CanWrite("Students.RollOut");
         private Label statusLabel;
         private Panel pageHost;
         private Panel _stepPanel;          // custom-drawn step-dot indicator
@@ -57,6 +60,7 @@ namespace kingdom_Preparatory_School_Management_System
             _studentService = new StudentService(studentRepository, feeRepository);
 
             BuildModernAdmissionView();
+            ApplyWriteAccess();
             NavigationSidebar.AddTo(this);
             EnableFormDragging();
             Load += frmAddStd_Load;
@@ -119,7 +123,7 @@ namespace kingdom_Preparatory_School_Management_System
             cmbGN.SelectedIndex = 0;
 
             cmbCID.Items.Clear();
-            cmbCID.Items.AddRange(AppConfig.ClassNames);
+            cmbCID.Items.Add("Loading...");
             cmbCID.SelectedIndex = 0;
 
             dateDOB.Value = DateTime.Today.AddYears(-5);
@@ -537,10 +541,18 @@ namespace kingdom_Preparatory_School_Management_System
             actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 116));
             actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 116));
             actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 128));
-            actions.Controls.Add(CreateSecondaryButton("New",      async () => await NewStudent()),       0, 0);
-            actions.Controls.Add(CreatePrimaryButton( "Save",      async () => await SaveStudent()),      1, 0);
-            actions.Controls.Add(CreateSecondaryButton("Update",   async () => await UpdateStudent()),    2, 0);
-            actions.Controls.Add(CreateDangerButton(  "Roll Out",  async () => await RollOutStudent()),   3, 0);
+            var newButton = CreateSecondaryButton("New", async () => await NewStudent());
+            newButton.Enabled = CanRegisterStudents;
+            var saveButton = CreatePrimaryButton("Save", async () => await SaveStudent());
+            saveButton.Enabled = CanRegisterStudents;
+            var updateButton = CreateSecondaryButton("Update", async () => await UpdateStudent());
+            updateButton.Enabled = CanEditStudents;
+            var rollOutButton = CreateDangerButton("Roll Out", async () => await RollOutStudent());
+            rollOutButton.Enabled = CanRollOutStudents;
+            actions.Controls.Add(newButton, 0, 0);
+            actions.Controls.Add(saveButton, 1, 0);
+            actions.Controls.Add(updateButton, 2, 0);
+            actions.Controls.Add(rollOutButton, 3, 0);
 
             wrapper.Controls.Add(nav,     0, 0);
             wrapper.Controls.Add(new Panel { Dock = DockStyle.Fill, BackColor = PageBackColor }, 1, 0);
@@ -806,11 +818,16 @@ namespace kingdom_Preparatory_School_Management_System
         {
             try
             {
-                LoadClassDropdown();
+                await LoadClassDropdownAsync();
                 LoadGenderDropdown();
                 SetDateOfBirthRange();
                 await LoadBusRoutesAsync();
-                txtStdID.Focus();
+
+                // Automatically generate and pre-fill the next Student ID
+                var repo = new StudentRepository(AppConfig.ConnectionString);
+                txtStdID.Text = await repo.GetNextStudentIdAsync();
+
+                txtFN.Focus();
                 LoggerHelper.LogInfo("frmAddStd loaded successfully");
             }
             catch (Exception ex)
@@ -836,17 +853,19 @@ namespace kingdom_Preparatory_School_Management_System
 
         private sealed class RouteItem
         {
-            public Models.BusRoute Route { get; }
-            public RouteItem(Models.BusRoute r) { Route = r; }
+            public KingdomPrep.Shared.Models.BusRoute Route { get; }
+            public RouteItem(KingdomPrep.Shared.Models.BusRoute r) { Route = r; }
             public override string ToString() =>
                 Route.RouteName + " — GHS " + Route.Fee.ToString("N2") + " / " + Route.PaymentTerm;
         }
 
-        private void LoadClassDropdown()
+        private async System.Threading.Tasks.Task LoadClassDropdownAsync()
         {
             cmbCID.Items.Clear();
             cmbCID.Items.Add("Select Class");
-            foreach (var className in AppConfig.ClassNames)
+            var dynamicClasses = await new SchoolInfoRepository(AppConfig.ConnectionString).GetClassNamesAsync();
+            if (dynamicClasses.Count == 0) dynamicClasses.AddRange(AppConfig.ClassNames);
+            foreach (var className in dynamicClasses)
             {
                 cmbCID.Items.Add(className);
             }
@@ -1001,6 +1020,7 @@ namespace kingdom_Preparatory_School_Management_System
         {
             try
             {
+                if (!AuthService.RequireWriteAccess("Students.Register", "Register student")) return;
                 if (!ValidateStudentFields())
                     return;
 
@@ -1011,6 +1031,7 @@ namespace kingdom_Preparatory_School_Management_System
 
                 var student = MapFormToStudent();
                 bool isNew = await _studentService.GetStudentAsync(student.StudentID) == null;
+                if (!isNew && !AuthService.RequireWriteAccess("Students.Edit", "Update student")) return;
 
                 if (isNew)
                 {
@@ -1020,7 +1041,7 @@ namespace kingdom_Preparatory_School_Management_System
                     // New admission: don't save yet. Collect the admission + school-fee
                     // payment, then submit a draft for bursar approval. The student,
                     // receipts, and SMS are created only when the bursar approves.
-                    var draft = new Models.DraftAdmission
+                    var draft = new KingdomPrep.Shared.Models.DraftAdmission
                     {
                         FirstName = student.FirstName,
                         LastName = student.LastName,
@@ -1078,6 +1099,7 @@ namespace kingdom_Preparatory_School_Management_System
         {
             try
             {
+                if (!AuthService.RequireWriteAccess("Students.Edit", "Update student")) return;
                 if (!ValidateStudentFields())
                     return;
 
@@ -1112,6 +1134,7 @@ namespace kingdom_Preparatory_School_Management_System
         {
             try
             {
+                if (!AuthService.RequireWriteAccess("Students.RollOut", "Roll out student")) return;
                 if (!FormValidationHelper.ValidateRequired(txtStdID, "Student ID"))
                     return;
 
@@ -1144,6 +1167,7 @@ namespace kingdom_Preparatory_School_Management_System
 
         private async System.Threading.Tasks.Task NewStudent()
         {
+            if (!AuthService.RequireWriteAccess("Students.Register", "Create new student record")) return;
             try
             {
                 txtStdID.Text = "";
@@ -1155,6 +1179,20 @@ namespace kingdom_Preparatory_School_Management_System
             {
                 LoggerHelper.LogError("Clear button failed", ex);
             }
+        }
+
+        private void ApplyWriteAccess()
+        {
+            bool canWriteAny = CanRegisterStudents || CanEditStudents;
+            foreach (Control control in new Control[] { txtFN, txtLN, txtEM, txtHT, txtRD, txtAG, txtEC, txtGN, txtGE, txtGL })
+            {
+                var type = control.GetType();
+                var readOnly = type.GetProperty("ReadOnly");
+                if (readOnly != null && readOnly.CanWrite) readOnly.SetValue(control, !canWriteAny, null);
+            }
+
+            foreach (Control control in new Control[] { cmbGN, cmbCID, dateDOB, dateAD, _rbBusYes, _rbBusNo, _cmbRoute, upload })
+                if (control != null) control.Enabled = canWriteAny;
         }
 
         private void btnClear_Click(object sender, EventArgs e)
@@ -1232,7 +1270,11 @@ namespace kingdom_Preparatory_School_Management_System
         private void gunaPictureBox1_Click(object sender, EventArgs e) { Application.Exit(); }
         private void gunaPictureBox2_Click(object sender, EventArgs e) { WindowState = FormWindowState.Minimized; }
         private void gunaPictureBox3_Click(object sender, EventArgs e) { WindowState = WindowState == FormWindowState.Maximized ? FormWindowState.Normal : FormWindowState.Maximized; }
-        private void studentsToolStripMenuItem_Click(object sender, EventArgs e) { new frmAddStd().Show(); }
+        private void studentsToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (!AuthService.RequireWriteAccess("Students.Register", "Open student registration")) return;
+            new frmAddStd().Show();
+        }
         private void employersToolStripMenuItem_Click(object sender, EventArgs e) { new frmEmployee().Show(); }
         private void classToolStripMenuItem_Click(object sender, EventArgs e) { new EXAMS().Show(); }
         private void studentsToolStripMenuItem1_Click(object sender, EventArgs e) { new frmStdView().Show(); }
@@ -1338,4 +1380,3 @@ namespace kingdom_Preparatory_School_Management_System
 
     }
 }
-

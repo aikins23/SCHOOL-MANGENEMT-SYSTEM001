@@ -9,24 +9,24 @@
 //------------------------------------------------------------------------------
 
 namespace kingdom_Preparatory_School_Management_System.Properties {
-    
-    
+
+
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.VisualStudio.Editors.SettingsDesigner.SettingsSingleFileGenerator", "17.9.0.0")]
     internal sealed partial class Settings : global::System.Configuration.ApplicationSettingsBase {
-        
+
         private static Settings defaultInstance = ((Settings)(global::System.Configuration.ApplicationSettingsBase.Synchronized(new Settings())));
-        
+
         public static Settings Default {
             get {
                 return defaultInstance;
             }
         }
-        
+
         [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.SpecialSettingAttribute(global::System.Configuration.SpecialSetting.ConnectionString)]
-        [global::System.Configuration.DefaultSettingValueAttribute("Provider=MSOLEDBSQL;Data Source=(localdb)\\MSSQLLocalDB;Integrated Security=SSPI;Initial Catalog=Neat_Academy;Encrypt=False")]
+        [global::System.Configuration.DefaultSettingValueAttribute("Data Source=localhost;Initial Catalog=Neat_Academy;Integrated Security=True;Encrypt=True;TrustServerCertificate=False;Connect Timeout=8")]
         public string ConnectionString {
             get {
                 return ((string)(this["ConnectionString"]));
@@ -174,6 +174,30 @@ namespace kingdom_Preparatory_School_Management_System.Properties {
             }
             set {
                 this["SmsSchoolAbbreviation"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string SyncEndpointBaseUrl {
+            get {
+                return ((string)(this["SyncEndpointBaseUrl"]));
+            }
+            set {
+                this["SyncEndpointBaseUrl"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string SyncApiKey {
+            get {
+                return ((string)(this["SyncApiKey"]));
+            }
+            set {
+                this["SyncApiKey"] = value;
             }
         }
 

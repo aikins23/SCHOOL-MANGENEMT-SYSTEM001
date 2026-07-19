@@ -8,7 +8,7 @@ namespace kingdom_Preparatory_School_Management_System.Tests
 {
     public class EmployeeRepositorySecurityTests
     {
-        private readonly string _testConnectionString = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source=|DataDirectory|\\TestDatabase.accdb;";
+        private readonly string _testConnectionString = "Data Source=(localdb)\\MSSQLLocalDB;Integrated Security=SSPI;Initial Catalog=Neat_Academy_Test;Encrypt=False;TrustServerCertificate=True";
 
         /// <summary>
         /// Test that SQL injection attack via filterId parameter is prevented.

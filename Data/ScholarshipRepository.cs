@@ -1,9 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
-using System.Data.OleDb;
+using Microsoft.Data.SqlClient;
 using System.Threading.Tasks;
-using kingdom_Preparatory_School_Management_System.Models;
+using KingdomPrep.Shared.Models;
+using kingdom_Preparatory_School_Management_System.Common;
 
 namespace kingdom_Preparatory_School_Management_System.Data
 {
@@ -22,18 +23,18 @@ namespace kingdom_Preparatory_School_Management_System.Data
         public async Task<List<ScholarshipCategory>> GetCategoriesAsync()
         {
             var list = new List<ScholarshipCategory>();
-            using (var conn = new OleDbConnection(_connectionString))
+            using (var conn = new SqlConnection(SqlCommandExtensions.StripProvider(_connectionString)))
             {
                 await conn.OpenAsync();
                 var tenant = await TenantContext.HasSchoolIdColumnAsync(conn, CategoriesTable);
                 var query = "SELECT * FROM ScholarshipCategories WHERE 1=1";
                 if (tenant)
                 {
-                    query += TenantContext.FilterClause();
+                    query += TenantContext.FilterClauseSql();
                 }
 
                 query += " ORDER BY Name";
-                using (var cmd = new OleDbCommand(query, conn))
+                using (var cmd = new SqlCommand(query, conn))
                 {
                     if (tenant)
                     {
@@ -61,7 +62,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
 
         public async Task<bool> SaveCategoryAsync(ScholarshipCategory category)
         {
-            using (var conn = new OleDbConnection(_connectionString))
+            using (var conn = new SqlConnection(SqlCommandExtensions.StripProvider(_connectionString)))
             {
                 await conn.OpenAsync();
                 var tenant = await TenantContext.HasSchoolIdColumnAsync(conn, CategoriesTable);
@@ -72,27 +73,33 @@ namespace kingdom_Preparatory_School_Management_System.Data
                     : "UPDATE ScholarshipCategories SET [Name]=?, DiscountType=?, DiscountValue=?, IsActive=? WHERE CategoryID=?";
                 if (category.CategoryID != 0 && tenant)
                 {
-                    query += TenantContext.FilterClause();
+                    query += TenantContext.FilterClauseSql();
                 }
 
-                using (var cmd = new OleDbCommand(query, conn))
+                using (var cmd = new SqlCommand(query, conn))
                 {
-                    cmd.Parameters.AddWithValue("?", category.Name);
-                    cmd.Parameters.AddWithValue("?", category.DiscountType);
-                    cmd.Parameters.AddWithValue("?", category.DiscountValue);
-                    cmd.Parameters.AddWithValue("?", category.IsActive);
+                    cmd.AddPositionalParameter(category.Name);
+                    cmd.AddPositionalParameter(category.DiscountType);
+                    cmd.AddPositionalParameter(category.DiscountValue);
+                    cmd.AddPositionalParameter(category.IsActive);
                     if (category.CategoryID == 0 && tenant)
                     {
                         TenantContext.AddSchoolParameter(cmd);
                     }
 
-                    if (category.CategoryID != 0) cmd.Parameters.AddWithValue("?", category.CategoryID);
+                    if (category.CategoryID != 0) cmd.AddPositionalParameter(category.CategoryID);
                     if (category.CategoryID != 0 && tenant)
                     {
                         TenantContext.AddSchoolParameter(cmd);
                     }
 
-                    return await cmd.ExecuteNonQueryAsync() > 0;
+                    var saved = await cmd.ExecuteNonQueryAsync() > 0;
+                    if (saved)
+                    {
+                        var id = category.CategoryID == 0 ? await GetLastIdentityAsync(conn) : (object)category.CategoryID;
+                        await TryRecordSyncUpsertAsync(CategoriesTable, "CategoryID", id, category.CategoryID == 0 ? "Insert" : "Update");
+                    }
+                    return saved;
                 }
             }
         }
@@ -100,7 +107,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
         public async Task<List<StudentScholarship>> GetStudentScholarshipsAsync(string studentId = null)
         {
             var list = new List<StudentScholarship>();
-            using (var conn = new OleDbConnection(_connectionString))
+            using (var conn = new SqlConnection(SqlCommandExtensions.StripProvider(_connectionString)))
             {
                 await conn.OpenAsync();
                 var assignmentTenant = await TenantContext.HasSchoolIdColumnAsync(conn, AssignmentsTable);
@@ -111,18 +118,18 @@ namespace kingdom_Preparatory_School_Management_System.Data
                              INNER JOIN Students s ON ss.StudentID = s.StudentID
                              INNER JOIN ScholarshipCategories sc ON ss.CategoryID = sc.CategoryID
                              WHERE 1=1";
-                
-                if (assignmentTenant) query += TenantContext.FilterClause("ss");
-                if (studentTenant) query += TenantContext.FilterClause("s");
-                if (categoryTenant) query += TenantContext.FilterClause("sc");
+
+                if (assignmentTenant) query += TenantContext.FilterClauseSql("ss");
+                if (studentTenant) query += TenantContext.FilterClauseSql("s");
+                if (categoryTenant) query += TenantContext.FilterClauseSql("sc");
                 if (!string.IsNullOrEmpty(studentId)) query += " AND ss.StudentID = ?";
 
-                using (var cmd = new OleDbCommand(query, conn))
+                using (var cmd = new SqlCommand(query, conn))
                 {
                     if (assignmentTenant) TenantContext.AddSchoolParameter(cmd);
                     if (studentTenant) TenantContext.AddSchoolParameter(cmd);
                     if (categoryTenant) TenantContext.AddSchoolParameter(cmd);
-                    if (!string.IsNullOrEmpty(studentId)) cmd.Parameters.AddWithValue("?", studentId);
+                    if (!string.IsNullOrEmpty(studentId)) cmd.AddPositionalParameter(studentId);
                     using (var reader = await cmd.ExecuteReaderAsync())
                     {
                         while (reader.Read())
@@ -148,7 +155,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
 
         public async Task<bool> AssignScholarshipAsync(string studentId, int categoryId)
         {
-            using (var conn = new OleDbConnection(_connectionString))
+            using (var conn = new SqlConnection(SqlCommandExtensions.StripProvider(_connectionString)))
             {
                 await conn.OpenAsync();
                 var tenant = await TenantContext.HasSchoolIdColumnAsync(conn, AssignmentsTable);
@@ -156,13 +163,13 @@ namespace kingdom_Preparatory_School_Management_System.Data
                 var checkQuery = "SELECT COUNT(*) FROM StudentScholarships WHERE StudentID = ? AND CategoryID = ?";
                 if (tenant)
                 {
-                    checkQuery += TenantContext.FilterClause();
+                    checkQuery += TenantContext.FilterClauseSql();
                 }
 
-                using (var checkCmd = new OleDbCommand(checkQuery, conn))
+                using (var checkCmd = new SqlCommand(checkQuery, conn))
                 {
-                    checkCmd.Parameters.AddWithValue("?", studentId);
-                    checkCmd.Parameters.AddWithValue("?", categoryId);
+                    checkCmd.AddPositionalParameter(studentId);
+                    checkCmd.AddPositionalParameter(categoryId);
                     if (tenant)
                     {
                         TenantContext.AddSchoolParameter(checkCmd);
@@ -174,36 +181,70 @@ namespace kingdom_Preparatory_School_Management_System.Data
                 var query = tenant
                     ? "INSERT INTO StudentScholarships (StudentID, CategoryID, ApprovalStatus, SchoolId) VALUES (?, ?, 'Pending', ?)"
                     : "INSERT INTO StudentScholarships (StudentID, CategoryID, ApprovalStatus) VALUES (?, ?, 'Pending')";
-                using (var cmd = new OleDbCommand(query, conn))
+                using (var cmd = new SqlCommand(query, conn))
                 {
-                    cmd.Parameters.AddWithValue("?", studentId);
-                    cmd.Parameters.AddWithValue("?", categoryId);
+                    cmd.AddPositionalParameter(studentId);
+                    cmd.AddPositionalParameter(categoryId);
                     if (tenant)
                     {
                         TenantContext.AddSchoolParameter(cmd);
                     }
 
-                    return await cmd.ExecuteNonQueryAsync() > 0;
+                    var saved = await cmd.ExecuteNonQueryAsync() > 0;
+                    if (saved)
+                    {
+                        var id = await GetLastIdentityAsync(conn);
+                        await TryRecordSyncUpsertAsync(AssignmentsTable, "AssignmentID", id, "Insert");
+                    }
+                    return saved;
                 }
             }
         }
 
         public async Task<bool> UpdateScholarshipStatusAsync(int assignmentId, string status)
         {
-            using (var conn = new OleDbConnection(_connectionString))
+            using (var conn = new SqlConnection(SqlCommandExtensions.StripProvider(_connectionString)))
             {
                 await conn.OpenAsync();
                 var query = "UPDATE StudentScholarships SET ApprovalStatus = ? WHERE AssignmentID = ?";
                 var tenant = await TenantContext.HasSchoolIdColumnAsync(conn, AssignmentsTable);
                 if (tenant)
                 {
-                    query += TenantContext.FilterClause();
+                    query += TenantContext.FilterClauseSql();
                 }
 
-                using (var cmd = new OleDbCommand(query, conn))
+                using (var cmd = new SqlCommand(query, conn))
                 {
-                    cmd.Parameters.AddWithValue("?", status);
-                    cmd.Parameters.AddWithValue("?", assignmentId);
+                    cmd.AddPositionalParameter(status);
+                    cmd.AddPositionalParameter(assignmentId);
+                    if (tenant)
+                    {
+                        TenantContext.AddSchoolParameter(cmd);
+                    }
+
+                    var saved = await cmd.ExecuteNonQueryAsync() > 0;
+                    if (saved) await TryRecordSyncUpsertAsync(AssignmentsTable, "AssignmentID", assignmentId, "Update");
+                    return saved;
+                }
+            }
+        }
+
+        public async Task<bool> RemoveScholarshipAsync(int assignmentId)
+        {
+            using (var conn = new SqlConnection(SqlCommandExtensions.StripProvider(_connectionString)))
+            {
+                await conn.OpenAsync();
+                var query = "DELETE FROM StudentScholarships WHERE AssignmentID = ?";
+                var tenant = await TenantContext.HasSchoolIdColumnAsync(conn, AssignmentsTable);
+                if (tenant)
+                {
+                    query += TenantContext.FilterClauseSql();
+                }
+
+                using (var cmd = new SqlCommand(query, conn))
+                {
+                    await TryRecordSyncDeleteAsync(AssignmentsTable, "AssignmentID", assignmentId);
+                    cmd.AddPositionalParameter(assignmentId);
                     if (tenant)
                     {
                         TenantContext.AddSchoolParameter(cmd);
@@ -214,28 +255,38 @@ namespace kingdom_Preparatory_School_Management_System.Data
             }
         }
 
-        public async Task<bool> RemoveScholarshipAsync(int assignmentId)
+        private static async Task<object> GetLastIdentityAsync(SqlConnection connection)
         {
-            using (var conn = new OleDbConnection(_connectionString))
+            using (var cmd = new SqlCommand("SELECT @@IDENTITY", connection))
             {
-                await conn.OpenAsync();
-                var query = "DELETE FROM StudentScholarships WHERE AssignmentID = ?";
-                var tenant = await TenantContext.HasSchoolIdColumnAsync(conn, AssignmentsTable);
-                if (tenant)
-                {
-                    query += TenantContext.FilterClause();
-                }
+                var value = await cmd.ExecuteScalarAsync();
+                return value == null || value == DBNull.Value ? 0 : value;
+            }
+        }
 
-                using (var cmd = new OleDbCommand(query, conn))
-                {
-                    cmd.Parameters.AddWithValue("?", assignmentId);
-                    if (tenant)
-                    {
-                        TenantContext.AddSchoolParameter(cmd);
-                    }
+        private async Task TryRecordSyncUpsertAsync(string tableName, string primaryKeyName, object primaryKeyValue, string operation)
+        {
+            try
+            {
+                if (primaryKeyValue == null || string.IsNullOrWhiteSpace(Convert.ToString(primaryKeyValue))) return;
+                await new SyncChangeRecorder(_connectionString).RecordUpsertAsync(tableName, primaryKeyName, primaryKeyValue, operation);
+            }
+            catch (Exception ex)
+            {
+                Services.LoggerHelper.LogWarning("Scholarship sync capture skipped: " + ex.Message);
+            }
+        }
 
-                    return await cmd.ExecuteNonQueryAsync() > 0;
-                }
+        private async Task TryRecordSyncDeleteAsync(string tableName, string primaryKeyName, object primaryKeyValue)
+        {
+            try
+            {
+                if (primaryKeyValue == null || string.IsNullOrWhiteSpace(Convert.ToString(primaryKeyValue))) return;
+                await new SyncChangeRecorder(_connectionString).RecordDeleteAsync(tableName, primaryKeyName, primaryKeyValue);
+            }
+            catch (Exception ex)
+            {
+                Services.LoggerHelper.LogWarning("Scholarship delete sync capture skipped: " + ex.Message);
             }
         }
     }

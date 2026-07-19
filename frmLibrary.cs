@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using kingdom_Preparatory_School_Management_System.Common;
 using kingdom_Preparatory_School_Management_System.Data;
-using kingdom_Preparatory_School_Management_System.Models;
+using KingdomPrep.Shared.Models;
 using kingdom_Preparatory_School_Management_System.Services;
 
 namespace kingdom_Preparatory_School_Management_System
@@ -102,8 +102,8 @@ namespace kingdom_Preparatory_School_Management_System
 
             // Class borrowing: class picker + quantity (shown only when type == "Class").
             _classCombo = new ComboBox { Left = 124, Top = 11, Width = 180, DropDownStyle = ComboBoxStyle.DropDownList, Visible = false };
-            _classCombo.Items.AddRange(AppConfig.ClassNames.Cast<object>().ToArray());
-            if (_classCombo.Items.Count > 0) _classCombo.SelectedIndex = 0;
+            _classCombo.Items.Add("Loading...");
+            _classCombo.SelectedIndex = 0;
             _qtyLabel = new Label { Left = 314, Top = 14, Width = 30, Text = "Qty:", Visible = false };
             _quantity = new NumericUpDown { Left = 346, Top = 10, Width = 70, Minimum = 1, Maximum = 1, Value = 1, Visible = false };
 
@@ -156,6 +156,13 @@ namespace kingdom_Preparatory_School_Management_System
             try
             {
                 await _repo.EnsureTablesAsync();
+
+                var dynamicClasses = await new SchoolInfoRepository(AppConfig.ConnectionString).GetClassNamesAsync();
+                if (dynamicClasses.Count == 0) dynamicClasses.AddRange(AppConfig.ClassNames);
+                _classCombo.Items.Clear();
+                _classCombo.Items.AddRange(dynamicClasses.Cast<object>().ToArray());
+                if (_classCombo.Items.Count > 0) _classCombo.SelectedIndex = 0;
+
                 await LoadBooksAsync();
                 await LoadBookComboAsync();
                 await LoadLoansAsync();

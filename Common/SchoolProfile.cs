@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using kingdom_Preparatory_School_Management_System.Data;
-using kingdom_Preparatory_School_Management_System.Models;
+using KingdomPrep.Shared.Models;
 using kingdom_Preparatory_School_Management_System.Services;
 
 namespace kingdom_Preparatory_School_Management_System.Common
@@ -27,10 +27,12 @@ namespace kingdom_Preparatory_School_Management_System.Common
                 if (_info != null && _fees != null) return;
                 try
                 {
-                    var repo = new SchoolInfoRepository(AppConfig.ConnectionString);
-                    repo.EnsureTablesAsync().GetAwaiter().GetResult();
-                    _info = repo.GetAsync().GetAwaiter().GetResult();
-                    _fees = repo.GetClassFeesAsync().GetAwaiter().GetResult();
+                    System.Threading.Tasks.Task.Run(async () => {
+                        var repo = new SchoolInfoRepository(AppConfig.ConnectionString);
+                        await repo.EnsureTablesAsync();
+                        _info = await repo.GetAsync();
+                        _fees = await repo.GetClassFeesAsync();
+                    }).GetAwaiter().GetResult();
                 }
                 catch (Exception ex)
                 {

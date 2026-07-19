@@ -6,7 +6,7 @@ using System.Windows.Forms;
 using kingdom_Preparatory_School_Management_System.Common;
 using kingdom_Preparatory_School_Management_System.Data;
 using kingdom_Preparatory_School_Management_System.Services;
-using kingdom_Preparatory_School_Management_System.Models;
+using KingdomPrep.Shared.Models;
 
 namespace kingdom_Preparatory_School_Management_System
 {
@@ -84,7 +84,10 @@ namespace kingdom_Preparatory_School_Management_System
             title.Controls.Add(new Label { Dock = DockStyle.Top, Height = 38, Text = "Leave Approval", ForeColor = TextColor, Font = new Font("Segoe UI Semibold", 22F, FontStyle.Bold), TextAlign = ContentAlignment.MiddleLeft });
             title.Controls.Add(new Label { Dock = DockStyle.Bottom, Height = 28, Text = "Review pending employee leave requests and update status", ForeColor = MutedTextColor, Font = new Font("Segoe UI", 10F), TextAlign = ContentAlignment.MiddleLeft });
             var actions = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.RightToLeft, BackColor = PageBackColor, Padding = new Padding(0, 12, 0, 0) };
-            actions.Controls.Add(CreatePrimaryButton("Apply Leave", () => new frmEmpLeave().Show()));
+            if (AuthService.CanWrite("Leave.Submit"))
+            {
+                actions.Controls.Add(CreatePrimaryButton("Apply Leave", () => new frmEmpLeave().Show()));
+            }
             actions.Controls.Add(CreateSecondaryButton("Refresh", async () => await LoadLeaveRequests()));
             header.Controls.Add(title, 0, 0);
             header.Controls.Add(actions, 1, 0);
@@ -140,8 +143,11 @@ namespace kingdom_Preparatory_School_Management_System
             var refreshBtn = CreateSecondaryButton("Refresh", null);
             refreshBtn.Click += async (sender, args) => await LoadLeaveRequests();
 
-            actions.Controls.Add(approveBtn, 0, 0);
-            actions.Controls.Add(rejectBtn, 1, 0);
+            if (AuthService.CanWrite("Leave.Approve"))
+            {
+                actions.Controls.Add(approveBtn, 0, 0);
+                actions.Controls.Add(rejectBtn, 1, 0);
+            }
             actions.Controls.Add(refreshBtn, 2, 0);
 
             return actions;
@@ -237,6 +243,9 @@ namespace kingdom_Preparatory_School_Management_System
         {
             try
             {
+                if (!AuthService.RequireWriteAccess("Leave.Approve", "Approve Leave"))
+                    return;
+
                 if (leaveGrid.CurrentRow == null)
                 {
                     ConfirmationHelper.ShowWarning("Please select a leave request to approve.", "Leave Approval");
@@ -283,6 +292,9 @@ namespace kingdom_Preparatory_School_Management_System
         {
             try
             {
+                if (!AuthService.RequireWriteAccess("Leave.Approve", "Reject Leave"))
+                    return;
+
                 if (leaveGrid.CurrentRow == null)
                 {
                     ConfirmationHelper.ShowWarning("Please select a leave request to reject.", "Leave Approval");
@@ -347,4 +359,3 @@ namespace kingdom_Preparatory_School_Management_System
         private void gunaPictureBox3_Click(object sender, EventArgs e) { WindowState = WindowState == FormWindowState.Maximized ? FormWindowState.Normal : FormWindowState.Maximized; }
     }
 }
-

@@ -1,8 +1,10 @@
-﻿using System;
+using KingdomPrep.Shared.Models;
+using System;
 using System.Collections.Generic;
 using System.Data;
-using System.Data.OleDb;
+using Microsoft.Data.SqlClient;
 using System.Security.Cryptography;
+using System.Threading;
 using System.Windows.Forms;
 using kingdom_Preparatory_School_Management_System.Common;
 
@@ -13,6 +15,8 @@ namespace kingdom_Preparatory_School_Management_System.Services
     /// </summary>
     public static class AuthService
     {
+        private const int LoginCommandTimeoutSeconds = 12;
+
         public enum UserRole { Director, Administrator, Headmaster, Teacher, Accountant, Parent, Unknown }
 
         public class UserSession
@@ -37,7 +41,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
         public static UserSession CurrentUser { get; private set; } = new UserSession { Role = UserRole.Unknown };
 
         // --- RBAC permission table (mirrors PERMISSIONS.md). Roles listed here
-        // may OPEN the form. Read-only (👁) is treated as "can open"; per-form
+        // may OPEN the form. Read-only screens are treated as "can open"; per-form
         // read-only enforcement is layered on top later.
         private static readonly Dictionary<string, UserRole[]> _formAccess = new Dictionary<string, UserRole[]>(StringComparer.OrdinalIgnoreCase)
         {
@@ -64,34 +68,110 @@ namespace kingdom_Preparatory_School_Management_System.Services
             ["EXAMS"]                     = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster, UserRole.Teacher },
             ["EXAMSVIEW"]                 = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster, UserRole.Teacher },
             ["examsviewdetails"]          = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster, UserRole.Teacher },
+            // Dashboard & analytics
+            ["frmDashboard"]              = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster, UserRole.Accountant },
+            ["frmTeacherDashboard"]       = new[] { UserRole.Teacher },
+            ["frmDashboardCharts"]        = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster, UserRole.Teacher, UserRole.Accountant },
+            // Students
+            ["frmAddStd"]                 = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster },
+            ["frmStdView"]                = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster, UserRole.Teacher, UserRole.Accountant },
+            ["frmStdDetails"]             = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster, UserRole.Teacher, UserRole.Accountant },
+            ["frmStudentPromotion"]       = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster, UserRole.Teacher },
+            // Employees / HR
+            ["frmEmployee"]               = new[] { UserRole.Director, UserRole.Administrator },
+            ["frmEmpView"]                = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster, UserRole.Accountant },
+            ["frmEmpDetails"]             = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster, UserRole.Accountant },
+            // Leave
+            ["frmEmpLeave"]               = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster, UserRole.Teacher, UserRole.Accountant },
+            ["frmLeaveApproval"]          = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster },
+            ["frmLeaveDetails"]           = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster, UserRole.Teacher, UserRole.Accountant },
+            ["EmpleaveView"]              = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster, UserRole.Teacher, UserRole.Accountant },
+            ["frmLeaveBalanceReport"]     = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster, UserRole.Teacher, UserRole.Accountant },
+            // Academics
+            ["EXAMS"]                     = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster, UserRole.Teacher },
+            ["EXAMSVIEW"]                 = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster, UserRole.Teacher },
+            ["examsviewdetails"]          = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster, UserRole.Teacher },
             ["frmAttendance"]             = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster, UserRole.Teacher },
             ["frmClassAdmin"]             = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster },
+            ["frmClassManager"]           = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster },
+            ["frmAcademicSessionManager"] = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster },
+            ["frmAcademicCalendar"]       = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster },
+            ["frmTimetable"]              = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster },
             ["GenerateReportCardsForm"]   = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster, UserRole.Teacher },
             // Finance
-            ["frmFess"]                   = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster, UserRole.Accountant },
+            ["frmFess"]                   = new[] { UserRole.Director, UserRole.Administrator, UserRole.Accountant },
             ["frmFessPayment"]            = new[] { UserRole.Accountant },
             ["frmPendingApprovals"]       = new[] { UserRole.Accountant, UserRole.Director, UserRole.Administrator },
-            ["frmOutstandingFees"]        = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster, UserRole.Teacher, UserRole.Accountant },
+            ["frmPerformanceReports"]     = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster, UserRole.Teacher },
+            ["frmOutstandingFees"]        = new[] { UserRole.Director, UserRole.Administrator, UserRole.Teacher, UserRole.Accountant },
+            ["frmScholarships"]           = new[] { UserRole.Director, UserRole.Administrator, UserRole.Accountant },
+            ["frmAdditionalFees"]         = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster, UserRole.Accountant },
             // System / Admin
             ["frmRegistration"]           = new[] { UserRole.Director, UserRole.Administrator },
             ["frmBackupManager"]          = new[] { UserRole.Director, UserRole.Administrator },
-            ["frmEmailSettings"]          = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster },
+            ["frmEmailSettings"]          = new[] { UserRole.Director, UserRole.Administrator },
+            ["frmNotice"]                 = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster, UserRole.Teacher, UserRole.Accountant },
             ["frmSendNotice"]             = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster, UserRole.Teacher, UserRole.Accountant },
-            ["frmSchoolInfo"]             = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster },
+            ["frmSchoolInfo"]             = new[] { UserRole.Director, UserRole.Administrator },
             ["frmGradingScheme"]          = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster },
             ["frmSubjects"]               = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster },
-            ["frmLibrary"]                = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster },
-            ["frmTransport"]              = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster },
-            ["frmPaymentHistory"]         = new[] { UserRole.Accountant, UserRole.Director, UserRole.Administrator, UserRole.Headmaster },
-            ["frmTransportPayments"]      = new[] { UserRole.Accountant, UserRole.Administrator, UserRole.Headmaster },
+            ["frmExamSetup"]              = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster },
+            ["frmLibrary"]                = new[] { UserRole.Director, UserRole.Administrator },
+            ["frmTransport"]              = new[] { UserRole.Director, UserRole.Administrator },
+            ["frmSyncStatus"]             = new[] { UserRole.Director, UserRole.Administrator },
+            ["frmSyncSettings"]           = new[] { UserRole.Director, UserRole.Administrator },
+            ["frmAdminDashboard"]         = new[] { UserRole.Director, UserRole.Administrator },
+            ["frmDatabaseCoverageAudit"]  = new[] { UserRole.Director, UserRole.Administrator },
+            ["frmPaymentHistory"]         = new[] { UserRole.Accountant, UserRole.Director, UserRole.Administrator },
+            ["frmTransportPayments"]      = new[] { UserRole.Accountant, UserRole.Administrator },
             ["frmExpenses"]               = new[] { UserRole.Accountant, UserRole.Administrator, UserRole.Director },
+        };
+
+        private static readonly Dictionary<string, UserRole[]> _writeAccess = new Dictionary<string, UserRole[]>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Finance.FeePayment.Record"]       = new[] { UserRole.Accountant },
+            ["Finance.TransportPayment.Record"] = new[] { UserRole.Accountant },
+            ["Finance.Expense.Manage"]          = new[] { UserRole.Director, UserRole.Accountant },
+            ["Finance.Scholarship.Manage"]      = new[] { UserRole.Director, UserRole.Administrator, UserRole.Accountant },
+            ["Finance.Scholarship.Approve"]     = new[] { UserRole.Director },
+            ["Finance.AdditionalFees.View"]      = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster, UserRole.Accountant },
+            ["Finance.AdditionalFees.Create"]    = new[] { UserRole.Director, UserRole.Administrator, UserRole.Accountant },
+            ["Finance.AdditionalFees.Approve"]   = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster },
+            ["Settings.SchoolProfile.Manage"]    = new[] { UserRole.Director, UserRole.Administrator },
+            ["Settings.GradingScheme.Manage"]    = new[] { UserRole.Director, UserRole.Administrator },
+            ["Settings.Subjects.Manage"]         = new[] { UserRole.Director, UserRole.Administrator },
+            ["Settings.ExamSetup.Manage"]        = new[] { UserRole.Director, UserRole.Administrator },
+            ["Settings.Email.Manage"]            = new[] { UserRole.Director, UserRole.Administrator },
+            ["Settings.Sync.Manage"]             = new[] { UserRole.Director, UserRole.Administrator },
+            ["Students.Register"]                = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster },
+            ["Students.Edit"]                    = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster },
+            ["Students.Import"]                  = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster },
+            ["Students.Promote"]                 = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster },
+            ["Students.RollOut"]                 = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster },
+            ["Students.TransportAssignment"]     = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster },
+            ["Staff.Register"]                   = new[] { UserRole.Director, UserRole.Administrator },
+            ["Staff.Edit"]                       = new[] { UserRole.Director, UserRole.Administrator },
+            ["Staff.Delete"]                     = new[] { UserRole.Director, UserRole.Administrator },
+            ["Staff.Terminate"]                  = new[] { UserRole.Director, UserRole.Administrator },
+            ["Leave.Submit"]                     = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster, UserRole.Teacher, UserRole.Accountant },
+            ["Leave.Approve"]                    = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster },
+            ["Academics.ExamResults.Manage"]     = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster, UserRole.Teacher },
+            ["Academics.Attendance.Record"]      = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster, UserRole.Teacher },
+            ["Academics.ClassStructure.Manage"]  = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster },
+            ["Academics.Calendar.Manage"]        = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster },
+            ["Academics.Session.Manage"]         = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster },
+            ["Academics.Timetable.Manage"]       = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster },
+            ["Admin.Users.Manage"]               = new[] { UserRole.Director, UserRole.Administrator },
+            ["Admin.Archive.Restore"]            = new[] { UserRole.Director, UserRole.Administrator },
+            ["Admin.Backup.Manage"]              = new[] { UserRole.Director, UserRole.Administrator },
+            ["Admin.Notice.Send"]                = new[] { UserRole.Director, UserRole.Administrator, UserRole.Headmaster },
+            ["Admin.Sync.Run"]                   = new[] { UserRole.Director, UserRole.Administrator },
         };
 
         /// <summary>
         /// True if the current logged-in user's role is allowed to open the given form.
         /// Used by sidebar / nav code to hide buttons the user can't open.
-        /// Unknown form keys default to "allowed" — better to under-restrict than block
-        /// legitimate screens because a key wasn't registered.
+        /// Unknown form keys are denied; protected screens must be registered in _formAccess.
         /// </summary>
         public static bool CanAccess(string formKey)
         {
@@ -101,6 +181,29 @@ namespace kingdom_Preparatory_School_Management_System.Services
             if (CurrentUser.Role == UserRole.Parent) return false; // parents never use desktop
             if (!_formAccess.TryGetValue(formKey, out var allowedRoles)) return false;
             return Array.IndexOf(allowedRoles, CurrentUser.Role) >= 0;
+        }
+
+        public static bool CanWrite(string actionKey)
+        {
+            if (string.IsNullOrWhiteSpace(actionKey)) return false;
+            if (CurrentUser == null || CurrentUser.Role == UserRole.Unknown) return false;
+            if (CurrentUser.Role == UserRole.Parent) return false;
+            if (!_writeAccess.TryGetValue(actionKey, out var allowedRoles)) return false;
+            return Array.IndexOf(allowedRoles, CurrentUser.Role) >= 0;
+        }
+
+        public static bool CanRenderForm(string formKey) => CanAccess(formKey);
+
+        public static bool CanRenderAction(string actionKey) => DynamicPermissionService.HasPermission(actionKey);
+
+        public static bool RequireWriteAccess(string actionKey, string actionName = null)
+        {
+            if (CanWrite(actionKey)) return true;
+            string roleName = CurrentUser == null ? "Unknown" : CurrentUser.Role.ToString();
+            UIHelper.ShowWarning(
+                $"You do not have permission to perform this action.\n\nLogged in as: {roleName}\nAction: {actionName ?? actionKey}",
+                "Access Denied");
+            return false;
         }
 
         /// <summary>
@@ -198,35 +301,44 @@ namespace kingdom_Preparatory_School_Management_System.Services
             return string.Empty;
         }
 
-        public static async System.Threading.Tasks.Task<(bool Success, string Message)> LoginAsync(string username, string password)
+        public static async System.Threading.Tasks.Task<(bool Success, string Message)> LoginAsync(
+            string username,
+            string password,
+            CancellationToken cancellationToken = default(CancellationToken))
         {
             string validation = ValidateLoginCredentials(username, password);
             if (!string.IsNullOrEmpty(validation)) return (false, validation);
 
             try
             {
-                await EnsureDatabaseSetupAsync();
-                using (var connection = new OleDbConnection(AppConfig.ConnectionString))
+                LoggerHelper.LogInfo($"Login stage: setup start for {username}");
+                await EnsureDatabaseSetupAsync(cancellationToken);
+                LoggerHelper.LogInfo($"Login stage: opening connection for {username}");
+                using (var connection = new SqlConnection(kingdom_Preparatory_School_Management_System.Common.SqlCommandExtensions.StripProvider(AppConfig.ConnectionString)))
                 {
-                    await connection.OpenAsync();
-                    var query = "SELECT [Password], [User_Type], [EmploymentID] FROM Users WHERE Username = ?";
+                    await connection.OpenAsync(cancellationToken);
+                    LoggerHelper.LogInfo($"Login stage: connection open for {username}");
+                    var query = "SELECT [Password], [User_Type], [EmploymentID] FROM Users WHERE Username = @p0";
                     var tenant = await Data.TenantContext.HasSchoolIdColumnAsync(connection, "Users");
+                    LoggerHelper.LogInfo($"Login stage: tenant check complete for {username}");
                     if (tenant)
                     {
-                        query += Data.TenantContext.FilterClause();
+                        query += Data.TenantContext.FilterClauseSql();
                     }
 
-                    using (var command = new OleDbCommand(query, connection))
+                    using (var command = new SqlCommand(query, connection))
                     {
-                        command.Parameters.Add("?", OleDbType.VarChar).Value = username;
+                        command.CommandTimeout = LoginCommandTimeoutSeconds;
+                        command.Parameters.Add("@p0", SqlDbType.VarChar).Value = username;
                         if (tenant)
                         {
                             Data.TenantContext.AddSchoolParameter(command);
                         }
 
-                        using (var reader = await command.ExecuteReaderAsync())
+                        using (var reader = await command.ExecuteReaderAsync(cancellationToken))
                         {
-                            if (await reader.ReadAsync())
+                            LoggerHelper.LogInfo($"Login stage: user query complete for {username}");
+                            if (await reader.ReadAsync(cancellationToken))
                             {
                                 string storedPassword = reader["Password"].ToString();
                                 string userType = reader["User_Type"].ToString();
@@ -245,10 +357,12 @@ namespace kingdom_Preparatory_School_Management_System.Services
                                     Role = ParseRole(userType),
                                     EmploymentID = employmentId
                                 };
+                                LoggerHelper.LogInfo($"Login stage: password accepted for {username}");
 
                                 // Resolve the employee full name so the UI (bursar field,
                                 // receipts) shows a real name instead of the login username.
-                                CurrentUser.FullName = await ResolveEmployeeFullNameAsync(employmentId);
+                                CurrentUser.FullName = await ResolveEmployeeFullNameAsync(employmentId, cancellationToken);
+                                LoggerHelper.LogInfo($"Login stage: display name resolved for {username}");
 
                                 if (!IsCurrentPasswordHash(storedPassword))
                                 {
@@ -258,48 +372,186 @@ namespace kingdom_Preparatory_School_Management_System.Services
                                 return (true, "Login successful.");
                             }
                         }
-                        return (false, "Invalid username or password.");
+                        return (false, await BuildLoginFailureMessageAsync(username));
                     }
                 }
             }
-            catch (Exception ex) 
+            catch (OperationCanceledException ex)
+            {
+                LoggerHelper.LogWarning($"Login timed out for user {username}: {ex.Message}");
+                return (false, "The database took too long to respond. Please check SQL Server and try again.");
+            }
+            catch (Exception ex)
             {
                 LoggerHelper.LogError($"Login failed for user {username}", ex);
-                return (false, "Authentication is temporarily unavailable. Please try again or contact the administrator."); 
+                return (false, BuildAuthenticationUnavailableMessage(ex));
             }
         }
 
+        private static string BuildAuthenticationUnavailableMessage(Exception ex)
+        {
+            string details = ex == null ? "" : ex.ToString();
+
+            if (details.IndexOf("Cannot generate SSPI context", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                details.IndexOf("target principal name is incorrect", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                return "SQL Server Windows authentication failed on this computer. Use a SQL login connection string, or repair the local SQL Server Windows authentication/SPN setup.";
+            }
+
+            if (details.IndexOf("network-related or instance-specific", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                details.IndexOf("server was not found or was not accessible", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                return "SQL Server is not reachable. Confirm SQL Server is running and the connection string points to the correct server.";
+            }
+
+            if (details.IndexOf("login database could not be prepared", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                return "The login database could not be prepared. Check SQL Server permissions and database schema access.";
+            }
+
+            return "Authentication is temporarily unavailable. Please try again or contact the administrator.";
+        }
+
         public static void Logout() { CurrentUser = new UserSession { Role = UserRole.Unknown }; }
+
+        private static async System.Threading.Tasks.Task<string> BuildLoginFailureMessageAsync(string username = null)
+        {
+            try
+            {
+                var normalizedUsername = (username ?? string.Empty).Trim();
+                if (!string.IsNullOrWhiteSpace(normalizedUsername))
+                {
+                    var userStatus = await GetUserLoginStatusAsync(normalizedUsername);
+                    if (userStatus.ExistsOutsideCurrentSchool)
+                    {
+                        return $"The account '{normalizedUsername}' exists, but it is not linked to the current school profile. Open School Information and run Repair Data, then try again.";
+                    }
+
+                    if (!userStatus.Exists)
+                    {
+                        var hint = userStatus.AdminUsernames.Count == 0
+                            ? ""
+                            : " Available administrator account(s): " + string.Join(", ", userStatus.AdminUsernames) + ".";
+                        return $"No account was found for username '{normalizedUsername}'.{hint}";
+                    }
+                }
+
+                var health = await new Data.SchoolInfoRepository(AppConfig.ConnectionString).GetIdentityHealthAsync();
+                if (health.SetupAuditFound && health.UserCount == 0)
+                {
+                    return "No user accounts were found, but first-time setup is already locked. Restore a backup or contact the system administrator.";
+                }
+
+                if (health.TenantIssueRows > 0)
+                {
+                    return "This account could not be opened under the current School ID. Ask an administrator to run School Information > Repair Data.";
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggerHelper.LogWarning("Login health check skipped: " + ex.Message);
+            }
+
+            return "Invalid username or password.";
+        }
+
+        private sealed class UserLoginStatus
+        {
+            public bool Exists { get; set; }
+            public bool ExistsOutsideCurrentSchool { get; set; }
+            public List<string> AdminUsernames { get; } = new List<string>();
+        }
+
+        private static async System.Threading.Tasks.Task<UserLoginStatus> GetUserLoginStatusAsync(string username)
+        {
+            var status = new UserLoginStatus();
+            using (var connection = new SqlConnection(kingdom_Preparatory_School_Management_System.Common.SqlCommandExtensions.StripProvider(AppConfig.ConnectionString)))
+            {
+                await connection.OpenAsync();
+                var tenant = await Data.TenantContext.HasSchoolIdColumnAsync(connection, "Users");
+                var schoolId = Data.TenantContext.CurrentSchoolId;
+
+                using (var command = new SqlCommand("SELECT SchoolId FROM Users WHERE Username = @Username", connection))
+                {
+                    command.CommandTimeout = LoginCommandTimeoutSeconds;
+                    command.Parameters.Add("@Username", SqlDbType.VarChar).Value = username;
+                    using (var reader = await command.ExecuteReaderAsync())
+                    {
+                        while (await reader.ReadAsync())
+                        {
+                            if (!tenant || schoolId == Guid.Empty)
+                            {
+                                status.Exists = true;
+                                continue;
+                            }
+
+                            var rowSchoolId = reader["SchoolId"] == DBNull.Value
+                                ? Guid.Empty
+                                : (Guid)reader["SchoolId"];
+                            if (rowSchoolId == schoolId)
+                            {
+                                status.Exists = true;
+                            }
+                            else
+                            {
+                                status.ExistsOutsideCurrentSchool = true;
+                            }
+                        }
+                    }
+                }
+
+                using (var command = new SqlCommand(@"
+SELECT TOP 5 Username
+FROM Users
+WHERE UPPER(ISNULL(User_Type, '')) IN ('ADMIN', 'ADMINISTRATOR', 'DIRECTOR', 'DIRECTORS')
+ORDER BY Username", connection))
+                {
+                    command.CommandTimeout = LoginCommandTimeoutSeconds;
+                    using (var reader = await command.ExecuteReaderAsync())
+                    {
+                        while (await reader.ReadAsync())
+                        {
+                            status.AdminUsernames.Add(reader["Username"]?.ToString() ?? "");
+                        }
+                    }
+                }
+            }
+
+            return status;
+        }
 
         /// <summary>
         /// Looks up the Employee full name for a login's EmploymentID. Returns "" when there
         /// is no linked employee (Director/Parent/unlinked) or on any error — callers fall
         /// back to the username via <see cref="UserSession.DisplayName"/>.
         /// </summary>
-        private static async System.Threading.Tasks.Task<string> ResolveEmployeeFullNameAsync(int? employmentId)
+        private static async System.Threading.Tasks.Task<string> ResolveEmployeeFullNameAsync(
+            int? employmentId,
+            CancellationToken cancellationToken = default(CancellationToken))
         {
             if (!employmentId.HasValue) return "";
             try
             {
-                using (var connection = new OleDbConnection(AppConfig.ConnectionString))
+                using (var connection = new SqlConnection(kingdom_Preparatory_School_Management_System.Common.SqlCommandExtensions.StripProvider(AppConfig.ConnectionString)))
                 {
-                    await connection.OpenAsync();
-                    var query = "SELECT fullName FROM Employee WHERE employmentID = ?";
+                    await connection.OpenAsync(cancellationToken);
+                    var query = "SELECT fullName FROM Employee WHERE employmentID = @p0";
                     var tenant = await Data.TenantContext.HasSchoolIdColumnAsync(connection, "Employee");
                     if (tenant)
                     {
-                        query += Data.TenantContext.FilterClause();
+                        query += Data.TenantContext.FilterClauseSql();
                     }
 
-                    using (var command = new OleDbCommand(query, connection))
+                    using (var command = new SqlCommand(query, connection))
                     {
-                        command.Parameters.AddWithValue("?", employmentId.Value);
+                        command.CommandTimeout = LoginCommandTimeoutSeconds;
+                        command.Parameters.AddWithValue("@p0", employmentId.Value);
                         if (tenant)
                         {
                             Data.TenantContext.AddSchoolParameter(command);
                         }
 
-                        var result = await command.ExecuteScalarAsync();
+                        var result = await command.ExecuteScalarAsync(cancellationToken);
                         return result == null || result == DBNull.Value ? "" : result.ToString();
                     }
                 }
@@ -372,19 +624,19 @@ namespace kingdom_Preparatory_School_Management_System.Services
             try
             {
                 await EnsureDatabaseSetupAsync();
-                using (var connection = new OleDbConnection(AppConfig.ConnectionString))
+                using (var connection = new SqlConnection(kingdom_Preparatory_School_Management_System.Common.SqlCommandExtensions.StripProvider(AppConfig.ConnectionString)))
                 {
                     await connection.OpenAsync();
-                    var checkQuery = "SELECT COUNT(*) FROM Users WHERE Username = ?";
+                    var checkQuery = "SELECT COUNT(*) FROM Users WHERE Username = @p0";
                     var tenant = await Data.TenantContext.HasSchoolIdColumnAsync(connection, "Users");
                     if (tenant)
                     {
-                        checkQuery += Data.TenantContext.FilterClause();
+                        checkQuery += Data.TenantContext.FilterClauseSql();
                     }
 
-                    using (var checkCmd = new OleDbCommand(checkQuery, connection))
+                    using (var checkCmd = new SqlCommand(checkQuery, connection))
                     {
-                        checkCmd.Parameters.Add("?", OleDbType.VarChar).Value = username;
+                        checkCmd.Parameters.Add("@p0", SqlDbType.VarChar).Value = username;
                         if (tenant)
                         {
                             Data.TenantContext.AddSchoolParameter(checkCmd);
@@ -395,21 +647,22 @@ namespace kingdom_Preparatory_School_Management_System.Services
 
                     string passwordHash = HashPassword(password);
                     var insertQuery = tenant
-                        ? "INSERT INTO Users (Username, [Password], Con_Password, User_Type, EmploymentID, SchoolId) VALUES (?, ?, ?, ?, ?, ?)"
-                        : "INSERT INTO Users (Username, [Password], Con_Password, User_Type, EmploymentID) VALUES (?, ?, ?, ?, ?)";
-                    using (var command = new OleDbCommand(insertQuery, connection))
+                        ? "INSERT INTO Users (Username, [Password], Con_Password, User_Type, EmploymentID, SchoolId) VALUES (@p0, @p1, @p2, @p3, @p4, @p5)"
+                        : "INSERT INTO Users (Username, [Password], Con_Password, User_Type, EmploymentID) VALUES (@p0, @p1, @p2, @p3, @p4)";
+                    using (var command = new SqlCommand(insertQuery, connection))
                     {
-                        command.Parameters.Add("?", OleDbType.VarChar).Value = username;
-                        command.Parameters.Add("?", OleDbType.VarChar).Value = passwordHash;
-                        command.Parameters.Add("?", OleDbType.VarChar).Value = passwordHash;
-                        command.Parameters.Add("?", OleDbType.VarChar).Value = userType;
-                        command.Parameters.Add("?", OleDbType.Integer).Value = (object)employmentId ?? DBNull.Value;
+                        command.Parameters.Add("@p0", SqlDbType.VarChar).Value = username;
+                        command.Parameters.Add("@p1", SqlDbType.VarChar).Value = passwordHash;
+                        command.Parameters.Add("@p2", SqlDbType.VarChar).Value = passwordHash;
+                        command.Parameters.Add("@p3", SqlDbType.VarChar).Value = userType;
+                        command.Parameters.Add("@p4", SqlDbType.Int).Value = (object)employmentId ?? DBNull.Value;
                         if (tenant)
                         {
-                            Data.TenantContext.AddSchoolParameter(command);
+                            command.Parameters.Add("@p5", SqlDbType.UniqueIdentifier).Value = Data.TenantContext.CurrentSchoolId;
                         }
 
                         await command.ExecuteNonQueryAsync();
+                        await TryRecordUserSyncAsync(username, "Insert");
                         return (true, "Registration successful.");
                     }
                 }
@@ -421,23 +674,36 @@ namespace kingdom_Preparatory_School_Management_System.Services
             }
         }
 
-        private static async System.Threading.Tasks.Task TryUpgradePasswordHashAsync(OleDbConnection connection, string username, string password)
+        private static async System.Threading.Tasks.Task TryRecordUserSyncAsync(string username, string operation)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(username)) return;
+                await new Data.SyncChangeRecorder(AppConfig.ConnectionString).RecordUpsertAsync("Users", "Username", username, operation);
+            }
+            catch (Exception ex)
+            {
+                LoggerHelper.LogWarning("User registration sync capture skipped: " + ex.Message);
+            }
+        }
+
+        private static async System.Threading.Tasks.Task TryUpgradePasswordHashAsync(SqlConnection connection, string username, string password)
         {
             try
             {
                 string passwordHash = HashPassword(password);
-                var query = "UPDATE Users SET [Password] = ?, Con_Password = ? WHERE Username = ?";
+                var query = "UPDATE Users SET [Password] = @p0, Con_Password = @p1 WHERE Username = @p2";
                 var tenant = await Data.TenantContext.HasSchoolIdColumnAsync(connection, "Users");
                 if (tenant)
                 {
-                    query += Data.TenantContext.FilterClause();
+                    query += Data.TenantContext.FilterClauseSql();
                 }
 
-                using (var command = new OleDbCommand(query, connection))
+                using (var command = new SqlCommand(query, connection))
                 {
-                    command.Parameters.Add("?", OleDbType.VarChar).Value = passwordHash;
-                    command.Parameters.Add("?", OleDbType.VarChar).Value = passwordHash;
-                    command.Parameters.Add("?", OleDbType.VarChar).Value = username;
+                    command.Parameters.Add("@p0", SqlDbType.VarChar).Value = passwordHash;
+                    command.Parameters.Add("@p1", SqlDbType.VarChar).Value = passwordHash;
+                    command.Parameters.Add("@p2", SqlDbType.VarChar).Value = username;
                     if (tenant)
                     {
                         Data.TenantContext.AddSchoolParameter(command);
@@ -452,27 +718,29 @@ namespace kingdom_Preparatory_School_Management_System.Services
             }
         }
 
-        public static async System.Threading.Tasks.Task EnsureDatabaseSetupAsync()
+        public static async System.Threading.Tasks.Task EnsureDatabaseSetupAsync(
+            CancellationToken cancellationToken = default(CancellationToken))
         {
             try
             {
-                using (var connection = new OleDbConnection(AppConfig.ConnectionString))
+                using (var connection = new SqlConnection(kingdom_Preparatory_School_Management_System.Common.SqlCommandExtensions.StripProvider(AppConfig.ConnectionString)))
                 {
-                    await connection.OpenAsync();
-                    
-                    // 1. Ensure Users table exists
+                    await connection.OpenAsync(cancellationToken);
+
                     bool tableExists = false;
-                    var schema = connection.GetSchema("Tables", new[] { null, null, "Users", "TABLE" });
-                    if (schema.Rows.Count > 0) tableExists = true;
+                    using (var cmd = new SqlCommand("SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'Users'", connection))
+                    {
+                        cmd.CommandTimeout = LoginCommandTimeoutSeconds;
+                        var result = await cmd.ExecuteScalarAsync(cancellationToken);
+                        tableExists = result != null;
+                    }
 
                     if (!tableExists)
                     {
-                        // Use NVARCHAR(MAX) for SQL Server compatibility, or MEMO for Access
-                        string textType = IsSqlServer(connection) ? "NVARCHAR(MAX)" : "MEMO";
                         string sql = $@"CREATE TABLE Users (
                             Username VARCHAR(50) NOT NULL PRIMARY KEY,
-                            [Password] {textType} NOT NULL,
-                            Con_Password {textType} NULL,
+                            [Password] NVARCHAR(MAX) NOT NULL,
+                            Con_Password NVARCHAR(MAX) NULL,
                             User_Type VARCHAR(50) NULL,
                             EmploymentID INT NULL
                         )";
@@ -480,24 +748,24 @@ namespace kingdom_Preparatory_School_Management_System.Services
                     }
                     else
                     {
-                        // 2. Ensure columns exist (for migration)
-                        var columns = connection.GetSchema("Columns", new[] { null, null, "Users" });
-                        bool hasPassword = false, hasConPassword = false, hasUserType = false, hasEmploymentId = false;
-
-                        foreach (DataRow row in columns.Rows)
+                        // Check columns
+                        var columns = new HashSet<string>();
+                        using (var cmd = new SqlCommand("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Users'", connection))
                         {
-                            string col = row["COLUMN_NAME"].ToString().ToUpperInvariant();
-                            if (col == "PASSWORD") hasPassword = true;
-                            if (col == "CON_PASSWORD") hasConPassword = true;
-                            if (col == "USER_TYPE") hasUserType = true;
-                            if (col == "EMPLOYMENTID") hasEmploymentId = true;
+                            cmd.CommandTimeout = LoginCommandTimeoutSeconds;
+                            using (var reader = await cmd.ExecuteReaderAsync(cancellationToken))
+                            {
+                                while (await reader.ReadAsync(cancellationToken))
+                                {
+                                    columns.Add(reader.GetString(0).ToUpperInvariant());
+                                }
+                            }
                         }
 
-                        string textType = IsSqlServer(connection) ? "NVARCHAR(MAX)" : "MEMO";
-                        if (!hasPassword) Execute(connection, $"ALTER TABLE Users ADD COLUMN [Password] {textType}");
-                        if (!hasConPassword) Execute(connection, $"ALTER TABLE Users ADD COLUMN Con_Password {textType}");
-                        if (!hasUserType) Execute(connection, "ALTER TABLE Users ADD COLUMN User_Type VARCHAR(50)");
-                        if (!hasEmploymentId) Execute(connection, "ALTER TABLE Users ADD COLUMN EmploymentID INT NULL");
+                        if (!columns.Contains("PASSWORD")) Execute(connection, $"ALTER TABLE Users ADD [Password] NVARCHAR(MAX)");
+                        if (!columns.Contains("CON_PASSWORD")) Execute(connection, $"ALTER TABLE Users ADD Con_Password NVARCHAR(MAX)");
+                        if (!columns.Contains("USER_TYPE")) Execute(connection, "ALTER TABLE Users ADD User_Type VARCHAR(50)");
+                        if (!columns.Contains("EMPLOYMENTID")) Execute(connection, "ALTER TABLE Users ADD EmploymentID INT NULL");
                     }
                 }
 
@@ -505,36 +773,32 @@ namespace kingdom_Preparatory_School_Management_System.Services
             }
             catch (Exception ex)
             {
+                if (cancellationToken.IsCancellationRequested) throw;
                 LoggerHelper.LogError("Auth database setup error", ex);
+                throw new InvalidOperationException("The login database could not be prepared. " + ex.Message, ex);
             }
         }
 
-        private static bool IsSqlServer(OleDbConnection connection)
-        {
-            string provider = connection.Provider.ToUpperInvariant();
-            return provider.Contains("SQL") || provider.Contains("SQLNCLI") || provider.Contains("MSOLEDBSQL");
-        }
-
-        public static void EnsurePasswordColumns(OleDbConnection connection)
+        public static void EnsurePasswordColumns(SqlConnection connection)
         {
             if (connection == null) throw new ArgumentNullException(nameof(connection));
             try
             {
                 if (connection.State != ConnectionState.Open) connection.Open();
-                var table = connection.GetSchema("Columns", new[] { null, null, "Users" });
-                bool hasPassword = false, hasConPassword = false, hasUserType = false;
-                foreach (DataRow row in table.Rows)
+
+                var columns = new HashSet<string>();
+                using (var cmd = new SqlCommand("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Users'", connection))
+                using (var reader = cmd.ExecuteReader())
                 {
-                    string col = row["COLUMN_NAME"].ToString().ToUpperInvariant();
-                    if (col == "PASSWORD") hasPassword = true;
-                    if (col == "CON_PASSWORD") hasConPassword = true;
-                    if (col == "USER_TYPE") hasUserType = true;
+                    while (reader.Read())
+                    {
+                        columns.Add(reader.GetString(0).ToUpperInvariant());
+                    }
                 }
 
-                string textType = IsSqlServer(connection) ? "NVARCHAR(MAX)" : "MEMO";
-                if (!hasPassword) Execute(connection, $"ALTER TABLE Users ADD COLUMN [Password] {textType}");
-                if (!hasConPassword) Execute(connection, $"ALTER TABLE Users ADD COLUMN Con_Password {textType}");
-                if (!hasUserType) Execute(connection, "ALTER TABLE Users ADD COLUMN User_Type VARCHAR(50)");
+                if (!columns.Contains("PASSWORD")) Execute(connection, $"ALTER TABLE Users ADD [Password] NVARCHAR(MAX)");
+                if (!columns.Contains("CON_PASSWORD")) Execute(connection, $"ALTER TABLE Users ADD Con_Password NVARCHAR(MAX)");
+                if (!columns.Contains("USER_TYPE")) Execute(connection, "ALTER TABLE Users ADD User_Type VARCHAR(50)");
             }
             catch (Exception ex)
             {
@@ -542,13 +806,19 @@ namespace kingdom_Preparatory_School_Management_System.Services
             }
         }
 
-        private static void Execute(OleDbConnection con, string sql) { using (var cmd = new OleDbCommand(sql, con)) cmd.ExecuteNonQuery(); }
+        private static void Execute(SqlConnection con, string sql)
+        {
+            using (var cmd = new SqlCommand(sql, con))
+            {
+                cmd.CommandTimeout = LoginCommandTimeoutSeconds;
+                cmd.ExecuteNonQuery();
+            }
+        }
 
         private static byte[] DeriveHash(string password, byte[] salt, int iterations, int length, HashAlgorithmName algorithm)
         {
             using (var pbkdf2 = new Rfc2898DeriveBytes(password, salt, iterations, algorithm)) return pbkdf2.GetBytes(length);
         }
-
         private static string Encode(byte[] data) => Convert.ToBase64String(data);
         private static byte[] Decode(string data) => Convert.FromBase64String(data);
         private static bool FixedTimeEquals(byte[] a, byte[] b)

@@ -1,359 +1,267 @@
 using System;
+using System.Drawing;
 using System.Windows.Forms;
+using Guna.UI2.WinForms;
 using kingdom_Preparatory_School_Management_System.Common;
 using kingdom_Preparatory_School_Management_System.Services;
 
 namespace kingdom_Preparatory_School_Management_System
 {
-    /// <summary>
-    /// Email Settings Configuration Form
-    /// Allows users to configure SMTP settings for email notifications.
-    /// </summary>
     public class frmEmailSettings : Form
     {
-        private GroupBox grpSmtpSettings;
-        private Label lblSmtpServer;
+        private bool CanManageEmailSettings => AuthService.CanWrite("Settings.Email.Manage");
+        private Panel pnlHeader;
+        private Label lblTitle;
+        private Guna2ControlBox btnClose;
+
         private TextBox txtSmtpServer;
-        private Label lblSmtpPort;
         private NumericUpDown numSmtpPort;
-        private Label lblUsername;
         private TextBox txtUsername;
-        private Label lblPassword;
         private TextBox txtPassword;
-        private Label lblFromEmail;
         private TextBox txtFromEmail;
         private CheckBox chkUseSSL;
 
+        private CheckBox chkSmsEnabled;
+        private ComboBox cmbSmsProvider;
+        private TextBox txtSmsApiKey;
+        private TextBox txtSmsAbbr;
+        private Label lblSmsSenderPreview;
+
+        private TextBox txtHrEmail;
+        private TextBox txtHrPhone;
+        private TextBox txtSmsTestPhone;
+
         private Button btnTestEmail;
+        private Button btnTestSms;
         private Button btnSave;
         private Button btnCancel;
 
         private Label lblStatus;
 
-        // SMS settings
-        private GroupBox grpSmsSettings;
-        private CheckBox chkSmsEnabled;
-        private Label lblSmsProvider;
-        private ComboBox cmbSmsProvider;
-        private Label lblSmsApiKey;
-        private TextBox txtSmsApiKey;
-        private Label lblSmsAbbr;
-        private TextBox txtSmsAbbr;
-        private Label lblSmsSenderPreview;
-        private Label lblSmsTestPhone;
-        private TextBox txtSmsTestPhone;
-        private Button btnTestSms;
-        private Label lblHrEmail;
-        private TextBox txtHrEmail;
-        private Label lblHrPhone;
-        private TextBox txtHrPhone;
-
         public frmEmailSettings()
         {
-            InitializeComponent();
-            Common.SessionUi.AttachSignOut(this);
+            InitializeModernComponent();
             if (!AuthService.RequireAccess("frmEmailSettings", this)) return;
-            ApplyTheme();
             LoadSettings();
         }
 
-        private void InitializeComponent()
+        private void InitializeModernComponent()
         {
-            this.Text = "Email Settings";
-            this.Size = new System.Drawing.Size(500, 877);
+            this.Size = new Size(600, 850);
             this.StartPosition = FormStartPosition.CenterParent;
-            this.FormBorderStyle = FormBorderStyle.FixedDialog;
-            this.MaximizeBox = false;
-            this.MinimizeBox = false;
+            this.FormBorderStyle = FormBorderStyle.None;
+            this.BackColor = UiTheme.Page;
             this.ShowIcon = false;
 
-            int padding = 15;
-            int labelWidth = 120;
-            int controlWidth = this.ClientSize.Width - (padding * 2) - labelWidth - 15;
-            int y = padding;
-            int controlHeight = 25;
+            var formShadow = new Guna2ShadowForm(this);
+            var elipse = new Guna2Elipse { TargetControl = this, BorderRadius = 12 };
+            var dragControl = new Guna2DragControl { TargetControl = this };
 
-            // ─── SMTP Settings Group ───────────────────────────
-            grpSmtpSettings = new GroupBox();
-            grpSmtpSettings.Text = "SMTP Settings";
-            grpSmtpSettings.Location = new System.Drawing.Point(padding, y);
-            grpSmtpSettings.Size = new System.Drawing.Size(this.ClientSize.Width - (padding * 2), 280);
-            grpSmtpSettings.Padding = new Padding(15);
+            pnlHeader = new Panel { Dock = DockStyle.Top, Height = 60, BackColor = UiTheme.Navy };
+            var headerDrag = new Guna2DragControl { TargetControl = pnlHeader };
+            lblTitle = new Label
+            {
+                Text = "Notification Settings",
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI Semibold", 14F, FontStyle.Bold),
+                Location = new Point(20, 15),
+                AutoSize = true,
+                BackColor = Color.Transparent
+            };
+            pnlHeader.Controls.Add(lblTitle);
 
-            int gy = 20;
+            this.Controls.Add(pnlHeader); // Add to form FIRST so it gets the correct Width of 600
 
-            // SMTP Server
-            lblSmtpServer = new Label();
-            lblSmtpServer.Text = "SMTP Server:";
-            lblSmtpServer.Location = new System.Drawing.Point(15, gy);
-            lblSmtpServer.Size = new System.Drawing.Size(labelWidth, controlHeight);
-            grpSmtpSettings.Controls.Add(lblSmtpServer);
+            var btnMinimize = new Guna2ControlBox
+            {
+                Anchor = AnchorStyles.Top | AnchorStyles.Right,
+                ControlBoxType = Guna.UI2.WinForms.Enums.ControlBoxType.MinimizeBox,
+                FillColor = Color.Transparent,
+                IconColor = Color.White,
+                Location = new Point(pnlHeader.Width - 115, 12),
+                Size = new Size(35, 35),
+                Cursor = Cursors.Hand
+            };
+            pnlHeader.Controls.Add(btnMinimize);
 
-            txtSmtpServer = new TextBox();
-            txtSmtpServer.Location = new System.Drawing.Point(15 + labelWidth + 10, gy);
-            txtSmtpServer.Size = new System.Drawing.Size(controlWidth, controlHeight);
-            txtSmtpServer.Text = "smtp.gmail.com";
-            grpSmtpSettings.Controls.Add(txtSmtpServer);
-            gy += controlHeight + 12;
+            var btnMaximize = new Guna2ControlBox
+            {
+                Anchor = AnchorStyles.Top | AnchorStyles.Right,
+                ControlBoxType = Guna.UI2.WinForms.Enums.ControlBoxType.MaximizeBox,
+                FillColor = Color.Transparent,
+                IconColor = Color.White,
+                Location = new Point(pnlHeader.Width - 80, 12),
+                Size = new Size(35, 35),
+                Cursor = Cursors.Hand
+            };
+            pnlHeader.Controls.Add(btnMaximize);
 
-            // SMTP Port
-            lblSmtpPort = new Label();
-            lblSmtpPort.Text = "SMTP Port:";
-            lblSmtpPort.Location = new System.Drawing.Point(15, gy);
-            lblSmtpPort.Size = new System.Drawing.Size(labelWidth, controlHeight);
-            grpSmtpSettings.Controls.Add(lblSmtpPort);
+            btnClose = new Guna2ControlBox
+            {
+                Anchor = AnchorStyles.Top | AnchorStyles.Right,
+                FillColor = Color.Transparent,
+                IconColor = Color.White,
+                Location = new Point(pnlHeader.Width - 45, 12),
+                Size = new Size(35, 35),
+                Cursor = Cursors.Hand
+            };
+            pnlHeader.Controls.Add(btnClose);
 
-            numSmtpPort = new NumericUpDown();
-            numSmtpPort.Location = new System.Drawing.Point(15 + labelWidth + 10, gy);
-            numSmtpPort.Size = new System.Drawing.Size(100, controlHeight);
-            numSmtpPort.Minimum = 1;
-            numSmtpPort.Maximum = 65535;
-            numSmtpPort.Value = 587;
-            grpSmtpSettings.Controls.Add(numSmtpPort);
-            gy += controlHeight + 12;
+            int x = 40;
+            int y = 80;
+            int w = 520;
+            int inputH = 30;
+            Font labelFont = new Font("Segoe UI", 9.5F, FontStyle.Regular);
+            Font inputFont = new Font("Segoe UI", 10F, FontStyle.Regular);
 
-            // Username
-            lblUsername = new Label();
-            lblUsername.Text = "Username:";
-            lblUsername.Location = new System.Drawing.Point(15, gy);
-            lblUsername.Size = new System.Drawing.Size(labelWidth, controlHeight);
-            grpSmtpSettings.Controls.Add(lblUsername);
+            // --- SMTP SETTINGS SECTION ---
+            var lblSmtpTitle = new Label { Text = "SMTP Email Configuration", Font = new Font("Segoe UI Semibold", 12F, FontStyle.Bold), ForeColor = UiTheme.NavyDark, Location = new Point(x, y), AutoSize = true, BackColor = Color.Transparent };
+            this.Controls.Add(lblSmtpTitle);
+            y += 40;
 
-            txtUsername = new TextBox();
-            txtUsername.Location = new System.Drawing.Point(15 + labelWidth + 10, gy);
-            txtUsername.Size = new System.Drawing.Size(controlWidth, controlHeight);
-            txtUsername.Text = "";
-            grpSmtpSettings.Controls.Add(txtUsername);
-            gy += controlHeight + 12;
+            this.Controls.Add(CreateLabel("SMTP Server:", x, y, labelFont));
+            txtSmtpServer = CreateTextBox(x, y + 22, w, inputH, inputFont);
+            this.Controls.Add(txtSmtpServer);
+            y += 65;
 
-            // Password
-            lblPassword = new Label();
-            lblPassword.Text = "Password:";
-            lblPassword.Location = new System.Drawing.Point(15, gy);
-            lblPassword.Size = new System.Drawing.Size(labelWidth, controlHeight);
-            grpSmtpSettings.Controls.Add(lblPassword);
+            this.Controls.Add(CreateLabel("SMTP Port:", x, y, labelFont));
+            numSmtpPort = new NumericUpDown { Location = new Point(x, y + 22), Size = new Size(120, inputH), Font = inputFont, Minimum = 1, Maximum = 65535, Value = 587 };
+            this.Controls.Add(numSmtpPort);
 
-            txtPassword = new TextBox();
-            txtPassword.Location = new System.Drawing.Point(15 + labelWidth + 10, gy);
-            txtPassword.Size = new System.Drawing.Size(controlWidth, controlHeight);
-            txtPassword.PasswordChar = '*';
-            txtPassword.Text = "";
-            grpSmtpSettings.Controls.Add(txtPassword);
-            gy += controlHeight + 12;
+            this.Controls.Add(CreateLabel("From Email:", x + 140, y, labelFont));
+            txtFromEmail = CreateTextBox(x + 140, y + 22, w - 140, inputH, inputFont);
+            this.Controls.Add(txtFromEmail);
+            y += 65;
 
-            // From Email
-            lblFromEmail = new Label();
-            lblFromEmail.Text = "From Email:";
-            lblFromEmail.Location = new System.Drawing.Point(15, gy);
-            lblFromEmail.Size = new System.Drawing.Size(labelWidth, controlHeight);
-            grpSmtpSettings.Controls.Add(lblFromEmail);
+            this.Controls.Add(CreateLabel("Username:", x, y, labelFont));
+            txtUsername = CreateTextBox(x, y + 22, (w - 20) / 2, inputH, inputFont);
+            this.Controls.Add(txtUsername);
 
-            txtFromEmail = new TextBox();
-            txtFromEmail.Location = new System.Drawing.Point(15 + labelWidth + 10, gy);
-            txtFromEmail.Size = new System.Drawing.Size(controlWidth, controlHeight);
-            txtFromEmail.Text = Common.AppConfig.Email.FromEmail;
-            grpSmtpSettings.Controls.Add(txtFromEmail);
-            gy += controlHeight + 12;
+            this.Controls.Add(CreateLabel("Password:", x + (w / 2) + 10, y, labelFont));
+            txtPassword = CreateTextBox(x + (w / 2) + 10, y + 22, (w - 20) / 2, inputH, inputFont, true);
+            this.Controls.Add(txtPassword);
+            y += 65;
 
-            // Use SSL
-            chkUseSSL = new CheckBox();
-            chkUseSSL.Text = "Use SSL/TLS";
-            chkUseSSL.Location = new System.Drawing.Point(15, gy);
-            chkUseSSL.Size = new System.Drawing.Size(200, controlHeight);
-            chkUseSSL.Checked = true;
-            grpSmtpSettings.Controls.Add(chkUseSSL);
+            chkUseSSL = new CheckBox { Text = "Use SSL/TLS Encryption", Location = new Point(x, y), Size = new Size(250, 25), Font = labelFont, ForeColor = UiTheme.Text, Checked = true, Cursor = Cursors.Hand };
+            this.Controls.Add(chkUseSSL);
+            y += 40;
 
-            this.Controls.Add(grpSmtpSettings);
+            var div1 = new Panel { Location = new Point(x, y), Size = new Size(w, 1), BackColor = UiTheme.Border };
+            this.Controls.Add(div1);
+            y += 20;
 
-            // ─── SMS Settings Group ───────────────────────────
-            int sy = grpSmtpSettings.Bottom + 12;
-            grpSmsSettings = new GroupBox();
-            grpSmsSettings.Text = "SMS Notifications";
-            grpSmsSettings.Location = new System.Drawing.Point(padding, sy);
-            grpSmsSettings.Size = new System.Drawing.Size(this.ClientSize.Width - (padding * 2), 367);
-            grpSmsSettings.Padding = new Padding(15);
+            // --- SMS SETTINGS SECTION ---
+            var lblSmsTitle = new Label { Text = "SMS Notifications", Font = new Font("Segoe UI Semibold", 12F, FontStyle.Bold), ForeColor = UiTheme.NavyDark, Location = new Point(x, y), AutoSize = true, BackColor = Color.Transparent };
+            this.Controls.Add(lblSmsTitle);
+            y += 40;
 
-            int my = 22;
-            chkSmsEnabled = new CheckBox();
-            chkSmsEnabled.Text = "Enable SMS sending (off = log only)";
-            chkSmsEnabled.Location = new System.Drawing.Point(15, my);
-            chkSmsEnabled.Size = new System.Drawing.Size(controlWidth + labelWidth, controlHeight);
-            grpSmsSettings.Controls.Add(chkSmsEnabled);
-            my += controlHeight + 12;
+            chkSmsEnabled = new CheckBox { Text = "Enable SMS sending (off = log only)", Location = new Point(x, y), Size = new Size(300, 25), Font = labelFont, ForeColor = UiTheme.Text, Cursor = Cursors.Hand };
+            this.Controls.Add(chkSmsEnabled);
+            y += 40;
 
-            lblSmsProvider = new Label();
-            lblSmsProvider.Text = "Provider:";
-            lblSmsProvider.Location = new System.Drawing.Point(15, my);
-            lblSmsProvider.Size = new System.Drawing.Size(labelWidth, controlHeight);
-            grpSmsSettings.Controls.Add(lblSmsProvider);
-
-            cmbSmsProvider = new ComboBox();
-            cmbSmsProvider.DropDownStyle = ComboBoxStyle.DropDownList;
-            cmbSmsProvider.Location = new System.Drawing.Point(15 + labelWidth + 10, my);
-            cmbSmsProvider.Size = new System.Drawing.Size(160, controlHeight);
+            this.Controls.Add(CreateLabel("Provider:", x, y, labelFont));
+            cmbSmsProvider = new ComboBox { Location = new Point(x, y + 22), Size = new Size((w - 20) / 2, inputH), Font = inputFont, DropDownStyle = ComboBoxStyle.DropDownList };
             cmbSmsProvider.Items.AddRange(new object[] { "Arkesel", "BulkSMSGh" });
-            grpSmsSettings.Controls.Add(cmbSmsProvider);
-            my += controlHeight + 12;
+            this.Controls.Add(cmbSmsProvider);
 
-            lblSmsApiKey = new Label();
-            lblSmsApiKey.Text = "API Key:";
-            lblSmsApiKey.Location = new System.Drawing.Point(15, my);
-            lblSmsApiKey.Size = new System.Drawing.Size(labelWidth, controlHeight);
-            grpSmsSettings.Controls.Add(lblSmsApiKey);
-
-            txtSmsApiKey = new TextBox();
-            txtSmsApiKey.Location = new System.Drawing.Point(15 + labelWidth + 10, my);
-            txtSmsApiKey.Size = new System.Drawing.Size(controlWidth, controlHeight);
-            txtSmsApiKey.UseSystemPasswordChar = true;
-            grpSmsSettings.Controls.Add(txtSmsApiKey);
-            my += controlHeight + 12;
-
-            lblSmsAbbr = new Label();
-            lblSmsAbbr.Text = "School Abbrev.:";
-            lblSmsAbbr.Location = new System.Drawing.Point(15, my);
-            lblSmsAbbr.Size = new System.Drawing.Size(labelWidth, controlHeight);
-            grpSmsSettings.Controls.Add(lblSmsAbbr);
-
-            txtSmsAbbr = new TextBox();
-            txtSmsAbbr.Location = new System.Drawing.Point(15 + labelWidth + 10, my);
-            txtSmsAbbr.Size = new System.Drawing.Size(120, controlHeight);
-            txtSmsAbbr.CharacterCasing = CharacterCasing.Upper;
+            this.Controls.Add(CreateLabel("School Abbreviation:", x + (w / 2) + 10, y, labelFont));
+            txtSmsAbbr = CreateTextBox(x + (w / 2) + 10, y + 22, (w - 20) / 2, inputH, inputFont);
             txtSmsAbbr.MaxLength = 5;
+            txtSmsAbbr.CharacterCasing = CharacterCasing.Upper;
             txtSmsAbbr.TextChanged += (s, e) => UpdateSenderPreview();
-            grpSmsSettings.Controls.Add(txtSmsAbbr);
-            my += controlHeight + 8;
+            this.Controls.Add(txtSmsAbbr);
+            y += 65;
 
-            lblSmsSenderPreview = new Label();
-            lblSmsSenderPreview.Location = new System.Drawing.Point(15, my);
-            lblSmsSenderPreview.Size = new System.Drawing.Size(controlWidth + labelWidth, controlHeight + 6);
-            lblSmsSenderPreview.ForeColor = System.Drawing.Color.DimGray;
-            grpSmsSettings.Controls.Add(lblSmsSenderPreview);
-            my += controlHeight + 14;
+            this.Controls.Add(CreateLabel("API Key:", x, y, labelFont));
+            txtSmsApiKey = CreateTextBox(x, y + 22, w, inputH, inputFont, true);
+            this.Controls.Add(txtSmsApiKey);
+            y += 60;
 
-            lblHrEmail = new Label();
-            lblHrEmail.Text = "HR Email:";
-            lblHrEmail.Location = new System.Drawing.Point(15, my);
-            lblHrEmail.Size = new System.Drawing.Size(labelWidth, controlHeight);
-            grpSmsSettings.Controls.Add(lblHrEmail);
+            lblSmsSenderPreview = new Label { Location = new Point(x, y), Size = new Size(w, 20), ForeColor = UiTheme.Muted, Font = new Font("Segoe UI", 8.5F), BackColor = Color.Transparent };
+            this.Controls.Add(lblSmsSenderPreview);
+            y += 35;
 
-            txtHrEmail = new TextBox();
-            txtHrEmail.Location = new System.Drawing.Point(15 + labelWidth + 10, my);
-            txtHrEmail.Size = new System.Drawing.Size(controlWidth, controlHeight);
-            grpSmsSettings.Controls.Add(txtHrEmail);
-            my += controlHeight + 10;
+            this.Controls.Add(CreateLabel("HR Email:", x, y, labelFont));
+            txtHrEmail = CreateTextBox(x, y + 22, (w - 20) / 2, inputH, inputFont);
+            this.Controls.Add(txtHrEmail);
 
-            lblHrPhone = new Label();
-            lblHrPhone.Text = "HR Phone:";
-            lblHrPhone.Location = new System.Drawing.Point(15, my);
-            lblHrPhone.Size = new System.Drawing.Size(labelWidth, controlHeight);
-            grpSmsSettings.Controls.Add(lblHrPhone);
+            this.Controls.Add(CreateLabel("HR Phone:", x + (w / 2) + 10, y, labelFont));
+            txtHrPhone = CreateTextBox(x + (w / 2) + 10, y + 22, (w - 20) / 2, inputH, inputFont);
+            this.Controls.Add(txtHrPhone);
+            y += 65;
 
-            txtHrPhone = new TextBox();
-            txtHrPhone.Location = new System.Drawing.Point(15 + labelWidth + 10, my);
-            txtHrPhone.Size = new System.Drawing.Size(140, controlHeight);
-            grpSmsSettings.Controls.Add(txtHrPhone);
-            my += controlHeight + 12;
+            this.Controls.Add(CreateLabel("Test Phone:", x, y, labelFont));
+            txtSmsTestPhone = CreateTextBox(x, y + 22, 200, inputH, inputFont);
+            this.Controls.Add(txtSmsTestPhone);
 
-            lblSmsTestPhone = new Label();
-            lblSmsTestPhone.Text = "Test phone:";
-            lblSmsTestPhone.Location = new System.Drawing.Point(15, my);
-            lblSmsTestPhone.Size = new System.Drawing.Size(labelWidth, controlHeight);
-            grpSmsSettings.Controls.Add(lblSmsTestPhone);
-
-            txtSmsTestPhone = new TextBox();
-            txtSmsTestPhone.Location = new System.Drawing.Point(15 + labelWidth + 10, my);
-            txtSmsTestPhone.Size = new System.Drawing.Size(140, controlHeight);
-            grpSmsSettings.Controls.Add(txtSmsTestPhone);
-
-            btnTestSms = new Button();
-            btnTestSms.Text = "Send Test SMS";
-            btnTestSms.Location = new System.Drawing.Point(15 + labelWidth + 10 + 150, my - 1);
-            btnTestSms.Size = new System.Drawing.Size(130, controlHeight + 2);
+            btnTestSms = CreateButton("Test SMS", x + 215, y + 21, 120, 28, Color.White, UiTheme.NavyDark);
             btnTestSms.Click += btnTestSms_Click;
-            grpSmsSettings.Controls.Add(btnTestSms);
+            this.Controls.Add(btnTestSms);
+            y += 70;
 
-            this.Controls.Add(grpSmsSettings);
+            var div2 = new Panel { Location = new Point(x, y), Size = new Size(w, 1), BackColor = UiTheme.Border };
+            this.Controls.Add(div2);
+            y += 20;
 
-            // ─── Buttons (anchored below SMS group) ────────────
-            int by = grpSmsSettings.Bottom + 15;
-
-            btnTestEmail = new Button();
-            btnTestEmail.Text = "🧪 Test Email Configuration";
-            btnTestEmail.Location = new System.Drawing.Point(padding, by);
-            btnTestEmail.Size = new System.Drawing.Size(this.ClientSize.Width - (padding * 2), 40);
-            btnTestEmail.Click += BtnTestEmail_Click;
-            btnTestEmail.BackColor = System.Drawing.Color.FromArgb(59, 130, 246);
-            btnTestEmail.ForeColor = System.Drawing.Color.White;
-            btnTestEmail.Font = new System.Drawing.Font("Arial", 10, System.Drawing.FontStyle.Bold);
-            btnTestEmail.FlatStyle = FlatStyle.Flat;
-            btnTestEmail.FlatAppearance.BorderSize = 0;
-            this.Controls.Add(btnTestEmail);
-            by += 50;
-
-            // Status Label
-            lblStatus = new Label();
-            lblStatus.Text = "Status: Not configured";
-            lblStatus.Location = new System.Drawing.Point(padding, by);
-            lblStatus.Size = new System.Drawing.Size(this.ClientSize.Width - (padding * 2), 25);
-            lblStatus.Font = new System.Drawing.Font("Arial", 9);
+            // --- ACTIONS ---
+            lblStatus = new Label { Location = new Point(x, y), Size = new Size(w, 20), Font = new Font("Segoe UI Semibold", 9F, FontStyle.Bold), ForeColor = UiTheme.Navy, BackColor = Color.Transparent };
             this.Controls.Add(lblStatus);
-            by += 30;
+            y += 30;
 
-            // Save Button
-            btnSave = new Button();
-            btnSave.Text = "💾 Save Settings";
-            btnSave.Location = new System.Drawing.Point(padding, by);
-            btnSave.Size = new System.Drawing.Size((this.ClientSize.Width - (padding * 3)) / 2, 40);
+            btnTestEmail = CreateButton("Test Email Configuration", x, y, w, 40, UiTheme.Navy, Color.White);
+            btnTestEmail.Click += BtnTestEmail_Click;
+            this.Controls.Add(btnTestEmail);
+            y += 55;
+
+            btnSave = CreateButton("Save Settings", x, y, (w - 15) / 2, 45, UiTheme.Success, Color.White);
             btnSave.Click += BtnSave_Click;
-            btnSave.BackColor = System.Drawing.Color.FromArgb(22, 163, 74);
-            btnSave.ForeColor = System.Drawing.Color.White;
-            btnSave.Font = new System.Drawing.Font("Arial", 10, System.Drawing.FontStyle.Bold);
-            btnSave.FlatStyle = FlatStyle.Flat;
-            btnSave.FlatAppearance.BorderSize = 0;
             this.Controls.Add(btnSave);
 
-            // Cancel Button
-            btnCancel = new Button();
-            btnCancel.Text = "Cancel";
-            btnCancel.Location = new System.Drawing.Point(padding + (this.ClientSize.Width - (padding * 3)) / 2 + 15, by);
-            btnCancel.Size = new System.Drawing.Size((this.ClientSize.Width - (padding * 3)) / 2, 40);
+            btnCancel = CreateButton("Cancel", x + (w / 2) + 8, y, (w - 15) / 2, 45, UiTheme.Muted, Color.White);
             btnCancel.Click += (s, e) => this.Close();
-            btnCancel.BackColor = System.Drawing.Color.FromArgb(107, 114, 128);
-            btnCancel.ForeColor = System.Drawing.Color.White;
-            btnCancel.Font = new System.Drawing.Font("Arial", 10, System.Drawing.FontStyle.Bold);
-            btnCancel.FlatStyle = FlatStyle.Flat;
-            btnCancel.FlatAppearance.BorderSize = 0;
             this.Controls.Add(btnCancel);
+            ApplyWriteAccess();
         }
 
-        private void ApplyTheme()
+        private Label CreateLabel(string text, int x, int y, Font font)
         {
-            this.BackColor = UiTheme.Page;
+            return new Label { Text = text, Location = new Point(x, y), Font = font, ForeColor = UiTheme.Text, AutoSize = true, BackColor = Color.Transparent };
+        }
 
-            foreach (Control ctrl in this.Controls)
+        private TextBox CreateTextBox(int x, int y, int w, int h, Font font, bool isPassword = false)
+        {
+            var txt = new TextBox
             {
-                if (ctrl is GroupBox gb)
-                {
-                    gb.BackColor = UiTheme.Page;
-                    gb.ForeColor = UiTheme.Text;
-                    gb.Font = new System.Drawing.Font("Arial", 11, System.Drawing.FontStyle.Bold);
-                }
-                else if (ctrl is Label lbl)
-                {
-                    lbl.BackColor = System.Drawing.Color.Transparent;
-                    lbl.ForeColor = UiTheme.Text;
-                }
-                else if (ctrl is TextBox || ctrl is NumericUpDown)
-                {
-                    ctrl.BackColor = System.Drawing.Color.White;
-                    ctrl.ForeColor = UiTheme.Text;
-                }
-                else if (ctrl is CheckBox chk)
-                {
-                    chk.BackColor = System.Drawing.Color.Transparent;
-                    chk.ForeColor = UiTheme.Text;
-                }
+                Location = new Point(x, y),
+                Size = new Size(w, h),
+                Font = font,
+                BorderStyle = BorderStyle.FixedSingle,
+                ForeColor = UiTheme.Text,
+                BackColor = Color.White
+            };
+            if (isPassword)
+            {
+                txt.PasswordChar = '*';
+                txt.UseSystemPasswordChar = true;
             }
+            return txt;
+        }
+
+        private Button CreateButton(string text, int x, int y, int w, int h, Color fill, Color fore)
+        {
+            var btn = new Button
+            {
+                Text = text,
+                Location = new Point(x, y),
+                Size = new Size(w, h),
+                BackColor = fill,
+                ForeColor = fore,
+                Font = new Font("Segoe UI Semibold", 10F, FontStyle.Bold),
+                FlatStyle = FlatStyle.Flat,
+                Cursor = Cursors.Hand
+            };
+            btn.FlatAppearance.BorderSize = 0;
+            return btn;
         }
 
         private void LoadSettings()
@@ -388,10 +296,9 @@ namespace kingdom_Preparatory_School_Management_System
 
         private void BtnSave_Click(object sender, EventArgs e)
         {
+            if (!AuthService.RequireWriteAccess("Settings.Email.Manage", "Save email and SMS settings")) return;
             try
             {
-                // Persist SMS settings first, independently of email validation, so
-                // SMS-only configuration can be saved even when SMTP fields are blank.
                 AppConfig.Sms.Enabled = chkSmsEnabled.Checked;
                 AppConfig.Sms.Provider = (cmbSmsProvider.SelectedItem?.ToString() ?? "Arkesel");
                 AppConfig.Sms.ApiKey = txtSmsApiKey.Text.Trim();
@@ -417,7 +324,6 @@ namespace kingdom_Preparatory_School_Management_System
                     return;
                 }
 
-                // Save to settings
                 Properties.Settings.Default.SmtpServer = txtSmtpServer.Text;
                 Properties.Settings.Default.SmtpPort = (int)numSmtpPort.Value;
                 Properties.Settings.Default.SmtpUsername = txtUsername.Text;
@@ -428,6 +334,7 @@ namespace kingdom_Preparatory_School_Management_System
 
                 lblStatus.Text = "Status: ✓ Settings saved successfully";
                 MessageBox.Show("Email settings saved successfully.", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                this.Close();
             }
             catch (Exception ex)
             {
@@ -437,7 +344,7 @@ namespace kingdom_Preparatory_School_Management_System
 
         private async void BtnTestEmail_Click(object sender, EventArgs e)
         {
-            // First save the settings temporarily
+            if (!AuthService.RequireWriteAccess("Settings.Email.Manage", "Test email settings")) return;
             Properties.Settings.Default.SmtpServer = txtSmtpServer.Text;
             Properties.Settings.Default.SmtpPort = (int)numSmtpPort.Value;
             Properties.Settings.Default.SmtpUsername = txtUsername.Text;
@@ -466,7 +373,7 @@ namespace kingdom_Preparatory_School_Management_System
 
                 if (result.Success)
                 {
-                    lblStatus.ForeColor = System.Drawing.Color.FromArgb(22, 163, 74);
+                    lblStatus.ForeColor = Color.FromArgb(22, 163, 74);
                     lblStatus.Text = $"Status: ✓ Test email sent successfully to {testEmail}";
                     MessageBox.Show(
                         $"Test email sent successfully to {testEmail}.\n\nPlease check your inbox to verify the email configuration.",
@@ -477,7 +384,7 @@ namespace kingdom_Preparatory_School_Management_System
                 }
                 else
                 {
-                    lblStatus.ForeColor = System.Drawing.Color.FromArgb(220, 38, 38);
+                    lblStatus.ForeColor = Color.FromArgb(220, 38, 38);
                     lblStatus.Text = $"Status: ✗ {result.Message}";
                     MessageBox.Show(
                         $"Failed to send test email:\n\n{result.Message}",
@@ -489,7 +396,7 @@ namespace kingdom_Preparatory_School_Management_System
             }
             catch (Exception ex)
             {
-                lblStatus.ForeColor = System.Drawing.Color.FromArgb(220, 38, 38);
+                lblStatus.ForeColor = Color.FromArgb(220, 38, 38);
                 lblStatus.Text = $"Status: ✗ {ex.Message}";
                 MessageBox.Show($"Error: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
@@ -502,7 +409,6 @@ namespace kingdom_Preparatory_School_Management_System
         private void UpdateSenderPreview()
         {
             string abbr = (txtSmsAbbr.Text ?? "").Trim().ToUpperInvariant();
-            // Reference SmsSenderIds so the preview always matches what is actually sent.
             string student  = abbr + SmsSenderIds.StudentSuffix;
             string employee = abbr + SmsSenderIds.EmployeeSuffix;
             string fees     = abbr + SmsSenderIds.FeeSuffix;
@@ -512,7 +418,7 @@ namespace kingdom_Preparatory_School_Management_System
 
         private async void btnTestSms_Click(object sender, EventArgs e)
         {
-            // Persist current SMS fields first so the test uses what the user typed.
+            if (!AuthService.RequireWriteAccess("Settings.Email.Manage", "Test SMS settings")) return;
             AppConfig.Sms.Enabled = chkSmsEnabled.Checked;
             AppConfig.Sms.Provider = (cmbSmsProvider.SelectedItem?.ToString() ?? "Arkesel");
             AppConfig.Sms.ApiKey = txtSmsApiKey.Text.Trim();
@@ -525,10 +431,25 @@ namespace kingdom_Preparatory_School_Management_System
                 if (lblStatus != null)
                 {
                     lblStatus.Text = result.Message;
-                    lblStatus.ForeColor = result.Success ? System.Drawing.Color.Green : System.Drawing.Color.Red;
+                    lblStatus.ForeColor = result.Success ? Color.Green : Color.Red;
                 }
             }
             finally { btnTestSms.Enabled = true; }
+        }
+
+        private void ApplyWriteAccess()
+        {
+            bool canWrite = CanManageEmailSettings;
+            foreach (var textBox in new[] { txtSmtpServer, txtUsername, txtPassword, txtFromEmail, txtSmsApiKey, txtSmsAbbr, txtHrEmail, txtHrPhone, txtSmsTestPhone })
+                if (textBox != null) textBox.ReadOnly = !canWrite;
+
+            if (numSmtpPort != null) numSmtpPort.Enabled = canWrite;
+            if (chkUseSSL != null) chkUseSSL.Enabled = canWrite;
+            if (chkSmsEnabled != null) chkSmsEnabled.Enabled = canWrite;
+            if (cmbSmsProvider != null) cmbSmsProvider.Enabled = canWrite;
+            if (btnSave != null) { btnSave.Enabled = canWrite; btnSave.Text = canWrite ? "Save Settings" : "Read only"; }
+            if (btnTestEmail != null) btnTestEmail.Enabled = canWrite;
+            if (btnTestSms != null) btnTestSms.Enabled = canWrite;
         }
     }
 }

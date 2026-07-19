@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
@@ -25,41 +25,41 @@ namespace kingdom_Preparatory_School_Management_System
         {
             SuspendLayout();
             Controls.Clear();
-            BackColor = Color.FromArgb(246, 248, 251);
-            Font = new Font("Segoe UI", 9.5F);
+            UiTheme.Apply(this);
             StartPosition = FormStartPosition.CenterParent;
-            ClientSize = new Size(620, 420);
+            ClientSize = new Size(580, 420);
+            FormBorderStyle = FormBorderStyle.FixedDialog;
 
-            var card = new TableLayoutPanel
-            {
-                Dock = DockStyle.Fill,
-                RowCount = 7,
-                ColumnCount = 1,
-                BackColor = Color.White,
-                Padding = new Padding(32)
-            };
-            card.RowStyles.Add(new RowStyle(SizeType.Absolute, 54));
-            card.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));
-            card.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));
-            card.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));
-            card.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-            card.RowStyles.Add(new RowStyle(SizeType.Absolute, 20));
-            card.RowStyles.Add(new RowStyle(SizeType.Absolute, 44));
+            var topPanel = new Panel { Dock = DockStyle.Top, Height = 120, BackColor = UiTheme.Navy };
 
-            card.Controls.Add(new Label { Dock = DockStyle.Fill, Text = string.IsNullOrWhiteSpace(AssemblyProduct) ? "Neat Academy" : AssemblyProduct, ForeColor = Color.FromArgb(25, 36, 49), Font = new Font("Segoe UI Semibold", 22F, FontStyle.Bold), TextAlign = ContentAlignment.MiddleLeft }, 0, 0);
-            card.Controls.Add(new Label { Dock = DockStyle.Fill, Text = "Version " + AssemblyVersion, ForeColor = Color.FromArgb(93, 108, 123), Font = new Font("Segoe UI", 10F), TextAlign = ContentAlignment.MiddleLeft }, 0, 1);
-            card.Controls.Add(new Label { Dock = DockStyle.Fill, Text = AssemblyCompany, ForeColor = Color.FromArgb(93, 108, 123), Font = new Font("Segoe UI", 10F), TextAlign = ContentAlignment.MiddleLeft }, 0, 2);
-            card.Controls.Add(new Label { Dock = DockStyle.Fill, Text = AssemblyCopyright, ForeColor = Color.FromArgb(93, 108, 123), Font = new Font("Segoe UI", 10F), TextAlign = ContentAlignment.MiddleLeft }, 0, 3);
-            card.Controls.Add(new TextBox { Dock = DockStyle.Fill, Multiline = true, ReadOnly = true, BorderStyle = BorderStyle.FixedSingle, BackColor = Color.FromArgb(248, 250, 252), Text = string.IsNullOrWhiteSpace(AssemblyDescription) ? "School management system for admissions, employees, fees, exams, and leave workflows." : AssemblyDescription, Font = new Font("Segoe UI", 10F) }, 0, 4);
+            var titleLbl = new Label { Text = string.IsNullOrWhiteSpace(AssemblyProduct) ? "Nyansapo School ERP" : AssemblyProduct, ForeColor = Color.White, Font = new Font("Segoe UI Semibold", 24F, FontStyle.Bold), AutoSize = true, Left = 30, Top = 30 };
+            var versionLbl = new Label { Text = "Version " + AssemblyVersion, ForeColor = UiTheme.Gold, Font = new Font("Segoe UI", 10F), AutoSize = true, Left = 34, Top = 74 };
+            topPanel.Controls.Add(titleLbl);
+            topPanel.Controls.Add(versionLbl);
 
-            var actions = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.RightToLeft, BackColor = Color.White };
-            var close = new Button { Width = 110, Height = 36, Text = "Close", FlatStyle = FlatStyle.Flat, BackColor = Color.FromArgb(31, 99, 198), ForeColor = Color.White, Font = new Font("Segoe UI Semibold", 9.5F, FontStyle.Bold) };
-            close.FlatAppearance.BorderColor = Color.FromArgb(31, 99, 198);
-            close.Click += okButton_Click;
-            actions.Controls.Add(close);
-            card.Controls.Add(actions, 0, 6);
+            var mainPanel = new Panel { Dock = DockStyle.Fill, BackColor = UiTheme.Page, Padding = new Padding(30) };
 
-            Controls.Add(card);
+            var descBox = new TextBox { Multiline = true, ReadOnly = true, BorderStyle = BorderStyle.None, BackColor = UiTheme.Page, ForeColor = UiTheme.Text, Text = string.IsNullOrWhiteSpace(AssemblyDescription) ? "Comprehensive School Management System for admissions, employees, fees, exams, and workflows." : AssemblyDescription, Font = new Font("Segoe UI", 11F), Dock = DockStyle.Top, Height = 60 };
+
+            var companyLbl = new Label { Text = "Developed by: " + (string.IsNullOrWhiteSpace(AssemblyCompany) ? "Dartek Integration" : AssemblyCompany), ForeColor = UiTheme.Text, Font = new Font("Segoe UI Semibold", 10F), AutoSize = true, Top = 100, Left = 30 };
+            var copyLbl = new Label { Text = string.IsNullOrWhiteSpace(AssemblyCopyright) ? "© Nyansapo ERP. All rights reserved." : AssemblyCopyright, ForeColor = UiTheme.Muted, Font = new Font("Segoe UI", 9F), AutoSize = true, Top = 130, Left = 30 };
+
+            mainPanel.Controls.Add(copyLbl);
+            mainPanel.Controls.Add(companyLbl);
+            mainPanel.Controls.Add(descBox);
+
+            var bottomPanel = new Panel { Dock = DockStyle.Bottom, Height = 80, BackColor = UiTheme.Surface };
+            var closeBtn = new Button { Text = "Close", Width = 120, Height = 40, FlatStyle = FlatStyle.Flat, BackColor = UiTheme.Navy, ForeColor = Color.White, Font = new Font("Segoe UI Semibold", 10F), Cursor = Cursors.Hand };
+            closeBtn.FlatAppearance.BorderSize = 0;
+            closeBtn.Top = 20;
+            closeBtn.Left = ClientSize.Width - closeBtn.Width - 30;
+            closeBtn.Click += okButton_Click;
+            bottomPanel.Controls.Add(closeBtn);
+
+            Controls.Add(mainPanel);
+            Controls.Add(bottomPanel);
+            Controls.Add(topPanel);
+
             ResumeLayout(true);
         }
 

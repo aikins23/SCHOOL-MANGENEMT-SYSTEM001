@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using kingdom_Preparatory_School_Management_System.Models;
+using KingdomPrep.Shared.Models;
 using PdfSharp.Drawing;
 using PdfSharp.Pdf;
 
@@ -29,6 +29,9 @@ namespace kingdom_Preparatory_School_Management_System.Services
         private const double PromotedRowHeight = 22;
         private const double SignatureHeight = 48;
         private const double BottomLegendHeight = 45;
+        private const double InfoLabelFontSize = 7.8;
+        private const double InfoValueFontSize = 8.0;
+        private const double InfoSmallValueFontSize = 7.0;
 
         // Brand colours come from the configurable School Information settings (SchoolProfile),
         // honouring the transient preview override. Black/white stay fixed.
@@ -90,11 +93,24 @@ namespace kingdom_Preparatory_School_Management_System.Services
                             y = DrawBottomGradingScale(gfx, y);
 
                             gfx.DrawRectangle(Border(1.2), ReportX, ReportY, ReportWidth, y - ReportY);
+                            Common.PrintBranding.DrawPdfFooter(gfx, PageWidth, PageHeight);
                         }
                         catch (Exception ex)
                         {
                             LoggerHelper.LogError("Error generating report card PDF", ex);
                             throw new PDFGenerationException("Error generating report card PDF", ex);
+                        }
+                    }
+
+                    if (data?.Billing != null)
+                    {
+                        var billPage = document.AddPage();
+                        billPage.Width = XUnit.FromPoint(PageWidth);
+                        billPage.Height = XUnit.FromPoint(PageHeight);
+                        using (var billGfx = XGraphics.FromPdfPage(billPage))
+                        {
+                            DrawBillingSheet(billGfx, data);
+                            Common.PrintBranding.DrawPdfFooter(billGfx, PageWidth, PageHeight);
                         }
                     }
 
@@ -105,6 +121,51 @@ namespace kingdom_Preparatory_School_Management_System.Services
                     }
                 }
             });
+        }
+
+        private void DrawBillingSheet(XGraphics gfx, ReportCardData data)
+        {
+            var bill = data.Billing;
+            var navy = Primary;
+            var gold = Accent;
+            var muted = ToX(UiTheme.Muted);
+            var text = ToX(UiTheme.Text);
+
+            gfx.DrawRectangle(Brush(navy), 0, 0, PageWidth, 96);
+            gfx.DrawString(Common.SchoolProfile.DisplayName, Font(20, true), Brush(White), new XRect(48, 24, 500, 28), XStringFormats.TopLeft);
+            gfx.DrawString("Student Fee Bill Sheet", Font(10, true), Brush(gold), new XRect(48, 58, 500, 20), XStringFormats.TopLeft);
+
+            double y = 132;
+            gfx.DrawString(data.StudentName ?? "", Font(16, true), Brush(text), 48, y);
+            y += 24;
+            gfx.DrawString($"Student ID: {data.StudentID}    Class: {data.ClassID}    Term: {bill.TermName}", Font(10), Brush(muted), 48, y);
+            y += 42;
+
+            DrawBillRow(gfx, y, "Previous balance brought forward", bill.PreviousBalance, false); y += 42;
+            DrawBillRow(gfx, y, "Current term school fees", bill.CurrentTermFee, false); y += 42;
+            DrawBillRow(gfx, y, "Total amount expected", bill.TotalExpected, true); y += 42;
+            DrawBillRow(gfx, y, "Payments received", bill.AmountPaid, false); y += 42;
+            DrawBillRow(gfx, y, "Outstanding balance", bill.Balance, true); y += 56;
+
+            gfx.DrawString(
+                "This bill sheet is attached for parent/guardian clarity. Payments are recorded against the student account; previous debt is automatically carried forward when a term is closed.",
+                Font(9),
+                Brush(muted),
+                new XRect(48, y, 500, 54),
+                XStringFormats.TopLeft);
+
+            gfx.DrawLine(new XPen(navy, 1), 48, 760, 547, 760);
+            gfx.DrawString($"Generated: {DateTime.Now:dd MMM yyyy, h:mm tt}", Font(9), Brush(muted), new XRect(48, 774, 500, 18), XStringFormats.TopLeft);
+        }
+
+        private void DrawBillRow(XGraphics gfx, double y, string label, decimal amount, bool emphasis)
+        {
+            var fill = emphasis ? UiTheme.GoldSoft : UiTheme.SurfaceAlt;
+            var text = ToX(UiTheme.Text);
+            var muted = ToX(UiTheme.Muted);
+            gfx.DrawRectangle(new XSolidBrush(ToX(fill)), 48, y - 20, 499, 32);
+            gfx.DrawString(label, Font(emphasis ? 10 : 9.5, emphasis), Brush(emphasis ? text : muted), new XRect(64, y - 13, 310, 18), XStringFormats.TopLeft);
+            gfx.DrawString($"GHS {amount:N2}", Font(10.5, true), Brush(text), new XRect(378, y - 13, 150, 18), XStringFormats.TopRight);
         }
 
         private double DrawHeader(XGraphics gfx, double y, ReportCardData data)
@@ -125,7 +186,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
             double textX = logoX + logoSize + 18;
             double textW = photoX - textX - 10;
             // Fall back to the configured School Information (SchoolProfile) rather than a hardcoded
-            // school identity, so an unconfigured (or different) school never shows KPS's details.
+            // school identity, so another school never shows the wrong details.
             string schoolName = Coalesce(data?.SchoolInfo?.Name, Common.SchoolProfile.Name);
             string location   = Coalesce(data?.SchoolInfo?.Location, Common.SchoolProfile.Address);
             string phone      = Coalesce(data?.SchoolInfo?.PhoneNumbers, Common.SchoolProfile.Phones);
@@ -146,6 +207,8 @@ namespace kingdom_Preparatory_School_Management_System.Services
             double rightLabelW = 78;
             double rightValueW = rightPairW - rightLabelW;
             var rows = BuildInfoRows(data).ToList();
+            var labelFont = Font(InfoLabelFontSize, true);
+            var valueFont = Font(InfoValueFontSize);
 
             for (int i = 0; i < rows.Count; i++)
             {
@@ -153,13 +216,13 @@ namespace kingdom_Preparatory_School_Management_System.Services
                 double rowY = y + (i * InfoRowHeight);
 
                 DrawCell(gfx, ReportX, rowY, leftLabelW, InfoRowHeight);
-                DrawLeftText(gfx, row.LeftLabel, ReportX, rowY, leftLabelW, InfoRowHeight, Font(7.8, true));
+                DrawLeftText(gfx, row.LeftLabel, ReportX, rowY, leftLabelW, InfoRowHeight, labelFont);
 
                 DrawCell(gfx, ReportX + leftLabelW, rowY, leftPairW - leftLabelW, InfoRowHeight);
-                CenterTextInCell(gfx, row.LeftValue, ReportX + leftLabelW, rowY, leftPairW - leftLabelW, InfoRowHeight, Font(7.8));
+                CenterTextInCell(gfx, row.LeftValue, ReportX + leftLabelW, rowY, leftPairW - leftLabelW, InfoRowHeight, valueFont);
 
                 DrawCell(gfx, ReportX + leftPairW, rowY, rightLabelW, InfoRowHeight);
-                DrawLeftText(gfx, row.RightLabel, ReportX + leftPairW, rowY, rightLabelW, InfoRowHeight, Font(7.8, true));
+                DrawLeftText(gfx, row.RightLabel, ReportX + leftPairW, rowY, rightLabelW, InfoRowHeight, labelFont);
 
                 DrawCell(gfx, ReportX + leftPairW + rightLabelW, rowY, rightValueW, InfoRowHeight);
                 DrawInfoRightValue(gfx, row, ReportX + leftPairW + rightLabelW, rowY, rightValueW);
@@ -170,41 +233,52 @@ namespace kingdom_Preparatory_School_Management_System.Services
 
         private IEnumerable<InfoRow> BuildInfoRows(ReportCardData data)
         {
-            string academicYear = string.IsNullOrWhiteSpace(data?.Year) ? "2024/2025" : data.Year;
+            string academicYear = string.IsNullOrWhiteSpace(data?.Year) ? CurrentAcademicYearLabel() : data.Year;
             string term = string.IsNullOrWhiteSpace(data?.Term) ? "TERM 3" : data.Term.ToUpperInvariant();
 
-            yield return new InfoRow("Student Name:", data?.StudentName ?? "", "Resuming Date:", "MON.,1ST SEPTEMBER,2025");
+            yield return new InfoRow("Student Name:", data?.StudentName ?? "", "Resuming Date:", FormatReportDate(data?.TermReopeningDate));
             yield return new InfoRow("Admission No.:", Common.StudentId.Display(data?.StudentID), "Attendance:", "",
                 data?.PresentDays > 0 ? data.PresentDays.ToString() : "",
                 data?.TotalSchoolDays > 0 ? data.TotalSchoolDays.ToString() : "");
             yield return new InfoRow("Class/Form:", data?.ClassID ?? "", "Number On Roll:", data?.TotalStudentsInClass > 0 ? data.TotalStudentsInClass.ToString() : "");
             yield return new InfoRow("Gender:", data?.Gender?.ToUpperInvariant() ?? "", "Position in Class:", FormatPosition(data?.OverallPosition ?? 0));
             yield return new InfoRow("Term:", term, "Average Score:", FormatScore(GetAverageTotal(data)));
-            yield return new InfoRow("Closing Date:", "FRIDAY,1ST AUGUST, 2025", "Academic Year", academicYear);
+            yield return new InfoRow("Closing Date:", FormatReportDate(data?.TermClosingDate), "Academic Year", academicYear);
+        }
+
+        private static string CurrentAcademicYearLabel()
+        {
+            int year = DateTime.Today.Year;
+            return $"{year}/{year + 1}";
+        }
+
+        private static string FormatReportDate(DateTime? value)
+        {
+            return value.HasValue ? value.Value.ToString("dddd, dd MMMM yyyy").ToUpperInvariant() : "Not set";
         }
 
         private void DrawInfoRightValue(XGraphics gfx, InfoRow row, double x, double y, double width)
         {
             if (row.RightLabel.StartsWith("Attendance", StringComparison.OrdinalIgnoreCase))
             {
-                CenterTextInCell(gfx, row.AttendancePresent, x, y, width * 0.38, InfoRowHeight, Font(14));
+                CenterTextInCell(gfx, row.AttendancePresent, x, y, width * 0.38, InfoRowHeight, Font(InfoValueFontSize, true));
                 DrawCell(gfx, x + width * 0.38, y, width * 0.28, InfoRowHeight);
-                CenterTextInCell(gfx, "Out of", x + width * 0.38, y, width * 0.28, InfoRowHeight, Font(7, true));
+                CenterTextInCell(gfx, "Out of", x + width * 0.38, y, width * 0.28, InfoRowHeight, Font(InfoSmallValueFontSize, true));
                 DrawCell(gfx, x + width * 0.66, y, width * 0.34, InfoRowHeight);
-                CenterTextInCell(gfx, row.AttendanceTotal, x + width * 0.66, y, width * 0.34, InfoRowHeight, Font(10));
+                CenterTextInCell(gfx, row.AttendanceTotal, x + width * 0.66, y, width * 0.34, InfoRowHeight, Font(InfoValueFontSize, true));
                 return;
             }
 
             var font = row.RightLabel == "Academic Year" || row.RightLabel.StartsWith("Number", StringComparison.OrdinalIgnoreCase)
-                ? Font(15)
-                : Font(7.7);
+                ? Font(InfoValueFontSize, true)
+                : Font(InfoValueFontSize);
             CenterTextInCell(gfx, row.RightValue, x, y, width, InfoRowHeight, font);
         }
 
         private double DrawSubjectsAndGrading(XGraphics gfx, double y, ReportCardData data)
         {
             var subjects = GetSubjectRows(data).ToList();
-            double leftTableW = ReportWidth * 0.76;
+            double leftTableW = ReportWidth * 0.72;
             double gradingW = ReportWidth - leftTableW;
 
             double[] widths =
@@ -276,7 +350,9 @@ namespace kingdom_Preparatory_School_Management_System.Services
             {
                 DrawFilledCell(gfx, cellX, y, widths[i], SubjectRowHeight, fill);
                 if (i == 0)
-                    DrawLeftText(gfx, values[i], cellX, y, widths[i], SubjectRowHeight, font);
+                    DrawWrappedLeftText(gfx, values[i], cellX, y, widths[i], SubjectRowHeight, font);
+                else if (i == 6)
+                    DrawWrappedCenterText(gfx, values[i], cellX, y, widths[i], SubjectRowHeight, font);
                 else
                     CenterTextInCell(gfx, values[i], cellX, y, widths[i], SubjectRowHeight, font);
                 cellX += widths[i];
@@ -285,7 +361,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
 
         private void DrawGradingSideRow(XGraphics gfx, double x, double y, double width, int rowIndex)
         {
-            double[] widths = { width * 0.34, width * 0.25, width * 0.41 };
+            double[] widths = { width * 0.30, width * 0.18, width * 0.52 };
 
             if (rowIndex == 0)
             {
@@ -313,9 +389,24 @@ namespace kingdom_Preparatory_School_Management_System.Services
             for (int i = 0; i < values.Length; i++)
             {
                 DrawCell(gfx, nextX, y, widths[i], SubjectRowHeight);
-                DrawMultilineCenter(gfx, values[i], nextX, y, widths[i], SubjectRowHeight, Font(5.8), Black);
+                var text = i == 2 ? WrapGradingLabel(values[i]) : values[i];
+                var font = i == 2 ? Font(5.2) : Font(5.8);
+                DrawMultilineCenter(gfx, text, nextX, y, widths[i], SubjectRowHeight, font, Black);
                 nextX += widths[i];
             }
+        }
+
+        private static string WrapGradingLabel(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return "";
+
+            return value
+                .Replace("Approaching Proficiency", "Approaching\nProficiency")
+                .Replace("Advance(A)", "Advance (A)")
+                .Replace("Proficiency(P)", "Proficiency (P)")
+                .Replace("Developing(D)", "Developing (D)")
+                .Replace("Beginning(B)", "Beginning (B)");
         }
 
         private IEnumerable<SubjectDisplayRow> GetSubjectRows(ReportCardData data)
@@ -543,6 +634,113 @@ namespace kingdom_Preparatory_School_Management_System.Services
                 new XStringFormat { Alignment = XStringAlignment.Near, LineAlignment = XLineAlignment.Center });
         }
 
+        private void DrawWrappedLeftText(XGraphics gfx, string text, double x, double y, double width, double height, XFont font, XColor? color = null)
+        {
+            DrawWrappedText(gfx, text, x + 3, y, width - 6, height, font, XStringAlignment.Near, color);
+        }
+
+        private void DrawWrappedCenterText(XGraphics gfx, string text, double x, double y, double width, double height, XFont font, XColor? color = null)
+        {
+            DrawWrappedText(gfx, text, x + 2, y, width - 4, height, font, XStringAlignment.Center, color);
+        }
+
+        private void DrawWrappedText(XGraphics gfx, string text, double x, double y, double width, double height,
+            XFont font, XStringAlignment alignment, XColor? color = null)
+        {
+            var lines = WrapText(gfx, text ?? "", font, Math.Max(8, width), 2);
+            double lineHeight = font.Size + 1.2;
+            double startY = y + (height - (lines.Count * lineHeight)) / 2;
+
+            for (int i = 0; i < lines.Count; i++)
+            {
+                gfx.DrawString(lines[i], font, Brush(color ?? Black),
+                    new XRect(x, startY + i * lineHeight, width, lineHeight),
+                    new XStringFormat { Alignment = alignment, LineAlignment = XLineAlignment.Center });
+            }
+        }
+
+        private static List<string> WrapText(XGraphics gfx, string text, XFont font, double width, int maxLines)
+        {
+            var result = new List<string>();
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                result.Add("");
+                return result;
+            }
+
+            string normalized = string.Join(" ", text.Split(new[] { ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries));
+            foreach (var word in normalized.Split(' '))
+            {
+                if (result.Count == 0)
+                {
+                    AppendFittingWord(gfx, result, word, font, width);
+                    continue;
+                }
+
+                string current = result[result.Count - 1];
+                string candidate = string.IsNullOrWhiteSpace(current) ? word : current + " " + word;
+                if (gfx.MeasureString(candidate, font).Width <= width)
+                {
+                    result[result.Count - 1] = candidate;
+                }
+                else
+                {
+                    AppendFittingWord(gfx, result, word, font, width);
+                }
+
+                if (result.Count > maxLines)
+                    break;
+            }
+
+            if (result.Count > maxLines)
+            {
+                result = result.Take(maxLines).ToList();
+            }
+
+            if (result.Count == maxLines && gfx.MeasureString(result[maxLines - 1], font).Width > width)
+            {
+                result[maxLines - 1] = TrimToWidth(gfx, result[maxLines - 1], font, width);
+            }
+
+            if (result.Count == maxLines && normalized.Length > string.Join(" ", result).Length)
+            {
+                result[maxLines - 1] = TrimToWidth(gfx, result[maxLines - 1] + "...", font, width);
+            }
+
+            return result;
+        }
+
+        private static void AppendFittingWord(XGraphics gfx, List<string> result, string word, XFont font, double width)
+        {
+            if (gfx.MeasureString(word, font).Width <= width)
+            {
+                result.Add(word);
+                return;
+            }
+
+            string remaining = word;
+            while (remaining.Length > 0)
+            {
+                string part = TrimToWidth(gfx, remaining, font, width);
+                if (string.IsNullOrEmpty(part))
+                    break;
+
+                result.Add(part);
+                remaining = remaining.Substring(part.Length);
+            }
+        }
+
+        private static string TrimToWidth(XGraphics gfx, string value, XFont font, double width)
+        {
+            string text = value ?? "";
+            while (text.Length > 0 && gfx.MeasureString(text, font).Width > width)
+            {
+                text = text.Substring(0, text.Length - 1);
+            }
+
+            return text;
+        }
+
         private void DrawMultilineCenter(XGraphics gfx, string text, double x, double y, double width, double height, XFont font, XColor? color = null)
         {
             string[] lines = (text ?? "").Split(new[] { '\n' }, StringSplitOptions.None);
@@ -561,16 +759,12 @@ namespace kingdom_Preparatory_School_Management_System.Services
         {
             if (data?.SubjectResults == null || data.SubjectResults.Count == 0)
                 return 0m;
-            return data.SubjectResults.Average(s => s.TotalScore);
+            return Math.Round(data.SubjectResults.Average(s => s.TotalScore), 2, MidpointRounding.AwayFromZero);
         }
 
         private string FormatScore(decimal score)
         {
-            if (score == 0)
-                return "";
-
-            string value = score.ToString("0.0");
-            return value.EndsWith(".0", StringComparison.Ordinal) ? value.Substring(0, value.Length - 2) : value;
+            return Math.Round(score, 2, MidpointRounding.AwayFromZero).ToString("0.00");
         }
 
         private decimal ParseDecimal(string value)

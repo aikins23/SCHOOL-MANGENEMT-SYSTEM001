@@ -1,3 +1,4 @@
+using KingdomPrep.Shared.Models;
 using System;
 using System.Data;
 using System.Threading;
@@ -72,6 +73,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
             var coreTask = _repository.GetCoreMetricsAsync();
             var recentPaymentsTask = _repository.GetRecentPaymentsAsync(14);
             var classSummaryTask = _repository.GetClassEnrollmentSummaryAsync();
+            var classFinanceSummaryTask = _repository.GetClassFinanceSummaryAsync();
             var leaveSummaryTask = _repository.GetLeaveStatusSummaryAsync();
             var subjectScoresTask = _repository.GetAverageScoreBySubjectAsync();
             var collectionTrendTask = _repository.GetMonthlyFeeCollectionTrendAsync(currentYear);
@@ -92,7 +94,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
             var salaryByDeptTask = _repository.GetSalarySpendByDepartmentAsync();
             var subjectPassFailTask = _repository.GetSubjectPassFailRateAsync();
 
-            await Task.WhenAll(coreTask, recentPaymentsTask, classSummaryTask, leaveSummaryTask, subjectScoresTask, collectionTrendTask, attendanceTrendTask, incomeExpensesTask, gradeDistributionTask, attendanceByClassTask, outstandingByClassTask, paymentModeTask, staffByDeptTask, expenseByCategoryTask, topAbsentTask, classAvgScoreTask, genderDistTask, termPerformanceTask, admissionsPerYearTask, activeVsRolledOutTask, salaryByDeptTask, subjectPassFailTask);
+            await Task.WhenAll(coreTask, recentPaymentsTask, classSummaryTask, classFinanceSummaryTask, leaveSummaryTask, subjectScoresTask, collectionTrendTask, attendanceTrendTask, incomeExpensesTask, gradeDistributionTask, attendanceByClassTask, outstandingByClassTask, paymentModeTask, staffByDeptTask, expenseByCategoryTask, topAbsentTask, classAvgScoreTask, genderDistTask, termPerformanceTask, admissionsPerYearTask, activeVsRolledOutTask, salaryByDeptTask, subjectPassFailTask);
 
             var core = await coreTask;
             metrics.StudentCount = core.StudentCount;
@@ -108,6 +110,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
             metrics.LargestExpenseAmount = core.LargestExpenseAmount;
             metrics.RecentPayments = await recentPaymentsTask;
             metrics.ClassSummary = await classSummaryTask;
+            metrics.ClassFinanceSummary = await classFinanceSummaryTask;
             metrics.LeaveSummary = await leaveSummaryTask;
             metrics.AverageScoresBySubject = await subjectScoresTask;
             metrics.CollectionTrend = await collectionTrendTask;
@@ -147,6 +150,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
         public decimal LargestExpenseAmount { get; set; }
         public DataTable RecentPayments { get; set; }
         public DataTable ClassSummary { get; set; }
+        public DataTable ClassFinanceSummary { get; set; }
         public DataTable LeaveSummary { get; set; }
         public DataTable AverageScoresBySubject { get; set; }
         public DataTable CollectionTrend { get; set; }

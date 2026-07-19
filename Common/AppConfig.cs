@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Data.Common;
+using Microsoft.Data.SqlClient;
 using System.IO;
 
 namespace kingdom_Preparatory_School_Management_System.Common
@@ -9,7 +11,75 @@ namespace kingdom_Preparatory_School_Management_System.Common
     /// </summary>
     public static class AppConfig
     {
-        public static string ConnectionString => Properties.Settings.Default.ConnectionString;
+        private const string FirstRunTestDatabaseName = "Nyansapo_FirstRun_Test";
+
+        public static string ConnectionString
+        {
+            get
+            {
+                string configured = Properties.Settings.Default.ConnectionString;
+                string resolved = DatabaseConnectionSettings.Resolve(configured);
+                string cs = IsFirstRunTestDatabase
+                    ? WithDatabase(resolved, FirstRunTestDatabaseName)
+                    : resolved;
+
+                var builder = new DbConnectionStringBuilder { ConnectionString = cs };
+                builder.Remove("Provider");
+                if (!builder.ContainsKey("Connect Timeout") && !builder.ContainsKey("Connection Timeout"))
+                {
+                    builder["Connect Timeout"] = "8";
+                }
+                return builder.ConnectionString;
+            }
+        }
+
+        public static bool IsFirstRunTestDatabase =>
+            HasArg("--first-run-test-db") ||
+            string.Equals(Environment.GetEnvironmentVariable("NYANSAPO_FIRST_RUN_TEST_DB"), "1", StringComparison.OrdinalIgnoreCase);
+
+        public static bool ResetFirstRunTestDatabase =>
+            HasArg("--reset-first-run-test-db") ||
+            string.Equals(Environment.GetEnvironmentVariable("NYANSAPO_RESET_FIRST_RUN_TEST_DB"), "1", StringComparison.OrdinalIgnoreCase);
+
+        public static string FirstRunTestDatabase => FirstRunTestDatabaseName;
+
+        public static string MasterConnectionString => WithDatabase(ConnectionString, "master");
+
+        private static bool HasArg(string arg)
+        {
+            foreach (var value in Environment.GetCommandLineArgs())
+            {
+                if (string.Equals(value, arg, StringComparison.OrdinalIgnoreCase)) return true;
+            }
+            return false;
+        }
+
+        private static string WithDatabase(string connectionString, string databaseName)
+        {
+            try
+            {
+                var builder = new SqlConnectionStringBuilder(connectionString ?? "");
+                if (builder.ContainsKey("Initial Catalog"))
+                {
+                    builder["Initial Catalog"] = databaseName;
+                }
+                else if (builder.ContainsKey("Database"))
+                {
+                    builder["Database"] = databaseName;
+                }
+                else
+                {
+                    builder["Initial Catalog"] = databaseName;
+                }
+                return builder.ConnectionString;
+            }
+            catch
+            {
+                string cs = connectionString ?? "";
+                if (!cs.EndsWith(";")) cs += ";";
+                return cs + "Initial Catalog=" + databaseName;
+            }
+        }
 
         /// <summary>
         /// The product (software) brand — shown in app chrome only (window titles, login, splash).
@@ -45,6 +115,57 @@ namespace kingdom_Preparatory_School_Management_System.Common
         public const long MaxPhotoSizeBytes = MaxPhotoSizeMB * 1024 * 1024;
         public static readonly string[] AllowedImageExtensions = new[] { ".jpg", ".jpeg", ".png", ".bmp" };
         public static string PhotoUploadPath => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Photos");
+
+        public static class Sync
+        {
+            public static string EndpointBaseUrl
+            {
+                get
+                {
+                    var configured = Environment.GetEnvironmentVariable("NYANSAPO_SYNC_URL") ?? "";
+                    if (!string.IsNullOrWhiteSpace(configured)) return configured.Trim().TrimEnd('/');
+                    try
+                    {
+                        configured = Properties.Settings.Default.SyncEndpointBaseUrl ?? "";
+                        if (!string.IsNullOrWhiteSpace(configured)) return configured.Trim().TrimEnd('/');
+                    }
+                    catch { }
+                    return (SchoolProfile.PortalUrl ?? "").Trim().TrimEnd('/');
+                }
+                set
+                {
+                    try
+                    {
+                        Properties.Settings.Default.SyncEndpointBaseUrl = (value ?? "").Trim().TrimEnd('/');
+                        Properties.Settings.Default.Save();
+                    }
+                    catch { }
+                }
+            }
+
+            public static string ApiKey
+            {
+                get
+                {
+                    var configured = Environment.GetEnvironmentVariable("NYANSAPO_SYNC_KEY") ?? "";
+                    if (!string.IsNullOrWhiteSpace(configured)) return configured;
+                    try { return SecretStorage.Unprotect(Properties.Settings.Default.SyncApiKey ?? ""); }
+                    catch { return ""; }
+                }
+                set
+                {
+                    try
+                    {
+                        Properties.Settings.Default.SyncApiKey = SecretStorage.Protect(value ?? "");
+                        Properties.Settings.Default.Save();
+                    }
+                    catch { }
+                }
+            }
+
+            public static bool IsConfigured =>
+                !string.IsNullOrWhiteSpace(EndpointBaseUrl) && !string.IsNullOrWhiteSpace(ApiKey);
+        }
 
         // Validation
         public const int MinStudentAge = 2;
@@ -320,16 +441,16 @@ namespace kingdom_Preparatory_School_Management_System.Common
         // UI Colors
         public static class Colors
         {
-            public static System.Drawing.Color PageBackColor => System.Drawing.Color.FromArgb(245, 247, 250);
+            public static System.Drawing.Color PageBackColor => System.Drawing.Color.FromArgb(246, 248, 251);
             public static System.Drawing.Color SurfaceColor => System.Drawing.Color.White;
-            public static System.Drawing.Color PrimaryColor => System.Drawing.Color.FromArgb(25, 25, 112);
-            public static System.Drawing.Color AccentColor => System.Drawing.Color.FromArgb(255, 215, 0);
-            public static System.Drawing.Color DangerColor => System.Drawing.Color.FromArgb(190, 18, 60);
-            public static System.Drawing.Color SuccessColor => System.Drawing.Color.FromArgb(76, 175, 80);
-            public static System.Drawing.Color WarningColor => System.Drawing.Color.FromArgb(255, 193, 7);
-            public static System.Drawing.Color TextColor => System.Drawing.Color.FromArgb(25, 36, 49);
-            public static System.Drawing.Color MutedTextColor => System.Drawing.Color.FromArgb(93, 108, 123);
-            public static System.Drawing.Color BorderColor => System.Drawing.Color.FromArgb(219, 226, 236);
+            public static System.Drawing.Color PrimaryColor => System.Drawing.Color.FromArgb(17, 20, 106);
+            public static System.Drawing.Color AccentColor => System.Drawing.Color.FromArgb(212, 175, 55);
+            public static System.Drawing.Color DangerColor => System.Drawing.Color.FromArgb(225, 29, 72);
+            public static System.Drawing.Color SuccessColor => System.Drawing.Color.FromArgb(16, 185, 129);
+            public static System.Drawing.Color WarningColor => System.Drawing.Color.FromArgb(255, 244, 194);
+            public static System.Drawing.Color TextColor => System.Drawing.Color.FromArgb(17, 24, 39);
+            public static System.Drawing.Color MutedTextColor => System.Drawing.Color.FromArgb(100, 116, 139);
+            public static System.Drawing.Color BorderColor => System.Drawing.Color.FromArgb(226, 232, 240);
         }
     }
 }

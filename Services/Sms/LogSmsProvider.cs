@@ -1,3 +1,4 @@
+using KingdomPrep.Shared.Models;
 using System;
 using System.IO;
 using System.Threading.Tasks;
@@ -19,7 +20,10 @@ namespace kingdom_Preparatory_School_Management_System.Services
                 File.AppendAllText(Path.Combine(dir, "sms.log"),
                     $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] [LOG_ONLY] From: {senderId} To: {recipient233} | Msg: {snippet}...\n");
             }
-            catch { }
+            catch (Exception ex)
+            {
+                LoggerHelper.LogWarning("Log-only SMS write failed: " + ex.Message);
+            }
             return Task.FromResult((true, $"SMS logged (sender {senderId}) for {recipient233}"));
         }
     }

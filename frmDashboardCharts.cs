@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Windows.Forms;
 using System.Windows.Forms.DataVisualization.Charting;
+using Guna.UI2.WinForms;
 using PdfSharp.Pdf;
 using PdfSharp.Drawing;
 using kingdom_Preparatory_School_Management_System.Common;
@@ -102,11 +103,12 @@ namespace kingdom_Preparatory_School_Management_System
         private void BuildUI()
         {
             SuspendLayout();
-            var root = new TableLayoutPanel { Dock = DockStyle.Fill, RowCount = 2, ColumnCount = 1, BackColor = PageBackColor, Padding = new Padding(24, 20, 24, 20) };
-            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 96));
-            root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+            var root = new TableLayoutPanel { Dock = DockStyle.Fill, RowCount = 3, ColumnCount = 1, BackColor = PageBackColor, Padding = new Padding(24, 20, 24, 20) };
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 105)); // Header height
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 16));  // Clean breathing gap between header and charts
+            root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));  // Chart scroll grid
             root.Controls.Add(BuildHeader(), 0, 0);
-            root.Controls.Add(BuildChartGrid(), 0, 1);
+            root.Controls.Add(BuildChartGrid(), 0, 2);
             Controls.Add(root);
             ResumeLayout(true);
         }
@@ -114,36 +116,44 @@ namespace kingdom_Preparatory_School_Management_System
         private Control BuildHeader()
         {
             var panel = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, BackColor = PageBackColor };
-            panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 65));
-            panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 35));
+            panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 45));
+            panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 55));
 
-            var titleBlock = new Panel { Dock = DockStyle.Fill, BackColor = PageBackColor };
-            titleBlock.Controls.Add(new Label { Dock = DockStyle.Top, Height = 40, Text = "Analytics Dashboard", ForeColor = TextColor, Font = new Font("Segoe UI Semibold", 22F, FontStyle.Bold), TextAlign = ContentAlignment.MiddleLeft });
-            titleBlock.Controls.Add(new Label { Dock = DockStyle.Bottom, Height = 26, Text = "Visual analytics for fees, enrollment, exam performance, and collection trends", ForeColor = MutedColor, Font = new Font("Segoe UI", 10F), TextAlign = ContentAlignment.MiddleLeft });
+            var titleBlock = new TableLayoutPanel { Dock = DockStyle.Fill, RowCount = 2, ColumnCount = 1, BackColor = PageBackColor };
+            titleBlock.RowStyles.Add(new RowStyle(SizeType.Absolute, 44));
+            titleBlock.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+            titleBlock.Controls.Add(new Label { Dock = DockStyle.Fill, Text = "Analytics Dashboard", ForeColor = TextColor, Font = new Font("Segoe UI Semibold", 22F, FontStyle.Bold), TextAlign = ContentAlignment.BottomLeft }, 0, 0);
+            titleBlock.Controls.Add(new Label { Dock = DockStyle.Fill, Text = "Visual analytics for fees, enrollment, exam performance, and collection trends", ForeColor = MutedColor, Font = new Font("Segoe UI", 10F), TextAlign = ContentAlignment.TopLeft, Padding = new Padding(0, 4, 0, 0) }, 0, 1);
 
-            var actions = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.RightToLeft, BackColor = PageBackColor, Padding = new Padding(0, 14, 0, 0) };
+            var rightContainer = new TableLayoutPanel { Dock = DockStyle.Fill, RowCount = 2, ColumnCount = 1, BackColor = PageBackColor };
+            rightContainer.RowStyles.Add(new RowStyle(SizeType.Absolute, 44));
+            rightContainer.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+
+            var actions = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.RightToLeft, BackColor = PageBackColor, WrapContents = false, Padding = new Padding(0, 4, 0, 0) };
             var refreshBtn = MakePrimaryButton("Refresh Charts");
             refreshBtn.Click += async (s, e) => await LoadAllCharts();
-            var exportBtn = MakeSecondaryButton("Export Image");
+            var exportBtn = MakeSecondaryButton("Export PDF", 100);
             exportBtn.Click += ExportBtn_Click;
-            var resultsBtn = MakeSecondaryButton("Exam Results");
+            var resultsBtn = MakeSecondaryButton("Exam Results", 106);
             resultsBtn.Click += (s, e) => new EXAMSVIEW().Show();
-            var entryBtn = MakeSecondaryButton("Enter Scores");
+            var entryBtn = MakeSecondaryButton("Enter Scores", 106);
             entryBtn.Click += (s, e) => new EXAMS().Show();
-            var dashboardBtn = MakeSecondaryButton("Dashboard");
+            var dashboardBtn = MakeSecondaryButton("Dashboard", 96);
             dashboardBtn.Click += (s, e) => { Close(); Common.FormManager.GoToDashboard(); };
-
-            statusLabel = new Label { AutoSize = false, Width = 220, Height = 36, ForeColor = MutedColor, Font = new Font("Segoe UI", 9F), TextAlign = ContentAlignment.MiddleRight, Margin = new Padding(0, 4, 8, 0) };
 
             actions.Controls.Add(refreshBtn);
             actions.Controls.Add(exportBtn);
             actions.Controls.Add(resultsBtn);
             actions.Controls.Add(entryBtn);
             actions.Controls.Add(dashboardBtn);
-            actions.Controls.Add(statusLabel);
+
+            statusLabel = new Label { Dock = DockStyle.Fill, Text = "Ready", ForeColor = MutedColor, Font = new Font("Segoe UI", 8.75F), TextAlign = ContentAlignment.TopRight, Padding = new Padding(0, 6, 4, 0) };
+
+            rightContainer.Controls.Add(actions, 0, 0);
+            rightContainer.Controls.Add(statusLabel, 0, 1);
 
             panel.Controls.Add(titleBlock, 0, 0);
-            panel.Controls.Add(actions, 1, 0);
+            panel.Controls.Add(rightContainer, 1, 0);
             return panel;
         }
 
@@ -208,10 +218,31 @@ namespace kingdom_Preparatory_School_Management_System
             return scrollHost;
         }
 
-        private Panel WrapInCard(string title, Chart chart)
+        private Control WrapInCard(string title, Chart chart)
         {
-            var card = new Panel { Dock = DockStyle.Fill, BackColor = SurfaceColor, BorderStyle = BorderStyle.FixedSingle, Margin = new Padding(0, 0, 10, 10), MinimumSize = new Size(100, 100) };
-            var titleLabel = new Label { Dock = DockStyle.Top, Height = 42, Padding = new Padding(16, 0, 0, 0), Text = title, ForeColor = TextColor, Font = new Font("Segoe UI Semibold", 11F, FontStyle.Bold), TextAlign = ContentAlignment.MiddleLeft, BackColor = SurfaceColor };
+            var card = new Guna2Panel
+            {
+                Dock        = DockStyle.Fill,
+                BackColor   = PageBackColor,
+                FillColor   = SurfaceColor,
+                BorderColor = BorderColor,
+                BorderThickness = 1,
+                BorderRadius = 8,
+                Margin      = new Padding(0, 0, 14, 14),
+                MinimumSize = new Size(100, 100),
+                ShadowDecoration = { Enabled = true, Color = Color.FromArgb(226, 232, 240), Depth = 6 }
+            };
+            var titleLabel = new Label
+            {
+                Dock      = DockStyle.Top,
+                Height    = 44,
+                Padding   = new Padding(18, 0, 0, 0),
+                Text      = title,
+                ForeColor = TextColor,
+                Font      = new Font("Segoe UI Semibold", 11F, FontStyle.Bold),
+                TextAlign = ContentAlignment.MiddleLeft,
+                BackColor = Color.Transparent
+            };
             chart.Dock = DockStyle.Fill;
             card.Controls.Add(chart);
             card.Controls.Add(titleLabel);
@@ -258,10 +289,10 @@ namespace kingdom_Preparatory_School_Management_System
             PdfDocument document = new PdfDocument();
             document.Info.Title = "Analytics Dashboard";
 
-            var cards = new System.Collections.Generic.List<Panel>();
+            var cards = new System.Collections.Generic.List<Control>();
             foreach (Control c in _chartGrid.Controls)
             {
-                if (c is Panel p) cards.Add(p);
+                if (c is Control) cards.Add(c);
             }
 
             int chartsPerPage = 2; // Landscape, 2 charts side by side
@@ -273,9 +304,9 @@ namespace kingdom_Preparatory_School_Management_System
             double topMargin = 80;
             double pageWidth = 842; // A4 Landscape
             double pageHeight = 595;
-            
+
             double chartWidth = (pageWidth - (margin * 3)) / 2;
-            double chartHeight = pageHeight - topMargin - margin;
+            double chartHeight = pageHeight - topMargin - margin - 24;
 
             XFont fontTitle = new XFont("Segoe UI", 18, XFontStyleEx.Bold);
             XFont fontDate = new XFont("Segoe UI", 10, XFontStyleEx.Regular);
@@ -292,6 +323,7 @@ namespace kingdom_Preparatory_School_Management_System
                     gfx.DrawString($"{Common.AppConfig.ProductName} - Analytics Dashboard", fontTitle, XBrushes.DarkBlue, new XRect(margin, margin, pageWidth - margin*2, 30), XStringFormats.TopLeft);
                     gfx.DrawString($"Generated on: {DateTime.Now:MMMM dd, yyyy h:mm tt}", fontDate, XBrushes.Gray, new XRect(margin, margin + 25, pageWidth - margin*2, 20), XStringFormats.TopLeft);
                     gfx.DrawLine(new XPen(XColors.LightGray, 1), margin, topMargin - 10, pageWidth - margin, topMargin - 10);
+                    Common.PrintBranding.DrawPdfFooter(gfx, pageWidth, pageHeight, margin);
                 }
 
                 using (Bitmap bmp = new Bitmap(card.Width, card.Height))
@@ -306,11 +338,11 @@ namespace kingdom_Preparatory_School_Management_System
                             int col = chartIndex % chartsPerPage;
                             double xPos = margin + (col * (chartWidth + margin));
                             double yPos = topMargin;
-                            
+
                             double ratioX = chartWidth / xImage.PixelWidth;
                             double ratioY = chartHeight / xImage.PixelHeight;
                             double ratio = Math.Min(ratioX, ratioY);
-                            
+
                             double drawWidth = xImage.PixelWidth * ratio;
                             double drawHeight = xImage.PixelHeight * ratio;
                             double yOffset = (chartHeight - drawHeight) / 2;
@@ -367,6 +399,20 @@ namespace kingdom_Preparatory_School_Management_System
         private void PopulateFeesChart(decimal collected, decimal outstanding)
         {
             chartFees.Series.Clear();
+            if (AuthService.CurrentUser.Role == AuthService.UserRole.Headmaster)
+            {
+                decimal total = collected + outstanding;
+                decimal pctC = total > 0 ? (collected / total) * 100m : 0m;
+                decimal pctO = total > 0 ? (outstanding / total) * 100m : 0m;
+                var serC = new Series("Collected") { ChartType = SeriesChartType.Bar, Color = GreenColor, IsValueShownAsLabel = true, LabelFormat = "0.00'%'", Font = new Font("Segoe UI", 8F) };
+                var serO = new Series("Outstanding") { ChartType = SeriesChartType.Bar, Color = RedColor, IsValueShownAsLabel = true, LabelFormat = "0.00'%'", Font = new Font("Segoe UI", 8F) };
+                serC.Points.AddXY("Fees", (double)pctC);
+                serO.Points.AddXY("Fees", (double)pctO);
+                chartFees.Series.Add(serC);
+                chartFees.Series.Add(serO);
+                chartFees.ChartAreas[0].AxisY.LabelStyle.Format = "0'%'";
+                return;
+            }
             var serCollected = new Series("Collected") { ChartType = SeriesChartType.Bar, Color = GreenColor, IsValueShownAsLabel = true, LabelFormat = "GHS #,##0.00", Font = new Font("Segoe UI", 8F) };
             var serOutstanding = new Series("Outstanding") { ChartType = SeriesChartType.Bar, Color = RedColor, IsValueShownAsLabel = true, LabelFormat = "GHS #,##0.00", Font = new Font("Segoe UI", 8F) };
             serCollected.Points.AddXY("Fees", (double)collected);
@@ -389,7 +435,7 @@ namespace kingdom_Preparatory_School_Management_System
         private void PopulateExamsChart(DataTable dt)
         {
             chartExams.Series.Clear();
-            var series = new Series("Avg Score") { ChartType = SeriesChartType.Column, Color = AmberColor, IsValueShownAsLabel = true, LabelFormat = "0.0", Font = new Font("Segoe UI", 8F) };
+            var series = new Series("Avg Score") { ChartType = SeriesChartType.Column, Color = AmberColor, IsValueShownAsLabel = true, LabelFormat = "0.00", Font = new Font("Segoe UI", 8F) };
             if (dt == null || dt.Rows.Count == 0) series.Points.AddXY("No data", 0);
             else foreach (DataRow row in dt.Rows)
             {
@@ -404,6 +450,12 @@ namespace kingdom_Preparatory_School_Management_System
         private void PopulateTrendChart(DataTable dt)
         {
             chartTrend.Series.Clear();
+            if (AuthService.CurrentUser.Role == AuthService.UserRole.Headmaster)
+            {
+                chartTrend.Titles.Clear();
+                chartTrend.Titles.Add("Restricted");
+                return;
+            }
             int year = DateTime.Now.Year;
             var series = new Series($"Collection {year}") { ChartType = SeriesChartType.Line, Color = PurpleColor, BorderWidth = 3, MarkerStyle = MarkerStyle.Circle, MarkerSize = 8, MarkerColor = PurpleColor, IsValueShownAsLabel = true, LabelFormat = "GHS #,##0", Font = new Font("Segoe UI", 8F) };
             string[] monthNames = { "Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec" };
@@ -422,7 +474,7 @@ namespace kingdom_Preparatory_School_Management_System
         {
             chartAttendance.Series.Clear();
             string[] monthNames = { "Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec" };
-            var series = new Series("Attendance %") { ChartType = SeriesChartType.Line, Color = GreenColor, BorderWidth = 3, MarkerStyle = MarkerStyle.Circle, MarkerSize = 8, MarkerColor = GreenColor, IsValueShownAsLabel = true, LabelFormat = "0.0", Font = new Font("Segoe UI", 8F) };
+            var series = new Series("Attendance %") { ChartType = SeriesChartType.Line, Color = GreenColor, BorderWidth = 3, MarkerStyle = MarkerStyle.Circle, MarkerSize = 8, MarkerColor = GreenColor, IsValueShownAsLabel = true, LabelFormat = "0.00", Font = new Font("Segoe UI", 8F) };
             var monthly = new double[13];
             if (dt != null)
             {
@@ -441,6 +493,12 @@ namespace kingdom_Preparatory_School_Management_System
         private void PopulateIncomeExpenseChart(DataTable dt)
         {
             chartIncomeExpense.Series.Clear();
+            if (AuthService.CurrentUser.Role == AuthService.UserRole.Headmaster)
+            {
+                chartIncomeExpense.Titles.Clear();
+                chartIncomeExpense.Titles.Add("Restricted");
+                return;
+            }
             string[] monthNames = { "Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec" };
             var income = new Series("Income") { ChartType = SeriesChartType.Column, Color = GreenColor, IsValueShownAsLabel = false, Font = new Font("Segoe UI", 8F) };
             var expense = new Series("Expenses") { ChartType = SeriesChartType.Column, Color = RedColor, IsValueShownAsLabel = false, Font = new Font("Segoe UI", 8F) };
@@ -525,7 +583,7 @@ namespace kingdom_Preparatory_School_Management_System
         private void PopulateAttendanceByClassChart(DataTable dt)
         {
             chartAttendanceByClass.Series.Clear();
-            var series = new Series("Attendance %") { ChartType = SeriesChartType.Bar, Color = GreenColor, IsValueShownAsLabel = true, LabelFormat = "0.0", Font = new Font("Segoe UI", 8F) };
+            var series = new Series("Attendance %") { ChartType = SeriesChartType.Bar, Color = GreenColor, IsValueShownAsLabel = true, LabelFormat = "0.00", Font = new Font("Segoe UI", 8F) };
             if (dt == null || dt.Rows.Count == 0) series.Points.AddXY("No data", 0);
             else foreach (DataRow row in dt.Rows)
             {
@@ -659,7 +717,7 @@ namespace kingdom_Preparatory_School_Management_System
         private void PopulateClassAvgChart(DataTable dt)
         {
             chartClassAvg.Series.Clear();
-            var series = new Series("Avg Score") { ChartType = SeriesChartType.Column, Color = PrimaryColor, IsValueShownAsLabel = true, LabelFormat = "0.0", Font = new Font("Segoe UI", 8F) };
+            var series = new Series("Avg Score") { ChartType = SeriesChartType.Column, Color = PrimaryColor, IsValueShownAsLabel = true, LabelFormat = "0.00", Font = new Font("Segoe UI", 8F) };
             if (dt == null || dt.Rows.Count == 0) series.Points.AddXY("No data", 0);
             else foreach (DataRow row in dt.Rows)
             {
@@ -703,7 +761,7 @@ namespace kingdom_Preparatory_School_Management_System
         private void PopulateTermPerfChart(DataTable dt)
         {
             chartTermPerf.Series.Clear();
-            var series = new Series("Avg Score") { ChartType = SeriesChartType.Line, Color = PurpleColor, BorderWidth = 3, MarkerStyle = MarkerStyle.Circle, MarkerSize = 8, MarkerColor = PurpleColor, IsValueShownAsLabel = true, LabelFormat = "0.0", Font = new Font("Segoe UI", 8F) };
+            var series = new Series("Avg Score") { ChartType = SeriesChartType.Line, Color = PurpleColor, BorderWidth = 3, MarkerStyle = MarkerStyle.Circle, MarkerSize = 8, MarkerColor = PurpleColor, IsValueShownAsLabel = true, LabelFormat = "0.00", Font = new Font("Segoe UI", 8F) };
             if (dt == null || dt.Rows.Count == 0)
             {
                 series.Points.AddXY("No data", 0);
@@ -809,15 +867,15 @@ namespace kingdom_Preparatory_School_Management_System
 
         private Button MakePrimaryButton(string text)
         {
-            var btn = new Button { Text = text, Height = 36, Width = 148, BackColor = PrimaryColor, ForeColor = Color.White, FlatStyle = FlatStyle.Flat, Font = new Font("Segoe UI Semibold", 9.5F, FontStyle.Bold), Cursor = Cursors.Hand, Margin = new Padding(0, 4, 0, 0) };
+            var btn = new Button { Text = text, Height = 36, Width = 135, BackColor = PrimaryColor, ForeColor = Color.White, FlatStyle = FlatStyle.Flat, Font = new Font("Segoe UI Semibold", 9F, FontStyle.Bold), Cursor = Cursors.Hand, Margin = new Padding(0, 2, 0, 0) };
             btn.FlatAppearance.BorderSize = 0;
             btn.FlatAppearance.MouseOverBackColor = Color.FromArgb(22, 78, 160);
             return btn;
         }
 
-        private Button MakeSecondaryButton(string text)
+        private Button MakeSecondaryButton(string text, int width = 104)
         {
-            var btn = new Button { Text = text, Height = 36, Width = 112, BackColor = SurfaceColor, ForeColor = TextColor, FlatStyle = FlatStyle.Flat, Font = new Font("Segoe UI Semibold", 9.25F, FontStyle.Bold), Cursor = Cursors.Hand, Margin = new Padding(8, 4, 0, 0) };
+            var btn = new Button { Text = text, Height = 36, Width = width, BackColor = SurfaceColor, ForeColor = TextColor, FlatStyle = FlatStyle.Flat, Font = new Font("Segoe UI Semibold", 9F, FontStyle.Bold), Cursor = Cursors.Hand, Margin = new Padding(6, 2, 0, 0) };
             btn.FlatAppearance.BorderColor = BorderColor;
             btn.FlatAppearance.MouseOverBackColor = UiTheme.GoldSoft;
             return btn;

@@ -1,3 +1,4 @@
+using KingdomPrep.Shared.Models;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -25,7 +26,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
             return await _repository.GetAllClassesTableAsync();
         }
 
-        public async Task<(bool Success, string Message)> SaveClassAsync(Models.ClassConfig config)
+        public async Task<(bool Success, string Message)> SaveClassAsync(KingdomPrep.Shared.Models.ClassConfig config)
         {
             try
             {
@@ -33,8 +34,8 @@ namespace kingdom_Preparatory_School_Management_System.Services
                 if (config.TuitionFee < 0) return (false, "Tuition fee cannot be negative.");
 
                 bool success = await _repository.SaveClassAsync(config);
-                return success 
-                    ? (true, "Class configuration saved successfully.") 
+                return success
+                    ? (true, "Class configuration saved successfully.")
                     : (false, "Failed to save class configuration.");
             }
             catch (Exception ex)
@@ -49,8 +50,8 @@ namespace kingdom_Preparatory_School_Management_System.Services
             {
                 if (string.IsNullOrWhiteSpace(className)) return (false, "Class name is required.");
                 bool success = await _repository.DeleteClassAsync(className);
-                return success 
-                    ? (true, "Class configuration deleted successfully.") 
+                return success
+                    ? (true, "Class configuration deleted successfully.")
                     : (false, "Failed to delete class configuration.");
             }
             catch (Exception ex)
@@ -59,7 +60,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
             }
         }
 
-        public async Task<Models.ClassConfig> GetClassAsync(string className)
+        public async Task<KingdomPrep.Shared.Models.ClassConfig> GetClassAsync(string className)
         {
             return await _repository.GetByClassNameAsync(className);
         }

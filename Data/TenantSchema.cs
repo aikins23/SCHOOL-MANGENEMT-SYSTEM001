@@ -1,5 +1,6 @@
+using KingdomPrep.Shared.Models;
 using System;
-using System.Data.OleDb;
+using Microsoft.Data.SqlClient;
 using System.Threading.Tasks;
 using kingdom_Preparatory_School_Management_System.Common;
 
@@ -38,7 +39,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
 
             try
             {
-                using (var c = new OleDbConnection(connectionString))
+                using (var c = new SqlConnection(SqlCommandExtensions.StripProvider(connectionString)))
                 {
                     await c.OpenAsync();
                     foreach (var table in TenantTables)
@@ -75,7 +76,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
             return info.SchoolId;
         }
 
-        private static async Task EnsureForTableAsync(OleDbConnection c, string table, Guid schoolId)
+        private static async Task EnsureForTableAsync(SqlConnection c, string table, Guid schoolId)
         {
             string safeTable = table.Replace("]", "]]").Replace("'", "''");
             string indexName = ("IX_" + table + "_SchoolId").Replace("]", "").Replace("[", "");
@@ -90,10 +91,10 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'{indexName}' AND object_id = OBJECT_ID(N'{safeTable}'))
         EXEC('CREATE INDEX [{indexName}] ON [{safeTable}](SchoolId)');
 END";
-            using (var cmd = new OleDbCommand(sql, c)) await cmd.ExecuteNonQueryAsync();
+            using (var cmd = new SqlCommand(sql, c)) await cmd.ExecuteNonQueryAsync();
         }
 
-        private static async Task EnsureTenantKeyIndexesAsync(OleDbConnection c)
+        private static async Task EnsureTenantKeyIndexesAsync(SqlConnection c)
         {
             string[] scripts =
             {
@@ -112,7 +113,7 @@ END";
             {
                 try
                 {
-                    using (var cmd = new OleDbCommand(sql, c)) await cmd.ExecuteNonQueryAsync();
+                    using (var cmd = new SqlCommand(sql, c)) await cmd.ExecuteNonQueryAsync();
                 }
                 catch (Exception ex)
                 {

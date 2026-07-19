@@ -1,6 +1,8 @@
 using System;
 using System.Drawing;
+using System.Globalization;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
 namespace kingdom_Preparatory_School_Management_System
@@ -9,17 +11,34 @@ namespace kingdom_Preparatory_School_Management_System
     {
         private static readonly Font BaseFont = new Font("Segoe UI", 9.25F, FontStyle.Regular);
         private static readonly Font ButtonFont = new Font("Segoe UI Semibold", 9.25F, FontStyle.Bold);
-        public static readonly Color Page = Color.FromArgb(247, 249, 252);
-        public static readonly Color Surface = Color.White;
-        public static readonly Color SurfaceAlt = Color.FromArgb(241, 245, 249);
-        public static readonly Color Border = Color.FromArgb(223, 230, 240);
-        public static readonly Color Text = Color.FromArgb(17, 24, 39);
-        public static readonly Color Muted = Color.FromArgb(96, 111, 128);
-        public static readonly Color Navy = Color.FromArgb(25, 25, 112);
-        public static readonly Color NavyHover = Color.FromArgb(29, 38, 130);
-        public static readonly Color Gold = Color.FromArgb(255, 215, 0);
-        public static readonly Color GoldSoft = Color.FromArgb(255, 248, 204);
-        public static readonly Color Success = Color.FromArgb(16, 185, 129);
+        private const int SB_BOTH = 3;
+        public static bool IsDarkMode { get; set; } = false;
+
+        [DllImport("user32.dll")]
+        private static extern bool ShowScrollBar(IntPtr hWnd, int wBar, bool bShow);
+
+        public static Color Page => IsDarkMode ? Color.FromArgb(15, 23, 42) : Color.FromArgb(244, 246, 248); // Soft Mist Grey
+        public static Color Surface => IsDarkMode ? Color.FromArgb(30, 41, 59) : Color.White;
+        public static Color SurfaceAlt => IsDarkMode ? Color.FromArgb(51, 65, 85) : Color.FromArgb(244, 246, 248);
+        public static Color Border => IsDarkMode ? Color.FromArgb(71, 85, 105) : Color.FromArgb(226, 232, 240); // Solid opaque light slate
+        public static Color Text => IsDarkMode ? Color.FromArgb(248, 250, 252) : Color.FromArgb(0, 24, 74); // Deep Navy
+        public static Color Muted => IsDarkMode ? Color.FromArgb(148, 163, 184) : Color.FromArgb(153, 0, 24, 74); // 60% Navy
+        public static Color Navy => IsDarkMode ? Color.FromArgb(30, 41, 59) : Color.FromArgb(0, 24, 74); // Deep Navy
+        public static Color NavyHover => IsDarkMode ? Color.FromArgb(51, 65, 85) : Color.FromArgb(0, 16, 51); // Darkened Navy
+        public static Color NavyDark => IsDarkMode ? Color.FromArgb(15, 23, 42) : Color.FromArgb(0, 8, 26);
+        public static Color NavySoft => IsDarkMode ? Color.FromArgb(51, 65, 85) : Color.FromArgb(0, 24, 74);
+        public static Color Gold => IsDarkMode ? Color.FromArgb(250, 204, 21) : Color.FromArgb(210, 151, 35); // Rich Gold
+        public static Color GoldSoft => IsDarkMode ? Color.FromArgb(113, 63, 18) : Color.FromArgb(210, 151, 35);
+        public static Color Ink => IsDarkMode ? Color.FromArgb(248, 250, 252) : Color.FromArgb(0, 24, 74);
+        public static Color MutedInk => IsDarkMode ? Color.FromArgb(148, 163, 184) : Color.FromArgb(153, 0, 24, 74);
+        public static Color Success => IsDarkMode ? Color.FromArgb(16, 185, 129) : Color.FromArgb(16, 185, 129);
+        public static Color Danger => IsDarkMode ? Color.FromArgb(244, 63, 94) : Color.FromArgb(225, 29, 72);
+        public static Color SuccessSoft => IsDarkMode ? Color.FromArgb(6, 78, 59) : Color.FromArgb(236, 253, 245);
+        public static Color SuccessText => IsDarkMode ? Color.FromArgb(52, 211, 153) : Color.FromArgb(6, 95, 70);
+        public static Color DangerSoft => IsDarkMode ? Color.FromArgb(136, 19, 55) : Color.FromArgb(255, 241, 242);
+        public static Color WarningText => IsDarkMode ? Color.FromArgb(251, 191, 36) : Color.FromArgb(146, 64, 14);
+        public static Color DisabledBack => IsDarkMode ? Color.FromArgb(51, 65, 85) : Color.FromArgb(226, 232, 240);
+        public static Color DisabledText => IsDarkMode ? Color.FromArgb(148, 163, 184) : Color.FromArgb(100, 116, 139);
 
         public static void Apply(Form form)
         {
@@ -28,13 +47,13 @@ namespace kingdom_Preparatory_School_Management_System
             form.BackColor = Page;
             form.Font = BaseFont;
             form.Icon = Common.Branding.AppIcon;
-            
+
             // Ensure responsive min size unless specifically small (dialogs)
             if (form.FormBorderStyle != FormBorderStyle.FixedDialog && form.MaximizeBox)
             {
                 form.MinimumSize = new Size(Math.Max(form.MinimumSize.Width, 1000), Math.Max(form.MinimumSize.Height, 650));
             }
-            
+
             ApplyToControls(form.Controls, false);
         }
 
@@ -80,10 +99,16 @@ namespace kingdom_Preparatory_School_Management_System
                 else if (control is DataGridView grid)
                 {
                     StyleGrid(grid, false);
+                    AttachGunaScrollbar(grid, navigationArea);
                 }
                 else if (control is MenuStrip menu)
                 {
                     StyleMenu(menu);
+                }
+
+                if ((control is Panel || control is FlowLayoutPanel || control is TableLayoutPanel) && ((ScrollableControl)control).AutoScroll)
+                {
+                    AttachGunaScrollbar(control, navigationArea);
                 }
 
                 if (control.HasChildren)
@@ -118,14 +143,14 @@ namespace kingdom_Preparatory_School_Management_System
             grid.GridColor = Border;
             grid.RowHeadersVisible = false;
             grid.AutoSizeColumnsMode = fillColumns ? DataGridViewAutoSizeColumnsMode.Fill : DataGridViewAutoSizeColumnsMode.DisplayedCells;
-            grid.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.None;
+            grid.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.DisplayedCellsExceptHeaders;
             grid.AllowUserToResizeColumns = true;
-            grid.AllowUserToResizeRows = false;
+            grid.AllowUserToResizeRows = true;
             grid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             grid.MultiSelect = false;
-            grid.ScrollBars = ScrollBars.Both;
+            grid.ScrollBars = fillColumns ? ScrollBars.Vertical : ScrollBars.Both;
             grid.ColumnHeadersHeight = 40;
-            grid.RowTemplate.Height = 32;
+            grid.RowTemplate.Height = 38;
             grid.ClipboardCopyMode = DataGridViewClipboardCopyMode.EnableAlwaysIncludeHeaderText;
             grid.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal;
             grid.ColumnHeadersDefaultCellStyle.BackColor = Navy;
@@ -137,13 +162,60 @@ namespace kingdom_Preparatory_School_Management_System
             grid.DefaultCellStyle.BackColor = Surface;
             grid.DefaultCellStyle.ForeColor = Text;
             grid.DefaultCellStyle.Font = BaseFont;
-            grid.DefaultCellStyle.Padding = new Padding(8, 0, 8, 0);
+            grid.DefaultCellStyle.Padding = new Padding(8, 4, 8, 4);
             grid.DefaultCellStyle.SelectionBackColor = GoldSoft;
             grid.DefaultCellStyle.SelectionForeColor = Text;
-            grid.DefaultCellStyle.WrapMode = DataGridViewTriState.False;
+            grid.DefaultCellStyle.WrapMode = DataGridViewTriState.True;
+            grid.RowsDefaultCellStyle.WrapMode = DataGridViewTriState.True;
             grid.AlternatingRowsDefaultCellStyle.BackColor = SurfaceAlt;
+            grid.CellFormatting -= Grid_TwoDecimalCellFormatting;
+            grid.CellFormatting += Grid_TwoDecimalCellFormatting;
             grid.DataBindingComplete -= Grid_DataBindingComplete;
             grid.DataBindingComplete += Grid_DataBindingComplete;
+        }
+
+        private static void Grid_TwoDecimalCellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
+        {
+            if (e.RowIndex < 0 || e.Value == null || e.Value == DBNull.Value)
+            {
+                return;
+            }
+
+            var grid = sender as DataGridView;
+            if (grid == null || e.ColumnIndex < 0 || e.ColumnIndex >= grid.Columns.Count)
+            {
+                return;
+            }
+
+            if (!ShouldFormatAsDecimal(grid.Columns[e.ColumnIndex].Name, grid.Columns[e.ColumnIndex].HeaderText))
+            {
+                return;
+            }
+
+            decimal value;
+            if (decimal.TryParse(Convert.ToString(e.Value), NumberStyles.Any, CultureInfo.CurrentCulture, out value)
+                || decimal.TryParse(Convert.ToString(e.Value), NumberStyles.Any, CultureInfo.InvariantCulture, out value))
+            {
+                e.Value = value.ToString("0.00", CultureInfo.CurrentCulture);
+                e.FormattingApplied = true;
+            }
+        }
+
+        private static bool ShouldFormatAsDecimal(string columnName, string headerText)
+        {
+            string key = ((columnName ?? "") + " " + (headerText ?? "")).ToUpperInvariant();
+            if (key.Contains("ID") || key.Contains("YEAR") || key.Contains("DATE")
+                || key.Contains("PHONE") || key.Contains("CONTACT") || key.Contains("COUNT")
+                || key.Contains("RANK") || key.Contains("POSITION") || key.Contains("ORDER"))
+            {
+                return false;
+            }
+
+            return key.Contains("AMOUNT") || key.Contains("BALANCE") || key.Contains("PAID")
+                || key.Contains("FEE") || key.Contains("TOTAL") || key.Contains("SCORE")
+                || key.Contains("AVERAGE") || key.Contains("PERCENT") || key.Contains("EXPENSE")
+                || key.Contains("INCOME") || key.Contains("FUND") || key.Contains("SALARY")
+                || key.Contains("WEIGHT");
         }
 
         private static void Grid_DataBindingComplete(object sender, DataGridViewBindingCompleteEventArgs e)
@@ -152,6 +224,11 @@ namespace kingdom_Preparatory_School_Management_System
             {
                 try
                 {
+                    if (grid.AutoSizeColumnsMode == DataGridViewAutoSizeColumnsMode.Fill)
+                    {
+                        return;
+                    }
+
                     grid.AutoResizeColumns(DataGridViewAutoSizeColumnsMode.DisplayedCells);
                     foreach (DataGridViewColumn column in grid.Columns)
                     {
@@ -234,6 +311,106 @@ namespace kingdom_Preparatory_School_Management_System
             {
                 // Some third-party controls expose read-only style objects.
             }
+        }
+
+        public static void AttachModernScrollbar(Control target, bool isNavigationArea = false)
+        {
+            AttachGunaScrollbar(target, isNavigationArea);
+        }
+
+        public static void HideNativeScrollbarsFor(Control target)
+        {
+            KeepNativeScrollbarsHidden(target);
+        }
+
+        private static void AttachGunaScrollbar(Control target, bool isNavigationArea)
+        {
+            if (target == null || target.Parent == null) return;
+
+            // Check if one already exists for this target
+            foreach (Control c in target.Parent.Controls)
+            {
+                if (c.GetType().Name == "Guna2VScrollBar" && c.Tag == target)
+                {
+                    return;
+                }
+            }
+
+            try
+            {
+                var scrollbar = new Guna.UI2.WinForms.Guna2VScrollBar
+                {
+                    Tag = target,
+                    Dock = DockStyle.Right,
+                    Width = 1,
+                    FillColor = Color.Transparent,
+                    ThumbColor = Color.Transparent,
+                    BorderRadius = 4,
+                    ThumbSize = 1f
+                };
+
+                target.Parent.Controls.Add(scrollbar);
+                scrollbar.BringToFront();
+                KeepNativeScrollbarsHidden(target);
+
+                if (target is DataGridView grid)
+                {
+                    var helper = new Guna.UI2.WinForms.Helpers.DataGridViewScrollHelper(grid, scrollbar, true);
+                    helper.UpdateScrollBar();
+                }
+                else if (target is Panel panel)
+                {
+                    var helper = new Guna.UI2.WinForms.Helpers.PanelScrollHelper(panel, scrollbar, true);
+                    helper.UpdateScrollBar();
+                }
+            }
+            catch { }
+        }
+
+        private static void KeepNativeScrollbarsHidden(Control target)
+        {
+            HideNativeScrollbars(target);
+
+            target.HandleCreated += (sender, args) => HideNativeScrollbars(target);
+            target.Resize += (sender, args) => HideNativeScrollbars(target);
+            target.VisibleChanged += (sender, args) => HideNativeScrollbars(target);
+
+            if (target is ScrollableControl scrollable)
+            {
+                scrollable.Scroll += (sender, args) => HideNativeScrollbars(target);
+            }
+
+            if (target is DataGridView grid)
+            {
+                grid.Scroll += (sender, args) => HideNativeScrollbars(target);
+                grid.DataBindingComplete += (sender, args) => HideNativeScrollbars(target);
+            }
+        }
+
+        private static void HideNativeScrollbars(Control target)
+        {
+            if (target == null || target.IsDisposed)
+            {
+                return;
+            }
+
+            if (!target.IsHandleCreated)
+            {
+                return;
+            }
+
+            try
+            {
+                ShowScrollBar(target.Handle, SB_BOTH, false);
+                target.BeginInvoke((MethodInvoker)(() =>
+                {
+                    if (!target.IsDisposed && target.IsHandleCreated)
+                    {
+                        ShowScrollBar(target.Handle, SB_BOTH, false);
+                    }
+                }));
+            }
+            catch { }
         }
     }
 }

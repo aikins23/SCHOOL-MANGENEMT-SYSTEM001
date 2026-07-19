@@ -1,4 +1,6 @@
+using KingdomPrep.Shared.Models;
 using System;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
@@ -15,7 +17,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
         /// <summary>
         /// Sends PDF to physical printer (default or specified)
         /// </summary>
-        public async Task PrintToPrinterAsync(byte[] pdfBytes, string printerName = null)
+        public async Task<string> PrintToPrinterAsync(byte[] pdfBytes, string printerName = null)
         {
             try
             {
@@ -41,6 +43,14 @@ namespace kingdom_Preparatory_School_Management_System.Services
 
                     // Wait a bit for print to queue, then delete temp file
                     await Task.Delay(1000);
+                    return null;
+                }
+                catch (Exception ex) when (IsPdfShellPrintFailure(ex))
+                {
+                    var fallbackPath = GetFallbackReportPath();
+                    File.Copy(tempPath, fallbackPath, overwrite: true);
+                    LoggerHelper.LogWarning($"Windows could not print the PDF automatically; saved report card to '{fallbackPath}'. {ex.Message}");
+                    return fallbackPath;
                 }
                 finally
                 {
@@ -107,6 +117,21 @@ namespace kingdom_Preparatory_School_Management_System.Services
                 if (!File.Exists(candidate)) return candidate;
             }
             return Path.Combine(dir, $"{name}_{DateTime.Now:yyyyMMdd_HHmmss}{ext}");
+        }
+
+        private static string GetFallbackReportPath()
+        {
+            var documents = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+            var folder = Path.Combine(string.IsNullOrWhiteSpace(documents) ? Path.GetTempPath() : documents, "Nyansapo Report Cards");
+            Directory.CreateDirectory(folder);
+            return GetUniquePath(Path.Combine(folder, $"ReportCard_{DateTime.Now:yyyyMMdd_HHmmss}.pdf"));
+        }
+
+        private static bool IsPdfShellPrintFailure(Exception ex)
+        {
+            if (ex is Win32Exception win32 && (win32.NativeErrorCode == 1155 || win32.NativeErrorCode == 31))
+                return true;
+            return ex != null && ex.Message.IndexOf("No application is associated", StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
         /// <summary>

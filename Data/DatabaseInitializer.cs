@@ -1,7 +1,8 @@
+using KingdomPrep.Shared.Models;
 using System;
 using System.Collections.Generic;
 using System.Data;
-using System.Data.OleDb;
+using Microsoft.Data.SqlClient;
 using System.Threading.Tasks;
 using kingdom_Preparatory_School_Management_System.Common;
 
@@ -13,7 +14,7 @@ namespace kingdom_Preparatory_School_Management_System.Data
         {
             try
             {
-                using (var connection = new OleDbConnection(AppConfig.ConnectionString))
+                using (var connection = new SqlConnection(SqlCommandExtensions.StripProvider(AppConfig.ConnectionString)))
                 {
                     await connection.OpenAsync();
 
@@ -28,10 +29,10 @@ END
 IF OBJECT_ID(N'Students', N'U') IS NOT NULL
 BEGIN
     -- Only alter if it's currently a 'MAX' or large type that prevents indexing
-    IF EXISTS (SELECT 1 FROM sys.columns c 
+    IF EXISTS (SELECT 1 FROM sys.columns c
                JOIN sys.types t ON c.user_type_id = t.user_type_id
-               WHERE c.object_id = OBJECT_ID(N'Students') 
-               AND c.name = 'ClassID' 
+               WHERE c.object_id = OBJECT_ID(N'Students')
+               AND c.name = 'ClassID'
                AND (t.name = 'text' OR (t.name = 'nvarchar' AND c.max_length = -1)))
     BEGIN
         ALTER TABLE [Students] ALTER COLUMN [ClassID] NVARCHAR(50);
@@ -104,10 +105,10 @@ IF OBJECT_ID(N'Rolled_Out_Students', N'U') IS NULL
 BEGIN
     CREATE TABLE Rolled_Out_Students (
         StudentID varchar(50) NOT NULL PRIMARY KEY,
-        FirstName varchar(50), LastName varchar(50), DOB date, Gender varchar(20), 
-        Email varchar(100), ClassID varchar(50), HomeTown varchar(100), Residence varchar(100), 
-        Allegies varchar(200), EmergencyConatct varchar(50), GuidanceName varchar(100), 
-        GuidianceEmail varchar(100), Guidiance_Location varchar(100), admission_date date, 
+        FirstName varchar(50), LastName varchar(50), DOB date, Gender varchar(20),
+        Email varchar(100), ClassID varchar(50), HomeTown varchar(100), Residence varchar(100),
+        Allegies varchar(200), EmergencyConatct varchar(50), GuidanceName varchar(100),
+        GuidianceEmail varchar(100), Guidiance_Location varchar(100), admission_date date,
         [date] date NOT NULL DEFAULT GETDATE(), Std_pic varbinary(max)
     );
 END
@@ -116,10 +117,10 @@ IF OBJECT_ID(N'Rolled_Out_Employees', N'U') IS NULL
 BEGIN
     CREATE TABLE Rolled_Out_Employees (
         employmentID int NOT NULL PRIMARY KEY,
-        fullName varchar(120), gender varchar(20), DOB date, 
-        homeTown varchar(100), residence varchar(100), 
-        position varchar(100), department varchar(100), 
-        mobile varchar(50), email varchar(100), 
+        fullName varchar(120), gender varchar(20), DOB date,
+        homeTown varchar(100), residence varchar(100),
+        position varchar(100), department varchar(100),
+        mobile varchar(50), email varchar(100),
         [date] date NOT NULL DEFAULT GETDATE()
     );
 END
@@ -157,10 +158,19 @@ BEGIN
         IsBreak bit NOT NULL DEFAULT 0,
         SortOrder int NOT NULL DEFAULT 1
     );
-    -- Seed default periods
-    INSERT INTO TimePeriods (PeriodName, StartTime, EndTime, IsBreak, SortOrder) VALUES ('Period 1', '08:00:00', '08:40:00', 0, 1);
-    INSERT INTO TimePeriods (PeriodName, StartTime, EndTime, IsBreak, SortOrder) VALUES ('Period 2', '08:40:00', '09:20:00', 0, 2);
-    INSERT INTO TimePeriods (PeriodName, StartTime, EndTime, IsBreak, SortOrder) VALUES ('Break', '09:20:00', '09:50:00', 1, 3);
+    -- Seed the common Ghanaian basic-school day structure used by the timetable wall chart.
+    INSERT INTO TimePeriods (PeriodName, StartTime, EndTime, IsBreak, SortOrder) VALUES ('Silence Hour', '07:15:00', '07:45:00', 1, 1);
+    INSERT INTO TimePeriods (PeriodName, StartTime, EndTime, IsBreak, SortOrder) VALUES ('Assembly / Registration', '07:45:00', '08:00:00', 1, 2);
+    INSERT INTO TimePeriods (PeriodName, StartTime, EndTime, IsBreak, SortOrder) VALUES ('Period 1', '08:00:00', '09:00:00', 0, 3);
+    INSERT INTO TimePeriods (PeriodName, StartTime, EndTime, IsBreak, SortOrder) VALUES ('Period 2', '09:00:00', '10:00:00', 0, 4);
+    INSERT INTO TimePeriods (PeriodName, StartTime, EndTime, IsBreak, SortOrder) VALUES ('First Break', '10:00:00', '10:30:00', 1, 5);
+    INSERT INTO TimePeriods (PeriodName, StartTime, EndTime, IsBreak, SortOrder) VALUES ('Period 3', '10:30:00', '11:30:00', 0, 6);
+    INSERT INTO TimePeriods (PeriodName, StartTime, EndTime, IsBreak, SortOrder) VALUES ('Period 4', '11:30:00', '12:30:00', 0, 7);
+    INSERT INTO TimePeriods (PeriodName, StartTime, EndTime, IsBreak, SortOrder) VALUES ('Lunch Time', '12:30:00', '13:00:00', 1, 8);
+    INSERT INTO TimePeriods (PeriodName, StartTime, EndTime, IsBreak, SortOrder) VALUES ('Period 5', '13:00:00', '13:45:00', 0, 9);
+    INSERT INTO TimePeriods (PeriodName, StartTime, EndTime, IsBreak, SortOrder) VALUES ('Second Break', '13:45:00', '14:00:00', 1, 10);
+    INSERT INTO TimePeriods (PeriodName, StartTime, EndTime, IsBreak, SortOrder) VALUES ('Period 6', '14:00:00', '14:45:00', 0, 11);
+    INSERT INTO TimePeriods (PeriodName, StartTime, EndTime, IsBreak, SortOrder) VALUES ('Closing', '14:45:00', '15:00:00', 1, 12);
 END
 
 IF OBJECT_ID(N'SubjectAllocations', N'U') IS NULL
@@ -216,7 +226,7 @@ BEGIN
         ALTER TABLE StudentScholarships ADD ApprovalStatus varchar(20) NOT NULL DEFAULT 'Pending';
     END
 END";
-                    using (var cmd = new OleDbCommand(sql, connection))
+                    using (var cmd = new SqlCommand(sql, connection))
                     {
                         await cmd.ExecuteNonQueryAsync();
                     }

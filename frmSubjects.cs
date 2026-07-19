@@ -17,6 +17,7 @@ namespace kingdom_Preparatory_School_Management_System
     public class frmSubjects : Form
     {
         private readonly SubjectRepository _repo = new SubjectRepository(AppConfig.ConnectionString);
+        private bool CanManageSubjects => AuthService.CanWrite("Settings.Subjects.Manage");
         private ListBox _classList, _subjectList;
         private TextBox _newSubject;
         private Button _addBtn, _removeBtn, _upBtn, _downBtn, _saveBtn, _cancelBtn;
@@ -61,7 +62,11 @@ namespace kingdom_Preparatory_School_Management_System
             _status = new Label { Left = 16, Top = 470, Width = 200, Height = 36, ForeColor = AppConfig.Colors.MutedTextColor };
 
             _addBtn.Click += (s, e) => AddSubject();
-            _removeBtn.Click += (s, e) => { if (_subjectList.SelectedIndex >= 0) { _subjectList.Items.RemoveAt(_subjectList.SelectedIndex); _dirty = true; } };
+            _removeBtn.Click += (s, e) =>
+            {
+                if (!AuthService.RequireWriteAccess("Settings.Subjects.Manage", "Remove subject")) return;
+                if (_subjectList.SelectedIndex >= 0) { _subjectList.Items.RemoveAt(_subjectList.SelectedIndex); _dirty = true; }
+            };
             _upBtn.Click += (s, e) => MoveSelected(-1);
             _downBtn.Click += (s, e) => MoveSelected(1);
             _saveBtn.Click += async (s, e) => await SaveAsync();
@@ -71,6 +76,7 @@ namespace kingdom_Preparatory_School_Management_System
             Controls.Add(_addBtn); Controls.Add(_upBtn); Controls.Add(_downBtn); Controls.Add(_removeBtn);
             Controls.Add(_saveBtn); Controls.Add(_cancelBtn); Controls.Add(_status);
             Controls.Add(title);
+            ApplyWriteAccess();
         }
 
         private async Task InitAsync()
@@ -78,8 +84,10 @@ namespace kingdom_Preparatory_School_Management_System
             try
             {
                 await _repo.EnsureTableAsync();
+                var dynamicClasses = await new SchoolInfoRepository(AppConfig.ConnectionString).GetClassNamesAsync();
+                if (dynamicClasses.Count == 0) dynamicClasses.AddRange(AppConfig.ClassNames);
                 _classList.Items.Clear();
-                foreach (var cls in AppConfig.ClassNames) _classList.Items.Add(cls);
+                foreach (var cls in dynamicClasses) _classList.Items.Add(cls);
                 if (_classList.Items.Count > 0) _classList.SelectedIndex = 0;
             }
             catch (Exception ex)
@@ -105,7 +113,8 @@ namespace kingdom_Preparatory_School_Management_System
             try
             {
                 var subs = await _repo.GetSubjectsForClassAsync(_currentClass);
-                if (subs.Count == 0) subs = new List<string>(SubjectCatalog.LegacySubjects);
+                if (subs.Count == 0 || SubjectCatalog.IsLegacyDefaultList(subs))
+                    subs = new List<string>(SubjectCatalog.StandardSubjectsForClass(_currentClass));
                 _subjectList.Items.Clear();
                 foreach (var s in subs) _subjectList.Items.Add(s);
             }
@@ -117,6 +126,7 @@ namespace kingdom_Preparatory_School_Management_System
 
         private void AddSubject()
         {
+            if (!AuthService.RequireWriteAccess("Settings.Subjects.Manage", "Add subject")) return;
             string s = (_newSubject.Text ?? "").Trim();
             if (s.Length == 0) return;
             if (_subjectList.Items.Cast<object>().Any(x => string.Equals(x.ToString(), s, StringComparison.OrdinalIgnoreCase)))
@@ -128,6 +138,7 @@ namespace kingdom_Preparatory_School_Management_System
 
         private void MoveSelected(int delta)
         {
+            if (!AuthService.RequireWriteAccess("Settings.Subjects.Manage", "Reorder subjects")) return;
             int i = _subjectList.SelectedIndex;
             if (i < 0) return;
             int j = i + delta;
@@ -141,6 +152,7 @@ namespace kingdom_Preparatory_School_Management_System
 
         private async Task SaveAsync()
         {
+            if (!AuthService.RequireWriteAccess("Settings.Subjects.Manage", "Save subjects")) return;
             if (_currentClass == null) return;
             var subs = _subjectList.Items.Cast<object>().Select(x => x.ToString().Trim())
                                    .Where(x => x.Length > 0).ToList();
@@ -161,6 +173,18 @@ namespace kingdom_Preparatory_School_Management_System
                 UIHelper.ShowError("Could not save: " + ex.Message, "Subjects");
             }
             finally { _saveBtn.Enabled = true; }
+        }
+
+        private void ApplyWriteAccess()
+        {
+            bool canWrite = CanManageSubjects;
+            _newSubject.ReadOnly = !canWrite;
+            _addBtn.Enabled = canWrite;
+            _removeBtn.Enabled = canWrite;
+            _upBtn.Enabled = canWrite;
+            _downBtn.Enabled = canWrite;
+            _saveBtn.Enabled = canWrite;
+            _saveBtn.Text = canWrite ? "Save Class" : "Read only";
         }
     }
 }

@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace kingdom_Preparatory_School_Management_System.Common
@@ -54,6 +56,60 @@ namespace kingdom_Preparatory_School_Management_System.Common
                 {
                     ClearFormErrors(control);
                 }
+            }
+        }
+
+        public static async Task RunBusyAsync(
+            Form owner,
+            Label statusLabel,
+            string busyText,
+            IEnumerable<Control> controlsToDisable,
+            Func<Task> action,
+            string completedText = null)
+        {
+            if (owner == null) throw new ArgumentNullException(nameof(owner));
+            if (action == null) throw new ArgumentNullException(nameof(action));
+
+            var previousCursor = owner.Cursor;
+            var previousStatus = statusLabel == null ? null : statusLabel.Text;
+            var disabled = new List<Control>();
+
+            try
+            {
+                owner.UseWaitCursor = true;
+                owner.Cursor = Cursors.WaitCursor;
+                Cursor.Current = Cursors.WaitCursor;
+
+                if (statusLabel != null && !string.IsNullOrWhiteSpace(busyText))
+                    statusLabel.Text = busyText;
+
+                if (controlsToDisable != null)
+                {
+                    foreach (var control in controlsToDisable)
+                    {
+                        if (control == null || !control.Enabled) continue;
+                        control.Enabled = false;
+                        disabled.Add(control);
+                    }
+                }
+
+                await action();
+
+                if (statusLabel != null && !string.IsNullOrWhiteSpace(completedText))
+                    statusLabel.Text = completedText;
+            }
+            finally
+            {
+                foreach (var control in disabled)
+                    if (control != null && !control.IsDisposed)
+                        control.Enabled = true;
+
+                if (statusLabel != null && string.IsNullOrWhiteSpace(completedText) && previousStatus != null)
+                    statusLabel.Text = previousStatus;
+
+                owner.UseWaitCursor = false;
+                owner.Cursor = previousCursor;
+                Cursor.Current = Cursors.Default;
             }
         }
     }

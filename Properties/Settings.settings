@@ -5,10 +5,10 @@
     <Setting Name="ConnectionString" Type="(Connection string)" Scope="Application">
       <DesignTimeValue Profile="(Default)">&lt;?xml version="1.0" encoding="utf-16"?&gt;
 &lt;SerializableConnectionString xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"&gt;
-  &lt;ConnectionString&gt;Provider=MSOLEDBSQL;Data Source=(localdb)\MSSQLLocalDB;Integrated Security=SSPI;Initial Catalog=Neat_Academy;Encrypt=False&lt;/ConnectionString&gt;
-  &lt;ProviderName&gt;System.Data.OleDb&lt;/ProviderName&gt;
+  &lt;ConnectionString&gt;Data Source=localhost;Initial Catalog=Neat_Academy;Integrated Security=True;Encrypt=True;TrustServerCertificate=False;Connect Timeout=8&lt;/ConnectionString&gt;
+  &lt;ProviderName&gt;Microsoft.Data.SqlClient&lt;/ProviderName&gt;
 &lt;/SerializableConnectionString&gt;</DesignTimeValue>
-      <Value Profile="(Default)">Provider=MSOLEDBSQL;Data Source=(localdb)\MSSQLLocalDB;Integrated Security=SSPI;Initial Catalog=Neat_Academy;Encrypt=False</Value>
+      <Value Profile="(Default)">Data Source=localhost;Initial Catalog=Neat_Academy;Integrated Security=True;Encrypt=True;TrustServerCertificate=False;Connect Timeout=8</Value>
     </Setting>
     <Setting Name="SmtpServer" Type="System.String" Scope="Application">
       <Value Profile="(Default)">smtp.gmail.com</Value>
@@ -45,6 +45,12 @@
     </Setting>
     <Setting Name="SmsSchoolAbbreviation" Type="System.String" Scope="User">
       <Value Profile="(Default)">KPS</Value>
+    </Setting>
+    <Setting Name="SyncEndpointBaseUrl" Type="System.String" Scope="User">
+      <Value Profile="(Default)"></Value>
+    </Setting>
+    <Setting Name="SyncApiKey" Type="System.String" Scope="User">
+      <Value Profile="(Default)"></Value>
     </Setting>
     <Setting Name="HrNotifyEmail" Type="System.String" Scope="User">
       <Value Profile="(Default)"></Value>

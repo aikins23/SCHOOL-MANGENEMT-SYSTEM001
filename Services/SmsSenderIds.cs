@@ -1,3 +1,4 @@
+using KingdomPrep.Shared.Models;
 using System;
 using kingdom_Preparatory_School_Management_System.Common;
 
@@ -11,6 +12,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
     {
         public const string StudentSuffix  = "STDADM";
         public const string EmployeeSuffix = "EMPADM";
+        public const string NoticeSuffix   = "NOTICE";
         // Trailing dot matches the sender ID approved on BulkSMSGh ("NSFEES.").
         // NOTE: Arkesel approved "NSFEES" (no dot) — fee SMS via Arkesel will need
         // that ID re-approved as "NSFEES." (or make this provider-specific).
@@ -31,6 +33,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
 
         public static string StudentAdmission  => Build(AppConfig.Sms.SchoolAbbreviation, StudentSuffix);
         public static string EmployeeAdmission => Build(AppConfig.Sms.SchoolAbbreviation, EmployeeSuffix);
+        public static string Notice            => Build(AppConfig.Sms.SchoolAbbreviation, NoticeSuffix);
         public static string FeeReminder       => Build(AppConfig.Sms.SchoolAbbreviation, FeeSuffix);
     }
 }

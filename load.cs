@@ -326,6 +326,7 @@ namespace kingdom_Preparatory_School_Management_System
 
         private void OnSplashLoad(object sender, EventArgs e)
         {
+            Services.LoggerHelper.LogWarning("load.OnSplashLoad started");
             _ = InitializeDatabaseAsync();
             FadeIn(StartProgressAnimation);
         }
@@ -374,6 +375,7 @@ namespace kingdom_Preparatory_School_Management_System
 
                 if (tick >= TotalTicks && _isDbInitialized)
                 {
+                    Services.LoggerHelper.LogWarning("StartProgressAnimation complete, calling FadeOut");
                     _progressTimer.Stop();
                     _progressTimer.Dispose();
                     FadeOut(LaunchLogin);
@@ -401,10 +403,44 @@ namespace kingdom_Preparatory_School_Management_System
             timer.Start();
         }
 
-        private void LaunchLogin()
+        private async void LaunchLogin()
         {
-            new frmlogin().Show();
-            Close();
+            try
+            {
+                Services.LoggerHelper.LogWarning("LaunchLogin started");
+                bool preview = Array.IndexOf(Environment.GetCommandLineArgs(), "--preview-first-run") >= 0;
+                bool firstRun = preview || await frmFirstRunSetup.ShouldShowAsync();
+
+                if (firstRun)
+                {
+                    var setup = new frmFirstRunSetup(preview);
+                    setup.FormClosed += (s, e) => {
+                        var login = new frmlogin();
+                        login.Show();
+                        login.Activate();
+                    };
+                    setup.Show();
+                    setup.Activate();
+                }
+                else
+                {
+                    Services.LoggerHelper.LogWarning("Showing frmlogin");
+                    var login = new frmlogin();
+                    login.Show();
+                    login.Activate();
+                    login.BringToFront();
+                }
+
+                Services.LoggerHelper.LogWarning("Closing splash");
+                Close();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error showing login form: " + ex.Message, "Error");
+                Application.Exit();
+            }
         }
     }
+
+
 }

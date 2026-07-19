@@ -5,7 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using kingdom_Preparatory_School_Management_System.Models;
+using KingdomPrep.Shared.Models;
 using kingdom_Preparatory_School_Management_System.Data;
 
 namespace kingdom_Preparatory_School_Management_System.Services
@@ -26,14 +26,14 @@ namespace kingdom_Preparatory_School_Management_System.Services
             try
             {
                 var students = await _studentRepository.GetAllAsync();
-                
+
                 using (var writer = new StreamWriter(filePath, false, Encoding.UTF8))
                 {
                     writer.WriteLine("StudentID,FirstName,LastName,DateOfBirth,Gender,ClassID,Email,HomeTown,Residence,Allergies,GuardianName,GuardianEmail,GuardianLocation,EmergencyContact");
-                    
+
                     foreach (var s in students)
                     {
-                        var line = string.Join(",", 
+                        var line = string.Join(",",
                             EscapeCsv(s.StudentID),
                             EscapeCsv(s.FirstName),
                             EscapeCsv(s.LastName),
@@ -52,7 +52,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
                         writer.WriteLine(line);
                     }
                 }
-                
+
                 return (true, $"Successfully exported {students.Count()} students.");
             }
             catch (Exception ex)

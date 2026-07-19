@@ -1,3 +1,4 @@
+using KingdomPrep.Shared.Models;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -20,7 +21,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
             _repository = repository ?? throw new ArgumentNullException(nameof(repository));
         }
 
-        public async Task<(bool Success, string Message)> AddEmployeeAsync(Models.Employee employee)
+        public async Task<(bool Success, string Message)> AddEmployeeAsync(KingdomPrep.Shared.Models.Employee employee)
         {
             try
             {
@@ -56,7 +57,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
             }
         }
 
-        public async Task<(bool Success, string Message)> UpdateEmployeeAsync(Models.Employee employee)
+        public async Task<(bool Success, string Message)> UpdateEmployeeAsync(KingdomPrep.Shared.Models.Employee employee)
         {
             try
             {
@@ -73,8 +74,8 @@ namespace kingdom_Preparatory_School_Management_System.Services
                 }
 
                 var result = await _repository.UpdateAsync(employee);
-                return result 
-                    ? (true, $"Employee {employee.FullName} updated successfully") 
+                return result
+                    ? (true, $"Employee {employee.FullName} updated successfully")
                     : (false, "Failed to update employee in database");
             }
             catch (Exception ex)
@@ -94,8 +95,8 @@ namespace kingdom_Preparatory_School_Management_System.Services
                 }
 
                 var result = await _repository.DeleteAsync(employeeId);
-                return result 
-                    ? (true, "Employee record deleted successfully") 
+                return result
+                    ? (true, "Employee record deleted successfully")
                     : (false, "Failed to delete employee");
             }
             catch (Exception ex)
@@ -105,12 +106,12 @@ namespace kingdom_Preparatory_School_Management_System.Services
             }
         }
 
-        public async Task<Models.Employee> GetEmployeeAsync(string employeeId)
+        public async Task<KingdomPrep.Shared.Models.Employee> GetEmployeeAsync(string employeeId)
         {
             return await _repository.GetByIdAsync(employeeId);
         }
 
-        public async Task<IEnumerable<Models.Employee>> GetAllEmployeesAsync()
+        public async Task<IEnumerable<KingdomPrep.Shared.Models.Employee>> GetAllEmployeesAsync()
         {
             return await _repository.GetAllAsync();
         }
@@ -126,8 +127,8 @@ namespace kingdom_Preparatory_School_Management_System.Services
             {
                 if (string.IsNullOrWhiteSpace(employeeId)) return (false, "Employee ID is required.");
                 bool result = await _repository.TerminateAsync(employeeId, terminationDate);
-                return result 
-                    ? (true, "Employee contract terminated successfully.") 
+                return result
+                    ? (true, "Employee contract terminated successfully.")
                     : (false, "Failed to terminate employee record.");
             }
             catch (Exception ex)
@@ -152,7 +153,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
                 .OrderBy(d => d);
         }
 
-        private ValidationResult ValidateEmployee(Models.Employee employee)
+        private ValidationResult ValidateEmployee(KingdomPrep.Shared.Models.Employee employee)
         {
             if (employee == null)
                 return new ValidationResult(false, "Employee data is required");

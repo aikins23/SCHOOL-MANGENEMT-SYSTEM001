@@ -1,3 +1,4 @@
+using KingdomPrep.Shared.Models;
 using System.Threading.Tasks;
 
 namespace kingdom_Preparatory_School_Management_System.Services

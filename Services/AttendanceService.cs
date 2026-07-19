@@ -1,3 +1,4 @@
+using KingdomPrep.Shared.Models;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -27,7 +28,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
             return await _repository.GetMonthlyAnalysisAsync(type, month, year);
         }
 
-        public async Task<(bool Success, string Message)> SaveBatchAsync(IEnumerable<Models.AttendanceRecord> records)
+        public async Task<(bool Success, string Message)> SaveBatchAsync(IEnumerable<KingdomPrep.Shared.Models.AttendanceRecord> records)
         {
             try
             {
@@ -46,7 +47,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
             }
         }
 
-        private async Task ProcessAbsenteeNotificationsAsync(IEnumerable<Models.AttendanceRecord> records)
+        private async Task ProcessAbsenteeNotificationsAsync(IEnumerable<KingdomPrep.Shared.Models.AttendanceRecord> records)
         {
             foreach (var record in records)
             {
@@ -61,9 +62,9 @@ namespace kingdom_Preparatory_School_Management_System.Services
                             if (!string.IsNullOrWhiteSpace(student.EmergencyContact))
                             {
                                 await SmsService.SendAttendanceAlertAsync(
-                                    student.EmergencyContact, 
-                                    student.FullName, 
-                                    record.Status, 
+                                    student.EmergencyContact,
+                                    student.FullName,
+                                    record.Status,
                                     record.Date);
                             }
 
@@ -71,9 +72,9 @@ namespace kingdom_Preparatory_School_Management_System.Services
                             if (!string.IsNullOrWhiteSpace(student.GuardianEmail))
                             {
                                 await NotificationService.SendAttendanceAlertAsync(
-                                    student.FullName, 
-                                    student.GuardianEmail, 
-                                    record.Status, 
+                                    student.FullName,
+                                    student.GuardianEmail,
+                                    record.Status,
                                     record.Date);
                             }
                         }

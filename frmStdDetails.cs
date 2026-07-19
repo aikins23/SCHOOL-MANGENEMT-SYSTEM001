@@ -6,7 +6,7 @@ using System.Windows.Forms;
 using kingdom_Preparatory_School_Management_System.Common;
 using kingdom_Preparatory_School_Management_System.Data;
 using kingdom_Preparatory_School_Management_System.Services;
-using kingdom_Preparatory_School_Management_System.Models;
+using KingdomPrep.Shared.Models;
 using PdfSharp.Drawing;
 using PdfSharp.Pdf;
 
@@ -16,6 +16,9 @@ namespace kingdom_Preparatory_School_Management_System
     {
         private readonly StudentService _studentService;
         private readonly DataTable data;
+        private bool CanEditStudents => AuthService.CanWrite("Students.Edit");
+        private bool CanRollOutStudents => AuthService.CanWrite("Students.RollOut");
+        private bool CanAssignStudentTransport => AuthService.CanWrite("Students.TransportAssignment");
         private Label statusLabel;
         private Label _busRouteLabel;
         private int _currentStudentNumericId;
@@ -49,6 +52,7 @@ namespace kingdom_Preparatory_School_Management_System
             _busBar = new Panel { Dock = DockStyle.Bottom, Height = 54, BackColor = PageBackColor, Padding = new Padding(30, 8, 30, 10) };
             _busRouteLabel = new Label { Dock = DockStyle.Left, Width = 460, Text = "Bus route: —", TextAlign = ContentAlignment.MiddleLeft, ForeColor = TextColor, Font = new Font("Segoe UI", 10F) };
             var changeBusBtn = CreateSecondaryButton("Change Bus Route", async () => await ChangeBusRouteAsync());
+            changeBusBtn.Enabled = CanAssignStudentTransport;
             _busRouteLabel.Width = 520;
             _busRouteLabel.Text = "Bus route: -";
             _busRouteLabel.Font = new Font("Segoe UI Semibold", 9.5F, FontStyle.Bold);
@@ -58,6 +62,7 @@ namespace kingdom_Preparatory_School_Management_System
             _busBar.Controls.Add(_busRouteLabel);
             _busBar.Controls.Add(changeBusBtn);
             Controls.Add(_busBar);
+            ApplyWriteAccess();
 
             Load += frmStdDetails_Load;
 
@@ -108,7 +113,7 @@ namespace kingdom_Preparatory_School_Management_System
 
             txtStdID.FillColor = UiTheme.SurfaceAlt;
             ResetCombo(cmbGN, AppConfig.GenderOptions);
-            ResetCombo(cmbCID, AppConfig.ClassNames);
+            ResetCombo(cmbCID, new object[] { "Loading..." });
             dateDOB.Value = DateTime.Today.AddYears(-5);
             dateAD.Value = DateTime.Today;
             std_pic.SizeMode = PictureBoxSizeMode.Zoom;
@@ -359,9 +364,13 @@ namespace kingdom_Preparatory_School_Management_System
             actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 142));
             actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 142));
             actions.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-            actions.Controls.Add(CreatePrimaryButton("Update", UpdateStudent), 0, 0);
+            var updateButton = CreatePrimaryButton("Update", UpdateStudent);
+            updateButton.Enabled = CanEditStudents;
+            var rollOutButton = CreateDangerButton("Roll Out", RollOutStudent);
+            rollOutButton.Enabled = CanRollOutStudents;
+            actions.Controls.Add(updateButton, 0, 0);
             actions.Controls.Add(CreateSecondaryButton("Report", ExportPdf), 1, 0);
-            actions.Controls.Add(CreateDangerButton("Roll Out", RollOutStudent), 2, 0);
+            actions.Controls.Add(rollOutButton, 2, 0);
             actions.Controls.Add(CreateSecondaryButton("Student List", () => { Close(); new frmStdView().Show(); }), 3, 0);
             return actions;
         }
@@ -404,8 +413,11 @@ namespace kingdom_Preparatory_School_Management_System
             return button;
         }
 
-        private void frmStdDetails_Load(object sender, EventArgs e)
+        private async void frmStdDetails_Load(object sender, EventArgs e)
         {
+            var dynamicClasses = await new kingdom_Preparatory_School_Management_System.Data.SchoolInfoRepository(AppConfig.ConnectionString).GetClassNamesAsync();
+            if (dynamicClasses.Count == 0) dynamicClasses.AddRange(AppConfig.ClassNames);
+            ResetCombo(cmbCID, dynamicClasses.ToArray());
             PopulateFromData();
         }
 
@@ -453,6 +465,7 @@ namespace kingdom_Preparatory_School_Management_System
 
         public void upload_Click(object sender, EventArgs e)
         {
+            if (!AuthService.RequireWriteAccess("Students.Edit", "Change student photo")) return;
             using (OpenFileDialog dialog = new OpenFileDialog())
             {
                 dialog.Filter = "Image files|*.jpg;*.jpeg;*.png;*.bmp|All files|*.*";
@@ -490,6 +503,7 @@ namespace kingdom_Preparatory_School_Management_System
         {
             try
             {
+                if (!AuthService.RequireWriteAccess("Students.Edit", "Update student")) return;
                 // 1. Validation guards
                 if (!FormValidationHelper.ValidateRequired(txtStdID, "Student ID")) return;
                 if (!FormValidationHelper.ValidateRequired(txtFN, "First Name")) return;
@@ -530,6 +544,7 @@ namespace kingdom_Preparatory_School_Management_System
         {
             try
             {
+                if (!AuthService.RequireWriteAccess("Students.RollOut", "Roll out student")) return;
                 if (!FormValidationHelper.ValidateRequired(txtStdID, "Student ID")) return;
 
                 if (!ConfirmationHelper.ConfirmDelete("Student", $"ID: {txtStdID.Text}\nName: {txtFN.Text} {txtLN.Text}"))
@@ -590,6 +605,7 @@ namespace kingdom_Preparatory_School_Management_System
                     gfx.DrawString(line, bodyFont, XBrushes.Black, 40, y);
                     y += 18;
                 }
+                Common.PrintBranding.DrawPdfFooter(gfx, page.Width.Point, page.Height.Point);
                 pdf.Save(filePath);
                 pdf.Close();
                 UIHelper.ShowSuccess("PDF report saved to: " + filePath, "Export Success");
@@ -607,7 +623,11 @@ namespace kingdom_Preparatory_School_Management_System
         private void gunaPictureBox6_Click(object sender, EventArgs e) { Close(); new frmStdView().Show(); }
         private void gunaButton1_Click(object sender, EventArgs e) { }
         private void pay_Click(object sender, EventArgs e) { new frmStdView().Show(); }
-        private void studentsToolStripMenuItem_Click(object sender, EventArgs e) { new frmAddStd().Show(); }
+        private void studentsToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (!AuthService.RequireWriteAccess("Students.Register", "Open student registration")) return;
+            new frmAddStd().Show();
+        }
         private void employersToolStripMenuItem_Click(object sender, EventArgs e) { new frmEmployee().Show(); }
         private void classToolStripMenuItem_Click(object sender, EventArgs e) { new EXAMS().Show(); }
         private void studentsToolStripMenuItem1_Click(object sender, EventArgs e) { new frmStdView().Show(); }
@@ -632,6 +652,7 @@ namespace kingdom_Preparatory_School_Management_System
 
         private async System.Threading.Tasks.Task ChangeBusRouteAsync()
         {
+            if (!AuthService.RequireWriteAccess("Students.TransportAssignment", "Change student bus route")) return;
             if (_currentStudentNumericId <= 0) { UIHelper.ShowWarning("Load a student first.", "Bus Route"); return; }
             var repo = new TransportRepository(AppConfig.ConnectionString);
             await repo.EnsureTablesAsync();
@@ -659,6 +680,19 @@ namespace kingdom_Preparatory_School_Management_System
                 }
                 catch (Exception ex) { UIHelper.ShowError("Could not update bus route: " + ex.Message, "Bus Route"); }
             }
+        }
+
+        private void ApplyWriteAccess()
+        {
+            bool canEdit = CanEditStudents;
+            foreach (Control control in new Control[] { txtFN, txtLN, txtEM, txtHT, txtRD, txtAG, txtEC, txtGN, txtGE, txtGL })
+            {
+                var property = control.GetType().GetProperty("ReadOnly");
+                if (property != null && property.CanWrite) property.SetValue(control, !canEdit, null);
+            }
+
+            foreach (Control control in new Control[] { cmbGN, cmbCID, dateDOB, dateAD, upload })
+                if (control != null) control.Enabled = canEdit;
         }
     }
 }

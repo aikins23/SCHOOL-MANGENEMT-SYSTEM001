@@ -1,6 +1,7 @@
 using System;
 using System.Drawing;
 using System.Windows.Forms;
+using kingdom_Preparatory_School_Management_System.Services;
 
 namespace kingdom_Preparatory_School_Management_System.Common
 {
@@ -52,7 +53,7 @@ namespace kingdom_Preparatory_School_Management_System.Common
                 BackColor = Color.FromArgb(36, 48, 88)
             };
 
-            var btnHome = MakeButton("← Main Menu",
+            var btnHome = MakeButton("Main Menu",
                 () => FormManager.ShowForm<frmDashboard>(form));
             btnHome.Dock      = DockStyle.Bottom;
             btnHome.Height    = 46;
@@ -67,8 +68,9 @@ namespace kingdom_Preparatory_School_Management_System.Common
             var navScroll = new Panel
             {
                 Dock       = DockStyle.Fill,
-                AutoScroll = true,
-                BackColor  = NavyBack
+                AutoScroll = false,
+                BackColor  = NavyBack,
+                TabStop    = true
             };
 
             string active = form.GetType().Name;
@@ -77,12 +79,12 @@ namespace kingdom_Preparatory_School_Management_System.Common
             string[] labels = {
                 "Dashboard", "Students", "Promotion", "Staff",
                 "Attendance", "Academic Calendar", "Timetable",
-                "Submit Exams", "Report Cards", "Fees", "Outstanding", "Scholarships"
+                "Submit Exams", "Report Cards", "Performance", "Fees", "Additional Fees", "Outstanding", "Scholarships"
             };
             string[] targets = {
                 "frmDashboard", "frmStdView", "frmStudentPromotion", "frmEmpView",
                 "frmAttendance", "frmAcademicCalendar", "frmTimetable",
-                "EXAMS", "EXAMSVIEW", "frmFessPayment", "frmOutstandingFees", "frmScholarships"
+                "EXAMS", "EXAMSVIEW", "frmPerformanceReports", "frmFessPayment", "frmAdditionalFees", "frmOutstandingFees", "frmScholarships"
             };
 
             // Determine inner height from item count so nav is exactly tall enough
@@ -90,9 +92,10 @@ namespace kingdom_Preparatory_School_Management_System.Common
             int navPadTop  = 10;
             int navHeight  = navPadTop + itemCount * (NavItemHeight + NavItemGap);
 
+            int navContentWidth = Math.Max(180, SidebarWidth - SystemInformation.VerticalScrollBarWidth - 8);
             var nav = new Panel
             {
-                Width     = SidebarWidth,
+                Width     = navContentWidth,
                 Height    = navHeight,
                 BackColor = NavyBack
             };
@@ -100,9 +103,11 @@ namespace kingdom_Preparatory_School_Management_System.Common
             int y = navPadTop;
             for (int i = 0; i < labels.Length; i++)
             {
-                bool isActive = active == targets[i];
+                if (!AuthService.CanAccess(targets[i])) continue;
+
+                bool isActive = active == targets[i] || (targets[i] == "frmFessPayment" && active == "frmPaymentHistory");
                 var btn = MakeButton(labels[i], MakeAction(form, targets[i]));
-                btn.Bounds    = new Rectangle(14, y, SidebarWidth - 28, NavItemHeight);
+                btn.Bounds    = new Rectangle(14, y, navContentWidth - 28, NavItemHeight);
                 btn.BackColor = isActive ? NavySel : NavyBack;
                 btn.ForeColor = isActive ? Color.White : Color.FromArgb(165, 182, 205);
                 btn.Font      = new Font("Segoe UI", 9.5F,
@@ -122,8 +127,12 @@ namespace kingdom_Preparatory_School_Management_System.Common
                 nav.Controls.Add(btn);
                 y += NavItemHeight + NavItemGap;
             }
+            nav.Height = y + 10;
 
             navScroll.Controls.Add(nav);
+            navScroll.Resize += (s, e) => FitNavToScrollArea(navScroll, nav);
+            AttachSidebarWheelScroll(navScroll, nav);
+            FitNavToScrollArea(navScroll, nav);
 
             // Add to sidebar in correct DockStyle order:
             // Bottom items first, then Fill, then Top items (brand last = topmost)
@@ -148,50 +157,117 @@ namespace kingdom_Preparatory_School_Management_System.Common
                 Padding   = new Padding(18, 16, 16, 12)
             };
 
-            // Gold "K" badge
-            var badge = new Panel
+            var productLogo = Common.Branding.IconBgImage ?? Common.Branding.AppIconOnBlue?.ToBitmap();
+            if (productLogo != null)
             {
-                Size      = new Size(44, 44),
-                Location  = new Point(18, 24),
-                BackColor = Color.Transparent
-            };
-            badge.Paint += (s, e) =>
-            {
-                var g = e.Graphics;
-                g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-                using (var br = new SolidBrush(GoldAccent))
-                    g.FillEllipse(br, 0, 0, 43, 43);
-                using (var f  = new Font("Georgia", 15F, FontStyle.Bold))
-                using (var tb = new SolidBrush(Color.FromArgb(8, 14, 52)))
+                brand.Controls.Add(new PictureBox
                 {
-                    var sf = new StringFormat
+                    Size     = new Size(46, 46),
+                    Location = new Point(18, 22),
+                    SizeMode = PictureBoxSizeMode.Zoom,
+                    BackColor = Color.Transparent,
+                    Image    = productLogo
+                });
+            }
+            else
+            {
+                var badge = new Panel
+                {
+                    Size      = new Size(44, 44),
+                    Location  = new Point(18, 24),
+                    BackColor = Color.Transparent
+                };
+                badge.Paint += (s, e) =>
+                {
+                    var g = e.Graphics;
+                    g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+                    using (var br = new SolidBrush(GoldAccent))
+                        g.FillEllipse(br, 0, 0, 43, 43);
+                    using (var f  = new Font("Georgia", 15F, FontStyle.Bold))
+                    using (var tb = new SolidBrush(Color.FromArgb(8, 14, 52)))
                     {
-                        Alignment     = StringAlignment.Center,
-                        LineAlignment = StringAlignment.Center
-                    };
-                    g.DrawString("K", f, tb, new RectangleF(0, 0, 44, 44), sf);
-                }
-            };
+                        var sf = new StringFormat
+                        {
+                            Alignment     = StringAlignment.Center,
+                            LineAlignment = StringAlignment.Center
+                        };
+                        g.DrawString("K", f, tb, new RectangleF(0, 0, 44, 44), sf);
+                    }
+                };
+                brand.Controls.Add(badge);
+            }
 
-            brand.Controls.Add(badge);
             brand.Controls.Add(new Label
             {
-                Text      = "KPS Admin",
+                Text      = "NYANSAPO",
                 ForeColor = Color.White,
-                Font      = new Font("Segoe UI Semibold", 12F, FontStyle.Bold),
+                Font      = new Font("Segoe UI Semibold", 12.5F, FontStyle.Bold),
                 Bounds    = new Rectangle(72, 24, 150, 22),
                 BackColor = Color.Transparent
             });
             brand.Controls.Add(new Label
             {
-                Text      = "School Management",
-                ForeColor = Color.FromArgb(130, 150, 180),
-                Font      = new Font("Segoe UI", 8F),
-                Bounds    = new Rectangle(72, 46, 150, 18),
+                Text      = "SCHOOL ERP",
+                ForeColor = GoldAccent,
+                Font      = new Font("Segoe UI Semibold", 8.5F, FontStyle.Bold),
+                Bounds    = new Rectangle(72, 47, 150, 18),
                 BackColor = Color.Transparent
             });
 
             return brand;
+        }
+
+        private static void FitNavToScrollArea(Panel navScroll, Panel nav)
+        {
+            if (navScroll == null || nav == null || nav.IsDisposed) return;
+
+            int width = Math.Max(180, navScroll.ClientSize.Width - 2);
+            nav.Width = width;
+            nav.Left = 0;
+
+            foreach (Control child in nav.Controls)
+            {
+                if (child is Button)
+                {
+                    child.Width = Math.Max(120, width - 28);
+                }
+            }
+
+            ClampNavScroll(navScroll, nav);
+        }
+
+        private static void AttachSidebarWheelScroll(Panel navScroll, Panel nav)
+        {
+            void Wire(Control control)
+            {
+                control.MouseEnter += (s, e) => navScroll.Focus();
+                control.MouseWheel += (s, e) => ScrollNav(navScroll, nav, e.Delta);
+
+                foreach (Control child in control.Controls)
+                {
+                    Wire(child);
+                }
+            }
+
+            Wire(navScroll);
+        }
+
+        private static void ScrollNav(Panel navScroll, Panel nav, int delta)
+        {
+            if (navScroll == null || nav == null || nav.IsDisposed) return;
+
+            int direction = Math.Sign(delta);
+            if (direction == 0) return;
+
+            nav.Top += direction * 54;
+            ClampNavScroll(navScroll, nav);
+        }
+
+        private static void ClampNavScroll(Panel navScroll, Panel nav)
+        {
+            int minTop = Math.Min(0, navScroll.ClientSize.Height - nav.Height);
+            if (nav.Top < minTop) nav.Top = minTop;
+            if (nav.Top > 0) nav.Top = 0;
         }
 
         private static Button MakeButton(string text, Action action)
@@ -241,8 +317,12 @@ namespace kingdom_Preparatory_School_Management_System.Common
                         FormManager.ShowForm<EXAMS>(form);              break;
                     case "EXAMSVIEW":
                         FormManager.ShowForm<EXAMSVIEW>(form);          break;
+                    case "frmPerformanceReports":
+                        FormManager.ShowForm<frmPerformanceReports>(form); break;
                     case "frmFessPayment":
                         FormManager.ShowForm<frmFessPayment>(form);     break;
+                    case "frmAdditionalFees":
+                        FormManager.ShowForm<frmAdditionalFees>(form);  break;
                     case "frmOutstandingFees":
                         FormManager.ShowForm<frmOutstandingFees>(form); break;
                     case "frmScholarships":

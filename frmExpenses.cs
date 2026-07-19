@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using kingdom_Preparatory_School_Management_System.Common;
 using kingdom_Preparatory_School_Management_System.Data;
-using kingdom_Preparatory_School_Management_System.Models;
+using KingdomPrep.Shared.Models;
 using kingdom_Preparatory_School_Management_System.Services;
 
 namespace kingdom_Preparatory_School_Management_System
@@ -20,6 +20,7 @@ namespace kingdom_Preparatory_School_Management_System
         // Changing the reporting window (term / year / all-time / custom) is a Director privilege;
         // everyone else sees the current term only.
         private readonly bool _isDirector = AuthService.CurrentUser.Role == AuthService.UserRole.Director;
+        private bool CanManageExpenses => AuthService.CanWrite("Finance.Expense.Manage");
 
         private ComboBox _window, _category;
         private Label _windowFixed;
@@ -148,6 +149,7 @@ namespace kingdom_Preparatory_School_Management_System
             entryCard.Controls.Add(fields);       // Fill first
             entryCard.Controls.Add(entryTitle);   // Top last → docks above the fields
             entryHost.Controls.Add(entryCard);
+            ApplyWriteAccess();
 
             // ── Grid + footer ────────────────────────────────────────────
             var gridHost = new Panel { Dock = DockStyle.Fill, BackColor = UiTheme.Page, Padding = new Padding(22, 0, 22, 0) };
@@ -260,6 +262,7 @@ namespace kingdom_Preparatory_School_Management_System
 
         private async Task SaveAsync()
         {
+            if (!AuthService.RequireWriteAccess("Finance.Expense.Manage", _editingId > 0 ? "Update expense" : "Record expense")) return;
             if (string.IsNullOrWhiteSpace(_name.Text)) { UIHelper.ShowWarning("Enter an expense name.", "Expenses"); return; }
             string category = (_category.Text ?? "").Trim();
             if (category.Length == 0) { UIHelper.ShowWarning("Enter or pick a category.", "Expenses"); return; }
@@ -289,15 +292,17 @@ namespace kingdom_Preparatory_School_Management_System
             _editingId = Convert.ToInt32(r.Cells["Id"].Value);
             _name.Text = r.Cells["Name"].Value?.ToString();
             _category.Text = r.Cells["Category"].Value?.ToString();
-            _amount.Text = Convert.ToDecimal(r.Cells["Amount"].Value).ToString("0.##");
+            _amount.Text = Convert.ToDecimal(r.Cells["Amount"].Value).ToString("0.00");
             _payee.Text = r.Cells["Payee"].Value?.ToString();
             _description.Text = r.Cells["Description"].Value?.ToString();
             DateTime dt; if (DateTime.TryParse(r.Cells["Date"].Value?.ToString(), out dt)) _date.Value = dt;
-            _btnRecord.Text = "Update"; _btnDelete.Enabled = true;
+            _btnRecord.Text = CanManageExpenses ? "Update" : "Read only";
+            _btnDelete.Enabled = CanManageExpenses;
         }
 
         private async Task DeleteAsync()
         {
+            if (!AuthService.RequireWriteAccess("Finance.Expense.Manage", "Delete expense")) return;
             if (_editingId <= 0) return;
             if (UIHelper.ShowConfirmation("Delete this expense?", "Expenses") != DialogResult.Yes) return;
             try { await _repo.DeleteAsync(_editingId); ClearEntry(); await RefreshAsync(); }
@@ -309,7 +314,22 @@ namespace kingdom_Preparatory_School_Management_System
             _editingId = 0;
             _name.Clear(); _category.Text = ""; _amount.Clear(); _payee.Clear(); _description.Clear();
             _date.Value = DateTime.Today;
-            _btnRecord.Text = "Record"; _btnDelete.Enabled = false;
+            _btnRecord.Text = CanManageExpenses ? "Record" : "Read only";
+            _btnDelete.Enabled = false;
+        }
+
+        private void ApplyWriteAccess()
+        {
+            bool canWrite = CanManageExpenses;
+            _name.ReadOnly = !canWrite;
+            _amount.ReadOnly = !canWrite;
+            _payee.ReadOnly = !canWrite;
+            _description.ReadOnly = !canWrite;
+            _category.Enabled = canWrite;
+            _date.Enabled = canWrite;
+            _btnRecord.Enabled = canWrite;
+            _btnRecord.Text = canWrite ? "Record" : "Read only";
+            _btnDelete.Enabled = false;
         }
     }
 }

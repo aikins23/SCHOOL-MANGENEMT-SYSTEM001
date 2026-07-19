@@ -1,3 +1,4 @@
+using KingdomPrep.Shared.Models;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -15,21 +16,22 @@ namespace kingdom_Preparatory_School_Management_System.Services
     {
         private readonly IStudentRepository _repository;
         private readonly IFeeRepository _feeRepository;
-        private readonly ScholarshipService _scholarshipService;
+        private readonly Func<string, decimal, Task<decimal>> _scholarshipCalculator;
 
-        public StudentService(IStudentRepository repository, IFeeRepository feeRepository)
+        public StudentService(
+            IStudentRepository repository,
+            IFeeRepository feeRepository,
+            Func<string, decimal, Task<decimal>> scholarshipCalculator = null)
         {
             _repository = repository ?? throw new ArgumentNullException(nameof(repository));
             _feeRepository = feeRepository ?? throw new ArgumentNullException(nameof(feeRepository));
-            
-            // In a real DI setup this would be injected. For MVP we'll construct it directly.
-            _scholarshipService = new ScholarshipService(new ScholarshipRepository(Common.AppConfig.ConnectionString));
+            _scholarshipCalculator = scholarshipCalculator ?? CalculateScholarshipFromConfiguredDatabaseAsync;
         }
 
         /// <summary>
         /// Adds a new student and their initial fee records after validation
         /// </summary>
-        public async Task<(bool Success, string Message)> AddStudentAsync(Models.Student student, bool skipAgeCheck = false)
+        public async Task<(bool Success, string Message)> AddStudentAsync(KingdomPrep.Shared.Models.Student student, bool skipAgeCheck = false)
         {
             try
             {
@@ -76,7 +78,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
         /// <summary>
         /// Updates an existing student and their fee records
         /// </summary>
-        public async Task<(bool Success, string Message)> UpdateStudentAsync(Models.Student student, bool skipAgeCheck = false)
+        public async Task<(bool Success, string Message)> UpdateStudentAsync(KingdomPrep.Shared.Models.Student student, bool skipAgeCheck = false)
         {
             try
             {
@@ -125,8 +127,8 @@ namespace kingdom_Preparatory_School_Management_System.Services
                 }
 
                 var result = await _repository.DeleteAsync(studentId);
-                return result 
-                    ? (true, "Student deleted successfully") 
+                return result
+                    ? (true, "Student deleted successfully")
                     : (false, "Failed to delete student");
             }
             catch (Exception ex)
@@ -139,7 +141,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
         /// <summary>
         /// Gets a student by ID
         /// </summary>
-        public async Task<Models.Student> GetStudentAsync(string studentId)
+        public async Task<KingdomPrep.Shared.Models.Student> GetStudentAsync(string studentId)
         {
             if (string.IsNullOrWhiteSpace(studentId))
                 throw new ArgumentException("Student ID is required", nameof(studentId));
@@ -150,7 +152,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
         /// <summary>
         /// Gets all students
         /// </summary>
-        public async Task<IEnumerable<Models.Student>> GetAllStudentsAsync()
+        public async Task<IEnumerable<KingdomPrep.Shared.Models.Student>> GetAllStudentsAsync()
         {
             return await _repository.GetAllAsync();
         }
@@ -158,7 +160,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
         /// <summary>
         /// Gets students by class
         /// </summary>
-        public async Task<IEnumerable<Models.Student>> GetStudentsByClassAsync(string classId)
+        public async Task<IEnumerable<KingdomPrep.Shared.Models.Student>> GetStudentsByClassAsync(string classId)
         {
             if (string.IsNullOrWhiteSpace(classId))
                 throw new ArgumentException("Class ID is required", nameof(classId));
@@ -179,6 +181,11 @@ namespace kingdom_Preparatory_School_Management_System.Services
             return await _repository.GetAsTableAsync(filterId, filterClass);
         }
 
+        public async Task<(DataTable Items, int TotalCount)> GetStudentsPageAsync(int page, int pageSize, string filterId = null, string filterClass = null, string search = null)
+        {
+            return await _repository.GetPageAsTableAsync(page, pageSize, filterId, filterClass, search);
+        }
+
         public async Task<DataTable> GetRolledOutStudentsTableAsync()
         {
             return await _repository.GetRolledOutAsTableAsync();
@@ -186,14 +193,42 @@ namespace kingdom_Preparatory_School_Management_System.Services
 
         public async Task<(bool Success, string Message)> PromoteStudentsAsync(IEnumerable<string> studentIds, string targetClassId)
         {
-            if (studentIds == null || !studentIds.Any()) return (false, "No students selected for promotion.");
+            var selectedIds = studentIds?
+                .Where(id => !string.IsNullOrWhiteSpace(id))
+                .Select(id => id.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (selectedIds == null || !selectedIds.Any()) return (false, "No students selected for promotion.");
             if (string.IsNullOrWhiteSpace(targetClassId)) return (false, "Target class is required.");
 
             try
             {
-                bool result = await _repository.UpdateStudentClassBatchAsync(studentIds, targetClassId);
-                return result 
-                    ? (true, $"{studentIds.Count()} student(s) promoted to {targetClassId} successfully.") 
+                bool result = await _repository.UpdateStudentClassBatchAsync(selectedIds, targetClassId);
+                if (result && !string.Equals(targetClassId, "GRADUATED", StringComparison.OrdinalIgnoreCase))
+                {
+                    var fee = GetFeeForClass(targetClassId);
+                    foreach (var studentId in selectedIds)
+                    {
+                        try
+                        {
+                            var student = await _repository.GetByIdAsync(studentId);
+                            await _feeRepository.UpdateFeeRecordAsync(studentId, targetClassId, fee);
+                            await _feeRepository.UpdatePaymentRecordAsync(
+                                studentId,
+                                targetClassId,
+                                student?.FullName ?? studentId,
+                                fee);
+                        }
+                        catch (Exception feeEx)
+                        {
+                            LoggerHelper.LogWarning($"Promoted student {studentId}, but fee records could not be refreshed: {feeEx.Message}");
+                        }
+                    }
+                }
+
+                return result
+                    ? (true, $"{selectedIds.Count} student(s) promoted to {targetClassId} successfully.")
                     : (false, "Failed to promote students.");
             }
             catch (Exception ex)
@@ -209,8 +244,8 @@ namespace kingdom_Preparatory_School_Management_System.Services
             {
                 if (string.IsNullOrWhiteSpace(studentId)) return (false, "Student ID is required.");
                 bool result = await _repository.RollOutAsync(studentId);
-                return result 
-                    ? (true, "Student rolled out successfully.") 
+                return result
+                    ? (true, "Student rolled out successfully.")
                     : (false, "Failed to roll out student.");
             }
             catch (Exception ex)
@@ -232,7 +267,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
         {
             try
             {
-                return await _scholarshipService.CalculateAdjustedTuitionAsync(studentId, baseFee);
+                return await _scholarshipCalculator(studentId, baseFee);
             }
             catch (Exception ex)
             {
@@ -241,10 +276,16 @@ namespace kingdom_Preparatory_School_Management_System.Services
             }
         }
 
+        private static Task<decimal> CalculateScholarshipFromConfiguredDatabaseAsync(string studentId, decimal baseFee)
+        {
+            var service = new ScholarshipService(new ScholarshipRepository(Common.AppConfig.ConnectionString));
+            return service.CalculateAdjustedTuitionAsync(studentId, baseFee);
+        }
+
         /// <summary>
         /// Validates student data using centralized ValidationHelper
         /// </summary>
-        private ValidationResult ValidateStudent(Models.Student student, bool skipAgeCheck = false)
+        private ValidationResult ValidateStudent(KingdomPrep.Shared.Models.Student student, bool skipAgeCheck = false)
         {
             if (student == null)
                 return new ValidationResult(false, "Student data is required");

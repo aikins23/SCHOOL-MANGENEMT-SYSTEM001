@@ -1,12 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
-using System.Data.OleDb;
+using Microsoft.Data.SqlClient;
 using System.Linq;
 using System.Threading.Tasks;
 using kingdom_Preparatory_School_Management_System.Common;
 using kingdom_Preparatory_School_Management_System.Data;
-using kingdom_Preparatory_School_Management_System.Models;
+using KingdomPrep.Shared.Models;
 
 namespace kingdom_Preparatory_School_Management_System.Services
 {
@@ -45,12 +45,18 @@ namespace kingdom_Preparatory_School_Management_System.Services
                 var overallRanking = await CalculateOverallRankingAsync(
                     student.ClassID, studentId, term, year);
 
-                // 5. Get attendance summary
-                var attendanceSummary = await GetAttendanceSummaryAsync(studentId, term, year);
+                var academicSessions = new AcademicSessionService();
+                await TryEnsureAcademicSessionSchemaAsync();
+                var reportTerm = await TryFindReportTermAsync(academicSessions, term, year);
+
+                // 5. Get attendance summary for the selected term period when term dates exist.
+                var attendanceSummary = await GetAttendanceSummaryAsync(studentId, term, year, reportTerm);
 
                 // 6. Get teacher remarks
                 var remarks = await _remarksRepository.GetAsync(studentId, term, year)
                     ?? new StudentTermRemarks { StudentID = studentId, Term = term, Year = year };
+
+                var billing = await TryGetBillingBreakdownAsync(academicSessions, studentId, reportTerm);
 
                 return new ReportCardData
                 {
@@ -62,12 +68,16 @@ namespace kingdom_Preparatory_School_Management_System.Services
                     AdmissionDate = student.AdmissionDate,
                     Term = term,
                     Year = year,
+                    TermStartDate = reportTerm?.StartDate,
+                    TermClosingDate = reportTerm?.EndDate,
+                    TermReopeningDate = reportTerm?.ReopeningDate,
                     PresentDays = attendanceSummary.PresentDays,
                     TotalSchoolDays = attendanceSummary.TotalDays,
                     SubjectResults = subjectRankings,
                     OverallPosition = overallRanking.Position,
                     TotalStudentsInClass = overallRanking.TotalStudents,
                     Remarks = remarks,
+                    Billing = billing,
                     SchoolInfo = new SchoolInfo
                     {
                         Name = Common.SchoolProfile.Name,
@@ -86,23 +96,21 @@ namespace kingdom_Preparatory_School_Management_System.Services
 
         private async Task<Student> GetStudentAsync(string studentId)
         {
-            using (var connection = new OleDbConnection(_connectionString))
+            using (var connection = new SqlConnection(kingdom_Preparatory_School_Management_System.Common.SqlCommandExtensions.StripProvider(_connectionString)))
             {
                 await connection.OpenAsync();
-                var query = "SELECT * FROM Students WHERE StudentID = ?";
+                var query = "SELECT * FROM Students WHERE CAST(StudentID AS NVARCHAR(50)) IN (?, ?)";
                 var tenant = await TenantContext.HasSchoolIdColumnAsync(connection, "Students");
                 if (tenant)
                 {
-                    query += TenantContext.FilterClause();
+                    query += TenantContext.FilterClauseSql();
                 }
 
-                using (var cmd = new OleDbCommand(query, connection))
+                using (var cmd = new SqlCommand(query, connection))
                 {
-                    // Ensure studentId is passed as the correct type (int) if the database expects it
-                    if (int.TryParse(studentId, out int idInt))
-                        cmd.Parameters.AddWithValue("?", idInt);
-                    else
-                        cmd.Parameters.AddWithValue("?", studentId);
+                    var ids = BuildStudentIdCandidates(studentId);
+                    kingdom_Preparatory_School_Management_System.Common.SqlCommandExtensions.AddPositionalParameter(cmd, ids[0]);
+                    kingdom_Preparatory_School_Management_System.Common.SqlCommandExtensions.AddPositionalParameter(cmd, ids[1]);
 
                     if (tenant)
                     {
@@ -121,8 +129,8 @@ namespace kingdom_Preparatory_School_Management_System.Services
                                 ClassID = reader["ClassID"]?.ToString() ?? "",
                                 Gender = reader["Gender"]?.ToString() ?? "",
                                 ProfilePhoto = reader["Std_pic"] as byte[],
-                                AdmissionDate = reader["admission_date"] != DBNull.Value 
-                                    ? (DateTime)reader["admission_date"] 
+                                AdmissionDate = reader["admission_date"] != DBNull.Value
+                                    ? (DateTime)reader["admission_date"]
                                     : DateTime.Today
                             };
                         }
@@ -136,25 +144,24 @@ namespace kingdom_Preparatory_School_Management_System.Services
         {
             var results = new List<ExamResult>();
 
-            using (var connection = new OleDbConnection(_connectionString))
+            using (var connection = new SqlConnection(kingdom_Preparatory_School_Management_System.Common.SqlCommandExtensions.StripProvider(_connectionString)))
             {
                 await connection.OpenAsync();
-                var query = "SELECT * FROM examss WHERE std_id = ? AND term = ? AND [year] = ?";
+                var query = "SELECT * FROM examss WHERE CAST(std_id AS NVARCHAR(50)) IN (?, ?) AND term = ? AND [year] = ?";
                 var tenant = await TenantContext.HasSchoolIdColumnAsync(connection, "examss");
                 if (tenant)
                 {
-                    query += TenantContext.FilterClause();
+                    query += TenantContext.FilterClauseSql();
                 }
 
-                using (var cmd = new OleDbCommand(query, connection))
+                using (var cmd = new SqlCommand(query, connection))
                 {
-                    if (int.TryParse(studentId, out int idInt))
-                        cmd.Parameters.AddWithValue("?", idInt);
-                    else
-                        cmd.Parameters.AddWithValue("?", studentId);
+                    var ids = BuildStudentIdCandidates(studentId);
+                    kingdom_Preparatory_School_Management_System.Common.SqlCommandExtensions.AddPositionalParameter(cmd, ids[0]);
+                    kingdom_Preparatory_School_Management_System.Common.SqlCommandExtensions.AddPositionalParameter(cmd, ids[1]);
 
-                    cmd.Parameters.AddWithValue("?", term ?? "");
-                    cmd.Parameters.AddWithValue("?", year ?? "");
+                    kingdom_Preparatory_School_Management_System.Common.SqlCommandExtensions.AddPositionalParameter(cmd, term ?? "");
+                    kingdom_Preparatory_School_Management_System.Common.SqlCommandExtensions.AddPositionalParameter(cmd, year ?? "");
                     if (tenant)
                     {
                         TenantContext.AddSchoolParameter(cmd);
@@ -173,8 +180,8 @@ namespace kingdom_Preparatory_School_Management_System.Services
                                 Category1 = SafeDecimal(reader["cat1"]),
                                 Category2 = SafeDecimal(reader["cat2"]),
                                 Category3 = SafeDecimal(reader["cat3"]),
-                                ExamScore = SafeDecimal(reader["exam_score"]),
-                                TotalScore = SafeDecimal(reader["gt"]),
+                                ExamScore = ClampScore(SafeDecimal(reader["exam_score"]), 0m, 50m),
+                                TotalScore = ClampScore(SafeDecimal(reader["gt"]), 0m, 100m),
                                 Grade = reader["grade"]?.ToString() ?? "",
                                 Remark = reader["remark"]?.ToString() ?? ""
                             });
@@ -196,16 +203,17 @@ namespace kingdom_Preparatory_School_Management_System.Services
                 var allClassResults = await GetSubjectClassResultsAsync(
                     exam.Subject, classId, term, year);
 
-                var position = allClassResults.Count(x => x.TotalScore > exam.TotalScore) + 1;
+                var totalScore = RoundScore(ClampScore(exam.TotalScore, 0m, 100m));
+                var position = allClassResults.Count(x => x.TotalScore > totalScore) + 1;
 
                 results.Add(new SubjectResult
                 {
                     Subject = exam.Subject,
-                    ClassScore = exam.Category1 + exam.Category2 + exam.Category3,
-                    ExamScore = exam.ExamScore,
-                    TotalScore = exam.TotalScore,
-                    Grade = exam.Grade,
-                    Remark = exam.Remark,
+                    ClassScore = RoundScore(ClampScore(exam.CategoryTotal, 0m, 50m)),
+                    ExamScore = RoundScore(ClampScore(exam.ExamScore, 0m, 50m)),
+                    TotalScore = totalScore,
+                    Grade = Common.GradingScheme.CodeForScore(totalScore),
+                    Remark = Common.GradingScheme.LabelForScore(totalScore),
                     PositionInClass = position
                 });
             }
@@ -218,22 +226,22 @@ namespace kingdom_Preparatory_School_Management_System.Services
         {
             var results = new List<ExamResult>();
 
-            using (var connection = new OleDbConnection(_connectionString))
+            using (var connection = new SqlConnection(kingdom_Preparatory_School_Management_System.Common.SqlCommandExtensions.StripProvider(_connectionString)))
             {
                 await connection.OpenAsync();
                 var query = "SELECT gt FROM examss WHERE subject = ? AND std_class = ? AND term = ? AND [year] = ?";
                 var tenant = await TenantContext.HasSchoolIdColumnAsync(connection, "examss");
                 if (tenant)
                 {
-                    query += TenantContext.FilterClause();
+                    query += TenantContext.FilterClauseSql();
                 }
 
-                using (var cmd = new OleDbCommand(query, connection))
+                using (var cmd = new SqlCommand(query, connection))
                 {
-                    cmd.Parameters.AddWithValue("?", subject ?? "");
-                    cmd.Parameters.AddWithValue("?", classId ?? "");
-                    cmd.Parameters.AddWithValue("?", term ?? "");
-                    cmd.Parameters.AddWithValue("?", year ?? "");
+                    kingdom_Preparatory_School_Management_System.Common.SqlCommandExtensions.AddPositionalParameter(cmd, subject ?? "");
+                    kingdom_Preparatory_School_Management_System.Common.SqlCommandExtensions.AddPositionalParameter(cmd, classId ?? "");
+                    kingdom_Preparatory_School_Management_System.Common.SqlCommandExtensions.AddPositionalParameter(cmd, term ?? "");
+                    kingdom_Preparatory_School_Management_System.Common.SqlCommandExtensions.AddPositionalParameter(cmd, year ?? "");
                     if (tenant)
                     {
                         TenantContext.AddSchoolParameter(cmd);
@@ -245,7 +253,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
                         {
                             results.Add(new ExamResult
                             {
-                                TotalScore = SafeDecimal(reader["gt"])
+                                TotalScore = RoundScore(ClampScore(SafeDecimal(reader["gt"]), 0m, 100m))
                             });
                         }
                     }
@@ -260,23 +268,30 @@ namespace kingdom_Preparatory_School_Management_System.Services
         {
             var allClassAggregates = new List<(string StudentId, decimal AggregateScore)>();
 
-            using (var connection = new OleDbConnection(_connectionString))
+            using (var connection = new SqlConnection(kingdom_Preparatory_School_Management_System.Common.SqlCommandExtensions.StripProvider(_connectionString)))
             {
                 await connection.OpenAsync();
-                var query = "SELECT std_id, SUM(gt) as AggregateScore FROM examss WHERE std_class = ? AND term = ? AND [year] = ?";
+                var query = @"SELECT std_id,
+    AVG(CASE
+        WHEN gt IS NULL THEN 0
+        WHEN gt < 0 THEN 0
+        WHEN gt > 100 THEN 100
+        ELSE gt
+    END) as AggregateScore
+FROM examss WHERE std_class = ? AND term = ? AND [year] = ?";
                 var tenant = await TenantContext.HasSchoolIdColumnAsync(connection, "examss");
                 if (tenant)
                 {
-                    query += TenantContext.FilterClause();
+                    query += TenantContext.FilterClauseSql();
                 }
 
                 query += " GROUP BY std_id";
 
-                using (var cmd = new OleDbCommand(query, connection))
+                using (var cmd = new SqlCommand(query, connection))
                 {
-                    cmd.Parameters.AddWithValue("?", classId ?? "");
-                    cmd.Parameters.AddWithValue("?", term ?? "");
-                    cmd.Parameters.AddWithValue("?", year ?? "");
+                    kingdom_Preparatory_School_Management_System.Common.SqlCommandExtensions.AddPositionalParameter(cmd, classId ?? "");
+                    kingdom_Preparatory_School_Management_System.Common.SqlCommandExtensions.AddPositionalParameter(cmd, term ?? "");
+                    kingdom_Preparatory_School_Management_System.Common.SqlCommandExtensions.AddPositionalParameter(cmd, year ?? "");
                     if (tenant)
                     {
                         TenantContext.AddSchoolParameter(cmd);
@@ -288,7 +303,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
                         {
                             allClassAggregates.Add((
                                 reader["std_id"].ToString(),
-                                SafeDecimal(reader["AggregateScore"])
+                                RoundScore(ClampScore(SafeDecimal(reader["AggregateScore"]), 0m, 100m))
                             ));
                         }
                     }
@@ -297,7 +312,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
 
             if (allClassAggregates.Count == 0) return (0, 0);
 
-            var studentAggregate = allClassAggregates.FirstOrDefault(x => x.StudentId == studentId);
+            var studentAggregate = allClassAggregates.FirstOrDefault(x => StudentIdMatches(x.StudentId, studentId));
             // If student has no scores at all for the term, they won't be in the aggregate list
             if (studentAggregate.StudentId == null) return (allClassAggregates.Count + 1, allClassAggregates.Count + 1);
 
@@ -306,11 +321,11 @@ namespace kingdom_Preparatory_School_Management_System.Services
         }
 
         private async Task<(int PresentDays, int TotalDays)> GetAttendanceSummaryAsync(
-            string studentId, string term, string year)
+            string studentId, string term, string year, AcademicTerm reportTerm)
         {
             try
             {
-                using (var connection = new OleDbConnection(_connectionString))
+                using (var connection = new SqlConnection(kingdom_Preparatory_School_Management_System.Common.SqlCommandExtensions.StripProvider(_connectionString)))
                 {
                     await connection.OpenAsync();
 
@@ -318,21 +333,30 @@ namespace kingdom_Preparatory_School_Management_System.Services
                     if (!string.IsNullOrEmpty(year) && int.TryParse(year.Split('/')[0], out var y)) yearNum = y;
 
                     var tenant = await TenantContext.HasSchoolIdColumnAsync(connection, "Attendance");
-                    var presentQuery = "SELECT COUNT(*) FROM Attendance WHERE ReferenceID = ? AND ReferenceType = 'STUDENT' AND [Status] = 'PRESENT' AND YEAR([Date]) = ?";
+                    var hasTermRange = reportTerm != null;
+                    var presentQuery = "SELECT COUNT(*) FROM Attendance WHERE CAST(ReferenceID AS NVARCHAR(50)) IN (?, ?) AND ReferenceType = 'STUDENT' AND [Status] = 'PRESENT'";
+                    presentQuery += hasTermRange ? " AND CAST([Date] AS date) BETWEEN ? AND ?" : " AND YEAR([Date]) = ?";
                     if (tenant)
                     {
-                        presentQuery += TenantContext.FilterClause();
+                        presentQuery += TenantContext.FilterClauseSql();
                     }
 
                     int presentDays = 0;
-                    using (var cmd = new OleDbCommand(presentQuery, connection))
+                    using (var cmd = new SqlCommand(presentQuery, connection))
                     {
-                        if (int.TryParse(studentId, out int idInt))
-                            cmd.Parameters.AddWithValue("?", idInt);
+                        var ids = BuildStudentIdCandidates(studentId);
+                        kingdom_Preparatory_School_Management_System.Common.SqlCommandExtensions.AddPositionalParameter(cmd, ids[0]);
+                        kingdom_Preparatory_School_Management_System.Common.SqlCommandExtensions.AddPositionalParameter(cmd, ids[1]);
+
+                        if (hasTermRange)
+                        {
+                            kingdom_Preparatory_School_Management_System.Common.SqlCommandExtensions.AddPositionalParameter(cmd, reportTerm.StartDate.Date);
+                            kingdom_Preparatory_School_Management_System.Common.SqlCommandExtensions.AddPositionalParameter(cmd, reportTerm.EndDate.Date);
+                        }
                         else
-                            cmd.Parameters.AddWithValue("?", studentId);
-                        
-                        cmd.Parameters.AddWithValue("?", yearNum);
+                        {
+                            kingdom_Preparatory_School_Management_System.Common.SqlCommandExtensions.AddPositionalParameter(cmd, yearNum);
+                        }
                         if (tenant)
                         {
                             TenantContext.AddSchoolParameter(cmd);
@@ -341,16 +365,25 @@ namespace kingdom_Preparatory_School_Management_System.Services
                         presentDays = Convert.ToInt32(await cmd.ExecuteScalarAsync());
                     }
 
-                    var totalQuery = "SELECT COUNT(DISTINCT [Date]) FROM Attendance WHERE YEAR([Date]) = ?";
+                    var totalQuery = "SELECT COUNT(DISTINCT [Date]) FROM Attendance WHERE 1=1";
+                    totalQuery += hasTermRange ? " AND CAST([Date] AS date) BETWEEN ? AND ?" : " AND YEAR([Date]) = ?";
                     if (tenant)
                     {
-                        totalQuery += TenantContext.FilterClause();
+                        totalQuery += TenantContext.FilterClauseSql();
                     }
 
                     int totalDays = 0;
-                    using (var cmd = new OleDbCommand(totalQuery, connection))
+                    using (var cmd = new SqlCommand(totalQuery, connection))
                     {
-                        cmd.Parameters.AddWithValue("?", yearNum);
+                        if (hasTermRange)
+                        {
+                            kingdom_Preparatory_School_Management_System.Common.SqlCommandExtensions.AddPositionalParameter(cmd, reportTerm.StartDate.Date);
+                            kingdom_Preparatory_School_Management_System.Common.SqlCommandExtensions.AddPositionalParameter(cmd, reportTerm.EndDate.Date);
+                        }
+                        else
+                        {
+                            kingdom_Preparatory_School_Management_System.Common.SqlCommandExtensions.AddPositionalParameter(cmd, yearNum);
+                        }
                         if (tenant)
                         {
                             TenantContext.AddSchoolParameter(cmd);
@@ -373,6 +406,82 @@ namespace kingdom_Preparatory_School_Management_System.Services
         {
             if (value == null || value == DBNull.Value) return 0m;
             return Convert.ToDecimal(value);
+        }
+
+        private async Task TryEnsureAcademicSessionSchemaAsync()
+        {
+            try
+            {
+                await AcademicSessionSchema.EnsureAsync(_connectionString);
+            }
+            catch (Exception ex)
+            {
+                LoggerHelper.LogError("Academic session schema check failed during report card generation; continuing without optional session backfill.", ex);
+            }
+        }
+
+        private async Task<AcademicTerm> TryFindReportTermAsync(AcademicSessionService academicSessions, string term, string year)
+        {
+            try
+            {
+                return await academicSessions.FindTermAsync(term, year)
+                    ?? await academicSessions.FindTermAsync(term);
+            }
+            catch (Exception ex)
+            {
+                LoggerHelper.LogError("Could not load academic term metadata for report card; dates will be left blank.", ex);
+                return null;
+            }
+        }
+
+        private async Task<StudentBillingBreakdown> TryGetBillingBreakdownAsync(
+            AcademicSessionService academicSessions, string studentId, AcademicTerm reportTerm)
+        {
+            try
+            {
+                return reportTerm == null
+                    ? await academicSessions.GetStudentBillingBreakdownAsync(studentId)
+                    : await academicSessions.GetStudentBillingBreakdownAsync(studentId, reportTerm.TermID);
+            }
+            catch (Exception ex)
+            {
+                LoggerHelper.LogError($"Could not load billing breakdown for report card student {studentId}; continuing without billing sheet.", ex);
+                return null;
+            }
+        }
+
+        private static decimal ClampScore(decimal value, decimal min, decimal max)
+        {
+            if (value < min) return min;
+            return value > max ? max : value;
+        }
+
+        private static decimal RoundScore(decimal value)
+        {
+            return Math.Round(value, 2, MidpointRounding.AwayFromZero);
+        }
+
+        private static string[] BuildStudentIdCandidates(string studentId)
+        {
+            var raw = (studentId ?? "").Trim();
+            var numeric = StudentId.Parse(raw);
+            var display = StudentId.Display(numeric.Length == 0 ? raw : numeric);
+            if (string.Equals(numeric, display, StringComparison.OrdinalIgnoreCase))
+            {
+                display = raw;
+            }
+            if (string.IsNullOrWhiteSpace(display))
+            {
+                display = numeric;
+            }
+            return new[] { numeric, display };
+        }
+
+        private static bool StudentIdMatches(string left, string right)
+        {
+            var l = BuildStudentIdCandidates(left);
+            var r = BuildStudentIdCandidates(right);
+            return l.Any(x => r.Any(y => string.Equals(x, y, StringComparison.OrdinalIgnoreCase)));
         }
     }
 }

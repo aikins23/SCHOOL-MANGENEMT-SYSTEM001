@@ -1,7 +1,9 @@
+using KingdomPrep.Shared.Models;
 using System;
 using System.Data;
-using System.Data.OleDb;
+using Microsoft.Data.SqlClient;
 using System.Threading.Tasks;
+using kingdom_Preparatory_School_Management_System.Common;
 
 namespace kingdom_Preparatory_School_Management_System.Data
 {
@@ -19,39 +21,39 @@ namespace kingdom_Preparatory_School_Management_System.Data
             var table = new DataTable();
             try
             {
-                using (var connection = new OleDbConnection(_connectionString))
+                using (var connection = new SqlConnection(SqlCommandExtensions.StripProvider(_connectionString)))
                 {
                     await connection.OpenAsync();
                     bool userTenant = await TenantContext.HasSchoolIdColumnAsync(connection, "Users");
                     bool employeeTenant = await TenantContext.HasSchoolIdColumnAsync(connection, "Employee");
                     // Join with Employee to show Full Name if linked
                     var query = @"
-                        SELECT 
-                            u.Username, 
-                            u.User_Type AS [Role], 
+                        SELECT
+                            u.Username,
+                            u.User_Type AS [Role],
                             e.fullName AS [Linked Employee],
                             u.EmploymentID AS [Link ID]
                         FROM Users u
                         LEFT JOIN Employee e ON u.EmploymentID = e.employmentID";
                     if (employeeTenant)
                     {
-                        query += " AND e.SchoolId = ?";
+                        query += " AND e.SchoolId = @EmployeeSchoolId";
                     }
                     query += @"
                         WHERE 1=1";
                     if (userTenant)
                     {
-                        query += TenantContext.FilterClause("u");
+                        query += TenantContext.FilterClauseSql("u");
                     }
                     query += @"
                         ORDER BY u.Username";
 
-                    using (var command = new OleDbCommand(query, connection))
-                    using (var adapter = new OleDbDataAdapter(command))
+                    using (var command = new SqlCommand(query, connection))
+                    using (var adapter = new SqlDataAdapter(command))
                     {
-                        if (employeeTenant) TenantContext.AddSchoolParameter(command);
+                        if (employeeTenant) command.Parameters.AddWithValue("@EmployeeSchoolId", TenantContext.RequireSchoolId());
                         if (userTenant) TenantContext.AddSchoolParameter(command);
-                        adapter.Fill(table);
+                        await Task.Run(() => adapter.Fill(table));
                     }
                 }
             }
@@ -66,15 +68,16 @@ namespace kingdom_Preparatory_School_Management_System.Data
         {
             try
             {
-                using (var connection = new OleDbConnection(_connectionString))
+                await TryRecordUserDeleteAsync(username);
+                using (var connection = new SqlConnection(SqlCommandExtensions.StripProvider(_connectionString)))
                 {
                     await connection.OpenAsync();
                     bool tenant = await TenantContext.HasSchoolIdColumnAsync(connection, "Users");
                     var query = "DELETE FROM Users WHERE Username = ?";
-                    if (tenant) query += TenantContext.FilterClause();
-                    using (var command = new OleDbCommand(query, connection))
+                    if (tenant) query += TenantContext.FilterClauseSql();
+                    using (var command = new SqlCommand(query, connection))
                     {
-                        command.Parameters.AddWithValue("?", username);
+                        command.AddPositionalParameter(username);
                         if (tenant) TenantContext.AddSchoolParameter(command);
                         return await command.ExecuteNonQueryAsync() > 0;
                     }
@@ -91,18 +94,20 @@ namespace kingdom_Preparatory_School_Management_System.Data
         {
             try
             {
-                using (var connection = new OleDbConnection(_connectionString))
+                using (var connection = new SqlConnection(SqlCommandExtensions.StripProvider(_connectionString)))
                 {
                     await connection.OpenAsync();
                     bool tenant = await TenantContext.HasSchoolIdColumnAsync(connection, "Users");
                     var query = "UPDATE Users SET Password = ? WHERE Username = ?";
-                    if (tenant) query += TenantContext.FilterClause();
-                    using (var command = new OleDbCommand(query, connection))
+                    if (tenant) query += TenantContext.FilterClauseSql();
+                    using (var command = new SqlCommand(query, connection))
                     {
-                        command.Parameters.AddWithValue("?", hashedPassword);
-                        command.Parameters.AddWithValue("?", username);
+                        command.AddPositionalParameter(hashedPassword);
+                        command.AddPositionalParameter(username);
                         if (tenant) TenantContext.AddSchoolParameter(command);
-                        return await command.ExecuteNonQueryAsync() > 0;
+                        var result = await command.ExecuteNonQueryAsync();
+                        if (result > 0) await TryRecordUserUpsertAsync(username, "Update");
+                        return result > 0;
                     }
                 }
             }
@@ -117,18 +122,20 @@ namespace kingdom_Preparatory_School_Management_System.Data
         {
             try
             {
-                using (var connection = new OleDbConnection(_connectionString))
+                using (var connection = new SqlConnection(SqlCommandExtensions.StripProvider(_connectionString)))
                 {
                     await connection.OpenAsync();
                     bool tenant = await TenantContext.HasSchoolIdColumnAsync(connection, "Users");
                     var query = "UPDATE Users SET User_Type = ? WHERE Username = ?";
-                    if (tenant) query += TenantContext.FilterClause();
-                    using (var command = new OleDbCommand(query, connection))
+                    if (tenant) query += TenantContext.FilterClauseSql();
+                    using (var command = new SqlCommand(query, connection))
                     {
-                        command.Parameters.AddWithValue("?", newRole);
-                        command.Parameters.AddWithValue("?", username);
+                        command.AddPositionalParameter(newRole);
+                        command.AddPositionalParameter(username);
                         if (tenant) TenantContext.AddSchoolParameter(command);
-                        return await command.ExecuteNonQueryAsync() > 0;
+                        var result = await command.ExecuteNonQueryAsync();
+                        if (result > 0) await TryRecordUserUpsertAsync(username, "Update");
+                        return result > 0;
                     }
                 }
             }
@@ -136,6 +143,32 @@ namespace kingdom_Preparatory_School_Management_System.Data
             {
                 Services.LoggerHelper.LogError($"Error updating role for {username}", ex);
                 return false;
+            }
+        }
+
+        private async Task TryRecordUserUpsertAsync(string username, string operation)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(username)) return;
+                await new SyncChangeRecorder(_connectionString).RecordUpsertAsync("Users", "Username", username, operation);
+            }
+            catch (Exception ex)
+            {
+                Services.LoggerHelper.LogWarning("User sync capture skipped: " + ex.Message);
+            }
+        }
+
+        private async Task TryRecordUserDeleteAsync(string username)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(username)) return;
+                await new SyncChangeRecorder(_connectionString).RecordDeleteAsync("Users", "Username", username);
+            }
+            catch (Exception ex)
+            {
+                Services.LoggerHelper.LogWarning("User delete sync capture skipped: " + ex.Message);
             }
         }
     }

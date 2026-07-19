@@ -2,8 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Threading.Tasks;
 using System.Windows.Forms;
-using kingdom_Preparatory_School_Management_System.Models;
+using KingdomPrep.Shared.Models;
 
 namespace kingdom_Preparatory_School_Management_System.Services
 {
@@ -16,7 +17,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
     /// </summary>
     public static class ReportCardPdfService
     {
-        public static void Export(Dictionary<string, string> data)
+        public static async Task ExportAsync(Dictionary<string, string> data)
         {
             try
             {
@@ -28,14 +29,14 @@ namespace kingdom_Preparatory_School_Management_System.Services
 
                 var reportData = ToReportCardData(data);
                 var generator  = new ReportCardPDFGenerator();
-                var bytes      = generator.GeneratePDFAsync(reportData).GetAwaiter().GetResult();
-                File.WriteAllBytes(path, bytes);
+                var bytes      = await Task.Run(async () => await generator.GeneratePDFAsync(reportData));
+                await Task.Run(() => File.WriteAllBytes(path, bytes));
 
                 MessageBox.Show(
                     $"Report card saved to Desktop:\n{fileName}",
                     "Export Successful", MessageBoxButtons.OK, MessageBoxIcon.Information);
 
-                try { Process.Start(path); } catch { /* viewer not found */ }
+                try { await Task.Run(() => Process.Start(path)); } catch { /* viewer not found */ }
             }
             catch (Exception ex)
             {
@@ -53,7 +54,7 @@ namespace kingdom_Preparatory_School_Management_System.Services
                 ClassID = V(data, "CLASS", ""),
                 Gender = V(data, "GENDER", ""),
                 Term = V(data, "TERMS", V(data, "TERM", "TERM 3")),
-                Year = V(data, "YEAR", "2024/2025"),
+                Year = V(data, "YEAR", CurrentAcademicYearLabel()),
                 PresentDays = ParseInt(V(data, "ATTENDANCE", "")),
                 TotalSchoolDays = ParseInt(V(data, "TOTAL_SCHOOL_DAYS", "")),
                 OverallPosition = ParseInt(V(data, "TOTAL_RANK", "")),
@@ -125,6 +126,12 @@ namespace kingdom_Preparatory_School_Management_System.Services
             }
 
             return int.TryParse(digits, out int result) ? result : 0;
+        }
+
+        private static string CurrentAcademicYearLabel()
+        {
+            int year = DateTime.Today.Year;
+            return $"{year}/{year + 1}";
         }
 
         private static string V(Dictionary<string, string> d, string key, string fallback = "")
